@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 src_type=en
-tgt_type=ner
+tgt_type=en
 
 train_set="train"
 valid_set="devel"
@@ -15,16 +15,18 @@ test_sets="test devel"
 nlu_config=conf/train_nlu.yaml
 inference_config=conf/decode_nlu.yaml
 
-src_case=tc
-tgt_case=tc
+src_case=asr
+tgt_case=ner
 
 src_nbpe=1000
 tgt_nbpe=1000   # if token_joint is true, then only tgt_nbpe is used
 
 ./nlu.sh \
     --ngpu 1 \
-    --nj 16 \
-    --inference_nj 32 \
+    --stage 10 \
+    --stop_stage 11 \
+    --gpu_inference true \
+    --inference_nj 1 \
     --src_type ${src_type} \
     --tgt_type ${tgt_type} \
     --src_token_type "word" \

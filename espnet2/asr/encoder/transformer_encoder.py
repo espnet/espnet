@@ -24,6 +24,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv2dOnlySubsampling,
     Conv2dSubsampling,
     Conv2dSubsampling2,
     Conv2dSubsampling6,
@@ -82,6 +83,8 @@ class TransformerEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
+        print("input")
+        print(input_size)
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -93,6 +96,8 @@ class TransformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(input_size, output_size, dropout_rate)
+        elif input_layer == "conv2dOnly":
+            self.embed = Conv2dOnlySubsampling(input_size, output_size, dropout_rate)
         elif input_layer == "conv2d2":
             self.embed = Conv2dSubsampling2(input_size, output_size, dropout_rate)
         elif input_layer == "conv2d6":
@@ -213,6 +218,7 @@ class TransformerEncoder(AbsEncoder):
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)
+            or isinstance(self.embed, Conv2dOnlySubsampling)
         ):
             short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
             if short_status:

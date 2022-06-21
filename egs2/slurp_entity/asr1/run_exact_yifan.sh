@@ -15,11 +15,11 @@ inference_config=conf/decode_asr.yaml
 ./asr.sh \
     --lang en \
     --ngpu 1 \
-    --nj 32 \
+    --nj 12 \
     --inference_nj 32 \
     --use_lm false \
-    --stage 13\
-    --stop_stage 13\
+    --stage 2\
+    --stop_stage 10\
     --gpu_inference true\
     --nbpe 5000 \
     --token_type word \

@@ -157,8 +157,6 @@ class ESPnetNLUModel(AbsESPnetModel):
         text = text[:, : text_lengths.max()]
         src_text = src_text[:, : src_text_lengths.max()]
 
-        if src_text_lengths.sum() / len(src_text_lengths) != src_text_lengths[0]:
-            import pdb;pdb.set_trace()
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(src_text, src_text_lengths)
 

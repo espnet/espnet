@@ -74,7 +74,7 @@ class Text2Text:
             nlu_train_config, nlu_model_file, device
         )
         nlu_model.to(dtype=getattr(torch, dtype)).eval()
-
+        import pdb;pdb.set_trace()
         decoder = nlu_model.decoder
         token_list = nlu_model.token_list
         scorers.update(

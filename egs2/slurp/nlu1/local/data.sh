@@ -42,24 +42,21 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/prepare_slurp_data.py ${SLURP}
+    python3 local/prepare_slurp_entity_data_token_md.py ${SLURP}
+    local/run_spm.sh
+    mv data data_old
+    mv data_bpe_500 data
+    python3 local/create_ner_subtoken_file.py 
     for x in test devel train; do
-        for f in text.ner text.intent text wav.scp utt2spk; do
+        cp data/${x}/text.ner.en data/${x}/text.ner.en.old
+        cp data/${x}/text_subtoken.ner.en data/${x}/text.ner.en
+        for f in text.asr.en text.ner.en wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
+        cp data/${x}/text.ner.en data/${x}/text
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
-
-    for x in test devel train; do
-        cp data/${x}/text data/${x}/text.tc.en
-        cp data/${x}/text.ner data/${x}/text.tc.ner
-        cp data/${x}/text.intent data/${x}/text.tc.intent
-
-        lowercase.perl < data/${x}/text > data/${x}/text.lc.en
-        remove_punctuation.pl < data/${x}/text.lc.en > data/${x}/text.lc.rm.en
-    done
-
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

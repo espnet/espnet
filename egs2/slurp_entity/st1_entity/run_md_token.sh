@@ -10,9 +10,9 @@ tgt_lang=en
 
 train_set=train
 train_dev=devel
-test_set="devel test"
+test_set="test"
 
-st_config=conf/md_token.yaml
+st_config=conf/md_token_8.yaml
 # inference_config=conf/decode_md.yaml
 
 src_nbpe=500
@@ -37,8 +37,9 @@ tgt_case=ner
     --ngpu 1 \
     --feats_type raw \
     --stage 11\
-    --stop_stage 12\
-    --gpu_inference true\
+    --stop_stage 11\
+    --nj 16 \
+    --inference_nj 250 \
     --audio_format "flac.ark" \
     --inference_config conf/decode_asr_md_ctc_0.1.yaml\
     --src_lang ${src_lang} \

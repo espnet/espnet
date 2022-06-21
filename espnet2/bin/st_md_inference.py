@@ -111,9 +111,21 @@ class Speech2Text:
         )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
-        decoder = st_model.decoder
-        if isinstance(decoder,TransformerMDDecoder):
-            self.speech_attn = True
+        if getattr(st_model, "token_decoder", None) is not None:
+            decoder = st_model.token_decoder
+            self.speech_attn = st_model.speech_attn
+            self.token_decoder=True
+        else:
+            decoder = st_model.decoder
+            if isinstance(decoder,TransformerMDDecoder):
+                self.speech_attn = True
+            self.token_decoder=False
+
+        if getattr(st_model, "CRF_loss", None) is not None:
+            self.CRF_loss=st_model.CRF_loss
+        else:
+            self.CRF_loss=False
+
         asr_decoder = st_model.asr_decoder
         token_list = st_model.token_list
         if getattr(st_model,"src_token_list", None) is None:
@@ -251,37 +263,42 @@ class Speech2Text:
             ngram=ngram_weight,
             length_bonus=penalty,
         )
-        beam_search = BeamSearch(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=st_model.sos,
-            eos=st_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key="full",
-        )
-        # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
-        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-        for scorer in scorers.values():
-            if isinstance(scorer, torch.nn.Module):
-                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-        logging.info(f"Beam_search: {beam_search}")
-        logging.info(f"Decoding device={device}, dtype={dtype}")
+        if not self.token_decoder:
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=st_model.sos,
+                eos=st_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key="full",
+            )
+            # TODO(karita): make all scorers batchfied
+            if batch_size == 1:
+                non_batch = [
+                    k
+                    for k, v in beam_search.full_scorers.items()
+                    if not isinstance(v, BatchScorerInterface)
+                ]
+                if len(non_batch) == 0:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+                else:
+                    logging.warning(
+                        f"As non-batch scorers {non_batch} are found, "
+                        f"fall back to non-batch implementation."
+                    )
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
+            self.beam_search = beam_search
+        else:
+            logging.info(f"No Beam_search: token decoder")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
 
         if batch_size == 1:
             non_batch = [
@@ -347,7 +364,6 @@ class Speech2Text:
 
         self.converter = converter
         self.tokenizer = tokenizer
-        self.beam_search = beam_search
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.nbest = nbest
@@ -438,8 +454,8 @@ class Speech2Text:
                 asr_hs = hyp.hs
 
             src_token_int = hyp.yseq.tolist()
-            src_token_int = list(filter(lambda x: x != self.st_model.src_sos, src_token_int))
-            src_token_int = list(filter(lambda x: x != self.st_model.src_eos, src_token_int))
+            #src_token_int = list(filter(lambda x: x != self.st_model.src_sos, src_token_int))
+            #src_token_int = list(filter(lambda x: x != self.st_model.src_eos, src_token_int))
 
             # remove blank symbol id, which is assumed to be 0
             src_token_int = list(filter(lambda x: x != 0, src_token_int))
@@ -458,90 +474,113 @@ class Speech2Text:
         asr_hs = asr_results[0][-1].unsqueeze(0)
         asr_hs = to_device(asr_hs, device=self.device)
         asr_hs_lengths = asr_hs.new_full([1], dtype=torch.long, fill_value=asr_hs.size(1))
-        enc_mt, enc_mt_lengths, _ = self.st_model.encoder_mt(asr_hs, asr_hs_lengths)
-        if self.speech_attn:
-            if hasattr(self.st_model, "encoder_hier"):
-                enc_hier, enc_hier_lens, _ = self.st_model.encoder_hier(enc, enc_lens)
-                x = enc_hier[0]
+
+
+        if self.token_decoder:
+            if self.speech_attn:
+                dec_out = self.st_model.token_decoder(asr_hs, asr_hs_lengths, speech=enc, speech_lens=enc_lens)
             else:
-                x = enc[0]
-            md_x = enc_mt[0]
+                dec_out = self.st_model.token_decoder(asr_hs, asr_hs_lengths)
+            if self.CRF_loss:
+                ys_hat = torch.Tensor(self.st_model.criterion_st.decode(dec_out)).long()
+            else:
+                dec_out[:,:,self.st_model.eos] = -float('inf')
+                ys_hat = dec_out.argmax(dim=-1) #it is trained to predict eos unfortunately. So we probably need to remove that from it's prediction. We should also consider masking them during training
+            nbest_hyps = [
+                    Hypothesis(
+                        score=1.0,
+                        yseq=ys_hat[0],
+                        scores=asr_nbest_hyps[0].scores,
+                        states=asr_nbest_hyps[0].states,
+                        hs=[])
+                    ]
         else:
-            x = enc_mt[0]
-            md_x = None
-
-        mt_x=None
-        if self.mt_model is not None:
-            if src_text is not None:
-                asr_text_token = src_text
-            else:
-                asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
-            asr_text_token = asr_text_token.to(torch.long)
-            asr_text_lengths = asr_text_token.new_full([1], dtype=torch.long, fill_value=asr_text_token.size(1))
-            mt_batch = {"src_text": asr_text_token, "src_text_lengths": asr_text_lengths}
-            mt_batch = to_device(mt_batch, device=self.device)
-            mt_enc, _ = self.mt_model.encode(**mt_batch)
-            mt_x = mt_enc[0]
-
-        ext_st_xs=None
-        ext_md_xs=None
-        if self.ext_st_models is not None:
-            ext_st_xs=[]
-            ext_md_xs=[]
-            for i in range(len(self.ext_st_models)):
-                ext_st_enc, ext_st_enc_lens = self.ext_st_models[i].encode(**batch)
-                if self.ext_md_models[i]:
-                    if src_text is not None:
-                        _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
-                            ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
-                        )
-                        ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
-                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
-                    else:
-                        asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
-                        asr_text_token = asr_text_token.to(torch.long)
-                        asr_text_token_in, _ = add_sos_eos(asr_text_token, self.ext_st_models[i].src_sos, self.ext_st_models[i].src_eos, self.ext_st_models[i].ignore_id)
-
-                        asr_text_lengths = asr_text_token_in.new_full([1], dtype=torch.long, fill_value=asr_text_token_in.size(1))
-                        _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
-                            ext_st_enc, ext_st_enc_lens, asr_text_token_in, asr_text_lengths, return_hidden=True
-                        )
-                        ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
-                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
-                    if self.ext_speech_attns[i]:
-                        if hasattr(self.ext_st_models[i], "encoder_hier"):
-                            ext_st_enc_hier, _ , _ = self.ext_st_models[i].encoder_hier(ext_st_enc, ext_st_enc_lens)
-                            ext_st_xs.append(ext_st_enc_hier[0])
-                            ext_md_xs.append(ext_st_enc_mt[0])
-                        else:
-                            ext_st_xs.append(ext_st_enc[0])
-                            ext_md_xs.append(ext_st_enc_mt[0])
-                    else:
-                        ext_st_xs.append(ext_st_enc_mt[0])
-                        ext_md_xs.append(None)
+            enc_mt, enc_mt_lengths, _ = self.st_model.encoder_mt(asr_hs, asr_hs_lengths)
+            if self.speech_attn:
+                if hasattr(self.st_model, "encoder_hier"):
+                    enc_hier, enc_hier_lens, _ = self.st_model.encoder_hier(enc, enc_lens)
+                    x = enc_hier[0]
                 else:
-                    ext_st_xs.append(ext_st_enc[0])
-                    ext_md_xs.append(None)
+                    x = enc[0]
+                md_x = enc_mt[0]
+            else:
+                x = enc_mt[0]
+                md_x = None
+
+            mt_x=None
+            if self.mt_model is not None:
+                if src_text is not None:
+                    asr_text_token = src_text
+                else:
+                    asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
+                asr_text_token = asr_text_token.to(torch.long)
+                asr_text_lengths = asr_text_token.new_full([1], dtype=torch.long, fill_value=asr_text_token.size(1))
+                mt_batch = {"src_text": asr_text_token, "src_text_lengths": asr_text_lengths}
+                mt_batch = to_device(mt_batch, device=self.device)
+                mt_enc, _ = self.mt_model.encode(**mt_batch)
+                mt_x = mt_enc[0]
+
+            ext_st_xs=None
+            ext_md_xs=None
+            if self.ext_st_models is not None:
+                ext_st_xs=[]
+                ext_md_xs=[]
+                for i in range(len(self.ext_st_models)):
+                    ext_st_enc, ext_st_enc_lens = self.ext_st_models[i].encode(**batch)
+                    if self.ext_md_models[i]:
+                        if src_text is not None:
+                            _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
+                                ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
+                            )
+                            ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
+                            ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
+                        else:
+                            asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
+                            asr_text_token = asr_text_token.to(torch.long)
+                            asr_text_token_in, _ = add_sos_eos(asr_text_token, self.ext_st_models[i].src_sos, self.ext_st_models[i].src_eos, self.ext_st_models[i].ignore_id)
+
+                            asr_text_lengths = asr_text_token_in.new_full([1], dtype=torch.long, fill_value=asr_text_token_in.size(1))
+                            _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
+                                ext_st_enc, ext_st_enc_lens, asr_text_token_in, asr_text_lengths, return_hidden=True
+                            )
+                            ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
+                            ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
+                        if self.ext_speech_attns[i]:
+                            if hasattr(self.ext_st_models[i], "encoder_hier"):
+                                ext_st_enc_hier, _ , _ = self.ext_st_models[i].encoder_hier(ext_st_enc, ext_st_enc_lens)
+                                ext_st_xs.append(ext_st_enc_hier[0])
+                                ext_md_xs.append(ext_st_enc_mt[0])
+                            else:
+                                ext_st_xs.append(ext_st_enc[0])
+                                ext_md_xs.append(ext_st_enc_mt[0])
+                        else:
+                            ext_st_xs.append(ext_st_enc_mt[0])
+                            ext_md_xs.append(None)
+                    else:
+                        ext_st_xs.append(ext_st_enc[0])
+                        ext_md_xs.append(None)
 
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=x, 
-            maxlenratio=self.maxlenratio, 
-            minlenratio=self.minlenratio, 
-            md_x = md_x, 
-            mt_x = mt_x, 
-            ext_st_xs=ext_st_xs, 
-            ext_md_xs=ext_md_xs
-        )
-        nbest_hyps = nbest_hyps[: self.nbest]
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=x, 
+                maxlenratio=self.maxlenratio, 
+                minlenratio=self.minlenratio, 
+                md_x = md_x, 
+                mt_x = mt_x, 
+                ext_st_xs=ext_st_xs, 
+                ext_md_xs=ext_md_xs
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
         for hyp in nbest_hyps:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+            token_int = hyp.yseq.tolist()
+            # token_int = list(filter(lambda x: x != self.st_model.sos, token_int))
+            # token_int = list(filter(lambda x: x != self.st_model.eos, token_int))
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
@@ -553,6 +592,7 @@ class Speech2Text:
                 text = self.tokenizer.tokens2text(token)
             else:
                 text = None
+            logging.info(f"Token Outputs: {text}")
             results.append((asr_src_text,text, token, token_int, hyp))
 
         assert check_return_type(results)

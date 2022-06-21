@@ -181,6 +181,7 @@ if [[ "$(hostname)" == tir* ]]; then
     AISHELL=/projects/tir5/data/speech_corpora/Aishell
     LIBRISPEECH=/projects/tir5/data/speech_corpora/LibriSpeech
     SLURP=/projects/tir5/data/speech_corpora/SLURP
+    VOXPOPULI=/projects/tir4/users/siddhana/slue-toolkit/datasets/slue-voxpopuli
 fi
 
 # For only JHU environment

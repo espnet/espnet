@@ -66,6 +66,7 @@ if __name__ == "__main__":
     action_f1 = ErrorMetric.get_instance(metric="f1", average=args.average)
     intent_f1 = ErrorMetric.get_instance(metric="f1", average=args.average)
     span_f1 = ErrorMetric.get_instance(metric="span_f1", average=args.average)
+    span_label_f1 = ErrorMetric.get_instance(metric="span_label_f1", average=args.average)
     distance_metrics = {}
     for distance in ["word", "char"]:
         distance_metrics[distance] = ErrorMetric.get_instance(
@@ -89,8 +90,10 @@ if __name__ == "__main__":
             # because of way in which punctuation handled in data preparation
             for k in gold_example["entities"]:
                 k["filler"] = k["filler"].replace(" '", "'")
-
             span_f1(gold_example["entities"], pred_example["entities"])
+            label_f1 = span_label_f1(gold_example["entities"], pred_example["entities"])
+            myfile = open("entity_test.txt", "a")
+            myfile.write(str(gold_id)+" "+str(label_f1)+"\n")
             for distance, metric in distance_metrics.items():
                 metric(gold_example["entities"], pred_example["entities"])
         bar.next()
@@ -134,6 +137,18 @@ if __name__ == "__main__":
     )
 
     results = span_f1.get_metric()
+    print(
+        format_results(
+            results=results,
+            label="entities",
+            full=args.full,
+            errors=args.errors,
+            table_layout=args.table_layout,
+        ),
+        "\n",
+    )
+
+    results = span_label_f1.get_metric()
     print(
         format_results(
             results=results,

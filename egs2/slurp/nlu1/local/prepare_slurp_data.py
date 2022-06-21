@@ -27,30 +27,19 @@ for subset in ["train", "devel", "test"]:
         os.path.join(odir, "text"), "w", encoding="utf-8"
     ) as text, open(os.path.join(odir, "wav.scp"), "w") as wavscp, open(
         os.path.join(odir, "utt2spk"), "w"
-    ) as utt2spk, open(os.path.join(odir,"text.intent"), "w") as intfile, open(os.path.join(odir,"text.ner"), "w") as entfile:
+    ) as utt2spk:
 
         for line in meta:
             prompt = json.loads(line.strip())
-            sent = prompt["sentence"]
-            if "<unk>" in sent:
-                continue
-            #transcript = transcript.replace(",", "")
-            #transcript = transcript.replace(".", "")
-            words = []
-            for token in prompt["tokens"]:
-                words.append(token["surface"])
-            #transcript = re.sub(" +", " ", transcript)
-            transcript = " ".join(words)
-            intent = "{}".format(prompt["scenario"] + "_" + prompt["action"])
-            #words = transcript.split(" ")
-            entities = ["Other"] * len(words)
-            for entity in prompt["entities"]:
-                span = entity["span"]
-                ent = entity["type"]
-                entities[span[0]]="B_"+ent
-                for sp in span[1:]:
-                    entities[sp]="I_"+ent
-            entities = " ".join(entities)
+            transcript = prompt["sentence"]
+            transcript = transcript.replace("@", " at ")
+            transcript = transcript.replace("#", " hashtag ")
+            transcript = transcript.replace(",", "")
+            transcript = transcript.replace(".", "")
+            transcript = re.sub(" +", " ", transcript)
+            words = "{}".format(
+                prompt["scenario"] + "_" + prompt["action"] + " " + transcript
+            ).replace("<unk>", "unknown")
             for recording in prompt["recordings"]:
                 recoid = recording["file"][6:-5]
                 if recoid in recordid_unique:
@@ -60,35 +49,22 @@ for subset in ["train", "devel", "test"]:
                 wav = os.path.join(idir, "audio", "slurp_real", recording["file"])
                 speaker = spk[recoid]
                 uttid = "slurp_{}_{}".format(speaker, recoid)
-                text.write("{} {}\n".format(uttid, transcript))
-                entfile.write("{} {}\n".format(uttid, entities))
-                intfile.write("{} {}\n".format(uttid, intent))
+                text.write("{} {}\n".format(uttid, words))
                 utt2spk.write("{} slurp_{}\n".format(uttid, speaker))
                 wavscp.write("{} {}\n".format(uttid, wav))
         if subset == "train":
             meta = open(os.path.join(idir, "dataset", "slurp", "train_synthetic.jsonl"))
             for line in meta:
                 prompt = json.loads(line.strip())
-                sent = prompt["sentence"]
-                if "<unk>" in sent:
-                    continue
-                #transcript = transcript.replace(",", "")
-                #transcript = transcript.replace(".", "")
-                words = []
-                for token in prompt["tokens"]:
-                    words.append(token["surface"])
-                #transcript = re.sub(" +", " ", transcript)
-                transcript = " ".join(words)
-                intent = "{}".format(prompt["scenario"] + "_" + prompt["action"])
-                #words = transcript.split(" ")
-                entities = ["Other"] * len(words)
-                for entity in prompt["entities"]:
-                    span = entity["span"]
-                    ent = entity["type"]
-                    entities[span[0]]="B_"+ent
-                    for sp in span[1:]:
-                        entities[sp]="I_"+ent
-                entities = " ".join(entities)
+                transcript = prompt["sentence"]
+                transcript = transcript.replace("@", " at ")
+                transcript = transcript.replace("#", " hashtag ")
+                transcript = transcript.replace(",", "")
+                transcript = transcript.replace(".", "")
+                transcript = re.sub(" +", " ", transcript).lower()
+                words = "{}".format(
+                    prompt["scenario"] + "_" + prompt["action"] + " " + transcript
+                ).replace("<unk>", "unknown")
                 for recording in prompt["recordings"]:
                     recoid = recording["file"][6:-5]
                     if recoid in recordid_unique:
@@ -98,8 +74,6 @@ for subset in ["train", "devel", "test"]:
                     wav = os.path.join(idir, "audio", "slurp_synth", recording["file"])
                     speaker = "synthetic"
                     uttid = "slurp_{}_{}".format(speaker, recoid)
-                    text.write("{} {}\n".format(uttid, transcript))
-                    entfile.write("{} {}\n".format(uttid, entities))
-                    intfile.write("{} {}\n".format(uttid, intent))
+                    text.write("{} {}\n".format(uttid, words))
                     utt2spk.write("{} slurp_{}\n".format(uttid, speaker))
                     wavscp.write("{} {}\n".format(uttid, wav))
