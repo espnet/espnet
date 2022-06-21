@@ -1,1 +1,1 @@
-../../TEMPLATE/tts1/path.sh
+C:/Users/Massa/Documents/GitHub/espnet/egs2/TEMPLATE/asr1/path.sh
