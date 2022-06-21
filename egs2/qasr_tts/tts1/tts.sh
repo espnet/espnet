@@ -1,1 +1,1 @@
-C:/Users/Massa/Documents/GitHub/espnet/egs2/TEMPLATE/tts1/tts.sh
+../../TEMPLATE/tts1/tts.sh
