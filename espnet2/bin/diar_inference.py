@@ -542,7 +542,7 @@ class DiarizeSpeech:
         prob_spk_prediction = 1 / (1 + np.exp(-spk_prediction.cpu().numpy()))
         prob_diar_buffer = 1 / (1 + np.exp(-diar_buffer.cpu().numpy()))
 
-        permute_list = [np.array(p) for p in permutations(range(num_spk))]
+        permute_list = [np.array(p, dtype=np.int) for p in permutations(range(num_spk))]
         corr_list = []
         for p in permute_list:
             diar_perm = prob_spk_prediction[:, :, p]

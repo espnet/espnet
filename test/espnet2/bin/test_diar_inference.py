@@ -37,20 +37,28 @@ def diar_config_file(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, normalize_segment_scale, num_spk",
-    [(16000, None, False, 2), (35000, 2.4, False, 2), (34000, 2.4, True, 2)],
+    "input_size, segment_size, buffer_size, feats_frame_shift, normalize_segment_scale, num_spk",
+    [
+        (16000, None, None, None, False, 2),
+        (35000, 2.4, 1.0, 128, False, 2),
+        (34000, 2.4, 1.0, 128, True, 2),
+    ],
 )
 def test_DiarizeSpeech(
     diar_config_file,
     batch_size,
     input_size,
     segment_size,
+    buffer_size,
+    feats_frame_shift,
     normalize_segment_scale,
     num_spk,
 ):
     diarize_speech = DiarizeSpeech(
         train_config=diar_config_file,
         segment_size=segment_size,
+        buffer_size=buffer_size,
+        feats_frame_shift=feats_frame_shift,
         normalize_segment_scale=normalize_segment_scale,
         num_spk=num_spk,
     )
@@ -81,11 +89,11 @@ def diar_config_file2(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, normalize_segment_scale",
+    "input_size, segment_size, buffer_size, feats_frame_shift, normalize_segment_scale",
     [
-        (16000, None, False),
-        (35000, 2.4, False),
-        (34000, 2.4, True),
+        (16000, None, None, None, False),
+        (35000, 2.4, 1.0, 128, False),
+        (34000, 2.4, 1.0, 128, True),
     ],
 )
 @pytest.mark.parametrize("num_spk", [None, 2])
@@ -94,12 +102,16 @@ def test_DiarizeSpeech2(
     batch_size,
     input_size,
     segment_size,
+    buffer_size,
+    feats_frame_shift,
     normalize_segment_scale,
     num_spk,
 ):
     diarize_speech = DiarizeSpeech(
         train_config=diar_config_file2,
         segment_size=segment_size,
+        buffer_size=buffer_size,
+        feats_frame_shift=feats_frame_shift,
         normalize_segment_scale=normalize_segment_scale,
         num_spk=num_spk,
     )
