@@ -37,7 +37,10 @@ def diar_config_file(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, buffer_size, feats_frame_shift, normalize_segment_scale, num_spk",
+    (
+        "input_size, segment_size, buffer_size,"
+        "feats_frame_shift, normalize_segment_scale, num_spk"
+    ),
     [
         (16000, None, None, None, False, 2),
         (35000, 2.4, 1.0, 128, False, 2),
@@ -89,7 +92,10 @@ def diar_config_file2(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, buffer_size, feats_frame_shift, normalize_segment_scale",
+    (
+        "input_size, segment_size, buffer_size,"
+        "feats_frame_shift, normalize_segment_scale"
+    ),
     [
         (16000, None, None, None, False),
         (35000, 2.4, 1.0, 128, False),
