@@ -12,15 +12,14 @@ import os
 
 import numpy as np
 import torch
+import torch.distributed as dist
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
 from packaging.version import parse as V
-from torch.nn.parallel import data_parallel
-
-import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.nn.parallel import data_parallel
 from torch.utils.data.distributed import DistributedSampler
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
@@ -71,7 +70,8 @@ def _recursive_to(xs, device):
 
 
 class DistributedDictSummary:
-    """
+    """Distributed version of DictSummary.
+
     This implementation is based on an official implementation below.
     https://github.com/chainer/chainer/blob/v6.7.0/chainer/reporter.py
 
@@ -568,7 +568,11 @@ def train(args):
             logging.info("writing a model config file to " + model_conf)
             f.write(
                 json.dumps(
-                    (idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
+                    (
+                        idim_list[0] if args.num_encs == 1 else idim_list,
+                        odim,
+                        vars(args),
+                    ),
                     indent=4,
                     ensure_ascii=False,
                     sort_keys=True,
@@ -803,6 +807,7 @@ def train(args):
 
     # call DistributedSampler.set_epoch at begining of each epoch.
     if args.use_ddp:
+
         @training.make_extension(trigger=(1, "epoch"))
         def set_epoch_to_distributed_sampler(trainer):
             # NOTE: at the first time when this fuction is called,
@@ -817,6 +822,7 @@ def train(args):
             # https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
             train_sampler.set_epoch(trainer.updater.epoch)
             val_sampler.set_epoch(trainer.updater.epoch)
+
         trainer.extend(set_epoch_to_distributed_sampler)
 
     if use_sortagrad:
@@ -834,15 +840,15 @@ def train(args):
     if args.save_interval_iters > 0:
         trainer.extend(
             CustomEvaluator(
-                model,
-                {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp),
+                model, {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp
+            ),
             trigger=(args.save_interval_iters, "iteration"),
         )
     else:
         trainer.extend(
             CustomEvaluator(
-                model,
-                {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp)
+                model, {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp
+            )
         )
 
     if is_writable_process(args, worldsize, rank, localrank):
@@ -909,10 +915,15 @@ def train(args):
         if args.num_encs > 1:
             report_keys_loss_ctc = [
                 "main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)
-            ] + ["validation/main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)]
+            ] + [
+                "validation/main/loss_ctc{}".format(i + 1)
+                for i in range(model.num_encs)
+            ]
             report_keys_cer_ctc = [
                 "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
-            ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
+            ] + [
+                "validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
+            ]
 
         if hasattr(model, "is_transducer"):
             trans_keys = [
@@ -923,7 +934,9 @@ def train(args):
             ]
 
             ctc_keys = (
-                ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
+                ["main/loss_ctc", "validation/main/loss_ctc"]
+                if args.use_ctc_loss
+                else []
             )
 
             aux_trans_keys = (
@@ -1095,15 +1108,17 @@ def train(args):
                 "main/cer_ctc",
                 "validation/main/cer_ctc",
                 "elapsed_time",
-            ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+            ] + (
+                [] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc
+            )
 
         if args.opt == "adadelta":
             trainer.extend(
                 extensions.observe_value(
                     "eps",
-                    lambda trainer: trainer.updater.get_optimizer("main").param_groups[0][
-                        "eps"
-                    ],
+                    lambda trainer: trainer.updater.get_optimizer("main").param_groups[
+                        0
+                    ]["eps"],
                 ),
                 trigger=(args.report_interval_iters, "iteration"),
             )
@@ -1117,7 +1132,9 @@ def train(args):
             trigger=(args.report_interval_iters, "iteration"),
         )
 
-        trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
+        trainer.extend(
+            extensions.ProgressBar(update_interval=args.report_interval_iters)
+        )
     set_early_stop(trainer, args)
 
     if is_writable_process(args, worldsize, rank, localrank):
@@ -1141,13 +1158,14 @@ def train(args):
         # a main process will send a notification tensor
         # to other processes when the main process finishes
         # all operations like writing plot, log, etc.
-        src_rank = 0  # TODO: removing hard-coded value.
+        src_rank = 0  # TODO(lazykyama): removing hard-coded value.
 
         @training.make_extension(trigger=(1, "epoch"))
         def barrier_extension_per_epoch(trainer):
             notification = torch.zeros(1, device=device)
             dist.broadcast(notification, src=src_rank)
             torch.cuda.synchronize(device=device)
+
         trainer.extend(barrier_extension_per_epoch)
 
     # Run the training

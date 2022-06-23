@@ -525,6 +525,7 @@ def get_parser(parser=None, required=True):
 
 
 def setup_logging(verbose):
+    """Make logging setup with a given log level."""
     if verbose > 0:
         logging.basicConfig(
             level=logging.INFO,
@@ -639,8 +640,9 @@ def main(cmd_args):
                 raise ValueError("Chainer with DDP is not supported.")
             from espnet.distributed.pytorch_backend.launch import (
                 launch,
-                set_start_method
+                set_start_method,
             )
+
             # NOTE: it's necessary to set "spawn" as a multiprocessing
             # start method. Because, in this use case, CUDA initialization
             # procedure has been already done, but CUDA context can't be

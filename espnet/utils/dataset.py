@@ -11,6 +11,7 @@ import torch.utils.data
 
 class Transform:
     """Transform function container.
+
     lambda can't work well when using DDP because
     lambda is not pickable in the case of multi process.
     This class is required for DDP use case.
@@ -21,10 +22,12 @@ class Transform:
     """
 
     def __init__(self, converter, load):
+        """Initialize."""
         self._converter = converter
         self._load = load
 
     def __call__(self, data):
+        """Apply a given converter and a given loader."""
         return self._converter([self._load(data)])
 
 

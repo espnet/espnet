@@ -1,20 +1,20 @@
 # coding: utf-8
 #
-# SPDX-FileCopyrightText: Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText:
+#   Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 
 
 import argparse
 import itertools
-from multiprocessing import Queue
 import os
 import sys
+from multiprocessing import Queue
 
 import pytest
 
-from espnet.distributed.pytorch_backend.launch import launch
-from espnet.distributed.pytorch_backend.launch import WorkerError
+from espnet.distributed.pytorch_backend.launch import WorkerError, launch
 
 
 @pytest.mark.parametrize("nprocs", [1, 2])
