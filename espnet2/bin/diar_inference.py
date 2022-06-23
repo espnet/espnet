@@ -520,7 +520,7 @@ class DiarizeSpeech:
 
         # 0-padding if num_spk differs
         if spk_prediction.shape[-1] > diar_buffer.shape[-1]:
-            torch.nn.functional.pad(
+            diar_buffer = torch.nn.functional.pad(
                 diar_buffer,
                 (0, spk_prediction.shape[-1] - diar_buffer.shape[-1]),
                 "constant",
@@ -528,7 +528,7 @@ class DiarizeSpeech:
             )
             num_spk = spk_prediction.shape[-1]
         elif spk_prediction.shape[-1] < diar_buffer.shape[-1]:
-            torch.nn.functional.pad(
+            spk_prediction = torch.nn.functional.pad(
                 spk_prediction,
                 (0, diar_buffer.shape[-1] - spk_prediction.shape[-1]),
                 "constant",
