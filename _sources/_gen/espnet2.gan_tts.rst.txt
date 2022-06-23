@@ -4,12 +4,12 @@ espnet2.gan_tts package
 
 
 
-.. _espnet2.gan_tts.espnet_model:
+.. _espnet2.gan_tts.abs_gan_tts:
 
-espnet2.gan_tts.espnet_model
-----------------------------
+espnet2.gan_tts.abs_gan_tts
+---------------------------
 
-.. automodule:: espnet2.gan_tts.espnet_model
+.. automodule:: espnet2.gan_tts.abs_gan_tts
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,12 +26,12 @@ espnet2.gan_tts.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.abs_gan_tts:
+.. _espnet2.gan_tts.espnet_model:
 
-espnet2.gan_tts.abs_gan_tts
----------------------------
+espnet2.gan_tts.espnet_model
+----------------------------
 
-.. automodule:: espnet2.gan_tts.abs_gan_tts
+.. automodule:: espnet2.gan_tts.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,34 +59,45 @@ espnet2.gan_tts.utils.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.style_melgan.tade_res_block:
+.. _espnet2.gan_tts.melgan.pqmf:
 
-espnet2.gan_tts.style_melgan.tade_res_block
--------------------------------------------
+espnet2.gan_tts.melgan.pqmf
+---------------------------
 
-.. automodule:: espnet2.gan_tts.style_melgan.tade_res_block
+.. automodule:: espnet2.gan_tts.melgan.pqmf
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.style_melgan.__init__:
+.. _espnet2.gan_tts.melgan.residual_stack:
 
-espnet2.gan_tts.style_melgan.__init__
+espnet2.gan_tts.melgan.residual_stack
 -------------------------------------
 
-.. automodule:: espnet2.gan_tts.style_melgan.__init__
+.. automodule:: espnet2.gan_tts.melgan.residual_stack
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.style_melgan.style_melgan:
+.. _espnet2.gan_tts.melgan.__init__:
 
-espnet2.gan_tts.style_melgan.style_melgan
------------------------------------------
+espnet2.gan_tts.melgan.__init__
+-------------------------------
 
-.. automodule:: espnet2.gan_tts.style_melgan.style_melgan
+.. automodule:: espnet2.gan_tts.melgan.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.melgan.melgan:
+
+espnet2.gan_tts.melgan.melgan
+-----------------------------
+
+.. automodule:: espnet2.gan_tts.melgan.melgan
     :members:
     :undoc-members:
     :show-inheritance:
@@ -125,67 +136,12 @@ espnet2.gan_tts.parallel_wavegan.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.jets.length_regulator:
+.. _espnet2.gan_tts.vits.text_encoder:
 
-espnet2.gan_tts.jets.length_regulator
--------------------------------------
+espnet2.gan_tts.vits.text_encoder
+---------------------------------
 
-.. automodule:: espnet2.gan_tts.jets.length_regulator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.jets.jets:
-
-espnet2.gan_tts.jets.jets
--------------------------
-
-.. automodule:: espnet2.gan_tts.jets.jets
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.jets.generator:
-
-espnet2.gan_tts.jets.generator
-------------------------------
-
-.. automodule:: espnet2.gan_tts.jets.generator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.jets.alignments:
-
-espnet2.gan_tts.jets.alignments
--------------------------------
-
-.. automodule:: espnet2.gan_tts.jets.alignments
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.jets.__init__:
-
-espnet2.gan_tts.jets.__init__
------------------------------
-
-.. automodule:: espnet2.gan_tts.jets.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.jets.loss:
-
-espnet2.gan_tts.jets.loss
--------------------------
-
-.. automodule:: espnet2.gan_tts.jets.loss
+.. automodule:: espnet2.gan_tts.vits.text_encoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -213,12 +169,12 @@ espnet2.gan_tts.vits.residual_coupling
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.vits.text_encoder:
+.. _espnet2.gan_tts.vits.loss:
 
-espnet2.gan_tts.vits.text_encoder
----------------------------------
+espnet2.gan_tts.vits.loss
+-------------------------
 
-.. automodule:: espnet2.gan_tts.vits.text_encoder
+.. automodule:: espnet2.gan_tts.vits.loss
     :members:
     :undoc-members:
     :show-inheritance:
@@ -230,6 +186,17 @@ espnet2.gan_tts.vits.transform
 ------------------------------
 
 .. automodule:: espnet2.gan_tts.vits.transform
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.duration_predictor:
+
+espnet2.gan_tts.vits.duration_predictor
+---------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.duration_predictor
     :members:
     :undoc-members:
     :show-inheritance:
@@ -279,28 +246,6 @@ espnet2.gan_tts.vits.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.vits.loss:
-
-espnet2.gan_tts.vits.loss
--------------------------
-
-.. automodule:: espnet2.gan_tts.vits.loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.vits.duration_predictor:
-
-espnet2.gan_tts.vits.duration_predictor
----------------------------------------
-
-.. automodule:: espnet2.gan_tts.vits.duration_predictor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.gan_tts.vits.monotonic_align.setup:
 
 espnet2.gan_tts.vits.monotonic_align.setup
@@ -323,56 +268,34 @@ espnet2.gan_tts.vits.monotonic_align.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.melgan.melgan:
+.. _espnet2.gan_tts.style_melgan.style_melgan:
 
-espnet2.gan_tts.melgan.melgan
------------------------------
+espnet2.gan_tts.style_melgan.style_melgan
+-----------------------------------------
 
-.. automodule:: espnet2.gan_tts.melgan.melgan
+.. automodule:: espnet2.gan_tts.style_melgan.style_melgan
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.melgan.residual_stack:
+.. _espnet2.gan_tts.style_melgan.tade_res_block:
 
-espnet2.gan_tts.melgan.residual_stack
+espnet2.gan_tts.style_melgan.tade_res_block
+-------------------------------------------
+
+.. automodule:: espnet2.gan_tts.style_melgan.tade_res_block
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.style_melgan.__init__:
+
+espnet2.gan_tts.style_melgan.__init__
 -------------------------------------
 
-.. automodule:: espnet2.gan_tts.melgan.residual_stack
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.melgan.__init__:
-
-espnet2.gan_tts.melgan.__init__
--------------------------------
-
-.. automodule:: espnet2.gan_tts.melgan.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.melgan.pqmf:
-
-espnet2.gan_tts.melgan.pqmf
----------------------------
-
-.. automodule:: espnet2.gan_tts.melgan.pqmf
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.joint.__init__:
-
-espnet2.gan_tts.joint.__init__
-------------------------------
-
-.. automodule:: espnet2.gan_tts.joint.__init__
+.. automodule:: espnet2.gan_tts.style_melgan.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -389,23 +312,12 @@ espnet2.gan_tts.joint.joint_text2wav
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.hifigan.residual_block:
+.. _espnet2.gan_tts.joint.__init__:
 
-espnet2.gan_tts.hifigan.residual_block
---------------------------------------
+espnet2.gan_tts.joint.__init__
+------------------------------
 
-.. automodule:: espnet2.gan_tts.hifigan.residual_block
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_tts.hifigan.__init__:
-
-espnet2.gan_tts.hifigan.__init__
---------------------------------
-
-.. automodule:: espnet2.gan_tts.hifigan.__init__
+.. automodule:: espnet2.gan_tts.joint.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -422,6 +334,17 @@ espnet2.gan_tts.hifigan.loss
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.hifigan.__init__:
+
+espnet2.gan_tts.hifigan.__init__
+--------------------------------
+
+.. automodule:: espnet2.gan_tts.hifigan.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.hifigan.hifigan:
 
 espnet2.gan_tts.hifigan.hifigan
@@ -433,12 +356,89 @@ espnet2.gan_tts.hifigan.hifigan
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.wavenet.residual_block:
+.. _espnet2.gan_tts.hifigan.residual_block:
 
-espnet2.gan_tts.wavenet.residual_block
+espnet2.gan_tts.hifigan.residual_block
 --------------------------------------
 
-.. automodule:: espnet2.gan_tts.wavenet.residual_block
+.. automodule:: espnet2.gan_tts.hifigan.residual_block
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.alignments:
+
+espnet2.gan_tts.jets.alignments
+-------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.alignments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.length_regulator:
+
+espnet2.gan_tts.jets.length_regulator
+-------------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.length_regulator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.loss:
+
+espnet2.gan_tts.jets.loss
+-------------------------
+
+.. automodule:: espnet2.gan_tts.jets.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.jets:
+
+espnet2.gan_tts.jets.jets
+-------------------------
+
+.. automodule:: espnet2.gan_tts.jets.jets
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.generator:
+
+espnet2.gan_tts.jets.generator
+------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.__init__:
+
+espnet2.gan_tts.jets.__init__
+-----------------------------
+
+.. automodule:: espnet2.gan_tts.jets.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.wavenet.wavenet:
+
+espnet2.gan_tts.wavenet.wavenet
+-------------------------------
+
+.. automodule:: espnet2.gan_tts.wavenet.wavenet
     :members:
     :undoc-members:
     :show-inheritance:
@@ -455,12 +455,12 @@ espnet2.gan_tts.wavenet.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_tts.wavenet.wavenet:
+.. _espnet2.gan_tts.wavenet.residual_block:
 
-espnet2.gan_tts.wavenet.wavenet
--------------------------------
+espnet2.gan_tts.wavenet.residual_block
+--------------------------------------
 
-.. automodule:: espnet2.gan_tts.wavenet.wavenet
+.. automodule:: espnet2.gan_tts.wavenet.residual_block
     :members:
     :undoc-members:
     :show-inheritance:

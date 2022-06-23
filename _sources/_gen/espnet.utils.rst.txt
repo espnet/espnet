@@ -15,17 +15,6 @@ espnet.utils.dataset
     :show-inheritance:
 
 
-.. _espnet.utils.check_kwargs:
-
-espnet.utils.check_kwargs
--------------------------
-
-.. automodule:: espnet.utils.check_kwargs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.utils.io_utils:
 
 espnet.utils.io_utils
@@ -37,23 +26,12 @@ espnet.utils.io_utils
     :show-inheritance:
 
 
-.. _espnet.utils.cli_utils:
+.. _espnet.utils.dynamic_import:
 
-espnet.utils.cli_utils
-----------------------
+espnet.utils.dynamic_import
+---------------------------
 
-.. automodule:: espnet.utils.cli_utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.utils.cli_writers:
-
-espnet.utils.cli_writers
-------------------------
-
-.. automodule:: espnet.utils.cli_writers
+.. automodule:: espnet.utils.dynamic_import
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,34 +59,12 @@ espnet.utils.deterministic_utils
     :show-inheritance:
 
 
-.. _espnet.utils.dynamic_import:
+.. _espnet.utils.check_kwargs:
 
-espnet.utils.dynamic_import
----------------------------
+espnet.utils.check_kwargs
+-------------------------
 
-.. automodule:: espnet.utils.dynamic_import
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.utils.__init__:
-
-espnet.utils.__init__
----------------------
-
-.. automodule:: espnet.utils.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.utils.cli_readers:
-
-espnet.utils.cli_readers
-------------------------
-
-.. automodule:: espnet.utils.cli_readers
+.. automodule:: espnet.utils.check_kwargs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -125,34 +81,56 @@ espnet.utils.spec_augment
     :show-inheritance:
 
 
-.. _espnet.utils.training.tensorboard_logger:
+.. _espnet.utils.cli_utils:
 
-espnet.utils.training.tensorboard_logger
-----------------------------------------
+espnet.utils.cli_utils
+----------------------
 
-.. automodule:: espnet.utils.training.tensorboard_logger
+.. automodule:: espnet.utils.cli_utils
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.utils.training.train_utils:
+.. _espnet.utils.cli_readers:
 
-espnet.utils.training.train_utils
----------------------------------
+espnet.utils.cli_readers
+------------------------
 
-.. automodule:: espnet.utils.training.train_utils
+.. automodule:: espnet.utils.cli_readers
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.utils.training.evaluator:
+.. _espnet.utils.cli_writers:
 
-espnet.utils.training.evaluator
+espnet.utils.cli_writers
+------------------------
+
+.. automodule:: espnet.utils.cli_writers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.utils.__init__:
+
+espnet.utils.__init__
+---------------------
+
+.. automodule:: espnet.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.utils.training.iterators:
+
+espnet.utils.training.iterators
 -------------------------------
 
-.. automodule:: espnet.utils.training.evaluator
+.. automodule:: espnet.utils.training.iterators
     :members:
     :undoc-members:
     :show-inheritance:
@@ -169,12 +147,34 @@ espnet.utils.training.batchfy
     :show-inheritance:
 
 
-.. _espnet.utils.training.iterators:
+.. _espnet.utils.training.evaluator:
 
-espnet.utils.training.iterators
+espnet.utils.training.evaluator
 -------------------------------
 
-.. automodule:: espnet.utils.training.iterators
+.. automodule:: espnet.utils.training.evaluator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.utils.training.train_utils:
+
+espnet.utils.training.train_utils
+---------------------------------
+
+.. automodule:: espnet.utils.training.train_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.utils.training.tensorboard_logger:
+
+espnet.utils.training.tensorboard_logger
+----------------------------------------
+
+.. automodule:: espnet.utils.training.tensorboard_logger
     :members:
     :undoc-members:
     :show-inheritance:

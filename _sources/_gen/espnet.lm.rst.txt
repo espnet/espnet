@@ -4,23 +4,23 @@ espnet.lm package
 Initialize sub package.
 
 
-.. _espnet.lm.__init__:
-
-espnet.lm.__init__
-------------------
-
-.. automodule:: espnet.lm.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.lm.lm_utils:
 
 espnet.lm.lm_utils
 ------------------
 
 .. automodule:: espnet.lm.lm_utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.lm.__init__:
+
+espnet.lm.__init__
+------------------
+
+.. automodule:: espnet.lm.__init__
     :members:
     :undoc-members:
     :show-inheritance:

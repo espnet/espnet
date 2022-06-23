@@ -4,34 +4,34 @@ espnet2.layers package
 
 
 
-.. _espnet2.layers.global_mvn:
+.. _espnet2.layers.mask_along_axis:
 
-espnet2.layers.global_mvn
--------------------------
+espnet2.layers.mask_along_axis
+------------------------------
 
-.. automodule:: espnet2.layers.global_mvn
+.. automodule:: espnet2.layers.mask_along_axis
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.layers.utterance_mvn:
+.. _espnet2.layers.log_mel:
 
-espnet2.layers.utterance_mvn
-----------------------------
+espnet2.layers.log_mel
+----------------------
 
-.. automodule:: espnet2.layers.utterance_mvn
+.. automodule:: espnet2.layers.log_mel
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.layers.abs_normalize:
+.. _espnet2.layers.sinc_conv:
 
-espnet2.layers.abs_normalize
-----------------------------
+espnet2.layers.sinc_conv
+------------------------
 
-.. automodule:: espnet2.layers.abs_normalize
+.. automodule:: espnet2.layers.sinc_conv
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,12 +59,12 @@ espnet2.layers.stft
     :show-inheritance:
 
 
-.. _espnet2.layers.sinc_conv:
+.. _espnet2.layers.global_mvn:
 
-espnet2.layers.sinc_conv
-------------------------
+espnet2.layers.global_mvn
+-------------------------
 
-.. automodule:: espnet2.layers.sinc_conv
+.. automodule:: espnet2.layers.global_mvn
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,12 +92,12 @@ espnet2.layers.label_aggregation
     :show-inheritance:
 
 
-.. _espnet2.layers.log_mel:
+.. _espnet2.layers.abs_normalize:
 
-espnet2.layers.log_mel
-----------------------
+espnet2.layers.abs_normalize
+----------------------------
 
-.. automodule:: espnet2.layers.log_mel
+.. automodule:: espnet2.layers.abs_normalize
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,12 +114,12 @@ espnet2.layers.__init__
     :show-inheritance:
 
 
-.. _espnet2.layers.mask_along_axis:
+.. _espnet2.layers.utterance_mvn:
 
-espnet2.layers.mask_along_axis
-------------------------------
+espnet2.layers.utterance_mvn
+----------------------------
 
-.. automodule:: espnet2.layers.mask_along_axis
+.. automodule:: espnet2.layers.utterance_mvn
     :members:
     :undoc-members:
     :show-inheritance:

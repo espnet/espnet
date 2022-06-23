@@ -4,17 +4,6 @@ espnet.mt package
 Initialize sub package.
 
 
-.. _espnet.mt.__init__:
-
-espnet.mt.__init__
-------------------
-
-.. automodule:: espnet.mt.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.mt.mt_utils:
 
 espnet.mt.mt_utils
@@ -26,12 +15,12 @@ espnet.mt.mt_utils
     :show-inheritance:
 
 
-.. _espnet.mt.pytorch_backend.mt:
+.. _espnet.mt.__init__:
 
-espnet.mt.pytorch_backend.mt
-----------------------------
+espnet.mt.__init__
+------------------
 
-.. automodule:: espnet.mt.pytorch_backend.mt
+.. automodule:: espnet.mt.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -43,6 +32,17 @@ espnet.mt.pytorch_backend.__init__
 ----------------------------------
 
 .. automodule:: espnet.mt.pytorch_backend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.mt.pytorch_backend.mt:
+
+espnet.mt.pytorch_backend.mt
+----------------------------
+
+.. automodule:: espnet.mt.pytorch_backend.mt
     :members:
     :undoc-members:
     :show-inheritance:
