@@ -114,6 +114,17 @@ espnet2.enh.separator.neural_beamformer
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.dptnet_separator:
+
+espnet2.enh.separator.dptnet_separator
+--------------------------------------
+
+.. automodule:: espnet2.enh.separator.dptnet_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.separator.asteroid_models:
 
 espnet2.enh.separator.asteroid_models
@@ -604,6 +615,17 @@ espnet2.enh.layers.tcn
 ----------------------
 
 .. automodule:: espnet2.enh.layers.tcn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.dptnet:
+
+espnet2.enh.layers.dptnet
+-------------------------
+
+.. automodule:: espnet2.enh.layers.dptnet
     :members:
     :undoc-members:
     :show-inheritance:

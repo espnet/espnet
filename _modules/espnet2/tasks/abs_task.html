@@ -184,6 +184,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.noam_lr</span> <span class="kn">import</span> <span class="n">NoamLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_lr</span> <span class="kn">import</span> <span class="n">WarmupLR</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_step_lr</span> <span class="kn">import</span> <span class="n">WarmupStepLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.load_pretrained_model</span> <span class="kn">import</span> <span class="n">load_pretrained_model</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.model_summary</span> <span class="kn">import</span> <span class="n">model_summary</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.pytorch_version</span> <span class="kn">import</span> <span class="n">pytorch_cudnn_version</span>
@@ -295,6 +296,7 @@
     <span class="n">exponentiallr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">,</span>
     <span class="n">CosineAnnealingLR</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingLR</span><span class="p">,</span>
     <span class="n">noamlr</span><span class="o">=</span><span class="n">NoamLR</span><span class="p">,</span>
+    <span class="n">warmupsteplr</span><span class="o">=</span><span class="n">WarmupStepLR</span><span class="p">,</span>
     <span class="n">warmuplr</span><span class="o">=</span><span class="n">WarmupLR</span><span class="p">,</span>
     <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
     <span class="n">onecyclelr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>

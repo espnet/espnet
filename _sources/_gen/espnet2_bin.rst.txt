@@ -424,7 +424,7 @@ asr_train.py
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -766,7 +766,7 @@ asr_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -997,7 +997,7 @@ diar_train.py
                          [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                          [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                          [--optim_conf OPTIM_CONF]
-                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                          [--scheduler_conf SCHEDULER_CONF] [--num_spk NUM_SPK]
                          [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                          [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
@@ -1323,7 +1323,7 @@ diar_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -1533,7 +1533,7 @@ enh_s2t_train.py
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--token_list TOKEN_LIST]
                             [--src_token_list SRC_TOKEN_LIST]
@@ -1558,7 +1558,7 @@ enh_s2t_train.py
                             [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                             [--enh_encoder {stft,conv,same}]
                             [--enh_encoder_conf ENH_ENCODER_CONF]
-                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
+                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
                             [--enh_separator_conf ENH_SEPARATOR_CONF]
                             [--enh_decoder {stft,conv,same}]
                             [--enh_decoder_conf ENH_DECODER_CONF]
@@ -1913,7 +1913,7 @@ enh_s2t_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -1969,7 +1969,7 @@ enh_s2t_train.py
                             The enh_encoder type (default: stft)
       --enh_encoder_conf ENH_ENCODER_CONF
                             The keyword arguments for enh_encoder (default: {})
-      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
+      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
                             The enh_separator type (default: rnn)
       --enh_separator_conf ENH_SEPARATOR_CONF
                             The keyword arguments for enh_separator (default: {})
@@ -2166,7 +2166,7 @@ enh_train.py
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                         [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -2182,7 +2182,7 @@ enh_train.py
                         [--sample_rate SAMPLE_RATE]
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
+                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
                         [--separator_conf SEPARATOR_CONF]
                         [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
                         [--mask_module {multi_mask}]
@@ -2496,7 +2496,7 @@ enh_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -2541,7 +2541,7 @@ enh_train.py
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
-      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
+      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
                             The separator type (default: rnn)
       --separator_conf SEPARATOR_CONF
                             The keyword arguments for separator (default: {})
@@ -2630,11 +2630,11 @@ gan_tts_train.py
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim2_conf OPTIM2_CONF]
-                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler2_conf SCHEDULER2_CONF]
                             [--generator_first GENERATOR_FIRST]
                             [--token_list TOKEN_LIST] [--odim ODIM]
@@ -2975,7 +2975,7 @@ gan_tts_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -2983,7 +2983,7 @@ gan_tts_train.py
                             The optimizer type (default: adadelta)
       --optim2_conf OPTIM2_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler2_conf SCHEDULER2_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -3106,7 +3106,7 @@ hubert_train.py
                            [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                            [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                            [--optim_conf OPTIM_CONF]
-                           [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                           [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                            [--scheduler_conf SCHEDULER_CONF]
                            [--token_list TOKEN_LIST]
                            [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -3453,7 +3453,7 @@ hubert_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -3684,7 +3684,7 @@ lm_train.py
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                        [--model_conf MODEL_CONF]
@@ -4009,7 +4009,7 @@ lm_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -4197,7 +4197,7 @@ mt_train.py
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--src_token_list SRC_TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -4533,7 +4533,7 @@ mt_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -4788,7 +4788,7 @@ st_train.py
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--src_token_list SRC_TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -5133,7 +5133,7 @@ st_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -5454,7 +5454,7 @@ tts_train.py
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST] [--odim ODIM]
                         [--model_conf MODEL_CONF]
@@ -5791,7 +5791,7 @@ tts_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})

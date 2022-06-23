@@ -102,6 +102,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-lr">espnet2.schedulers.warmup_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-abs-scheduler">espnet2.schedulers.abs_scheduler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-noam-lr">espnet2.schedulers.noam_lr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-step-lr">espnet2.schedulers.warmup_step_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-init">espnet2.schedulers.__init__</a></li>
 </ul>
 </li>
@@ -336,8 +337,47 @@ You need to change it if the model is changed.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-schedulers-warmup-step-lr">
+<span id="id4"></span><h2>espnet2.schedulers.warmup_step_lr<a class="headerlink" href="#espnet2-schedulers-warmup-step-lr" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.schedulers.warmup_step_lr"></span><p>Step (with Warm up) learning rate scheduler module.</p>
+<dl class="class">
+<dt id="espnet2.schedulers.warmup_step_lr.WarmupStepLR">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.warmup_step_lr.</code><code class="sig-name descname">WarmupStepLR</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">warmup_steps: Union[int</em>, <em class="sig-param">float] = 25000</em>, <em class="sig-param">steps_per_epoch: int = 10000</em>, <em class="sig-param">step_size: int = 1</em>, <em class="sig-param">gamma: float = 0.1</em>, <em class="sig-param">last_epoch: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_step_lr.html#WarmupStepLR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_step_lr.WarmupStepLR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler._LRScheduler</span></code>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a></p>
+<p>The WarmupStepLR scheduler.</p>
+<p>This scheduler is the combination of WarmupLR and StepLR:</p>
+<dl class="simple">
+<dt>WarmupLR:</dt><dd><dl class="simple">
+<dt>lr = optimizer.lr * warmup_step ** 0.5</dt><dd><ul class="simple">
+<li><p>min(step ** -0.5, step * warmup_step ** -1.5)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>WarmupStepLR:</dt><dd><dl class="simple">
+<dt>if step &lt;= warmup_step:</dt><dd><dl class="simple">
+<dt>lr = optimizer.lr * warmup_step ** 0.5</dt><dd><ul class="simple">
+<li><p>min(step ** -0.5, step * warmup_step ** -1.5)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>else:</dt><dd><p>lr = optimizer.lr * (gamma ** (epoch//step_size))</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Note that the maximum lr equals to optimizer.lr in this scheduler.</p>
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_step_lr.WarmupStepLR.get_lr">
+<code class="sig-name descname">get_lr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_step_lr.html#WarmupStepLR.get_lr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_step_lr.WarmupStepLR.get_lr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-schedulers-init">
-<span id="id4"></span><h2>espnet2.schedulers.__init__<a class="headerlink" href="#espnet2-schedulers-init" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet2.schedulers.__init__<a class="headerlink" href="#espnet2-schedulers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.schedulers.__init__"></span></section>
 </section>
 
