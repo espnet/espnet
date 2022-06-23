@@ -217,7 +217,7 @@ class DiarizeSpeech:
 
                 else:
                     # permute diar result (spk_prediction) using buffer
-                    spk_prediction, _ = self.permute_diar_buffer(
+                    spk_prediction, diar_buffer, _ = self.permute_diar_buffer(
                         spk_prediction, diar_buffer
                     )
                     # List[torch.Tensor(B, T, num_spks)]
@@ -556,6 +556,7 @@ class DiarizeSpeech:
         max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)), dim=0)
         return (
             spk_prediction[:, :, permute_list[max_idx]],
+            diar_buffer,
             permute_list[max_idx],
         )
 
