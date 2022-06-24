@@ -93,6 +93,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.distributed.html">espnet.distributed package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fst.html">espnet2.fst package</a></li>
@@ -281,8 +282,12 @@
       </ul></li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSoundScpReader">AdapterForSoundScpReader (class in espnet2.train.dataset)</a>
 </li>
-      <li><a href="_gen/espnet2.main_funcs.html#espnet2.main_funcs.pack_funcs.Archiver.add">add() (espnet2.main_funcs.pack_funcs.Archiver method)</a>
+      <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr.DistributedDictSummary.add">add() (espnet.asr.pytorch_backend.asr.DistributedDictSummary method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.main_funcs.html#espnet2.main_funcs.pack_funcs.Archiver.add">(espnet2.main_funcs.pack_funcs.Archiver method)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.DefaultRNNLM.add_arguments">add_arguments() (espnet.lm.chainer_backend.lm.DefaultRNNLM static method)</a>
 
       <ul>
@@ -415,10 +420,10 @@
         <li><a href="_gen/espnet.mt.html#espnet.mt.mt_utils.add_results_to_json">(in module espnet.mt.mt_utils)</a>
 </li>
       </ul></li>
-      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">add_rnn_decoder_arguments() (in module espnet.nets.pytorch_backend.transducer.arguments)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">add_rnn_decoder_arguments() (in module espnet.nets.pytorch_backend.transducer.arguments)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_encoder_arguments">add_rnn_encoder_arguments() (in module espnet.nets.pytorch_backend.transducer.arguments)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.add_sos_eos.add_sos_eos">add_sos_eos() (in module espnet.nets.pytorch_backend.transformer.add_sos_eos)</a>
@@ -1215,10 +1220,10 @@
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.CommonPreprocessor">CommonPreprocessor (class in espnet2.train.preprocessor)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.CommonPreprocessor_multi">CommonPreprocessor_multi (class in espnet2.train.preprocessor)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.CompareValueTrigger">CompareValueTrigger (class in espnet.asr.asr_utils)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.complex_cat">complex_cat() (in module espnet2.enh.layers.complexnn)</a>
@@ -1238,6 +1243,8 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_ctc_loss">compute_ctc_loss() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_lm_loss">compute_lm_loss() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
+</li>
+      <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr.DistributedDictSummary.compute_mean">compute_mean() (espnet.asr.pytorch_backend.asr.DistributedDictSummary method)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.compute_on_mask">compute_on_mask() (espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence property)</a>
 
@@ -1635,6 +1642,8 @@
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption.distributed">distributed (espnet2.train.distributed_utils.DistributedOption attribute)</a>
 </li>
+      <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr.DistributedDictSummary">DistributedDictSummary (class in espnet.asr.pytorch_backend.asr)</a>
+</li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption">DistributedOption (class in espnet2.train.distributed_utils)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.dnn_beamformer.DNN_Beamformer">DNN_Beamformer (class in espnet.nets.pytorch_backend.frontends.dnn_beamformer)</a>
@@ -1956,6 +1965,10 @@
       <li><a href="_gen/espnet.bin.html#module-espnet.bin.vc_decode">espnet.bin.vc_decode (module)</a>
 </li>
       <li><a href="_gen/espnet.bin.html#module-espnet.bin.vc_train">espnet.bin.vc_train (module)</a>
+</li>
+      <li><a href="_gen/espnet.distributed.html#module-espnet.distributed.__init__">espnet.distributed.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet.distributed.html#module-espnet.distributed.pytorch_backend.launch">espnet.distributed.pytorch_backend.launch (module)</a>
 </li>
       <li><a href="_gen/espnet.lm.html#module-espnet.lm.__init__">espnet.lm.__init__ (module)</a>
 </li>
@@ -2417,10 +2430,10 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.frontend.windowing">espnet2.asr.frontend.windowing (module)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.maskctc_model">espnet2.asr.maskctc_model (module)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.maskctc_model">espnet2.asr.maskctc_model (module)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.postencoder.__init__">espnet2.asr.postencoder.__init__ (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.postencoder.abs_postencoder">espnet2.asr.postencoder.abs_postencoder (module)</a>
@@ -3046,6 +3059,8 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.exclude_opts">exclude_opts() (espnet2.tasks.abs_task.AbsTask class method)</a>
+</li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.WorkerError.exitcode">exitcode() (espnet.distributed.pytorch_backend.launch.WorkerError property)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.extend">extend() (espnet.nets.batch_beam_search_online.BatchBeamSearchOnline method)</a>
 
@@ -4045,8 +4060,12 @@
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.framing">framing() (in module espnet2.train.preprocessor)</a>
 </li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.free_port">free_port() (in module espnet2.train.distributed_utils)</a>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.free_port">free_port() (in module espnet.distributed.pytorch_backend.launch)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.free_port">(in module espnet2.train.distributed_utils)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.freeze_modules">freeze_modules() (in module espnet.asr.pytorch_backend.asr_init)</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.spec_augment.freq_mask">freq_mask() (in module espnet.transform.spec_augment)</a>
@@ -4196,6 +4215,8 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.wpe.get_filter_matrix_conj">get_filter_matrix_conj() (in module espnet2.enh.layers.wpe)</a>
+</li>
+      <li><a href="_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.get_first_element">get_first_element() (espnet.utils.dataset.ChainerDataLoader static method)</a>
 </li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.spec_augment.get_flat_grid_locations">get_flat_grid_locations() (in module espnet.utils.spec_augment)</a>
 </li>
@@ -4781,6 +4802,8 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complex_utils.is_torch_complex_tensor">is_torch_complex_tensor() (in module espnet2.enh.layers.complex_utils)</a>
 </li>
+      <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr.is_writable_process">is_writable_process() (in module espnet.asr.pytorch_backend.asr)</a>
+</li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.IsG2p">IsG2p (class in espnet2.text.phoneme_tokenizer)</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.spectrogram.IStft">IStft (class in espnet.transform.spectrogram)</a>
@@ -4871,6 +4894,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.label_smoothing_loss.LabelSmoothingLoss">(class in espnet.nets.pytorch_backend.transformer.label_smoothing_loss)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.launch">launch() (in module espnet.distributed.pytorch_backend.launch)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.layer_norm.LayerNorm">LayerNorm (class in espnet.nets.chainer_backend.transformer.layer_norm)</a>
 
       <ul>
@@ -5145,6 +5170,8 @@
       </ul></li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.main_worker">main_worker() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.MainProcessError">MainProcessError</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder.make_attention_mask">make_attention_mask() (espnet.nets.chainer_backend.transformer.decoder.Decoder method)</a>
 </li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.training.batchfy.make_batchset">make_batchset() (in module espnet.utils.training.batchfy)</a>
@@ -5163,6 +5190,8 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.mask_by_length">mask_by_length() (in module espnet.nets.pytorch_backend.nets_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.mask_type">mask_type() (espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence property)</a>
 
       <ul>
@@ -5177,8 +5206,6 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.mask_type">(espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE property)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.maskctc.add_mask_token.mask_uniform">mask_uniform() (in module espnet.nets.pytorch_backend.maskctc.add_mask_token)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.mask_along_axis.MaskAlongAxis">MaskAlongAxis (class in espnet2.layers.mask_along_axis)</a>
@@ -6349,9 +6376,13 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_look_ahead">set_look_ahead() (espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim method)</a>
 </li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.set_start_method">set_start_method() (in module espnet.distributed.pytorch_backend.launch)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_streaming_config">set_streaming_config() (espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.set_target">set_target() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
+</li>
+      <li><a href="_gen/espnet.bin.html#espnet.bin.asr_train.setup_logging">setup_logging() (in module espnet.bin.asr_train)</a>
 </li>
       <li><a href="_gen/espnet2.optimizers.html#espnet2.optimizers.sgd.SGD">SGD (class in espnet2.optimizers.sgd)</a>
 </li>
@@ -6373,16 +6404,18 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.wpe.signal_framing">(in module espnet2.enh.layers.wpe)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.MainProcessError.signal_no">signal_no() (espnet.distributed.pytorch_backend.launch.MainProcessError property)</a>
+</li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.sinc">sinc() (espnet2.layers.sinc_conv.SincConv static method)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv">SincConv (class in espnet2.layers.sinc_conv)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.SingleRNN">SingleRNN (class in espnet2.enh.layers.dprnn)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">SISNRLoss (class in espnet2.enh.loss.criterions.time_domain)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.sized_dict.SizedDict">SizedDict (class in espnet2.utils.sized_dict)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SkiM">SkiM (class in espnet2.enh.layers.skim)</a>
@@ -6855,6 +6888,8 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.transfer_verification">transfer_verification() (in module espnet.asr.pytorch_backend.asr_init)</a>
 </li>
+      <li><a href="_gen/espnet.utils.html#espnet.utils.dataset.Transform">Transform (class in espnet.utils.dataset)</a>
+</li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.transformation.Transformation">Transformation (class in espnet.transform.transformation)</a>
 </li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.dataset.TransformDataset">TransformDataset (class in espnet.utils.dataset)</a>
@@ -7083,14 +7118,14 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.ctc.WarpCTC">(class in espnet.nets.chainer_backend.transformer.ctc)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.WaveNet">WaveNet (class in espnet.nets.pytorch_backend.wavenet)</a>
 
       <ul>
         <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.wavenet.wavenet.WaveNet">(class in espnet2.gan_tts.wavenet.wavenet)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper.weight">weight (espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper attribute)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.WeightedAverage">WeightedAverage (class in espnet2.train.reporter)</a>
@@ -7099,7 +7134,11 @@
 </li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.word_tokenizer.WordTokenizer">WordTokenizer (class in espnet2.text.word_tokenizer)</a>
 </li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.WorkerError.worker_id">worker_id() (espnet.distributed.pytorch_backend.launch.WorkerError property)</a>
+</li>
       <li><a href="_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.worker_init_fn">worker_init_fn() (in module espnet2.iterators.sequence_iter_factory)</a>
+</li>
+      <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.WorkerError">WorkerError</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.wpe.WPE">WPE (class in espnet.transform.wpe)</a>
 </li>

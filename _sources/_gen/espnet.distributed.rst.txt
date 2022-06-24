@@ -1,0 +1,27 @@
+
+espnet.distributed package
+==========================
+Initialize sub package.
+
+
+.. _espnet.distributed.__init__:
+
+espnet.distributed.__init__
+---------------------------
+
+.. automodule:: espnet.distributed.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.distributed.pytorch_backend.launch:
+
+espnet.distributed.pytorch_backend.launch
+-----------------------------------------
+
+.. automodule:: espnet.distributed.pytorch_backend.launch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
