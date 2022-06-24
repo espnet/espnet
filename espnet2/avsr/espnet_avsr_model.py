@@ -360,6 +360,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         with autocast(False):
             # 1. Extract feats
             if self.audio_input:
+                speech = speech.squeeze()
                 feats, feats_lengths = self._extract_feats(speech, speech_lengths)
                 # 2. Data augmentation
                 if self.specaug is not None and self.training:

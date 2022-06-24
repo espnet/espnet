@@ -40,26 +40,27 @@ if ! "${python_36_plus}"; then
 else
 
     if $(pt_plus 1.8.0); then
-        python3 pip install opencv-python
-        python3 pip install dlib==19.17.0
-        python3 pip install sk-video
-        python3 pip install scikit-image
+        python3 -m pip install opencv-python
+        python3 -m pip install dlib==19.17.0
+        python3 -m pip install sk-video
+        python3 -m pip install scikit-image
         if [[ "${torch_version}" == "1.8.0" ]]; then
-            python3 -m pip install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0
+            python3 -m pip install torch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0
         elif [[ "${torch_version}" == "1.8.1" ]]; then
-            python3 -m pip install pytorch==1.8.1 torchvision==0.9.1 torchaudio==0.8.1
+            python3 -m pip install torch==1.8.1 torchvision==0.9.1 torchaudio==0.8.1
         elif [[ "${torch_version}" == "1.9.0" ]]; then
-            python3 -m pip install pytorch==1.9.0 torchvision==0.10.0 torchaudio==0.9.0
+            python3 -m pip install torch==1.9.0 torchvision==0.10.0 torchaudio==0.9.0
         elif [[ "${torch_version}" == "1.9.1" ]]; then
-            python3 -m pip install pytorch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1
+            python3 -m pip install torch==1.9.1 torchvision==0.10.1 torchaudio==0.9.1
         elif [[ "${torch_version}" == "1.10.0" ]]; then
-            python3 -m pip install pytorch==1.10.0 torchvision==0.11.0 torchaudio==0.10.0
+            python3 -m pip install torch==1.10.0 torchvision==0.11.0 torchaudio==0.10.0
         elif [[ "${torch_version}" == "1.10.1" ]]; then
-            python3 -m pip install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1
+            python3 -m pip install torch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1
         elif [[ "${torch_version}" == "1.11.0" ]]; then
-            python3 -m pip install pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0
+            python3 -m pip install torch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0
         else
             python3 -m pip install torchvision torchaudio
+        fi
     else
         echo "[WARNING] ESPNet Multimodal Vision requires pytorch>=1.8.*"
     fi
