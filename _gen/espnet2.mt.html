@@ -105,6 +105,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.mt package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-init">espnet2.mt.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-espnet-model">espnet2.mt.espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-embedding">espnet2.mt.frontend.embedding</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-init">espnet2.mt.frontend.__init__</a></li>
@@ -185,8 +186,11 @@
 </style>
 <section id="espnet2-mt-package">
 <h1>espnet2.mt package<a class="headerlink" href="#espnet2-mt-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-mt-init">
+<span id="id1"></span><h2>espnet2.mt.__init__<a class="headerlink" href="#espnet2-mt-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.mt.__init__"></span></section>
 <section id="espnet2-mt-espnet-model">
-<span id="id1"></span><h2>espnet2.mt.espnet_model<a class="headerlink" href="#espnet2-mt-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span id="id2"></span><h2>espnet2.mt.espnet_model<a class="headerlink" href="#espnet2-mt-espnet-model" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.espnet_model"></span><dl class="class">
 <dt id="espnet2.mt.espnet_model.ESPnetMTModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.mt.espnet_model.</code><code class="sig-name descname">ESPnetMTModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, src_vocab_size: int = 0, src_token_list: Union[Tuple[str, ...], List[str]] = [], ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_bleu: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', extract_feats_in_collect_stats: bool = True, share_decoder_input_output_embed: bool = False, share_encoder_decoder_input_embed: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel" title="Permalink to this definition">¶</a></dt>
@@ -232,7 +236,7 @@
 
 </section>
 <section id="espnet2-mt-frontend-embedding">
-<span id="id2"></span><h2>espnet2.mt.frontend.embedding<a class="headerlink" href="#espnet2-mt-frontend-embedding" title="Permalink to this headline">¶</a></h2>
+<span id="id3"></span><h2>espnet2.mt.frontend.embedding<a class="headerlink" href="#espnet2-mt-frontend-embedding" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.frontend.embedding"></span><p>Embedding Frontend for text based inputs.</p>
 <dl class="class">
 <dt id="espnet2.mt.frontend.embedding.Embedding">
@@ -281,7 +285,7 @@ Tensor: Output lengths within batch.</p>
 
 </section>
 <section id="espnet2-mt-frontend-init">
-<span id="id3"></span><h2>espnet2.mt.frontend.__init__<a class="headerlink" href="#espnet2-mt-frontend-init" title="Permalink to this headline">¶</a></h2>
+<span id="id4"></span><h2>espnet2.mt.frontend.__init__<a class="headerlink" href="#espnet2-mt-frontend-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.frontend.__init__"></span></section>
 </section>
 
