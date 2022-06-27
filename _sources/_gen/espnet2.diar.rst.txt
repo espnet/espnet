@@ -92,6 +92,17 @@ espnet2.diar.separator.tcn_separator_nomask
     :show-inheritance:
 
 
+.. _espnet2.diar.separator.__init__:
+
+espnet2.diar.separator.__init__
+-------------------------------
+
+.. automodule:: espnet2.diar.separator.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.diar.decoder.abs_decoder:
 
 espnet2.diar.decoder.abs_decoder
@@ -153,6 +164,17 @@ espnet2.diar.layers.abs_mask
 ----------------------------
 
 .. automodule:: espnet2.diar.layers.abs_mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.layers.__init__:
+
+espnet2.diar.layers.__init__
+----------------------------
+
+.. automodule:: espnet2.diar.layers.__init__
     :members:
     :undoc-members:
     :show-inheritance:
