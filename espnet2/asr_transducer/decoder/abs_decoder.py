@@ -1,13 +1,7 @@
 """Abstract decoder definition for Transducer models."""
 
-from abc import ABC
-from abc import abstractmethod
-
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 

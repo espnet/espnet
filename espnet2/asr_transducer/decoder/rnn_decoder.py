@@ -1,17 +1,11 @@
 """RNN decoder definition for Transducer models."""
 
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis
-from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis, Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 
 
@@ -19,26 +13,26 @@ class RNNDecoder(AbsDecoder):
     """RNN decoder module.
 
     Args:
-        dim_vocab: Output dimension.
-        dim_embedding: Embedding dimension.
-        dim_hidden: Hidden dimension.
+        vocab_size: Vocabulary size.
+        embed_size: Embedding size.
+        hidden_size: Hidden size..
         rnn_type: Decoder layers type.
         num_layers: Number of decoder layers.
-        dropout: Dropout rate for decoder layers.
-        dropout_embed: Dropout rate for embedding layer.
-        embed_pad: Embed/Blank symbol ID.
+        dropout_rate: Dropout rate for decoder layers.
+        embed_dropout_rate: Dropout rate for embedding layer.
+        embed_pad: Embedding padding symbol ID.
 
     """
 
     def __init__(
         self,
-        dim_vocab: int,
-        dim_embedding: int = 256,
-        dim_hidden: int = 256,
+        vocab_size: int,
+        embed_size: int = 256,
+        hidden_size: int = 256,
         rnn_type: str = "lstm",
         num_layers: int = 1,
-        dropout: float = 0.0,
-        dropout_embed: float = 0.0,
+        dropout_rate: float = 0.0,
+        embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
     ):
         assert check_argument_types()
@@ -48,27 +42,27 @@ class RNNDecoder(AbsDecoder):
 
         super().__init__()
 
-        self.embed = torch.nn.Embedding(dim_vocab, dim_embedding, padding_idx=embed_pad)
-        self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
+        self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
+        self.dropout_embed = torch.nn.Dropout(p=embed_dropout_rate)
 
         rnn_class = torch.nn.LSTM if rnn_type == "lstm" else torch.nn.GRU
 
         self.rnn = torch.nn.ModuleList(
-            [rnn_class(dim_embedding, dim_hidden, 1, batch_first=True)]
+            [rnn_class(embed_size, hidden_size, 1, batch_first=True)]
         )
 
         for _ in range(1, num_layers):
-            self.rnn += [rnn_class(dim_hidden, dim_hidden, 1, batch_first=True)]
+            self.rnn += [rnn_class(hidden_size, hidden_size, 1, batch_first=True)]
 
         self.dropout_rnn = torch.nn.ModuleList(
-            [torch.nn.Dropout(p=dropout) for _ in range(num_layers)]
+            [torch.nn.Dropout(p=dropout_rate) for _ in range(num_layers)]
         )
 
         self.dlayers = num_layers
         self.dtype = rnn_type
 
-        self.dim_output = dim_hidden
-        self.dim_vocab = dim_vocab
+        self.output_size = hidden_size
+        self.vocab_size = vocab_size
 
         self.blank_id = embed_pad
 
@@ -214,7 +208,7 @@ class RNNDecoder(AbsDecoder):
         h_n = torch.zeros(
             self.dlayers,
             batch_size,
-            self.dim_output,
+            self.output_size,
             device=self.device,
         )
 
@@ -222,7 +216,7 @@ class RNNDecoder(AbsDecoder):
             c_n = torch.zeros(
                 self.dlayers,
                 batch_size,
-                self.dim_output,
+                self.output_size,
                 device=self.device,
             )
 

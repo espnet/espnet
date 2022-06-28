@@ -2,17 +2,11 @@
 
 import argparse
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -37,10 +31,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -400,7 +391,7 @@ class ASRTransducerTask(AbsTask):
 
         # 4. Encoder
         encoder = Encoder(input_size, **args.encoder_conf)
-        encoder_output_size = encoder.dim_output
+        encoder_output_size = encoder.output_size
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
@@ -408,7 +399,7 @@ class ASRTransducerTask(AbsTask):
             vocab_size,
             **args.decoder_conf,
         )
-        decoder_output_size = decoder.dim_output
+        decoder_output_size = decoder.output_size
 
         # 6. Joint Network
         joint_network = JointNetwork(

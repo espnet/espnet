@@ -1,12 +1,7 @@
 """Search algorithms for Transducer models."""
 
 from dataclasses import dataclass
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -51,6 +46,7 @@ class BeamSearchTransducer:
         expansion_beta: int = 2,
         score_norm: bool = False,
         nbest: int = 1,
+        streaming: bool = False,
     ):
         """Initialize Transducer search module.
 
@@ -69,19 +65,20 @@ class BeamSearchTransducer:
             expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             score_norm: Normalize final scores by length.
             nbest: Number of final hypothesis.
+            streaming: Whether to perform streaming beam search.
 
         """
         self.decoder = decoder
         self.joint_network = joint_network
 
-        self.dim_vocab = decoder.dim_vocab
+        self.vocab_size = decoder.vocab_size
         self.blank_id = decoder.blank_id
 
         assert (
-            beam_size <= self.dim_vocab
+            beam_size <= self.vocab_size
         ), "beam_size (%d) should be smaller or equal to vocabulary size (%d)." % (
             beam_size,
-            self.dim_vocab,
+            self.vocab_size,
         )
         self.beam_size = beam_size
 
@@ -93,15 +90,17 @@ class BeamSearchTransducer:
 
             self.search_algorithm = self.time_sync_decoding
         elif search_type == "alsd":
+            assert not streaming, "ALSD is not available in streaming mode."
+
             assert u_max >= 0, "u_max should be a positive integer, a portion of max_T."
             self.u_max = u_max
 
             self.search_algorithm = self.align_length_sync_decoding
         elif search_type == "maes":
-            assert self.dim_vocab >= beam_size + expansion_beta, (
+            assert self.vocab_size >= beam_size + expansion_beta, (
                 "beam_size (%d) + expansion_beta (%d) "
                 " should be smaller or equal to vocab size (%d)."
-                % (beam_size, expansion_beta, self.dim_vocab)
+                % (beam_size, expansion_beta, self.vocab_size)
             )
             self.max_candidates = beam_size + expansion_beta
 
@@ -115,19 +114,34 @@ class BeamSearchTransducer:
             )
 
         self.use_lm = lm is not None
-        self.lm = lm
-        self.lm_weight = lm_weight
+
+        if self.use_lm:
+            assert hasattr(lm, "rnn_type"), "Transformer LM is currently not supported."
+
+            self.sos = self.vocab_size - 1
+
+            self.lm = lm
+            self.lm_weight = lm_weight
 
         self.score_norm = score_norm
         self.nbest = nbest
 
+        self.cache = {}
+
     def __call__(
-        self, enc_out: torch.Tensor
-    ) -> Union[List[Hypothesis], List[ExtendedHypothesis]]:
+        self,
+        enc_out: torch.Tensor,
+        cache: Union[
+            Optional[List[Hypothesis]], Optional[List[ExtendedHypothesis]]
+        ] = None,
+        is_final: bool = True,
+    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
         """Perform beam search.
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)
+            cache: N-best hypotheses from previous timesteps.
+            is_final: Whether enc_out is the final chunk of data.
 
         Returns:
             nbest_hyps: N-best decoding results
@@ -135,13 +149,18 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        nbest_hyps = self.search_algorithm(enc_out)
+        hyps = self.search_algorithm(enc_out, cache=cache)
 
-        return nbest_hyps
+        if is_final:
+            self.cache = {}
+
+            return self.sort_nbest(hyps)
+
+        return hyps
 
     def sort_nbest(
         self, hyps: Union[List[Hypothesis], List[ExtendedHypothesis]]
-    ) -> Union[List[Hypothesis], List[ExtendedHypothesis]]:
+    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
         """Sort hypotheses by score or score given sequence length.
 
         Args:
@@ -158,7 +177,9 @@ class BeamSearchTransducer:
 
         return hyps[: self.nbest]
 
-    def recombine_hyps(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
+    def recombine_hyps(
+        self, hyps: List[Union[Hypothesis, ExtendedHypothesis]]
+    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
         """Recombine hypotheses with same label ID sequence.
 
         Args:
@@ -223,27 +244,56 @@ class BeamSearchTransducer:
 
         return k_expansions
 
-    def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+    def create_lm_batch_inputs(self, hyps_seq: List[List[int]]) -> torch.Tensor:
+        """Make batch of inputs with left padding for LM scoring.
+
+        Args:
+            hyps_seqs: Hypothesis sequences.
+
+        Returns:
+            : Padded batch of sequences.
+
+        """
+        max_len = max([len(h) for h in hyps_seq])
+
+        return torch.LongTensor(
+            [
+                [self.sos] + ([self.blank_id] * (max_len - len(h))) + h[1:]
+                for h in hyps_seq
+            ],
+            device=self.decoder.device,
+        )
+
+    def default_beam_search(
+        self,
+        enc_out: torch.Tensor,
+        cache: Optional[List[Hypothesis]] = None,
+    ) -> List[Hypothesis]:
         """Beam search implementation.
 
         Modified from https://arxiv.org/pdf/1211.3711.pdf
 
         Args:
             enc_out: Encoder output sequence. (T, D)
+            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
 
         """
-        beam_k = min(self.beam_size, (self.dim_vocab - 1))
+        beam_k = min(self.beam_size, (self.vocab_size - 1))
         max_t = len(enc_out)
 
-        kept_hyps = [
-            Hypothesis(
-                score=0.0, yseq=[self.blank_id], dec_state=self.decoder.init_state(1)
-            )
-        ]
-        cache = {}
+        if cache is not None:
+            kept_hyps = cache
+        else:
+            kept_hyps = [
+                Hypothesis(
+                    score=0.0,
+                    yseq=[self.blank_id],
+                    dec_state=self.decoder.init_state(1),
+                )
+            ]
 
         for t in range(max_t):
             hyps = kept_hyps
@@ -254,10 +304,13 @@ class BeamSearchTransducer:
                 hyps.remove(max_hyp)
 
                 label = torch.full(
-                    (1, 1), max_hyp.yseq[-1], dtype=torch.long, device=enc_out.device
+                    (1, 1),
+                    max_hyp.yseq[-1],
+                    dtype=torch.long,
+                    device=self.decoder.device,
                 )
                 dec_out, state = self.decoder.score(
-                    label, max_hyp.yseq, max_hyp.dec_state, cache
+                    label, max_hyp.yseq, max_hyp.dec_state, self.cache
                 )
 
                 logp = torch.log_softmax(
@@ -277,7 +330,11 @@ class BeamSearchTransducer:
 
                 if self.use_lm:
                     lm_scores, lm_state = self.lm.score(
-                        label[0], max_hyp.lm_state, None
+                        torch.LongTensor(
+                            [self.sos] + max_hyp.yseq[1:], device=self.decoder.device
+                        ),
+                        max_hyp.lm_state,
+                        None,
                     )
                 else:
                     lm_state = max_hyp.lm_state
@@ -306,9 +363,12 @@ class BeamSearchTransducer:
                     kept_hyps = kept_most_prob
                     break
 
-        return self.sort_nbest(kept_hyps)
+        return kept_hyps
 
-    def align_length_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+    def align_length_sync_decoding(
+        self,
+        enc_out: torch.Tensor,
+    ) -> List[Hypothesis]:
         """Alignment-length synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
@@ -360,9 +420,7 @@ class BeamSearchTransducer:
 
                 if self.use_lm:
                     beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                        torch.LongTensor(
-                            [[b.yseq[-1]] for b in B_], device=self.decoder.device
-                        ),
+                        self.create_lm_batch_inputs([b.yseq for b in B_]),
                         [b.lm_state for b in B_],
                         None,
                     )
@@ -398,30 +456,40 @@ class BeamSearchTransducer:
                 B = self.recombine_hyps(B)
 
         if final:
-            return self.sort_nbest(final)
-        else:
-            return B
+            return final
 
-    def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+        return B
+
+    def time_sync_decoding(
+        self,
+        enc_out: torch.Tensor,
+        cache: Optional[List[Hypothesis]] = None,
+    ) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
 
         Args:
             enc_out: Encoder output sequence. (T, D)
+            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
 
         """
-        B = [
-            Hypothesis(
-                yseq=[self.blank_id], score=0.0, dec_state=self.decoder.init_state(1)
-            )
-        ]
+        if cache is not None:
+            B = cache
+        else:
+            B = [
+                Hypothesis(
+                    yseq=[self.blank_id],
+                    score=0.0,
+                    dec_state=self.decoder.init_state(1),
+                )
+            ]
 
-        if self.use_lm:
-            B[0].lm_state = self.lm.zero_state()
+            if self.use_lm:
+                B[0].lm_state = self.lm.zero_state()
 
         for enc_out_t in enc_out:
             A = []
@@ -462,9 +530,7 @@ class BeamSearchTransducer:
                 if v < (self.max_sym_exp - 1):
                     if self.use_lm:
                         beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                            torch.LongTensor(
-                                [[h.yseq[-1]] for h in C], device=self.decoder.device
-                            ),
+                            self.create_lm_batch_inputs([c.yseq for c in C]),
                             [c.lm_state for c in C],
                             None,
                         )
@@ -488,10 +554,12 @@ class BeamSearchTransducer:
 
             B = sorted(A, key=lambda x: x.score, reverse=True)[: self.beam_size]
 
-        return self.sort_nbest(B)
+        return B
 
     def modified_adaptive_expansion_search(
-        self, enc_out: torch.Tensor
+        self,
+        enc_out: torch.Tensor,
+        cache: Optional[List[ExtendedHypothesis]] = None,
     ) -> List[ExtendedHypothesis]:
         """Modified version of Adaptive Expansion Search (mAES).
 
@@ -500,48 +568,50 @@ class BeamSearchTransducer:
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)
+            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
 
         """
-        init_tokens = [
-            ExtendedHypothesis(
-                yseq=[self.blank_id],
-                score=0.0,
-                dec_state=self.decoder.init_state(1),
-            )
-        ]
-
-        beam_dec_out, beam_state = self.decoder.batch_score(
-            init_tokens,
-        )
-
-        if self.use_lm:
-            beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                torch.LongTensor(
-                    [[h.yseq[-1]] for h in init_tokens], device=self.decoder.device
-                ),
-                [h.lm_state for h in init_tokens],
-                None,
-            )
-
-            lm_state = beam_lm_states[0]
-            lm_score = beam_lm_scores[0]
+        if cache is not None:
+            kept_hyps = cache
         else:
-            lm_state = None
-            lm_score = None
+            init_tokens = [
+                ExtendedHypothesis(
+                    yseq=[self.blank_id],
+                    score=0.0,
+                    dec_state=self.decoder.init_state(1),
+                )
+            ]
 
-        kept_hyps = [
-            ExtendedHypothesis(
-                yseq=[self.blank_id],
-                score=0.0,
-                dec_state=self.decoder.select_state(beam_state, 0),
-                dec_out=beam_dec_out[0],
-                lm_state=lm_state,
-                lm_score=lm_score,
+            beam_dec_out, beam_state = self.decoder.batch_score(
+                init_tokens,
             )
-        ]
+
+            if self.use_lm:
+                beam_lm_scores, beam_lm_states = self.lm.batch_score(
+                    self.create_lm_batch_inputs([h.yseq for h in init_tokens]),
+                    [h.lm_state for h in init_tokens],
+                    None,
+                )
+
+                lm_state = beam_lm_states[0]
+                lm_score = beam_lm_scores[0]
+            else:
+                lm_state = None
+                lm_score = None
+
+            kept_hyps = [
+                ExtendedHypothesis(
+                    yseq=[self.blank_id],
+                    score=0.0,
+                    dec_state=self.decoder.select_state(beam_state, 0),
+                    dec_out=beam_dec_out[0],
+                    lm_state=lm_state,
+                    lm_score=lm_score,
+                )
+            ]
 
         for enc_out_t in enc_out:
             hyps = kept_hyps
@@ -595,10 +665,7 @@ class BeamSearchTransducer:
 
                     if self.use_lm:
                         beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                            torch.LongTensor(
-                                [[h.yseq[-1]] for h in list_exp],
-                                device=self.decoder.device,
-                            ),
+                            self.create_lm_batch_inputs([h.yseq for h in list_exp]),
                             [h.lm_state for h in list_exp],
                             None,
                         )
@@ -635,4 +702,4 @@ class BeamSearchTransducer:
                             reverse=True,
                         )[: self.beam_size]
 
-        return self.sort_nbest(kept_hyps)
+        return kept_hyps

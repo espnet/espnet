@@ -1,16 +1,12 @@
 from distutils.version import LooseVersion
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import torch
 import torch.nn.functional as F
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import einsum
-from espnet2.enh.layers.complex_utils import matmul
-from espnet2.enh.layers.complex_utils import reverse
-
+from espnet2.enh.layers.complex_utils import einsum, matmul, reverse
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 

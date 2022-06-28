@@ -1,7 +1,6 @@
 """Error Calculator module for Transducer."""
 
-from typing import List
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 
@@ -69,14 +68,10 @@ class ErrorCalculator(object):
         cer, wer = None, None
 
         batchsize = int(encoder_out.size(0))
-        batch_nbest = []
 
         encoder_out = encoder_out.to(next(self.decoder.parameters()).device)
 
-        for b in range(batchsize):
-            nbest_hyps = self.beam_search(encoder_out[b])
-            batch_nbest.append(nbest_hyps)
-
+        batch_nbest = [self.beam_search(encoder_out[b]) for b in range(batchsize)]
         pred = [nbest_hyp[0].yseq[1:] for nbest_hyp in batch_nbest]
 
         char_pred, char_target = self.convert_to_char(pred, target)

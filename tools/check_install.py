@@ -8,7 +8,6 @@
 import importlib
 import shutil
 import sys
-
 from distutils.version import LooseVersion
 
 module_list = [
@@ -29,9 +28,9 @@ module_list = [
     ("transformers", None, "installers/install_transformers.sh"),
     ("speechbrain", None, "installers/install_speechbrain.sh"),
     ("k2", None, "installers/install_k2.sh"),
-    ("longformer",None,"installers/install_longformer.sh"),
-    ("nlg-eval",None,"installers/install_longformer.sh"),
-    ("datasets",None,"installers/install_longformer.sh"),
+    ("longformer", None, "installers/install_longformer.sh"),
+    ("nlg-eval", None, "installers/install_longformer.sh"),
+    ("datasets", None, "installers/install_longformer.sh"),
 ]
 
 executable_list = [

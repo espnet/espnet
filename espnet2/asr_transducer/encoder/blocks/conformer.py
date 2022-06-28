@@ -1,7 +1,6 @@
 """Conformer block for Transducer encoder."""
 
-from typing import Tuple
-from typing import Union
+from typing import Optional
 
 import torch
 
@@ -10,26 +9,28 @@ class Conformer(torch.nn.Module):
     """Conformer module definition.
 
     Args:
-        size: Input/output dimension.
+        block_size: Input/output size.
         self_att: Self-attention module instance.
         feed_forward: Feed-forward module instance.
         feed_forward_macaron: Feed-forward module instance for macaron network.
         conv_mod: Convolution module instance.
+        layer_norm: Layer normalization instance.
+        layer_norm_eps: Epsilon value for normalization layer.
         dropout_rate: Dropout rate.
-        eps_layer_norm: Epsilon value for LayerNorm.
 
     """
 
     def __init__(
         self,
-        size: int,
+        block_size: int,
         self_att: torch.nn.Module,
         feed_forward: torch.nn.Module,
         feed_forward_macaron: torch.nn.Module,
         conv_mod: torch.nn.Module,
+        layer_norm: torch.nn.Module = torch.nn.LayerNorm,
+        layer_norm_eps: float = 0.25,
         dropout_rate: float = 0.0,
-        eps_layer_norm: float = 1e-12,
-    ):
+    ) -> None:
         """Construct a Conformer object."""
 
         super().__init__()
@@ -38,87 +39,160 @@ class Conformer(torch.nn.Module):
 
         self.feed_forward = feed_forward
         self.feed_forward_macaron = feed_forward_macaron
+        self.feed_forward_scale = 0.5
 
         self.conv_mod = conv_mod
 
-        self.norm_feed_forward = torch.nn.LayerNorm(size, eps_layer_norm)
-        self.norm_multihead_att = torch.nn.LayerNorm(size, eps_layer_norm)
+        self.norm_feed_forward = layer_norm(block_size, layer_norm_eps)
+        self.norm_self_att = layer_norm(block_size, layer_norm_eps)
 
-        if feed_forward_macaron is not None:
-            self.norm_macaron = torch.nn.LayerNorm(size, eps_layer_norm)
-            self.feed_forward_scale = 0.5
-        else:
-            self.feed_forward_scale = 1.0
-
-        if self.conv_mod is not None:
-            self.norm_conv = torch.nn.LayerNorm(size, eps_layer_norm)
-            self.norm_final = torch.nn.LayerNorm(size, eps_layer_norm)
+        self.norm_macaron = layer_norm(block_size, layer_norm_eps)
+        self.norm_conv = layer_norm(block_size, layer_norm_eps)
+        self.norm_final = layer_norm(block_size, layer_norm_eps)
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 
-        self.size = size
+        self.block_size = block_size
+        self.cache = None
+
+    def init_streaming_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize self-attention and convolution modules cache for streaming.
+
+        Args:
+            left_context: Number of frames in left context during streaming decoding.
+            device: Device to use for cache tensor.
+
+        """
+        self.cache = [
+            torch.zeros(
+                (1, left_context, self.block_size),
+                device=device,
+            ),
+            torch.zeros(
+                (
+                    1,
+                    self.block_size,
+                    self.conv_mod.kernel_size - 1,
+                ),
+                device=device,
+            ),
+        ]
 
     def forward(
         self,
-        sequence: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
+        x: torch.Tensor,
+        pos_enc: torch.Tensor,
         mask: torch.Tensor,
-        cache: torch.Tensor = None,
-    ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
+        chunk_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         """Encode input sequences.
 
         Args:
-            sequence: Conformer input sequences.
-                     (B, T, D_emb) or ((B, T, D_emb), (1, T, D_emb))
-            mask: Mask of input sequences. (B, T)
-            cache: Conformer cache. (B, T-1, D_hidden)
+            x: Conformer input sequences. (B, T, D_emb)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            mask: Source mask. (B, T_2)
+            chunk_mask: Chunk mask (T_1, T_2)
 
         Returns:
-            sequence: Conformer output sequences.
-               (B, T, D_enc) or ((B, T, D_enc), (1, T, D_enc))
-            mask: Mask of output sequences. (B, T)
+            x: Conformer output sequences. (B, T, D_enc)
 
         """
-        if isinstance(sequence, tuple):
-            sequence, pos_emb = sequence[0], sequence[1]
-        else:
-            sequence, pos_emb = sequence, None
+        residual = x
 
-        if self.feed_forward_macaron is not None:
-            residual = sequence
-
-            sequence = self.norm_macaron(sequence)
-            sequence = residual + self.feed_forward_scale * self.dropout(
-                self.feed_forward_macaron(sequence)
-            )
-
-        residual = sequence
-        sequence = self.norm_multihead_att(sequence)
-        x_q = sequence
-
-        if pos_emb is not None:
-            sequence_att = self.self_att(x_q, sequence, sequence, pos_emb, mask)
-        else:
-            sequence_att = self.self_att(x_q, sequence, sequence, mask)
-
-        sequence = residual + self.dropout(sequence_att)
-
-        if self.conv_mod is not None:
-            residual = sequence
-
-            sequence = self.norm_conv(sequence)
-            sequence = residual + self.dropout(self.conv_mod(sequence))
-
-        residual = sequence
-
-        sequence = self.norm_feed_forward(sequence)
-        sequence = residual + self.feed_forward_scale * self.dropout(
-            self.feed_forward(sequence)
+        x = self.norm_macaron(x)
+        x = residual + self.feed_forward_scale * self.dropout(
+            self.feed_forward_macaron(x)
         )
 
-        if self.conv_mod is not None:
-            sequence = self.norm_final(sequence)
+        residual = x
+        x = self.norm_self_att(x)
+        x_q = x
 
-        if pos_emb is not None:
-            return (sequence, pos_emb), mask
+        x = residual + self.dropout(
+            self.self_att(
+                x_q,
+                x,
+                x,
+                pos_enc,
+                mask,
+                chunk_mask=chunk_mask,
+            )
+        )
 
-        return sequence, mask
+        residual = x
+
+        x = self.norm_conv(x)
+        x, _ = self.conv_mod(x)
+        x = residual + self.dropout(x)
+
+        residual = x
+
+        x = self.norm_feed_forward(x)
+        x = residual + self.feed_forward_scale * self.dropout(self.feed_forward(x))
+
+        x = self.norm_final(x)
+
+        return x
+
+    def chunk_forward(
+        self,
+        x: torch.Tensor,
+        pos_enc: torch.Tensor,
+        mask: torch.Tensor,
+        left_context: int = 0,
+        right_context: int = 0,
+    ) -> torch.Tensor:
+        """Encode input sequences.
+
+        Args:
+            x: Conformer input sequences. (B, T, D_emb)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            mask: Source mask. (B, T_2)
+            left_context: Number of frames in left context.
+            right_context: Number of frames in right context.
+
+        Returns:
+            x: Conformer output sequences. (B, T, D_enc)
+
+        """
+        residual = x
+
+        x = self.norm_macaron(x)
+        x = residual + self.feed_forward_scale * self.feed_forward_macaron(x)
+
+        residual = x
+        x = self.norm_self_att(x)
+        key = torch.cat([self.cache[0], x], dim=1)
+        val = key
+
+        if right_context > 0:
+            att_cache = key[:, -(left_context + right_context) : -right_context, :]
+        else:
+            att_cache = key[:, -left_context:, :]
+
+        x = residual + self.self_att(
+            x,
+            key,
+            val,
+            pos_enc,
+            mask,
+            left_context=left_context,
+        )
+
+        residual = x
+
+        x = self.norm_conv(x)
+        x, conv_cache = self.conv_mod(
+            x, cache=self.cache[1], right_context=right_context
+        )
+
+        x = residual + x
+        residual = x
+
+        x = self.norm_feed_forward(x)
+        x = residual + self.feed_forward_scale * self.feed_forward(x)
+
+        x = self.norm_final(x)
+        self.cache = [att_cache, conv_cache]
+
+        return x

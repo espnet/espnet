@@ -1,10 +1,6 @@
 """Enhancement model module."""
 from distutils.version import LooseVersion
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import OrderedDict
-from typing import Tuple
+from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -17,7 +13,6 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 

@@ -1,7 +1,6 @@
 """Utility functions for Transducer models."""
 
-from typing import List
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 
@@ -46,29 +45,79 @@ def check_short_utt(sub_factor: int, size: int) -> Tuple[bool, int]:
     return False, -1
 
 
-def sub_factor_to_params(sub_factor: int, dim_input: int) -> Tuple[int, int, int]:
+def sub_factor_to_params(sub_factor: int, input_size: int) -> Tuple[int, int, int]:
     """Get conv2D second layer parameters for given subsampling factor.
 
     Args:
         sub_factor: Subsampling factor (1/X).
-        dim_input: Input dimension.
+        input_size: Input size.
 
     Returns:
         : Kernel size for second convolution.
         : Stride for second convolution.
-        : Output dimension for Conv2DSubsampling module.
+        : Conv2DSubsampling output size.
 
     """
     if sub_factor == 2:
-        return 3, 1, (((dim_input - 1) // 2 - 2))
+        return 3, 1, (((input_size - 1) // 2 - 2))
     elif sub_factor == 4:
-        return 3, 2, (((dim_input - 1) // 2 - 1) // 2)
+        return 3, 2, (((input_size - 1) // 2 - 1) // 2)
     elif sub_factor == 6:
-        return 5, 3, (((dim_input - 1) // 2 - 2) // 3)
+        return 5, 3, (((input_size - 1) // 2 - 2) // 3)
     else:
         raise ValueError(
             "subsampling_factor parameter should be set to either 2, 4 or 6."
         )
+
+
+def make_chunk_mask(
+    size: int,
+    chunk_size: int,
+    left_chunk_size: int = 0,
+    device: torch.device = None,
+) -> torch.Tensor:
+    """Create chunk mask for the subsequent steps (size, size).
+
+    Args:
+        size: Size of the source mask.
+        chunk_size: Number of frames in chunk.
+        left_chunk_size: Size of the left context in chunks (0 means full context).
+        device: Device for the mask tensor.
+
+    Returns:
+        mask: Chunk mask. (B, 1, size)
+
+    """
+    mask = torch.zeros(size, size, device=device, dtype=torch.bool)
+
+    for i in range(size):
+        if left_chunk_size <= 0:
+            start = 0
+        else:
+            start = max((i // chunk_size - left_chunk_size) * chunk_size, 0)
+
+        end = min((i // chunk_size + 1) * chunk_size, size)
+        mask[i, start:end] = True
+
+    return ~mask
+
+
+def make_source_mask(lengths: torch.Tensor) -> torch.Tensor:
+    """Create source mask for given lengths.
+
+    Args:
+        lengths: Sequence lengths. (B,)
+
+    Returns:
+        : Mask for the sequence lengths. (B, 1, max_len)
+
+    """
+    max_len = lengths.max()
+    batch_size = lengths.size(0)
+
+    expanded_lengths = torch.arange(max_len).expand(batch_size, max_len).to(lengths)
+
+    return expanded_lengths >= lengths.unsqueeze(1)
 
 
 def get_transducer_task_io(

@@ -1,15 +1,12 @@
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 
 class RNNEncoder(AbsEncoder):

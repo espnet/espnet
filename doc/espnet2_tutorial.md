@@ -347,9 +347,9 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 
 ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. Currently, two versions of these models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention ASR models while the second is designed independently and purely for the Transducer task. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
 
-For the user, it means two things. One, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) or features (e.g.: streaming) were intentionally removed until further notice. New versions are under way.
+For the user, it means two things. First, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) may be missing in the standalone version until futher testing.
 
-***The following sections of this tutorial are dedicated to the introduction of the second version***. In that regards, the user should keep in mind that most features described here are not be available in the first version.
+***The following sections of this tutorial are dedicated to the introduction of the version under asr_transducer***. In that regards, the user should keep in mind that most features described here are not available in the first version.
 
 ### General usage
 
@@ -363,7 +363,7 @@ For Transducer loss computation during training, we rely on a fork of `warp-tran
 
 **Note:** If you encounter any error related to this tool, please open an issue in ESPnet instead of the [original repository](https://github.com/HawkAaron/warp-transducer/issues).
 
-**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit-lambda` need to set in `model_conf`:
+**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit-lambda` need to be set in `model_conf`:
 
     model_conf:
       fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
@@ -385,8 +385,13 @@ The first and second configuration are optional. If needed, fhe following parame
     main_conf:
       pos_wise_layer_type: Position-wise layer type. (str, default = "linear")
       pos_enc_layer_type: Positional encoding layer type. (str, default = "abs_pos")
+      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
       conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      dynamic_chunk_training: Whether to use dynamic chunk during streaming training. (bool, default = False)
+      short_chunk_threshold: Chunk length percent threshold for dynamic chunk selection. (int, default = 0.75)
+      short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+      left_chunk_size: Number of frames in left context. (int, default = 0)
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
       hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
@@ -400,15 +405,14 @@ The first and second configuration are optional. If needed, fhe following parame
 
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
-      dim_conv (conv2d only): Convolution output dimension. (int, default = 256)
+      conv_size (conv2d only): Convolution output size. (int, default = 256)
       subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
-      dropout_rate_pos_enc: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
     # Conv 1D
     - block_type: conv1d
-      dim_output: Output dimension. (int)
+      output_size: Output size. (int)
       kernel_size: Size of the context window. (int or Tuple)
       stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
       dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
@@ -418,25 +422,16 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       use_batchnorm: Whether to use batch normalization after convolution. (bool, default = False)
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
-    # RNN
-    - block_type: rnn
-      dim_hidden: Hidden dimension. (int)
-      dim_proj (optional): Projection dimension, where 0 means no projection layers. (int, default = 0)
-      rnn_type (optional): Type of RNN units (str, default = "lstm")
-      bidirectional (optional): Whether bidirectional layers shuld be used. (bool, default = True)
-      subsample (optional) Subsampling for each layer when projection layers are used. (sequence, default = (1, 1, 1, 1))
-      dropout_rate (optional): Dropout rate for the RNN outputs. (float, default = 0.0)
-
     # Conformer
     - block_type: conformer
-      dim_hidden: Hidden (and output) dimension. (int)
-      dim_linear: Dimension of feed-forward module. (int)
+      hidden_size: Hidden (and output) dimension. (int)
+      linear_size: Dimension of feed-forward module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       macaron_style (optional): Whether to use macaron style. (bool, default = False)
-      conv_mod_kernel (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
+      conv_mod_kernel_size (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
-      dropout_rate_att (optional: Dropout rate for the attention module. (float, default = 0.0)
-      dropout_rate_pos_wise (optional): Dropout rate for the position-wise module. (float, default = 0.0)
+      att_dropout_rate (optional: Dropout rate for the attention module. (float, default = 0.0)
+      pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
@@ -448,42 +443,29 @@ encoder_conf:
       pos_wise_layer_type: linear
       pos_wise_act_type: swish
       pos_enc_layer_type: rel_pos
+      pos_enc_dropout_rate: 0.1
       conv_mod_act_type: swish
     input_conf:
       block_type: conv2d
-      dim_conv: 256
+      conv_size: 256
       subsampling_factor: 4
-      dropout_rate_pos_enc: 0.1
     body_conf:
     - block_type: conv1d
-      dim_output: 128
+      output_size: 128
       kernel_size: 3
     - block_type: conv1d
-      dim_output: 256
+      output_size: 256
       kernel_size: 2
     - block_type: conformer
-      dim_linear: 1024
-      dim_hidden: 256
+      linear_size: 1024
+      hidden_size: 256
       heads: 8
       dropout_rate: 0.1
-      dropout_rate_pos_wise: 0.1
-      dropout_rate_att: 0.1
+      pos_wise_dropout_rate: 0.1
+      att_dropout_rate: 0.1
       macaron_style: true
-      conv_mod_kernel: 31
+      conv_mod_kernel_size: 31
       num_blocks: 14
-```
-
-**Example 2: VGG + 4x RNN w/ projection layers.**
-
-```yaml
-encoder_conf:
-    input_conf:
-      block_type: vgg
-    body_conf:
-    - block_type: rnn
-      num_blocks: 4
-      dim_hidden: 512
-      dim_proj: 256
 ```
 
 #### Decoder
@@ -492,17 +474,17 @@ For the decoder, two types of blocks are available: RNN and stateless (only embe
 
     decoder_conf:
       rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
-      dim_hidden (RNN only): Dimension of the hidden layers (int, default = 256).
-      dim_embedding: Dimension of the embedding layer (int, default = 256).
-      dropout: Dropout rate for the RNN output nodes (float, default = 0.0).
-      dropout_embed: Dropout rate for the embedding layer (float, default = 0.0).
+      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
+      embed_size: Size of the embedding layer (int, default = 256).
+      dropout_rate: Dropout rate for the RNN output nodes (float, default = 0.0).
+      embed_dropout_rate: Dropout rate for the embedding layer (float, default = 0.0).
 
 #### Joint network
 
 Currently, we only propose the standard joint network module composed of two three linear layers and an activation functions. The module definition is optional but the following parameters can be modified through the configuration parameter `joint_network_conf`:
 
     joint_network_conf:
-      dim_joint_space: Dimension of the joint space (int, default = 256).
+      joint_space_size: Size of the joint space (int, default = 256).
       joint_act_type: Type of activation in the joint network (str, default = "tanh").
 
 The options related to the activation functions can also be modified through the parameters introduced in the Encoder section (See `main_conf` description).
@@ -549,4 +531,4 @@ The algorithms share two parameters to control the beam size (`beam-size`) and t
     expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
     expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
 
-Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+**Note 1:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.

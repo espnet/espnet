@@ -2,28 +2,25 @@
 
 """ Inference class definition for Transducer models."""
 
+from __future__ import annotations
+
 import argparse
-from distutils.version import LooseVersion
 import logging
-from pathlib import Path
+import math
 import sys
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from distutils.version import LooseVersion
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
+from typeguard import check_argument_types, check_return_type
 
-from espnet.utils.cli_utils import get_commandline_args
-from espnet2.asr_transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis
-from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import (
+    BeamSearchTransducer,
+    ExtendedHypothesis,
+    Hypothesis,
+)
 from espnet2.asr_transducer.utils import TooShortUttError
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr_transducer import ASRTransducerTask
@@ -33,9 +30,8 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -64,6 +60,10 @@ class Speech2Text:
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
         nbest: Number of final hypothesis.
+        streaming: Whether to perform streaming decoding.
+        chunk_size: Number of frames in chunk during streaming decoding.
+        left_context: Number of frames in left context during streaming decoding.
+        right_context: Number of frames in right context during streaming decoding.
 
     """
 
@@ -84,13 +84,17 @@ class Speech2Text:
         quantize_modules: List[str] = None,
         quantize_dtype: str = "qint8",
         nbest: int = 1,
-    ):
+        streaming: bool = False,
+        chunk_size: int = 8,
+        left_context: int = 32,
+        right_context: int = 2,
+    ) -> None:
         assert check_argument_types()
 
-        # 1. Build ASR model
         asr_model, asr_train_args = ASRTransducerTask.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
+
         if quantize_asr_model:
             if quantize_modules is not None:
                 if not all([q in ["LSTM", "Linear"] for q in quantize_modules]):
@@ -118,9 +122,6 @@ class Speech2Text:
         else:
             asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        token_list = asr_model.token_list
-
-        # 2. Build Language model
         if lm_train_config is not None:
             lm, lm_train_args = LMTask.build_model_from_file(
                 lm_train_config, lm_file, device
@@ -143,7 +144,8 @@ class Speech2Text:
             **beam_search_config,
         )
 
-        # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
+        token_list = asr_model.token_list
+
         if token_type is None:
             token_type = asr_train_args.token_type
         if bpemodel is None:
@@ -163,67 +165,225 @@ class Speech2Text:
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
-        self.converter = converter
-        self.tokenizer = tokenizer
-        self.beam_search = beam_search
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
 
+        self.converter = converter
+        self.tokenizer = tokenizer
+
+        self.beam_search = beam_search
+        self.streaming = streaming
+        self.chunk_size = max(chunk_size, 0)
+        self.left_context = max(left_context, 0)
+        self.right_context = max(right_context, 0)
+
+        self.sub_chunk_size = self.asr_model.encoder.embed.get_size_before_subsampling(
+            self.chunk_size
+        )
+        self.window_size = self.asr_model.encoder.embed.get_size_before_subsampling(
+            self.chunk_size + self.right_context
+        )
+
+        self.n_fft = asr_train_args.frontend_conf.get("n_fft", 512)
+        self.hop_length = asr_train_args.frontend_conf.get("hop_length", 128)
+
+        if asr_train_args.frontend_conf.get("win_length", None) is not None:
+            self.frontend_window_size = asr_train_args.frontend_conf["win_length"]
+        else:
+            self.frontend_window_size = self.n_fft
+
+        self._raw_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
+            self.window_size, self.hop_length
+        )
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        """Reset Speech2Text parameters."""
+        self.frontend_cache = None
+        self.beam_search_cache = None
+
+        self.encoder_cache = self.asr_model.encoder.init_streaming_cache(
+            self.left_context, device=self.device
+        )
+
+        self.num_processed_frames = torch.tensor([[0]], device=self.device)
+
+    def apply_frontend(
+        self, speech: torch.Tensor, is_final: bool = False
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward frontend.
+
+        Args:
+            speech: Speech data. (S)
+            is_final: Whether speech corresponds to the final (or only) chunk of data.
+
+        Returns:
+            feats: Features sequence. (1, T_in, F)
+            feats_lengths: Features sequence length. (1, T_in, F)
+
+        """
+        if self.frontend_cache is not None:
+            speech = torch.cat([self.frontend_cache["waveform_buffer"], speech], dim=0)
+
+        if is_final:
+            if self.streaming and speech.size(0) < self._raw_ctx:
+                pad = torch.zeros(self._raw_ctx - speech.size(0), dtype=speech.dtype)
+                speech = torch.cat([speech, pad], dim=0)
+
+            speech_to_process = speech
+            waveform_buffer = None
+        else:
+            n_frames = (
+                speech.size(0) - (self.frontend_window_size - self.hop_length)
+            ) // self.hop_length
+
+            n_residual = (
+                speech.size(0) - (self.frontend_window_size - self.hop_length)
+            ) % self.hop_length
+
+            speech_to_process = speech.narrow(
+                0,
+                0,
+                (self.frontend_window_size - self.hop_length)
+                + n_frames * self.hop_length,
+            )
+
+            waveform_buffer = speech.narrow(
+                0,
+                speech.size(0)
+                - (self.frontend_window_size - self.hop_length)
+                - n_residual,
+                (self.frontend_window_size - self.hop_length) + n_residual,
+            ).clone()
+
+        speech_to_process = speech_to_process.unsqueeze(0).to(
+            getattr(torch, self.dtype)
+        )
+        lengths = speech_to_process.new_full(
+            [1], dtype=torch.long, fill_value=speech_to_process.size(1)
+        )
+        batch = {"speech": speech_to_process, "speech_lengths": lengths}
+        batch = to_device(batch, device=self.device)
+
+        feats, feats_lengths = self.asr_model._extract_feats(**batch)
+        if self.asr_model.normalize is not None:
+            feats, feats_lengths = self.asr_model.normalize(feats, feats_lengths)
+
+        if is_final:
+            if self.frontend_cache is None:
+                pass
+            else:
+                feats = feats.narrow(
+                    1,
+                    math.ceil(
+                        math.ceil(self.frontend_window_size / self.hop_length) / 2
+                    ),
+                    feats.size(1)
+                    - math.ceil(
+                        math.ceil(self.frontend_window_size / self.hop_length) / 2
+                    ),
+                )
+        else:
+            if self.frontend_cache is None:
+                feats = feats.narrow(
+                    1,
+                    0,
+                    feats.size(1)
+                    - math.ceil(
+                        math.ceil(self.frontend_window_size / self.hop_length) / 2
+                    ),
+                )
+            else:
+                feats = feats.narrow(
+                    1,
+                    math.ceil(
+                        math.ceil(self.frontend_window_size / self.hop_length) / 2
+                    ),
+                    feats.size(1)
+                    - 2
+                    * math.ceil(
+                        math.ceil(self.frontend_window_size / self.hop_length) / 2
+                    ),
+                )
+
+        feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
+
+        if is_final:
+            self.frontend_cache = None
+        else:
+            self.frontend_cache = {"waveform_buffer": waveform_buffer}
+
+        return feats, feats_lengths
+
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[
-        Tuple[
-            Optional[str],
-            List[str],
-            List[int],
-            Union[Hypothesis, ExtendedHypothesis],
-        ]
-    ]:
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        is_final: bool = True,
+    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
         """Speech2Text call.
 
         Args:
-            speech: Speech sequences. (B, S)
+            speech: Speech data. (S)
+            is_final: Whether speech corresponds to the final (or only) chunk of data.
 
         Returns:
-            results: text: Text sequence.
-                     token: Token sequence (=text if no Tokenizer is used).
-                     token_int: Integer token sequence.
-                     hyp: Hypothesis.
+            nbest_hypothesis: N-best hypothesis.
 
         """
         assert check_argument_types()
 
-        # Input as audio signal
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        # data: (Nsamples,) -> (1, Nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lengths: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths}
+        feats, feats_length = self.apply_frontend(speech, is_final=is_final)
 
-        # a. To device
-        batch = to_device(batch, device=self.device)
+        if self.streaming and self.chunk_size > 0:
+            enc_out = self.asr_model.encoder.chunk_forward(
+                feats,
+                feats_length,
+                self.num_processed_frames,
+                left_context=self.left_context,
+                right_context=self.right_context,
+            )
 
-        # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+            nbest_hyps = self.beam_search(
+                enc_out[0], cache=self.beam_search_cache, is_final=is_final
+            )
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(enc[0])
-        nbest_hyps = nbest_hyps[: self.nbest]
+            self.beam_search_cache = nbest_hyps
+            self.num_processed_frames += self.chunk_size
+        else:
+            self.asr_model.encoder.dynamic_chunk_training = False
 
+            enc_out, _ = self.asr_model.encoder(feats, feats_length)
+
+            nbest_hyps = self.beam_search(enc_out[0])
+
+        if is_final:
+            self._reset_parameters()
+
+        return nbest_hyps
+
+    def hypotheses_to_results(
+        self, nbest_hyps: List[Union[Hypothesis, ExtendedHypothesis]]
+    ) -> List[Any]:
+        """Build partial or final results from the hypotheses.
+
+        Args:
+            nbest_hyps: N-best hypothesis.
+
+        Returns:
+            results: Results containing different representation for the hypothesis.
+
+        """
         results = []
-        for hyp in nbest_hyps:
-            assert isinstance(hyp, (Hypothesis, ExtendedHypothesis)), type(hyp)
 
-            # remove blank symbol id, which is assumed to be 0
+        for hyp in nbest_hyps:
             token_int = list(filter(lambda x: x != 0, hyp.yseq))
 
-            # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
             if self.tokenizer is not None:
@@ -232,7 +392,7 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
+            assert check_return_type(results)
 
         return results
 
@@ -240,7 +400,7 @@ class Speech2Text:
     def from_pretrained(
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
-    ):
+    ) -> Speech2Text:
         """Build Speech2Text instance from the pretrained model.
 
         Args:
@@ -291,6 +451,10 @@ def inference(
     quantize_asr_model: Optional[bool],
     quantize_modules: Optional[List[str]],
     quantize_dtype: Optional[str],
+    streaming: Optional[bool],
+    chunk_size: Optional[int],
+    left_context: Optional[int],
+    right_context: Optional[int],
 ):
     """Transducer model inference.
 
@@ -319,6 +483,10 @@ def inference(
         quantize_asr_model: Whether to apply dynamic quantization to ASR model.
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
+        streaming: Whether to perform streaming decoding.
+        chunk_size: Number of frames in chunk during streaming decoding.
+        left_context: Number of frames in left context during streaming decoding.
+        right_context: Number of frames in right context during streaming decoding.
 
     """
     assert check_argument_types()
@@ -358,6 +526,10 @@ def inference(
         quantize_asr_model=quantize_asr_model,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
+        streaming=streaming,
+        chunk_size=chunk_size,
+        left_context=left_context,
+        right_context=right_context,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -368,7 +540,7 @@ def inference(
     loader = ASRTransducerTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
-        batch_size=1,
+        batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
         preprocess_fn=ASRTransducerTask.build_preprocess_fn(
@@ -390,22 +562,37 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            assert len(batch.keys()) == 1
 
-            # N-best list of (text, token, token_int, hyp_object)
             try:
-                results = speech2text(**batch)
+                if streaming and chunk_size > 0:
+                    speech = batch["speech"]
+
+                    _steps = len(speech) // speech2text._raw_ctx
+
+                    for i in range(_steps):
+                        _end = (i + 1) * speech2text._raw_ctx
+
+                        partial_hyps = speech2text(
+                            speech[i * speech2text._raw_ctx : _end], is_final=False
+                        )
+
+                    final_hyps = speech2text(speech[_end : len(speech)], is_final=True)
+                    print(speech2text.hypotheses_to_results(final_hyps)[0][0])
+                    exit(1)
+                else:
+                    final_hyps = speech2text(**batch)
+
+                results = speech2text.hypotheses_to_results(final_hyps)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
-                hyp = Hypothesis(score=0.0, yseq=[0], states=None)
+                hyp = Hypothesis(score=0.0, yseq=[], dec_state=None)
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
 
-            # Only supporting batch_size==1
             key = keys[0]
             for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-                # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
-                # Write the result to each file
                 ibest_writer["token"][key] = " ".join(token)
                 ibest_writer["token_int"][key] = " ".join(map(str, token_int))
                 ibest_writer["score"][key] = str(hyp.score)
@@ -545,6 +732,32 @@ def get_parser():
         default="qint8",
         choices=["float16", "qint8"],
         help="Dtype for dynamic quantization.",
+    )
+
+    group = parser.add_argument_group("Streaming related")
+    parser.add_argument(
+        "--streaming",
+        type=bool,
+        default=False,
+        help="Whether to perform streaming decoding.",
+    )
+    parser.add_argument(
+        "--chunk_size",
+        type=int,
+        default=8,
+        help="Number of frames in chunk during streaming decoding.",
+    )
+    parser.add_argument(
+        "--left_context",
+        type=int,
+        default=32,
+        help="Number of frames in left context during streaming decoding.",
+    )
+    parser.add_argument(
+        "--right_context",
+        type=int,
+        default=2,
+        help="Number of frames in right context during streaming decoding.",
     )
 
     return parser

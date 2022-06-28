@@ -1,8 +1,4 @@
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import humanfriendly
 import torch

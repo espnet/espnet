@@ -1,19 +1,13 @@
 """Trainer module."""
 import argparse
-from contextlib import contextmanager
 import dataclasses
+import logging
+import time
+from contextlib import contextmanager
 from dataclasses import is_dataclass
 from distutils.version import LooseVersion
-import logging
 from pathlib import Path
-import time
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -25,26 +19,26 @@ from typeguard import check_argument_types
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
 from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
-from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
-from espnet2.schedulers.abs_scheduler import AbsEpochStepScheduler
-from espnet2.schedulers.abs_scheduler import AbsScheduler
-from espnet2.schedulers.abs_scheduler import AbsValEpochStepScheduler
+from espnet2.schedulers.abs_scheduler import (
+    AbsBatchStepScheduler,
+    AbsEpochStepScheduler,
+    AbsScheduler,
+    AbsValEpochStepScheduler,
+)
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
-from espnet2.train.reporter import Reporter
-from espnet2.train.reporter import SubReporter
+from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-    from torch.cuda.amp import GradScaler
+    from torch.cuda.amp import GradScaler, autocast
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager

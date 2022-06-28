@@ -1,6 +1,7 @@
 """Initialize ESPnet2 Transducer model modules."""
 
 import math
+
 import torch
 from typeguard import check_argument_types
 

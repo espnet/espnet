@@ -1,11 +1,8 @@
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 import logging
 import random
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Union
+from contextlib import contextmanager
+from distutils.version import LooseVersion
+from typing import Dict, List, Tuple, Union
 
 import torch
 from typeguard import check_argument_types

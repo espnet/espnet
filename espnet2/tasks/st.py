@@ -1,40 +1,32 @@
 import argparse
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolution2DTransformerDecoder,  # noqa: H301
+from espnet2.asr.decoder.transformer_decoder import (  # noqa: H301
+    DynamicConvolution2DTransformerDecoder,
+    DynamicConvolutionTransformerDecoder,
+    LightweightConvolution2DTransformerDecoder,
+    LightweightConvolutionTransformerDecoder,
+    TransformerDecoder,
 )
-from espnet2.asr.decoder.transformer_decoder import DynamicConvolutionTransformerDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolution2DTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolutionTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
+from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: H301
+    ContextualBlockTransformerEncoder,
+)
+from espnet2.asr.encoder.hubert_encoder import (
+    FairseqHubertEncoder,
+    FairseqHubertPretrainEncoder,
+)
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.contextual_block_transformer_encoder import (
-    ContextualBlockTransformerEncoder,  # noqa: H301
-)
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -42,8 +34,8 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
-    HuggingFaceTransformersPostEncoder,  # noqa: H301
+from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (  # noqa: H301
+    HuggingFaceTransformersPostEncoder,
 )
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
@@ -63,10 +55,7 @@ from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",

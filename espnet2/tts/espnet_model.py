@@ -5,12 +5,9 @@
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
-
 from typeguard import check_argument_types
 
 from espnet2.layers.abs_normalize import AbsNormalize

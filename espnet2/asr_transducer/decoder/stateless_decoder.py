@@ -1,17 +1,11 @@
 """Stateless decoder definition for Transducer models."""
 
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis
-from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis, Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 
 
@@ -19,29 +13,29 @@ class StatelessDecoder(AbsDecoder):
     """Stateless Transducer decoder module.
 
     Args:
-        dim_vocab: Output dimension.
-        dim_embedding: Number of embedding units.
-        dropout_embed: Dropout rate for embedding layer.
+        vocab_size: Output size.
+        embed_size: Embedding size.
+        embed_dropout_rate: Dropout rate for embedding layer.
         embed_pad: Embed/Blank symbol ID.
 
     """
 
     def __init__(
         self,
-        dim_vocab: int,
-        dim_embedding: int = 256,
-        dropout_embed: float = 0.0,
+        vocab_size: int,
+        embed_size: int = 256,
+        embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
     ):
         assert check_argument_types()
 
         super().__init__()
 
-        self.embed = torch.nn.Embedding(dim_vocab, dim_embedding, padding_idx=embed_pad)
-        self.dropout_embed = torch.nn.Dropout(p=dropout_embed)
+        self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
+        self.embed_dropout_rate = torch.nn.Dropout(p=embed_dropout_rate)
 
-        self.dim_output = dim_embedding
-        self.dim_vocab = dim_vocab
+        self.output_size = embed_size
+        self.vocab_size = vocab_size
 
         self.blank_id = embed_pad
 
@@ -63,7 +57,7 @@ class StatelessDecoder(AbsDecoder):
             states: Decoder hidden states. None
 
         """
-        dec_embed = self.dropout_embed(self.embed(labels))
+        dec_embed = self.embed_dropout_rate(self.embed(labels))
 
         return dec_embed
 

@@ -1,17 +1,15 @@
 from distutils.version import LooseVersion
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
+import librosa
+import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
-import librosa
-import numpy as np
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 

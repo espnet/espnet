@@ -5,12 +5,9 @@
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
-
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS

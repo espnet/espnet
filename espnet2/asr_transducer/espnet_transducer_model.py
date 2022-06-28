@@ -1,13 +1,9 @@
 """ESPnet2 ASR Transducer model."""
 
+import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-import logging
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
@@ -108,11 +104,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.use_auxiliary_lm_loss = auxiliary_lm_loss_weight > 0
 
         if self.use_auxiliary_ctc:
-            self.ctc_lin = torch.nn.Linear(encoder.dim_output, vocab_size)
+            self.ctc_lin = torch.nn.Linear(encoder.output_size, vocab_size)
             self.ctc_dropout_rate = auxiliary_ctc_dropout_rate
 
         if self.use_auxiliary_lm_loss:
-            self.lm_lin = torch.nn.Linear(decoder.dim_output, vocab_size)
+            self.lm_lin = torch.nn.Linear(decoder.output_size, vocab_size)
             self.lm_loss_smoothing = auxiliary_lm_loss_smoothing
 
         self.transducer_weight = transducer_weight
@@ -146,7 +142,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         Return:
             loss: Main loss value.
             stats: Task statistics.
-            weights: Task weights.
+            weight: Task weights.
 
         """
         assert text_lengths.dim() == 1, text_lengths.shape
@@ -259,7 +255,9 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encoder speech sequences.
 
@@ -285,7 +283,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         # 4. Forward encoder
-        encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+        encoder_out, encoder_out_lens = self.encoder(feats, feats_lengths)
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),

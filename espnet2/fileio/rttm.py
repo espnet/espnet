@@ -1,12 +1,9 @@
 import collections.abc
+import re
 from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
-import re
 from typeguard import check_argument_types
 
 

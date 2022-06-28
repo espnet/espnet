@@ -1,7 +1,6 @@
 """Conv1d block for Transducer encoder."""
 
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
 import torch
 
@@ -10,42 +9,51 @@ class Conv1d(torch.nn.Module):
     """Conv1d module definition.
 
     Args:
-        dim_input: Input dimension.
-        dim_output: Output dimension.
+        input_size: Input dimension.
+        output_size: Output dimension.
         kernel_size: Size of the convolving kernel.
-        mask_type: Type of mask for forward computation.
         stride: Stride of the convolution.
         dilation: Spacing between the kernel points.
         groups: Number of blocked connections from input channels to output channels.
         bias: Whether to add a learnable bias to the output.
         batch_norm: Whether to use batch normalization after convolution.
         relu: Whether to use a ReLU activation after convolution.
+        causal: Whether to use causal convolution.
         dropout_rate: Dropout rate.
 
     """
 
     def __init__(
         self,
-        dim_input: int,
-        dim_output: int,
+        input_size: int,
+        output_size: int,
         kernel_size: Union[int, Tuple],
-        mask_type: str,
         stride: Union[int, Tuple] = 1,
         dilation: Union[int, Tuple] = 1,
         groups: Union[int, Tuple] = 1,
         bias: bool = True,
         batch_norm: bool = False,
         relu: bool = True,
+        causal: bool = False,
         dropout_rate: float = 0.0,
-    ):
+    ) -> None:
         """Construct a Conv1d object."""
         super().__init__()
 
+        if causal:
+            self.lorder = kernel_size - 1
+            padding = 0
+        else:
+            self.lorder = 0
+            padding = dilation * (kernel_size - 1)
+        # padding = dilation * (kernel_size - 1)
+
         self.conv = torch.nn.Conv1d(
-            dim_input,
-            dim_output,
+            input_size,
+            output_size,
             kernel_size,
             stride=stride,
+            padding=padding,
             dilation=dilation,
             groups=groups,
             bias=bias,
@@ -57,70 +65,56 @@ class Conv1d(torch.nn.Module):
             self.relu_func = torch.nn.ReLU()
 
         if batch_norm:
-            self.bn = torch.nn.BatchNorm1d(dim_output)
+            self.bn = torch.nn.BatchNorm1d(output_size)
 
         self.relu = relu
         self.batch_norm = batch_norm
 
-        self.padding = dilation * (kernel_size - 1)
+        self.causal = causal
+
+        self.padding = padding
         self.stride = stride
 
-        if mask_type == "rnn":
-            self.create_new_mask = self.create_new_rnn_mask
-        else:
-            self.create_new_mask = self.create_new_conformer_mask
-
-            self.out_pos = torch.nn.Linear(dim_input, dim_output)
+        self.out_pos = torch.nn.Linear(input_size, output_size)
 
     def forward(
         self,
-        sequence: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
-        mask: torch.Tensor,
-        cache: torch.Tensor = None,
-    ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
+        x: torch.Tensor,
+        pos_enc: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        chunk_mask: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode input sequences.
 
         Args:
-            sequence: Conv1d input sequences.
-                      (B, T, D_in) or
-                      ((B, T, D_in),  (B, 2 * (T - 1), D_att))
-            mask: Mask of input sequences. (B, 1, T)
+            sequence: Conv1d input sequences. (B, T, D_in)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
 
         Returns:
-            sequence: Conv1d output sequences.
-                      (B, sub(T), D_out) or
-                      ((B, sub(T), D_out),  (B, 2 * (sub(T) - 1), D_att))
-            mask: Mask of output sequences. (B, 1, sub(T))
+            x: Conv1d output sequences. (B, sub(T), D_out)
 
         """
-        if isinstance(sequence, tuple):
-            sequence, pos_embed = sequence[0], sequence[1]
-        else:
-            sequence, pos_embed = sequence, None
+        x = x.transpose(1, 2)
 
-        sequence = sequence.transpose(1, 2)
-        sequence = self.conv(sequence)
+        x = self.conv(x)
 
         if self.batch_norm:
-            sequence = self.bn(sequence)
+            x = self.bn(x)
 
-        sequence = self.dropout(sequence)
+        x = self.dropout(x)
 
         if self.relu:
-            sequence = self.relu_func(sequence)
+            x = self.relu_func(x)
 
-        sequence = sequence.transpose(1, 2)
+        x = x.transpose(1, 2)
 
-        if mask is not None:
-            mask = self.create_new_mask(mask)
+        if self.causal:
+            return x, pos_enc, mask
 
-        if pos_embed is not None:
-            sequence = (sequence, self.create_new_pos_embed(pos_embed))
+        return x
 
-        return sequence, mask
-
-    def create_new_conformer_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        """Create new conformer mask for output sequences.
+    def create_new_mask(self, mask: torch.Tensor) -> torch.Tensor:
+        """Create new mask for output sequences.
 
         Args:
             mask: Mask of input sequences. (B, 1, T)
@@ -134,45 +128,28 @@ class Conv1d(torch.nn.Module):
 
         return mask[:, :, :: self.stride]
 
-    def create_new_rnn_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        """Create new RNN mask for output sequences.
-
-        Args:
-            mask: Mask of input sequences. (B,)
-
-        Returns:
-            mask: Mask of output sequences. (B,)
-
-        """
-        if self.padding != 0:
-            mask = mask - self.padding
-
-        mask = mask // self.stride
-
-        return mask
-
-    def create_new_pos_embed(self, pos_embed: torch.Tensor) -> torch.Tensor:
+    def create_new_pos_enc(self, pos_enc: torch.Tensor) -> torch.Tensor:
         """Create new positional embedding vector.
 
         Args:
-            pos_embed: Input sequences positional embedding.
-                       (B, 2 * (T - 1), D_att)
+            pos_enc: Input sequences positional embedding.
+                     (B, 2 * (T - 1), D_att)
 
         Returns:
-            pos_embed: Output sequences positional embedding.
-                       (B, 2 * (sub(T) - 1), D_att)
+            pos_enc: Output sequences positional embedding.
+                     (B, 2 * (sub(T) - 1), D_att)
 
         """
-        pos_embed_positive = pos_embed[:, : pos_embed.size(1) // 2 + 1, :]
-        pos_embed_negative = pos_embed[:, pos_embed.size(1) // 2 :, :]
+        pos_enc_positive = pos_enc[:, : pos_enc.size(1) // 2 + 1, :]
+        pos_enc_negative = pos_enc[:, pos_enc.size(1) // 2 :, :]
 
         if self.padding != 0:
-            pos_embed_positive = pos_embed_positive[:, : -self.padding, :]
-            pos_embed_negative = pos_embed_negative[:, : -self.padding, :]
+            pos_enc_positive = pos_enc_positive[:, : -self.padding, :]
+            pos_enc_negative = pos_enc_negative[:, : -self.padding, :]
 
-        pos_embed_positive = pos_embed_positive[:, :: self.stride, :]
-        pos_embed_negative = pos_embed_negative[:, :: self.stride, :]
+        pos_enc_positive = pos_enc_positive[:, :: self.stride, :]
+        pos_enc_negative = pos_enc_negative[:, :: self.stride, :]
 
-        pos_embed = torch.cat([pos_embed_positive, pos_embed_negative[:, 1:, :]], dim=1)
+        pos_enc = torch.cat([pos_enc_positive, pos_enc_negative[:, 1:, :]], dim=1)
 
-        return self.out_pos(pos_embed)
+        return self.out_pos(pos_enc)

@@ -6,15 +6,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
-
 from distutils.version import LooseVersion
 from functools import partial
-from typeguard import check_argument_types
 from typing import Optional
 
 import librosa
 import numpy as np
 import torch
+from typeguard import check_argument_types
 
 EPS = 1e-10
 

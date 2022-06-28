@@ -1,24 +1,23 @@
 """Beamformer module."""
 from distutils.version import LooseVersion
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import List, Optional, Union
 
 import torch
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import cat
-from espnet2.enh.layers.complex_utils import complex_norm
-from espnet2.enh.layers.complex_utils import einsum
-from espnet2.enh.layers.complex_utils import inverse
-from espnet2.enh.layers.complex_utils import is_complex
-from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
-from espnet2.enh.layers.complex_utils import matmul
-from espnet2.enh.layers.complex_utils import reverse
-from espnet2.enh.layers.complex_utils import solve
-from espnet2.enh.layers.complex_utils import to_double
-
+from espnet2.enh.layers.complex_utils import (
+    cat,
+    complex_norm,
+    einsum,
+    inverse,
+    is_complex,
+    is_torch_complex_tensor,
+    matmul,
+    reverse,
+    solve,
+    to_double,
+)
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
