@@ -118,10 +118,10 @@ espnet2/
 │   │   ├── dnn_wpe.py
 │   │   ├── dpmulcat.py
 │   │   ├── dprnn.py
+│   │   ├── dptnet.py
 │   │   ├── fasnet.py
 │   │   ├── ifasnet.py
 │   │   ├── mask_estimator.py
-│   │   ├── phase_utils.py
 │   │   ├── skim.py
 │   │   ├── tcn.py
 │   │   └── wpe.py
@@ -146,6 +146,7 @@ espnet2/
 │       ├── dpcl_separator.py
 │       ├── dpcl_e2e_separator.py
 │       ├── dprnn_separator.py
+│       ├── dptnet_separator.py
 │       ├── fasnet_separator.py
 │       ├── neural_beamformer.py
 │       ├── rnn_separator.py

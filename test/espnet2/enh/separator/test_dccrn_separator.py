@@ -11,7 +11,7 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 @pytest.mark.parametrize("input_dim", [9])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("rnn_layer", [2, 3])
-@pytest.mark.parametrize("rnn_units", [256])
+@pytest.mark.parametrize("rnn_units", [32])
 @pytest.mark.parametrize("masking_mode", ["E", "C", "R"])
 @pytest.mark.parametrize("use_clstm", [True, False])
 @pytest.mark.parametrize("bidirectional", [True, False])
@@ -42,11 +42,7 @@ def test_dccrn_separator_forward_backward_complex(
         bidirectional=bidirectional,
         use_cbn=use_cbn,
         kernel_size=kernel_size,
-        kernel_num=[
-            32,
-            64,
-            128,
-        ],
+        kernel_num=[4, 8, 16],
         use_builtin_complex=use_builtin_complex,
         use_noise_mask=use_noise_mask,
     )
@@ -86,11 +82,8 @@ def test_rnn_separator_output():
         model = DCCRNSeparator(
             input_dim=9,
             num_spk=num_spk,
-            kernel_num=[
-                32,
-                64,
-                128,
-            ],
+            rnn_units=32,
+            kernel_num=[4, 8, 16],
         )
         model.eval()
         specs, _, others = model(x, x_lens)

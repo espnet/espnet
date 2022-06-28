@@ -14,6 +14,7 @@ class DPCLE2ESeparator(AbsSeparator):
         input_dim: int,
         rnn_type: str = "blstm",
         num_spk: int = 2,
+        predict_noise: bool = False,
         nonlinear: str = "tanh",
         layer: int = 2,
         unit: int = 512,
@@ -35,6 +36,7 @@ class DPCLE2ESeparator(AbsSeparator):
             rnn_type: string, select from 'blstm', 'lstm' etc.
             bidirectional: bool, whether the inter-chunk RNN layers are bidirectional.
             num_spk: number of speakers
+            predict_noise: whether to output the estimated noise signal
             nonlinear: the nonlinear function for mask estimation,
                        select from 'relu', 'tanh', 'sigmoid'
             layer: int, number of stacked RNN layers. Default is 3.
@@ -48,6 +50,7 @@ class DPCLE2ESeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
+        self.predict_noise = predict_noise
 
         self.blstm = RNN(
             idim=input_dim,
@@ -69,8 +72,9 @@ class DPCLE2ESeparator(AbsSeparator):
             "tanh": torch.nn.Tanh(),
         }[nonlinear]
 
+        self.num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
         self.enh_blstm = RNN(
-            idim=input_dim * (num_spk + 1),
+            idim=input_dim * (self.num_outputs + 1),
             elayers=1,
             cdim=unit,
             hdim=unit,
@@ -78,7 +82,7 @@ class DPCLE2ESeparator(AbsSeparator):
             typ=rnn_type,
         )
 
-        self.enh_linear = torch.nn.Linear(unit, input_dim * num_spk)
+        self.enh_linear = torch.nn.Linear(unit, input_dim * self.num_outputs)
 
         self.D = emb_D
         self.alpha = alpha
@@ -126,14 +130,14 @@ class DPCLE2ESeparator(AbsSeparator):
         V = x.view(B, -1, self.D)
 
         # Soft KMeans
-        centers = V[:, : self._num_spk, :]
-        gamma = torch.zeros(B, T * F, self._num_spk, device=input.device)
+        centers = V[:, : self.num_outputs, :]
+        gamma = torch.zeros(B, T * F, self.num_outputs, device=input.device)
         count = 0
         while True:
             # Compute weight
-            gamma_exp = torch.empty(B, T * F, self._num_spk, device=input.device)
-            new_centers = torch.empty(B, self._num_spk, self.D, device=input.device)
-            for i in range(self._num_spk):
+            gamma_exp = torch.empty(B, T * F, self.num_outputs, device=input.device)
+            new_centers = torch.empty(B, self.num_outputs, self.D, device=input.device)
+            for i in range(self.num_outputs):
                 gamma_exp[:, :, i] = torch.exp(
                     -self.alpha
                     * torch.sum(V - centers[:, i, :].unsqueeze(1) ** 2, dim=2)
@@ -141,7 +145,7 @@ class DPCLE2ESeparator(AbsSeparator):
             # To avoid grad becomes nan, we add a small constant in denominator
             gamma = gamma_exp / (torch.sum(gamma_exp, dim=2, keepdim=True) + 1.0e-8)
             # Update centers
-            for i in range(self._num_spk):
+            for i in range(self.num_outputs):
                 new_centers[:, i, :] = torch.sum(
                     V * gamma[:, :, i].unsqueeze(2), dim=1
                 ) / (torch.sum(gamma[:, :, i].unsqueeze(2), dim=1) + 1.0e-8)
@@ -155,7 +159,7 @@ class DPCLE2ESeparator(AbsSeparator):
             count += 1
             centers = new_centers
 
-        masks = gamma.contiguous().view(B, T, F, self._num_spk).unbind(dim=3)
+        masks = gamma.contiguous().view(B, T, F, self.num_outputs).unbind(dim=3)
         masked = [feature * m for m in masks]
         masked.append(feature)
 
@@ -166,14 +170,18 @@ class DPCLE2ESeparator(AbsSeparator):
         cat_x, ilens, _ = self.enh_blstm(cat_source, ilens)
         # z:(B, T, spks*F)
         z = self.enh_linear(cat_x)
-        z = z.contiguous().view(B, T, F, self._num_spk)
+        z = z.contiguous().view(B, T, F, self.num_outputs)
 
         enh_masks = torch.softmax(z, dim=3).unbind(dim=3)
+        if self.predict_noise:
+            *enh_masks, mask_noise = enh_masks
         enh_masked = [input * m for m in enh_masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(enh_masks))], enh_masks)
         )
+        if self.predict_noise:
+            others["noise1"] = input * mask_noise
 
         return enh_masked, ilens, others
 
