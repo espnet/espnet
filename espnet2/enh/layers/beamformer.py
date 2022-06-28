@@ -20,7 +20,6 @@ from espnet2.enh.layers.complex_utils import (
 )
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-
 EPS = torch.finfo(torch.double).eps
 
 
