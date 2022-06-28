@@ -17,6 +17,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
 )
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
