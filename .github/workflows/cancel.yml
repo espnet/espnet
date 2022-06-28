@@ -4,8 +4,13 @@ on:
     workflows: ["CI", "centos7", "debian9", "doc"]
     types:
       - requested
+permissions:
+  contents: read
+
 jobs:
   cancel:
+    permissions:
+      actions: write  # for styfle/cancel-workflow-action to cancel/stop running workflows
     runs-on: ubuntu-latest
     steps:
     - uses: styfle/cancel-workflow-action@0.9.1

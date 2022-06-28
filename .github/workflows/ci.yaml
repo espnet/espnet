@@ -8,6 +8,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 jobs:
   linter_and_test:
     runs-on: ${{ matrix.os }}
