@@ -1,8 +1,6 @@
 """Convolution networks definition for custom archictecture."""
 
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
 import torch
 

@@ -1,11 +1,11 @@
 import logging
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from itertools import groupby
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
@@ -27,7 +27,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
     LabelSmoothingLoss,
 )
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -118,6 +118,7 @@ class MaskCTCModel(ESPnetASRModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -309,7 +310,10 @@ class MaskCTCInference(torch.nn.Module):
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)
 
-        y_in = torch.zeros(1, len(y_idx), dtype=torch.long) + self.mask_token
+        y_in = (
+            torch.zeros(1, len(y_idx), dtype=torch.long).to(enc_out.device)
+            + self.mask_token
+        )
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
 
         logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))

@@ -1,7 +1,7 @@
-from collections import OrderedDict
 import io
 import logging
 import os
+from collections import OrderedDict
 
 import h5py
 import kaldiio

@@ -1,14 +1,14 @@
-from distutils.version import LooseVersion
 from typing import Tuple, Union
 
 import torch
 import torch.nn.functional as F
 import torch_complex.functional as FC
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import einsum, matmul, reverse
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 """ WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe

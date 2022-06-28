@@ -480,6 +480,12 @@ def get_parser():
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
     )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
+    )
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(

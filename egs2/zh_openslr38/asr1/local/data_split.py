@@ -1,10 +1,10 @@
 """
 Split data to train, dev, test
 """
-import sys
 import os
-from collections import defaultdict
 import random
+import sys
+from collections import defaultdict
 
 train_size = 0.9
 random.seed(1)

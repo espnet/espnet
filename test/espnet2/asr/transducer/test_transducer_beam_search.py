@@ -5,6 +5,7 @@ from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
+from espnet2.lm.transformer_lm import TransformerLM
 
 
 @pytest.mark.execution_timeout(5)
@@ -14,6 +15,12 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
     [
         {"search_type": "greedy"},
         {"search_type": "default", "score_norm": False, "nbest": 4},
+        {
+            "search_type": "default",
+            "score_norm": False,
+            "nbest": 4,
+            "lm": "TransformerLM",
+        },
         {"search_type": "alsd", "u_max": 20},
         {"search_type": "tsd", "max_sym_exp": 3},
         {"search_type": "nsc", "nstep": 2, "lm": None},
@@ -23,7 +30,7 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
     ],
 )
 def test_transducer_beam_search(rnn_type, search_params):
-    token_list = ["<blank>", "a", "b", "c"]
+    token_list = ["<blank>", "a", "b", "c", "<sos>"]
     vocab_size = len(token_list)
     beam_size = 1 if search_params["search_type"] == "greedy" else 2
 
@@ -38,12 +45,15 @@ def test_transducer_beam_search(rnn_type, search_params):
     )
 
     lm = search_params.pop("lm", SequentialRNNLM(vocab_size, rnn_type="lstm"))
+    if isinstance(lm, str) and lm == "TransformerLM":
+        lm = TransformerLM(vocab_size, pos_enc=None, unit=10, layer=2)
 
     beam = BeamSearchTransducer(
         decoder,
         joint_net,
         beam_size=beam_size,
         lm=lm,
+        token_list=token_list,
         **search_params,
     )
 

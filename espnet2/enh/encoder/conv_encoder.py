@@ -34,7 +34,7 @@ class ConvEncoder(AbsEncoder):
         Returns:
             feature (torch.Tensor): mixed feature after encoder [Batch, flens, channel]
         """
-        assert input.dim() == 2, "Currently only support single channle input"
+        assert input.dim() == 2, "Currently only support single channel input"
 
         input = torch.unsqueeze(input, 1)
 

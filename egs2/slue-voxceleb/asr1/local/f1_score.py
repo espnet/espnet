@@ -5,13 +5,13 @@
 # Apache 2.0
 
 
+import argparse
 import os
 import re
 import sys
+
 import pandas as pd
-import argparse
-from sklearn.metrics import f1_score
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, f1_score
 
 
 def get_classification_result(hyp_file, ref_file):

@@ -8,7 +8,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.collate_fn import CommonCollateFn
 
 
-class TestModel(AbsESPnetModel):
+class DummyModel(AbsESPnetModel):
     def __init__(self):
         super().__init__()
         self.layer1 = torch.nn.Linear(1, 1)
@@ -60,7 +60,7 @@ class TestTask(AbsTask):
 
     @classmethod
     def build_model(cls, args):
-        model = TestModel()
+        model = DummyModel()
         return model
 
     @classmethod

@@ -1,0 +1,64 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 32
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-05
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 3
+model_conf:
+    loss_type: si_snr
+encoder: conv
+encoder_conf:
+    channel: 256
+    kernel_size: 40
+    stride: 20
+decoder: conv
+decoder_conf:
+    channel: 256
+    kernel_size: 40
+    stride: 20
+separator: tcn
+separator_conf:
+    num_spk: 1
+    layer: 4
+    stack: 2
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+criterions:
+  # The first criterion
+  - name: si_snr
+    conf:
+        eps: 1.0e-07
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper:
+      - type: fixed_order
+        wrapper_conf:
+          weight: 1.0
+

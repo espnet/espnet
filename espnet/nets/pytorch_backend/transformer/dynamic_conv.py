@@ -2,9 +2,8 @@
 
 import numpy
 import torch
-from torch import nn
 import torch.nn.functional as F
-
+from torch import nn
 
 MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 

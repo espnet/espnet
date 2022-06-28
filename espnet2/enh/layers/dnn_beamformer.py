@@ -1,9 +1,9 @@
 """DNN beamformer module."""
 import logging
-from distutils.version import LooseVersion
 from typing import List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
@@ -26,7 +26,7 @@ from espnet2.enh.layers.beamformer import (
 from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer

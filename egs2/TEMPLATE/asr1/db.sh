@@ -4,9 +4,11 @@
 ACCENTED_FR=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
+AISHELL2=
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+AMERICASNLP22=downloads
 AN4=downloads
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
@@ -23,6 +25,7 @@ REVERB=
 REVERB_OUT="${PWD}/REVERB"  # Output file path
 CHIME3=
 CHIME4=
+CHIME5=
 CSJDATATOP=
 CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ## Usage    :
@@ -45,9 +48,13 @@ LIBRISPEECH=
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
+SLURP_S= # Output file path
+LIBRITRANS_S= # Output file path
 VOXCELEB=
+MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
+L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
@@ -69,6 +76,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+FLEURS=downloads
 MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
@@ -139,6 +147,8 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+HARPERVALLEY=downloads
+TALROMUR=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -216,6 +226,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     FSC=
     SNIPS= # smart-light-en-closed-field data path
     SLURP=
+    MEDIASPEECH=downloads
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads

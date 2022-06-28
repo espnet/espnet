@@ -1,9 +1,9 @@
 import logging
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
@@ -24,7 +24,7 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # no
     LabelSmoothingLoss,
 )
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -49,9 +49,9 @@ class ESPnetSTModel(AbsESPnetModel):
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
         extra_mt_decoder: Optional[AbsDecoder],
-        ctc: CTC,
-        src_vocab_size: int = 0,
-        src_token_list: Union[Tuple[str, ...], List[str]] = [],
+        ctc: Optional[CTC],
+        src_vocab_size: Optional[int],
+        src_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,

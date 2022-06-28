@@ -5,9 +5,10 @@ Created on Sat Aug 21 16:57:31 2021.
 @author: Keqi Deng (UCAS)
 """
 
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 import torch
 from torch import nn
+
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class ContextualBlockEncoderLayer(nn.Module):

@@ -6,7 +6,6 @@ import os
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -17,6 +16,7 @@ import torch.multiprocessing
 import torch.nn
 import torch.optim
 import yaml
+from packaging.version import parse as V
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types, check_return_type
 
@@ -31,6 +31,7 @@ from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sample
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
+from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -68,7 +69,7 @@ try:
 except Exception:
     wandb = None
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+if V(torch.__version__) >= V("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
 else:
     from torch.multiprocessing.spawn import SpawnContext as ProcessContext
@@ -86,7 +87,7 @@ optim_classes = dict(
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
 )
-if LooseVersion(torch.__version__) >= LooseVersion("1.10.0"):
+if V(torch.__version__) >= V("1.10.0"):
     # From 1.10.0, RAdam is officially supported
     optim_classes.update(
         radam=torch.optim.RAdam,
@@ -108,7 +109,7 @@ try:
         sgdw=torch_optimizer.SGDW,
         yogi=torch_optimizer.Yogi,
     )
-    if LooseVersion(torch_optimizer.__version__) < LooseVersion("0.2.0"):
+    if V(torch_optimizer.__version__) < V("0.2.0"):
         # From 0.2.0, RAdam is dropped
         optim_classes.update(
             radam=torch_optimizer.RAdam,
@@ -142,6 +143,7 @@ scheduler_classes = dict(
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
+    warmupsteplr=WarmupStepLR,
     warmuplr=WarmupLR,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
@@ -1292,7 +1294,7 @@ class AbsTask(ABC):
                         name=name,
                         dir=output_dir,
                         id=args.wandb_id,
-                        resume="allow",
+                        resume=args.resume,
                     )
                     wandb.config.update(args)
                 else:
@@ -1315,7 +1317,7 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
             )
 
-            if wandb.run:
+            if args.use_wandb and wandb.run:
                 wandb.finish()
 
     @classmethod

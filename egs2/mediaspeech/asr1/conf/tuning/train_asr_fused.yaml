@@ -1,0 +1,96 @@
+encoder: transformer
+encoder_conf:
+    input_layer: "conv2d"
+    num_blocks: 12
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+decoder: transformer
+decoder_conf:
+    input_layer: "embed"
+    num_blocks: 6
+    linear_units: 2048
+    dropout_rate: 0.1
+
+#frontend related 
+freeze_param: ["frontend.upstream"] 
+
+frontend: fused
+frontend_conf: 
+  frontends:
+    - frontend_type: s3prl
+      frontend_conf:
+        upstream: hubert_large_ll60k
+      download_dir: ./hub
+      multilayer_feature: True
+      
+    - frontend_type: default
+      n_fft: 512
+      win_length: 400
+      hop_length: 160
+
+    - frontend_type: s3prl
+      frontend_conf:
+        upstream: wav2vec2_large_ll60k
+      download_dir: ./hub
+      multilayer_feature: True
+
+  align_method: linear_projection
+  proj_dim: 100     
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.1
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+
+# minibatch related
+batch_type: folded
+batch_size: 32
+
+# optimization related
+optim: adam
+accum_grad: 2
+grad_clip: 5
+patience: 15
+max_epoch: 100
+optim_conf:
+    lr: 1
+scheduler: noamlr
+scheduler_conf:
+    warmup_steps: 4000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
+
+# others:
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 5
+
+init: xavier_uniform

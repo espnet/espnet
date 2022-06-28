@@ -13,15 +13,13 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
-    PositionalEncoding,
-)
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
     Conv1dLinear,
     MultiLayeredConv1d,
 )
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -230,7 +228,7 @@ class LongformerEncoder(ConformerEncoder):
             assert pos_enc_layer_type == "abs_pos"
             from longformer.longformer import LongformerConfig
 
-            from espnet.nets.pytorch_backend.transformer.longformer_attention import (  # noqa: H301
+            from espnet.nets.pytorch_backend.transformer.longformer_attention import (
                 LongformerAttention,
             )
 

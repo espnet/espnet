@@ -9,7 +9,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention as BaseMultiHeadedAttention,  # NOQA
+    MultiHeadedAttention as BaseMultiHeadedAttention,
 )
 
 

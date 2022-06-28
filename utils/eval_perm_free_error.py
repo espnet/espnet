@@ -8,10 +8,10 @@ import codecs
 import json
 import logging
 import re
-import six
 import sys
 
 import numpy as np
+import six
 
 
 def permutationDFS(source, start, res):

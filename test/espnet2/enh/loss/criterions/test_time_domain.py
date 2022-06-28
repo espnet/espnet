@@ -1,10 +1,14 @@
 import pytest
 import torch
 
-from espnet2.enh.loss.criterions.time_domain import CISDRLoss
-from espnet2.enh.loss.criterions.time_domain import SDRLoss
-from espnet2.enh.loss.criterions.time_domain import SISNRLoss
-from espnet2.enh.loss.criterions.time_domain import SNRLoss
+from espnet2.enh.loss.criterions.time_domain import (
+    CISDRLoss,
+    SDRLoss,
+    SISNRLoss,
+    SNRLoss,
+    TimeDomainL1,
+    TimeDomainMSE,
+)
 
 
 @pytest.mark.parametrize("criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss])
@@ -17,4 +21,25 @@ def test_tf_domain_criterion_forward(criterion_class):
     ref = torch.rand(batch, 2000)
 
     loss = criterion(ref, inf)
-    assert loss.shape == (batch,)
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
+
+
+@pytest.mark.parametrize("criterion_class", [TimeDomainL1, TimeDomainMSE])
+@pytest.mark.parametrize("input_ch", [1, 2])
+def test_tf_domain_l1_l2_forward(criterion_class, input_ch):
+
+    criterion = criterion_class()
+
+    batch = 2
+    shape = (batch, 200) if input_ch == 1 else (batch, 200, input_ch)
+    inf = torch.rand(*shape)
+    ref = torch.rand(*shape)
+
+    loss = criterion(ref, inf)
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
+
+    with pytest.raises(ValueError):
+        if input_ch == 1:
+            loss = criterion(ref[..., None, None], inf[..., None, None])
+        else:
+            loss = criterion(ref[..., None], inf[..., None])

@@ -1,6 +1,6 @@
 import warnings
 from collections import OrderedDict
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -66,12 +66,18 @@ class AsteroidModel_Converter(AbsSeparator):
         if loss_type != "si_snr":
             raise ValueError("Unsupported loss type: %s" % loss_type)
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor = None):
+    def forward(
+        self,
+        input: torch.Tensor,
+        ilens: torch.Tensor = None,
+        additional: Optional[Dict] = None,
+    ):
         """Whole forward of asteroid models.
 
         Args:
             input (torch.Tensor): Raw Waveforms [B, T]
             ilens (torch.Tensor): input lengths [B]
+            additional (Dict or None): other data included in model
 
         Returns:
             estimated Waveforms(List[Union(torch.Tensor]): [(B, T), ...]

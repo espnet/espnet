@@ -46,7 +46,7 @@ class VGGRNNEncoder(AbsEncoder):
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         # Subsample is not used for VGGRNN
-        subsample = np.ones(num_layers + 1, dtype=np.int)
+        subsample = np.ones(num_layers + 1, dtype=np.int64)
         rnn_type = ("b" if bidirectional else "") + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(

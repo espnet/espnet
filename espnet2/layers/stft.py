@@ -1,9 +1,9 @@
-from distutils.version import LooseVersion
 from typing import Optional, Tuple, Union
 
 import librosa
 import numpy as np
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
@@ -11,10 +11,10 @@ from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
-is_torch_1_7_plus = LooseVersion(torch.__version__) >= LooseVersion("1.7")
+is_torch_1_7_plus = V(torch.__version__) >= V("1.7")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
@@ -180,7 +180,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             wavs: (batch, samples)
             ilens: (batch,)
         """
-        if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+        if V(torch.__version__) >= V("1.6.0"):
             istft = torch.functional.istft
         else:
             try:

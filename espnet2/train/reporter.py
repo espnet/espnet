@@ -6,13 +6,13 @@ import time
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import ContextManager, Dict, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types, check_return_type
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
@@ -349,7 +349,7 @@ class Reporter:
             seconds=time.perf_counter() - sub_reporter.start_time
         )
         stats["total_count"] = sub_reporter.total_count
-        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+        if V(torch.__version__) >= V("1.4.0"):
             if torch.cuda.is_initialized():
                 stats["gpu_max_cached_mem_GB"] = (
                     torch.cuda.max_memory_reserved() / 2**30

@@ -5,11 +5,9 @@ convert given text data to json format required by ESPNet
 """
 import argparse
 import json
-from logging import getLogger
 import os
-from typing import Dict
-from typing import List
-
+from logging import getLogger
+from typing import Dict, List
 
 logger = getLogger(__name__)
 

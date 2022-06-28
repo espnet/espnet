@@ -42,12 +42,13 @@ The actual data dir and wav files are generated using make_mixture.py:
 """
 
 import argparse
-import os
-import common
-import random
-import numpy as np
-import json
 import itertools
+import json
+import os
+import random
+
+import common
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("data_dir", help="data dir of single-speaker recordings")
