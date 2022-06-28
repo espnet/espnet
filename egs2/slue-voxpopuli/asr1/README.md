@@ -15,7 +15,7 @@
 - token_type: bpe
 
 |dataset|Snt|Macro F1(%)|Micro F1 (%)|Macro Label F1(%)|Micro Label F1 (%)| WER|
-|---|---|---|---|
+|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|39.5|54.7|54.2|67.6|34.2|
 
 ## Using WavLM feature extractor
@@ -23,5 +23,5 @@
 - token_type: bpe
 
 |dataset|Snt|Macro F1(%)|Micro F1 (%)|Macro Label F1(%)|Micro Label F1 (%)| WER|
-|---|---|---|---|
+|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|61.0|74.5|81.6|88.0|9.3|
