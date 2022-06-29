@@ -766,7 +766,7 @@ def get_parser():
         "--display_partial_hypotheses",
         type=bool,
         default=False,
-        help="Whether to display partial hypotheses during inference."
+        help="Whether to display partial hypotheses during inference.",
     )
 
     return parser

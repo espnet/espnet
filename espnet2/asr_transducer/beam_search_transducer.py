@@ -90,11 +90,12 @@ class BeamSearchTransducer:
         self.vocab_size = decoder.vocab_size
         self.blank_id = decoder.blank_id
 
-        assert (
-            beam_size <= self.vocab_size
-        ), "beam_size (%d) should be smaller than or equal to vocabulary size (%d)." % (
-            beam_size,
-            self.vocab_size,
+        assert beam_size <= self.vocab_size, (
+            "beam_size (%d) should be smaller than or equal to vocabulary size (%d)."
+            % (
+                beam_size,
+                self.vocab_size,
+            )
         )
         self.beam_size = beam_size
 
