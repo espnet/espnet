@@ -15,16 +15,17 @@ class Hypothesis:
     """Default hypothesis definition for Transducer search algorithms.
 
     Args:
-        score: Log-probability.
+        score: Total log-probability.
         yseq: Label sequence as integer ID sequence.
-        dec_state: Decoder state.
-        lm_state: Language model state.
+        dec_state: RNNDecoder or StatelessDecoder state.
+                     ((N, 1, D_dec), (N, 1, D_dec)
+        lm_state: RNNLM state. ((N, D_lm), (N, D_lm))
 
     """
 
     score: float
     yseq: List[int]
-    dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]
+    dec_state: Tuple[torch.Tensor, Optional[torch.Tensor]]
     lm_state: Optional[Union[Dict[str, Any], List[Any]]] = None
 
 
@@ -34,12 +35,12 @@ class ExtendedHypothesis(Hypothesis):
 
     Args:
         : Hypothesis dataclass arguments.
-        dec_out: Decoder output sequence.
-        lm_score: Log-probability of the language model.
+        dec_out: Decoder output sequence. (B, 1, D_out)
+        lm_score: Log-probabilities of the LM for given label. (vocab_size)
 
     """
 
-    dec_out: torch.Tensor = None
+    dec_out: Optional[torch.Tensor] = None
     lm_score: torch.Tensor = None
 
 
@@ -75,9 +76,9 @@ class BeamSearchTransducer:
             max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
             u_max: Maximum expected target sequence length. (ALSD)
             nstep: Number of maximum expansion steps at each time step. (mAES)
+            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             expansion_beta:
               Number of additional candidates for expanded hypotheses selection. (mAES)
-            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             score_norm: Normalize final scores by length.
             nbest: Number of final hypothesis.
             streaming: Whether to perform chunk-by-chunk beam search.
@@ -91,7 +92,7 @@ class BeamSearchTransducer:
 
         assert (
             beam_size <= self.vocab_size
-        ), "beam_size (%d) should be smaller or equal to vocabulary size (%d)." % (
+        ), "beam_size (%d) should be smaller than or equal to vocabulary size (%d)." % (
             beam_size,
             self.vocab_size,
         )
@@ -100,7 +101,9 @@ class BeamSearchTransducer:
         if search_type == "default":
             self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
-            assert max_sym_exp > 1, "max_sym_exp should be greater than one."
+            assert max_sym_exp > 1, "max_sym_exp (%d) should be greater than one." % (
+                max_sym_exp
+            )
             self.max_sym_exp = max_sym_exp
 
             self.search_algorithm = self.time_sync_decoding
@@ -114,7 +117,7 @@ class BeamSearchTransducer:
         elif search_type == "maes":
             assert self.vocab_size >= beam_size + expansion_beta, (
                 "beam_size (%d) + expansion_beta (%d) "
-                " should be smaller or equal to vocab size (%d)."
+                " should be smaller than or equal to vocab size (%d)."
                 % (beam_size, expansion_beta, self.vocab_size)
             )
             self.max_candidates = beam_size + expansion_beta
@@ -337,7 +340,7 @@ class BeamSearchTransducer:
                 kept_hyps.append(
                     Hypothesis(
                         score=(max_hyp.score + float(logp[0:1])),
-                        yseq=max_hyp.yseq[:],
+                        yseq=max_hyp.yseq,
                         dec_state=max_hyp.dec_state,
                         lm_state=max_hyp.lm_state,
                     )
@@ -363,7 +366,7 @@ class BeamSearchTransducer:
                     hyps.append(
                         Hypothesis(
                             score=score,
-                            yseq=max_hyp.yseq[:] + [int(k + 1)],
+                            yseq=max_hyp.yseq + [int(k + 1)],
                             dec_state=state,
                             lm_state=lm_state,
                         )

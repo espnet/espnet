@@ -380,13 +380,13 @@ The architecture is composed of three modules: encoder, decoder and joint networ
 
 #### Encoder
 
-For the encoder, we propose an unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
+For the encoder, we propose a unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
 
   1. `input_conf` (**Dict**): The configuration for the input block.
   2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
   3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
 
-The first and second configuration are optional. If needed, fhe following parameters can be modified in each configuration:
+The first and second configurations are optional. If needed, fhe following parameters can be modified in each configuration:
 
     main_conf:
       pos_wise_layer_type: Position-wise layer type. (str, default = "linear")
@@ -476,7 +476,7 @@ encoder_conf:
 
 #### Decoder
 
-For the decoder, two types of blocks are available: RNN and stateless (only embedding). It is defined through two parameters: `decoder` and `decoder_conf`. The first one take a string defining the type of block (either `rnn` or `stateless`) to use while the second takes a single configuration. The following parameters can be set but are all optional:
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). It is defined through two parameters: `decoder` and `decoder_conf`. The first one takes a string defining the type of block (either `rnn` or `stateless`) to use while the second takes a single configuration. The following parameters can be set but are all optional:
 
     decoder_conf:
       rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
@@ -487,7 +487,7 @@ For the decoder, two types of blocks are available: RNN and stateless (only embe
 
 #### Joint network
 
-Currently, we only propose the standard joint network module composed of two three linear layers and an activation functions. The module definition is optional but the following parameters can be modified through the configuration parameter `joint_network_conf`:
+Currently, we only propose the standard joint network module composed of three linear layers and an activation function. The module definition is optional but the following parameters can be modified through the configuration parameter `joint_network_conf`:
 
     joint_network_conf:
       joint_space_size: Size of the joint space (int, default = 256).
@@ -497,11 +497,11 @@ The options related to the activation functions can also be modified through the
 
 ### Multi-task learning
 
-We also support multi-task learning with two auxiliary tasks: CTC and cross-entropy w/ label smoothing option (called LM loss here). The auxiliary tasks contributes to the overal task defined as:
+We also support multi-task learning with two auxiliary tasks: CTC and cross-entropy w/ label smoothing option (called LM loss here). The auxiliary tasks contribute to the overal task defined as:
 
 **L_tot = (λ_trans x L_trans) + (λ_auxCTC x L_auxCTC) + (λ_auxLM x L_auxLM)**
 
-where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parametrized using the following options, passed to `model_conf`:
+where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parameterized using the following options, passed to `model_conf`:
 
     model_conf:
       transducer_weight: Weight of the Transducer loss (float, default = 1.0)

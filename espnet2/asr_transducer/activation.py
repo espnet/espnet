@@ -106,8 +106,8 @@ class Mish(torch.nn.Module):
     Reference: https://arxiv.org/abs/1908.08681.
 
     Args:
-        beta: Beta value for softplus activation formulation.
-        threshold: Values above this revert to a linear function.
+        softplus_beta: Beta value for softplus activation formulation.
+        softplus_threshold: Values above this revert to a linear function.
         use_builtin: Whether to use PyTorch activation function if available.
 
     """
@@ -143,7 +143,6 @@ class Smish(torch.nn.Module):
     Args:
         alpha: Alpha value for Smish activation fomulation.
         beta: Beta value for Smish activation formulation.
-        use_builtin: Whether to use PyTorch activation function if available.
 
     """
 
