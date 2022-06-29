@@ -54,24 +54,26 @@ if python3 -c "import k2" &> /dev/null; then
 fi
 
 if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
-    echo "==== [ESPnet2] ASR Transducer ==="
+    echo "==== [ESPnet2] ASR Transducer (standalone) ==="
 
     for t in ${token_types}; do
 	asr_tag="transducer_${t}"
-
-	echo "==== [RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
-		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
-		 --asr-tag "${asr_tag}_rnn" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
-		 --encoder_conf body_conf='[{'block_type': 'rnn', 'dim_hidden': 30}]' --decoder_conf='{'dim_embedding': 30, 'dim_hidden': 30}' \
-		 --joint_network_conf dim_joint_space=30"
 
 	echo "==== [Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
 		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
 		 --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
-		 --encoder_conf body_conf='[{'block_type': 'conformer', 'dim_hidden': 30, 'dim_linear': 30, 'heads': 2}]' \
-		 --decoder_conf='{'dim_embedding': 30, 'dim_hidden': 30}' --joint_network_conf dim_joint_space=30"
+		 --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+		 --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30"
+
+	echo "==== [Streaming Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
+		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
+		 --asr-tag "${asr_tag}_conformer_streaming" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
+		 --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
+		 --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+		 --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
+		 --inference-args "--streaming true --chunk_size 2 --left_context 2 --right_context 0"
     done
 fi
 

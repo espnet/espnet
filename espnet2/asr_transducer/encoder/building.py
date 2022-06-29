@@ -109,7 +109,7 @@ def build_input_block(
         input_size,
         configuration["conv_size"],
         configuration["subsampling_factor"],
-        vgg_like=configuration.get("vgg_like", True),
+        vgg_like=configuration["vgg_like"],
         output_size=configuration["output_size"],
     )
 

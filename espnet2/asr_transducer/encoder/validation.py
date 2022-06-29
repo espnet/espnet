@@ -116,6 +116,8 @@ def validate_input_block(
         else:
             configuration["conv_size"] = output_size
 
+    configuration["vgg_like"] = vgg_like
+
     return output_size
 
 
