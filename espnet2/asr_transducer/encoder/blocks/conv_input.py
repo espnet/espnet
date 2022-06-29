@@ -91,7 +91,7 @@ class ConvInput(torch.nn.Module):
             mask: Mask of input sequences. (B, 1, T)
 
         Returns:
-            x: ConvInput output tensor. (B, sub(T), D_out)
+            x: ConvInput output sequences. (B, sub(T), D_out)
             mask: Mask of output sequences. (B, 1, sub(T))
 
         """
@@ -145,7 +145,7 @@ class ConvInput(torch.nn.Module):
             size: Number of frames after subsampling.
 
         Returns:
-            : Number of frames before subsampling
+            : Number of frames before subsampling.
 
         """
         if self.vgg_like:

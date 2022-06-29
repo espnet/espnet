@@ -11,19 +11,19 @@ class RelPositionalEncoding(torch.nn.Module):
     """Relative positional encoding.
 
     Args:
-        mod_size: Module size.
+        size: Module size.
         max_len: Maximum input length.
         dropout_rate: Dropout rate.
 
     """
 
     def __init__(
-        self, mod_size: int, dropout_rate: float = 0.0, max_len: int = 5000
+        self, size: int, dropout_rate: float = 0.0, max_len: int = 5000
     ) -> None:
         """Construct a RelativePositionalEncoding object."""
         super().__init__()
 
-        self.mod_size = mod_size
+        self.size = size
 
         self.pe = None
         self.dropout = torch.nn.Dropout(p=dropout_rate)
@@ -47,13 +47,13 @@ class RelPositionalEncoding(torch.nn.Module):
                     self.pe = self.pe.to(device=x.device, dtype=x.dtype)
                 return
 
-        pe_positive = torch.zeros(time1, self.mod_size)
-        pe_negative = torch.zeros(time1, self.mod_size)
+        pe_positive = torch.zeros(time1, self.size)
+        pe_negative = torch.zeros(time1, self.size)
 
         position = torch.arange(0, time1, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, self.mod_size, 2, dtype=torch.float32)
-            * -(math.log(10000.0) / self.mod_size)
+            torch.arange(0, self.size, 2, dtype=torch.float32)
+            * -(math.log(10000.0) / self.size)
         )
 
         pe_positive[:, 0::2] = torch.sin(position * div_term)

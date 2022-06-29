@@ -12,7 +12,15 @@ from espnet2.asr_transducer.joint_network import JointNetwork
 
 @dataclass
 class Hypothesis:
-    """Default hypothesis definition for Transducer search algorithms."""
+    """Default hypothesis definition for Transducer search algorithms.
+
+    Args:
+        score: Log-probability.
+        yseq: Label sequence as integer ID sequence.
+        dec_state: Decoder state.
+        lm_state: Language model state.
+
+    """
 
     score: float
     yseq: List[int]
@@ -22,7 +30,14 @@ class Hypothesis:
 
 @dataclass
 class ExtendedHypothesis(Hypothesis):
-    """Extended hypothesis definition for NSC beam search and mAES."""
+    """Extended hypothesis definition for NSC beam search and mAES.
+
+    Args:
+        : Hypothesis dataclass arguments.
+        dec_out: Decoder output sequence.
+        lm_score: Log-probability of the language model.
+
+    """
 
     dec_out: torch.Tensor = None
     lm_score: torch.Tensor = None
@@ -65,7 +80,7 @@ class BeamSearchTransducer:
             expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             score_norm: Normalize final scores by length.
             nbest: Number of final hypothesis.
-            streaming: Whether to perform streaming beam search.
+            streaming: Whether to perform chunk-by-chunk beam search.
 
         """
         self.decoder = decoder

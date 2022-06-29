@@ -394,8 +394,8 @@ The first and second configuration are optional. If needed, fhe following parame
       pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
       conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
-      dynamic_chunk_training: Whether to use dynamic chunk during streaming training. (bool, default = False)
-      short_chunk_threshold: Chunk length percent threshold for dynamic chunk selection. (int, default = 0.75)
+      dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+      short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
       short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
       left_chunk_size: Number of frames in left context. (int, default = 0)
       ftswish_threshold: Threshold value for FTSwish activation formulation.
@@ -537,4 +537,26 @@ The algorithms share two parameters to control the beam size (`beam-size`) and t
     expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
     expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
 
-**Note 1:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+**Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+
+### Streaming
+
+In this version, we also support streaming Transducer models with dynamic chunk training and chunk-by-chunk decoding as proposed in [[Zhang et al., 2021]](https://arxiv.org/pdf/2012.05481.pdf). Our implementation is based on the version proposed in [Icefall](https://github.com/k2-fsa/icefall/), based itself on the original [WeNet](https://github.com/wenet-e2e/wenet/) one.
+
+#### Training
+
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True`. From here, the user has access to threee parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and left-context of the chunk during training (`left_chunk_size`).
+
+All these parameters can be modified in the training config through the `main_conf` field. A short description of the parameters is given in the Encoder section.
+
+#### Decoding
+
+To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration. In addition, the following parameters can be modified in order to modify the size of different elements of the approach:
+
+    chunk_size: Number of frames in chunk. (int, default = 8)
+    left_context: Number of frames in the left context of the chunk. (int, default = 32)
+    right_context: Number of frames in the right context of the chunk. (int, default = 2)
+
+For each parameter, the number of frames is defined AFTER subsampling, meaning the original input chunk will be bigger than requested.
+
+***Note:*** All search algorithms but ALSD are available with chunk-by-chunk inference.

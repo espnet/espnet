@@ -45,7 +45,7 @@ def build_main_parameters(
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
         left_chunk_size: Number of frames in left context.
-        **activations_parameters: Parameters of the activation functions.
+        **activations_parameters: Parameters of the activation functions (Cf. tutorial).
 
     Returns:
         : Main encoder parameters
@@ -78,7 +78,7 @@ def build_positional_encoding(
 
     Args:
         block_size: Input/output size.
-        dropout_rate: Dropout rate.
+        configuration: Positional encoding configuration.
 
     Returns:
         : Positional encoding module.
@@ -102,7 +102,7 @@ def build_input_block(
         configuration: Input block configuration.
 
     Returns:
-        : Input block.
+        : ConvInput block function.
 
     """
     return ConvInput(
@@ -166,7 +166,10 @@ def build_conformer_block(
     )
 
 
-def build_conv1d_block(configuration: List[Dict[str, Any]]) -> Conv1d:
+def build_conv1d_block(
+    configuration: List[Dict[str, Any]],
+    causal: bool,
+) -> Conv1d:
     """Build Conv1d block.
 
     Args:
@@ -186,6 +189,7 @@ def build_conv1d_block(configuration: List[Dict[str, Any]]) -> Conv1d:
         bias=configuration.get("bias", True),
         relu=configuration.get("use_relu", True),
         batch_norm=configuration.get("use_batchnorm", False),
+        causal=causal,
         dropout_rate=configuration.get("dropout_rate", 0.0),
     )
 
@@ -203,7 +207,7 @@ def build_body_blocks(
         output_size: Architecture output size.
 
     Returns:
-        Encoder container.
+        MultiBlocks function encapsulation all encoder blocks.
 
     """
     fn_modules = []
@@ -221,7 +225,7 @@ def build_body_blocks(
         block_type = c["block_type"]
 
         if block_type == "conv1d":
-            module = build_conv1d_block(c)
+            module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
         elif block_type == "conformer":
             module = build_conformer_block(c, main_params)
         else:

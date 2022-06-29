@@ -42,7 +42,9 @@ class Encoder(torch.nn.Module):
 
         super().__init__()
 
-        embed_size, output_size = validate_architecture(input_conf, body_conf, input_size)
+        embed_size, output_size = validate_architecture(
+            input_conf, body_conf, input_size
+        )
         main_params = build_main_parameters(**main_conf)
 
         self.embed = build_input_block(input_size, input_conf)

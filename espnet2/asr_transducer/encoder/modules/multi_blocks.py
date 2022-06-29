@@ -59,7 +59,8 @@ class MultiBlocks(torch.nn.Module):
 
         """
         for block_index, block in enumerate(self.blocks):
-            x = block(x, pos_enc, mask, chunk_mask=chunk_mask)
+            x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
+
         x = self.norm_blocks(x)
 
         return x
@@ -87,13 +88,14 @@ class MultiBlocks(torch.nn.Module):
 
         """
         for block_idx, block in enumerate(self.blocks):
-            x = block.chunk_forward(
+            x, pos_enc = block.chunk_forward(
                 x,
                 pos_enc,
                 mask,
                 left_context=left_context,
                 right_context=right_context,
             )
+
         x = self.norm_blocks(x)
 
         return x

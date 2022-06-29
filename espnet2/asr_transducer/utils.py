@@ -78,6 +78,8 @@ def make_chunk_mask(
 ) -> torch.Tensor:
     """Create chunk mask for the subsequent steps (size, size).
 
+    Reference: https://github.com/k2-fsa/icefall/blob/master/icefall/utils.py
+
     Args:
         size: Size of the source mask.
         chunk_size: Number of frames in chunk.
@@ -104,6 +106,8 @@ def make_chunk_mask(
 
 def make_source_mask(lengths: torch.Tensor) -> torch.Tensor:
     """Create source mask for given lengths.
+
+    Reference: https://github.com/k2-fsa/icefall/blob/master/icefall/utils.py
 
     Args:
         lengths: Sequence lengths. (B,)

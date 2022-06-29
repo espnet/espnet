@@ -60,10 +60,11 @@ class Speech2Text:
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
         nbest: Number of final hypothesis.
-        streaming: Whether to perform streaming decoding.
-        chunk_size: Number of frames in chunk during streaming decoding.
-        left_context: Number of frames in left context during streaming decoding.
-        right_context: Number of frames in right context during streaming decoding.
+        streaming: Whether to perform chunk-by-chunk inference.
+        chunk_size: Number of frames in chunk AFTER subsampling.
+        left_context: Number of frames in left context AFTER subsampling.
+        right_context: Number of frames in right context AFTER subsampling.
+        display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
 
@@ -88,6 +89,7 @@ class Speech2Text:
         chunk_size: int = 8,
         left_context: int = 32,
         right_context: int = 2,
+        display_partial_hypotheses: bool = False,
     ) -> None:
         assert check_argument_types()
 
@@ -455,6 +457,7 @@ def inference(
     chunk_size: Optional[int],
     left_context: Optional[int],
     right_context: Optional[int],
+    display_partial_hypotheses: bool,
 ):
     """Transducer model inference.
 
@@ -483,10 +486,11 @@ def inference(
         quantize_asr_model: Whether to apply dynamic quantization to ASR model.
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
-        streaming: Whether to perform streaming decoding.
-        chunk_size: Number of frames in chunk during streaming decoding.
-        left_context: Number of frames in left context during streaming decoding.
-        right_context: Number of frames in right context during streaming decoding.
+        streaming: Whether to perform chunk-by-chunk inference.
+        chunk_size: Number of frames in chunk AFTER subsampling.
+        left_context: Number of frames in left context AFTER subsampling.
+        right_context: Number of frames in right context AFTER subsampling.
+        display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
     assert check_argument_types()
@@ -569,17 +573,16 @@ def inference(
                     speech = batch["speech"]
 
                     _steps = len(speech) // speech2text._raw_ctx
+                    _end = 0
 
                     for i in range(_steps):
                         _end = (i + 1) * speech2text._raw_ctx
 
-                        partial_hyps = speech2text(
+                        speech2text(
                             speech[i * speech2text._raw_ctx : _end], is_final=False
                         )
 
                     final_hyps = speech2text(speech[_end : len(speech)], is_final=True)
-                    print(speech2text.hypotheses_to_results(final_hyps)[0][0])
-                    exit(1)
                 else:
                     final_hyps = speech2text(**batch)
 
@@ -739,25 +742,31 @@ def get_parser():
         "--streaming",
         type=bool,
         default=False,
-        help="Whether to perform streaming decoding.",
+        help="Whether to perform chunk-by-chunk inference.",
     )
     parser.add_argument(
         "--chunk_size",
         type=int,
         default=8,
-        help="Number of frames in chunk during streaming decoding.",
+        help="Number of frames in chunk AFTER subsampling.",
     )
     parser.add_argument(
         "--left_context",
         type=int,
         default=32,
-        help="Number of frames in left context during streaming decoding.",
+        help="Number of frames in left context of the chunk AFTER subsampling.",
     )
     parser.add_argument(
         "--right_context",
         type=int,
         default=2,
-        help="Number of frames in right context during streaming decoding.",
+        help="Number of frames in right context of the chunk AFTER subsampling.",
+    )
+    parser.add_argument(
+        "--display_partial_hypotheses",
+        type=bool,
+        default=False,
+        help="Whether to display partial hypotheses during inference."
     )
 
     return parser

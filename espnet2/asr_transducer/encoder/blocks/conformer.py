@@ -59,7 +59,7 @@ class Conformer(torch.nn.Module):
         """Initialize self-attention and convolution modules cache for streaming.
 
         Args:
-            left_context: Number of frames in left context during streaming decoding.
+            left_context: Number of left frames during chunk-by-chunk inference.
             device: Device to use for cache tensor.
 
         """
@@ -88,13 +88,13 @@ class Conformer(torch.nn.Module):
         """Encode input sequences.
 
         Args:
-            x: Conformer input sequences. (B, T, D_emb)
+            x: Conformer input sequences. (B, T, D_block)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
-            mask: Source mask. (B, T_2)
-            chunk_mask: Chunk mask (T_1, T_2)
+            mask: Source mask. (B, T)
+            chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
-            x: Conformer output sequences. (B, T, D_enc)
+            x: Conformer output sequences. (B, T, D_block)
 
         """
         residual = x
@@ -132,7 +132,7 @@ class Conformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        return x
+        return x, mask, pos_enc
 
     def chunk_forward(
         self,
@@ -142,17 +142,17 @@ class Conformer(torch.nn.Module):
         left_context: int = 0,
         right_context: int = 0,
     ) -> torch.Tensor:
-        """Encode input sequences.
+        """Encode chunk of input sequence.
 
         Args:
-            x: Conformer input sequences. (B, T, D_emb)
+            x: Conformer input sequences. (B, T, D_block)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
             mask: Source mask. (B, T_2)
             left_context: Number of frames in left context.
             right_context: Number of frames in right context.
 
         Returns:
-            x: Conformer output sequences. (B, T, D_enc)
+            x: Conformer output sequences. (B, T, D_block)
 
         """
         residual = x
@@ -195,4 +195,4 @@ class Conformer(torch.nn.Module):
         x = self.norm_final(x)
         self.cache = [att_cache, conv_cache]
 
-        return x
+        return x, pos_enc
