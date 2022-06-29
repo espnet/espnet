@@ -41,7 +41,7 @@ In `egs2/TEMPLATE/enh1/enh.sh`, 13 stages are included.
 This stage is similar to stage 1 in [asr.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/asr.sh).
 
 #### Stage 2: Speech perturbation
-Speech perturbation is widely used in ASR task, but rarely in speech enhancement. Some of our initial experiments have shown that speech perturbation works on `wsj0_2mix`. We are conducting more experiments to make sure if it works.
+Speech perturbation is widely used in the ASR task, but rarely in speech enhancement. Some of our initial experiments have shown that speech perturbation works on `wsj0_2mix`. We are conducting more experiments to make sure if it works.
 The speech perturbation procedure is almost the same as that in ASR, we have copied `scripts/utils/perturb_data_dir_speed.sh` to `scripts/utils/perturb_enh_data_dir_speed.sh` and made some minor modifications to support the speech perturbation for more scp files rather than `wav.scp` only.
 
 #### Stage 3: Format wav.scp
@@ -53,9 +53,9 @@ Format scp files such as `wav.scp`. The scp files include:
   + `utt2category`: (optional) the category info of each utterance. This file can help the batch sampler to load the same category utterances in each batch. One usage case is that users want to load the simulation data and real data in different batches.
 
 #### Stage 4: Remove short data
-This stage is same as that in ASR recipe.
+This stage is the same as that in ASR recipes.
 
-#### Stage 5: Collect stats for enhancement task.
+#### Stage 5: Collect stats for the enhancement task.
 Same as the ASR task, we collect the data stats before training. Related new python files are:
 ```
 espnet2/
@@ -238,7 +238,7 @@ Upload the trained speech enhancement/separation model to Zenodo for sharing.
 
 #### Stage 13: Upload model to Hugging Face
 
-Upload the trained speech enhancement/separation model to Hugging Face for sharing. Additonal information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
+Upload the trained speech enhancement/separation model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
 ## (For developers) Instructions on creating a new recipe
 #### Step 1 Create recipe directory
@@ -256,7 +256,7 @@ Prepare `local/data.sh`, which will be used in stage 1 in `enh.sh`.
 It can take some arguments as input, see [egs2/wsj0_2mix/enh1/local/data.sh](https://github.com/espnet/espnet/blob/master/egs2/wsj0_2mix/enh1/local/data.sh) for reference.
 
 The script `local/data.sh` should finally generate Kaldi-style data directories under `<recipe_dir>/data/`.
-Each subset directory should contains at least 4 files:
+Each subset directory should contain at least 4 files:
 ```
 <recipe-dir>/data/<subset-name>/
 ├── spk1.scp   (clean speech references)
@@ -296,11 +296,11 @@ The current ESPnet-SE tool adopts an encoder-separator-decoder architecture for 
 #### Step 1 Create model scripts
 For encoder, separator, and decoder models, create new scripts under [espnet2/enh/encoder/](https://github.com/espnet/espnet/tree/master/espnet2/enh/encoder), [espnet2/enh/separator/](https://github.com/espnet/espnet/tree/master/espnet2/enh/separator), and [espnet2/enh/decoder/](https://github.com/espnet/espnet/tree/master/espnet2/enh/decoder), respectively.
 
-For a separator model, please make sure it implements the `num_spk` property. Check [espnet2/enh/separator/tcn_separator.py](https://github.com/espnet/espnet/blob/master/espnet2/enh/separator/tcn_separator.py) for reference.
+For a separator model, please make sure it implements the `num_spk` property. In addition, it is recommended to also support `predict_noise` for estimating the noise signal. Check [espnet2/enh/separator/tcn_separator.py](https://github.com/espnet/espnet/blob/master/espnet2/enh/separator/tcn_separator.py) for reference.
 
 > Please follow the coding style as mentioned in [CONTRIBUTING.md](https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#41-python).
 >
-> Remember to format your new scripts to match the styles in `black` and `flake8`, otherwise they may fail the tests in [ci/test_python.sh](https://github.com/espnet/espnet/blob/master/ci/test_python.sh).
+> Remember to format your new scripts to match the styles in `black`, `flake8`, and `isort`, otherwise they may fail the tests in [ci/test_python.sh](https://github.com/espnet/espnet/blob/master/ci/test_python.sh).
 
 #### Step 2 Add the new model to related scripts
 In [espnet2/tasks/enh.py](https://github.com/espnet/espnet/blob/master/espnet2/tasks/enh.py#L37-L62), add your new model to the corresponding `ClassChoices`, e.g.
