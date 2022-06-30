@@ -39,6 +39,7 @@ class SoundScpReader(collections.abc.Mapping):
         self.data = read_2column_text(fname)
 
     def __getitem__(self, key):
+        key, pitch_aug_factor, time_aug_factor = key
         wav = self.data[key]
         if self.normalize:
             # soundfile.read normalizes data to [-1,1] if dtype is not given
@@ -48,6 +49,24 @@ class SoundScpReader(collections.abc.Mapping):
                 wav, dtype=self.dtype, always_2d=self.always_2d
             )
 
+        if pitch_aug_factor != 0:
+            # Pitch augmentation
+            ratio = pow(2, 1 / 12)
+            import pyworld as pw
+
+            f0_pw, sp, ap = pw.wav2world(array, rate)  # use default options
+            array = pw.synthesize(
+                f0_pw * (ratio**pitch_aug_factor),
+                sp,
+                ap,
+                rate,
+                pw.default_frame_period,
+            )
+
+        if time_aug_factor != 1:
+            # Time augmentation
+            array = tsm.wsola(array, time_aug_factor)
+            
         return rate, array
 
     def get_path(self, key):

@@ -40,7 +40,7 @@ def load_num_sequence_text(
 
     Examples:
         key1 1 2 3
-        key2 34 5 6
+        key2 3 4 5 6
 
         >>> d = load_num_sequence_text('text')
         >>> np.testing.assert_array_equal(d["key1"], np.array([1, 2, 3]))
@@ -58,6 +58,9 @@ def load_num_sequence_text(
     elif loader_type == "csv_float":
         delimiter = ","
         dtype = float
+    elif loader_type == "str":
+        delimiter = " "
+        dtype = str
     else:
         raise ValueError(f"Not supported loader_type={loader_type}")
 
@@ -77,3 +80,58 @@ def load_num_sequence_text(
             logging.error(f'Error happened with path="{path}", id="{k}", value="{v}"')
             raise
     return retval
+
+
+def load_label_sequence(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
+    """Read a text file indicating sequences of number
+    
+    Examples:
+        key1 1 2 3
+        key2 3 4 5 6
+
+        >>> d = load_num_sequence_text('duration')
+        >>> np.testing.assert_array_equal(d["key1"], [0.1, 0.2, "啊"]))
+    """
+    assert check_argument_types()
+
+    delimiter = " "
+    dtype = float
+
+    d = read_2column_text(path)
+
+    retval = {}
+    for k, v in d.items():
+        try:
+            start, end, text = v.split(delimiter)
+            retval[k] = [dtype(start), dtype(end), text]
+        except TypeError:
+            logging.error(f'Error happened with path="{path}", id="{k}", value="{v}"')
+            raise
+    return retval
+
+
+def read_label(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
+    """Read a text file indicating sequences of number
+    
+    Examples:
+        key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ....\n
+        key2 start_time_1 end_time_1 phone_1 \n
+        
+        >>> d = load_num_sequence_text('label')
+        >>> np.testing.assert_array_equal(d["key1"], [0.1, 0.2, "啊"]))
+    """
+    assert check_argument_types()
+    label = open(path, "r", encoding="utf-8")
+
+    retval = {}
+    for label_line in label.readlines():
+        line = label_line.strip().split()
+        key = line[0]
+        phn_info = line[1:]
+        temp_info = []
+        for i in range(len(phn_info) // 3):
+            temp_info.append(
+                [phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2]]
+            )
+        retval[key] = temp_info
+    return 

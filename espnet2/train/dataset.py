@@ -20,9 +20,10 @@ from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
 )
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
+from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text, read_label
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.midi_scp import MIDIScpReader
 from espnet2.utils.sized_dict import SizedDict
 
 
@@ -98,6 +99,66 @@ class H5FileWrapper:
         return value[()]
 
 
+class AdapterForMIDIScpReader(collections.abc.Mapping):
+    def __init__(self, loader):
+        assert check_argument_types()
+        self.loader = loader
+
+    def keys(self):
+        return self.loader.keys()
+
+    def __len__(self):
+        return len(self.loader)
+
+    def __iter__(self):
+        return iter(self.loader)
+
+    def __getitem__(self, key: (str, int)) -> np.ndarray:
+        key, pitch_aug_factor, time_aug_factor = key
+        retval = self.loader[(key, pitch_aug_factor, time_aug_factor)]
+
+        assert len(retval) == 2, len(retval)
+        if isinstance(retval[0], np.ndarray) and isinstance(retval[1], np.ndarray):
+            note_array, tempo_array = retval
+        else:
+            raise RuntimeError(f"Unexpected type: {type(retval[0])}, {type(retval[1])}")
+
+        assert isinstance(note_array, np.ndarray) and isinstance(
+            tempo_array, np.ndarray
+        )
+        return note_array, tempo_array
+
+
+class AdapterForLabelScpReader(collections.abc.Mapping):
+    def __init__(self, loader):
+        assert check_argument_types()
+        self.loader = loader
+
+    def keys(self):
+        return self.loader.keys()
+
+    def __len__(self):
+        return len(self.loader)
+
+    def __iter__(self):
+        return iter(self.loader)
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        retval = self.loader[key]
+
+        assert isinstance(retval, list)
+        seq_len = len(retval)
+        sample_time = np.zeros((seq_len, 2))
+        sample_label = []
+        for i in range(seq_len):
+            sample_time[i, 0] = np.float32(retval[i][0])
+            sample_time[i, 1] = np.float32(retval[i][1])
+            sample_label.append(retval[i][2])
+
+        assert isinstance(sample_time, np.ndarray) and isinstance(sample_label, list)
+        return sample_time, sample_label
+
+
 def sound_loader(path, float_dtype=None):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
@@ -111,6 +172,30 @@ def sound_loader(path, float_dtype=None):
     # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
     # but ndarray is desired, so Adapter class is inserted here
     return AdapterForSoundScpReader(loader, float_dtype)
+
+
+def midi_loader(
+    path, float_dtype=None, rate=np.int32(24000), mode="format", time_shift=0.0125
+):
+    # The file is as follows:
+    #   utterance_id_A /some/where/a.mid
+    #   utterance_id_B /some/where/b.midi
+
+    loader = MIDIScpReader(fname=path, rate=rate, mode=mode, time_shift=time_shift)
+
+    # MIDIScpReader.__getitem__() returns ndarray
+    return AdapterForMIDIScpReader(loader)
+
+
+def label_loader(path, float_dtype=None):
+    # The file is as follows:
+    #   utterance_id_A /some/where/a.mid
+    #   utterance_id_B /some/where/b.midi
+
+    loader = read_label(path)
+
+    # MIDIScpReader.__getitem__() returns ndarray
+    return AdapterForLabelScpReader(loader)
 
 
 def kaldi_loader(path, float_dtype=None, max_cache_fd: int = 0):
@@ -135,6 +220,25 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_a a.wav\n"
         "   utterance_id_b b.wav\n"
+        "   ...",
+    ),
+    "midi": dict(
+        func=midi_loader,
+        kwargs=["float_dtype", "mode", "time_shift"],
+        help="MIDI format types which supported by sndfile mid, midi, etc."
+        "\n\n"
+        "   utterance_id_a a.mid\n"
+        "   utterance_id_b b.mid\n"
+        "   ...",
+    ),
+    "duration": dict(
+        func=label_loader,
+        kwargs=[],
+        help="Return text as is. The text must be converted to ndarray "
+        "by 'preprocess'."
+        "\n\n"
+        "   utterance_id_A start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ...\n"
+        "   utterance_id_B start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ...\n"
         "   ...",
     ),
     "kaldi_ark": dict(
@@ -278,12 +382,23 @@ class ESPnetDataset(AbsDataset):
         self,
         path_name_type_list: Collection[Tuple[str, str, str]],
         preprocess: Callable[
-            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+            [str, Dict[str, np.ndarray], float], Dict[str, np.ndarray]
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
+        not_align: list = ["text", "sids", "lids"],  # TODO(Tao): add to args
+        mode: str = "valid",  # train, valid, plot_att, ...
+        midi_loader_mode: str = "format",  # format, xiaoice (tempo means index_nums)
+        time_shift: float = 0.0125,
+        pitch_aug_min: int = 0,
+        pitch_aug_max: int = 0,
+        pitch_mean: str = "None",
+        time_aug_min: float = 1.0,
+        time_aug_max: float = 1.0,
+        random_crop: bool = False,
+        mask_aug: bool = False,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -297,6 +412,8 @@ class ESPnetDataset(AbsDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
+        self.midi_loader_mode = midi_loader_mode
+        self.time_shift = time_shift
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -319,6 +436,22 @@ class ESPnetDataset(AbsDataset):
             self.cache = SizedDict(shared=True)
         else:
             self.cache = None
+        self.not_align = not_align
+        self.mode = mode
+
+        self.pitch_aug_min = pitch_aug_min
+        self.pitch_aug_max = pitch_aug_max
+        self.pitch_mean = pitch_mean
+        self.time_aug_min = time_aug_min
+        self.time_aug_max = time_aug_max
+        self.random_crop = random_crop
+        self.mask_aug = mask_aug
+
+        assert self.pitch_aug_min <= self.pitch_aug_max
+        assert self.time_aug_min <= self.time_aug_max
+        if self.pitch_mean != "None":
+            assert self.pitch_aug_min == 0
+            assert self.pitch_aug_max == 0
 
     def _build_loader(
         self, path: str, loader_type: str
@@ -343,6 +476,10 @@ class ESPnetDataset(AbsDataset):
                         kwargs["int_dtype"] = self.int_dtype
                     elif key2 == "max_cache_fd":
                         kwargs["max_cache_fd"] = self.max_cache_fd
+                    elif key2 == "mode":
+                        kwargs["mode"] = self.midi_loader_mode
+                    elif key2 == "time_shift":
+                        kwargs["time_shift"] = self.time_shift
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
@@ -388,11 +525,61 @@ class ESPnetDataset(AbsDataset):
             data = self.cache[uid]
             return uid, data
 
+        if self.mode == "train":
+            if self.pitch_mean != "None":
+                loader = self.loader_dict["midi"]
+                note_seq, tempo_seq = loader[
+                    (uid, 0, 1)
+                ]  # pitch_aug_factor = 0, global_time_aug_factor = 1
+
+                sample_pitch_mean = np.mean(note_seq)
+
+                if isinstance(eval(self.pitch_mean), float):
+                    # single dataset w/o spk-id
+                    global_pitch_mean = float(self.pitch_mean)
+                elif isinstance(eval(self.pitch_mean), list):
+                    # multi datasets with spk-ids
+                    raise ValueError("Not Supported multi-singer cases")
+                else:
+                    ValueError("Not Support Type for pitch_mean: %s" % self.pitch_mean)
+
+                gap = int((global_pitch_mean - sample_pitch_mean))
+                if gap == 0:
+                    lst = [0]
+                elif gap < 0:
+                    lst = [i for i in range(gap, 1)]
+                else:
+                    lst = [i for i in range(0, gap + 1)]
+                # logging.info(f"type: {type(note_seq)}, mean: {np.mean(note_seq)}, lst: {lst}, gap: {gap}")
+                pitch_aug_factor = random.sample(lst, 1)[0]
+            else:
+                pitch_aug_factor = random.randint(
+                    self.pitch_aug_min, self.pitch_aug_max
+                )
+
+            _time_list = [
+                i / 100
+                for i in range(
+                    int(self.time_aug_min * 100), int(self.time_aug_max * 100 + 1), 1
+                )
+            ]
+            # _time_list = [1, 1.06, 1.12, 1.18, 1.24]
+            # for _ in range(8):
+            #     _time_list.append(1.0)
+            time_aug_factor = random.sample(_time_list, 1)[0]
+        else:
+            pitch_aug_factor = 0
+            time_aug_factor = 1
+
         data = {}
         # 1. Load data from each loaders
         for name, loader in self.loader_dict.items():
             try:
-                value = loader[uid]
+                if name == "midi" or name == "singing":
+                    global_time_aug_factor = 1
+                    value = loader[(uid, pitch_aug_factor, global_time_aug_factor)]
+                else:
+                    value = loader[uid]
                 if isinstance(value, (list, tuple)):
                     value = np.array(value)
                 if not isinstance(
@@ -418,7 +605,43 @@ class ESPnetDataset(AbsDataset):
         # 2. [Option] Apply preprocessing
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
-            data = self.preprocess(uid, data)
+            data = self.preprocess(uid, data, time_aug_factor)
+
+        length = min(
+            [len(data[key]) for key in data.keys() if key not in self.not_align]
+        )
+        # logging.info(f"length: {length}")
+
+        if self.mode == "train" and self.mask_aug:
+            # mask_length = 4500      # 1500 = 300 * 5
+            mask_length = random.randint(0, int(length * 0.2))
+            if length - mask_length > 0:
+                mask_index_begin = random.randint(0, int(length - mask_length))
+                mask_index_end = mask_index_begin + mask_length
+            else:
+                mask_index_begin = 0
+                mask_index_end = length
+
+        if self.mode == "train" and self.random_crop:
+            crop_length = random.randint(int(length * 0.8), length)
+            crop_index_begin = random.randint(0, int(length - crop_length))
+            crop_index_end = crop_index_begin + crop_length
+
+        for key, value in data.items():
+            if key in self.not_align:
+                continue
+            # logging.info(f"key: {key}, data[key].shape: {data[key].shape}")
+            data[key] = data[key][:length]
+            if self.mode == "train" and self.mask_aug:
+                data[key][mask_index_begin:mask_index_end] = 0
+            if self.mode == "train" and self.random_crop:
+                data[key] = data[key][crop_index_begin:crop_index_end]
+
+        # phone-level time augmentation
+
+        # quit()
+        data["pitch_aug"] = np.array([pitch_aug_factor])
+        data["time_aug"] = np.array([time_aug_factor])
 
         # 3. Force data-precision
         for name in data:

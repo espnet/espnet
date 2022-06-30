@@ -64,6 +64,19 @@ def collect_stats(
                         )
 
                 # 2. Extract feats
+                
+                del_keys = [
+                    "pitch_aug",
+                    "pitch_aug_lengths",
+                    "time_aug",
+                    "time_aug_lengths",
+                    "sids_lengths",
+                    "lids_lengths",
+                ]
+                for key in del_keys:
+                    if key in batch.keys():
+                        del batch[key]
+
                 if ngpu <= 1:
                     data = model.collect_feats(**batch)
                 else:
