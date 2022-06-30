@@ -63,7 +63,8 @@ class S3prlFrontend(AbsFrontend):
             if p.endswith("s3prl"):
                 s3prl_path = p
                 break
-        assert s3prl_path is not None
+        assert s3prl_path is not None, "Cannot find s3prl in your PYTHONPATH, " \
+                               "you can install it via pip install s3prl"
 
         s3prl_upstream = torch.hub.load(
             s3prl_path,
