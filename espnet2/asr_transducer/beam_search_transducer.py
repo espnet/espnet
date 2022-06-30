@@ -211,7 +211,7 @@ class BeamSearchTransducer:
         final = {}
 
         for hyp in hyps:
-            str_yseq = "".join(map(str, hyp.yseq))
+            str_yseq = "_".join(map(str, hyp.yseq))
 
             if str_yseq in final:
                 final[str_yseq].score = np.logaddexp(final[str_yseq].score, hyp.score)
