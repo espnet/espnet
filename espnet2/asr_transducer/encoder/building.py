@@ -8,18 +8,18 @@ from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
-from espnet2.asr_transducer.encoder.modules.attention import (
-    RelPositionMultiHeadedAttention,  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.attention import (  # noqa: H301
+    RelPositionMultiHeadedAttention,
 )
-from espnet2.asr_transducer.encoder.modules.convolution import (
-    ConformerConvolution,  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
+    ConformerConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
-from espnet2.asr_transducer.encoder.modules.positional_encoding import (
-    RelPositionalEncoding,  # noqa: H301
+from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa: H301
+    RelPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
+    PositionwiseFeedForward,
 )
 
 
