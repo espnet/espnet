@@ -40,7 +40,7 @@ class ExtendedHypothesis(Hypothesis):
 
     """
 
-    dec_out: Optional[torch.Tensor] = None
+    dec_out: torch.Tensor = None
     lm_score: torch.Tensor = None
 
 
@@ -129,7 +129,7 @@ class BeamSearchTransducer:
             self.search_algorithm = self.modified_adaptive_expansion_search
         else:
             raise NotImplementedError(
-                "Provided search type (%s) is not supported." % search_type
+                "Specified search type (%s) is not supported." % search_type
             )
 
         self.use_lm = lm is not None
@@ -180,7 +180,7 @@ class BeamSearchTransducer:
     def sort_nbest(
         self, hyps: Union[List[Hypothesis], List[ExtendedHypothesis]]
     ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
-        """Sort hypotheses by score or score given sequence length.
+        """Sort in-place hypotheses by score or score given sequence length.
 
         Args:
             hyps: Hypothesis.
@@ -208,19 +208,17 @@ class BeamSearchTransducer:
             final: Recombined hypotheses.
 
         """
-        final = []
+        final = {}
 
         for hyp in hyps:
-            seq_final = [f.yseq for f in final if f.yseq]
+            str_yseq = "".join(map(str, hyp.yseq))
 
-            if hyp.yseq in seq_final:
-                seq_pos = seq_final.index(hyp.yseq)
-
-                final[seq_pos].score = np.logaddexp(final[seq_pos].score, hyp.score)
+            if str_yseq in final:
+                final[str_yseq].score = np.logaddexp(final[str_yseq].score, hyp.score)
             else:
-                final.append(hyp)
+                final[str_yseq] = hyp
 
-        return final
+        return [*final.values()]
 
     def select_k_expansions(
         self,
