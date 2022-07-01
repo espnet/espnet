@@ -714,11 +714,13 @@ class MMESPnetDataset(ESPnetDataset):
             data[name] = value
 
         # 4. Apply Sample Step
+        one_dim_speech = False
         for name in data:
             if name == "speech":
                 speech = data[name]
                 speech = torch.from_numpy(speech)
                 if speech.dim() == 1:
+                    one_dim_speech = True
                     speech = speech.unsqueeze(-1)
                 T, F = speech.size()
                 indices = (
@@ -726,7 +728,10 @@ class MMESPnetDataset(ESPnetDataset):
                     * self.audio_sample_step
                 )
                 speech = speech[indices]
+                if one_dim_speech:
+                    speech = speech.squeeze()
                 data[name] = speech.numpy()
+
         if self.cache is not None and self.cache.size < self.max_cache_size:
             self.cache[uid] = data
 

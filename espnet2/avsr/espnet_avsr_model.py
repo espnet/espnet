@@ -129,7 +129,8 @@ class ESPnetAVSRModel(AbsESPnetModel):
             self.joint_network = joint_network
 
             self.criterion_transducer = RNNTLoss(
-                blank=self.blank_id, fastemit_lambda=0.0,
+                blank=self.blank_id,
+                fastemit_lambda=0.0,
             )
 
             if report_cer or report_wer:
@@ -199,6 +200,9 @@ class ESPnetAVSRModel(AbsESPnetModel):
         """
 
         assert text_lengths.dim() == 1, text_lengths.shape
+        assert speech_lengths is None or speech_lengths.dim() == 1, speech_lengths.shape
+        assert vision_lengths is None or vision_lengths.dim() == 1, vision_lengths.shape
+
         # Check that batch_size is unified
         if not self.audio_input:
             assert (
@@ -282,7 +286,11 @@ class ESPnetAVSRModel(AbsESPnetModel):
                 loss_transducer,
                 cer_transducer,
                 wer_transducer,
-            ) = self._calc_transducer_loss(encoder_out, encoder_out_lens, text,)
+            ) = self._calc_transducer_loss(
+                encoder_out,
+                encoder_out_lens,
+                text,
+            )
 
             if loss_ctc is not None:
                 loss = loss_transducer + (self.ctc_weight * loss_ctc)
@@ -354,13 +362,12 @@ class ESPnetAVSRModel(AbsESPnetModel):
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
-            vision: (Batch, Length, H, W, C)
+            vision: (Batch, Length, ...)
             vision_lengths: (Batch, )
         """
         with autocast(False):
             # 1. Extract feats
             if self.audio_input:
-                speech = speech.squeeze()
                 feats, feats_lengths = self._extract_feats(speech, speech_lengths)
                 # 2. Data augmentation
                 if self.specaug is not None and self.training:
@@ -645,7 +652,10 @@ class ESPnetAVSRModel(AbsESPnetModel):
             wer_transducer: Word Error Rate for Transducer.
         """
         decoder_in, target, t_len, u_len = get_transducer_task_io(
-            labels, encoder_out_lens, ignore_id=self.ignore_id, blank_id=self.blank_id,
+            labels,
+            encoder_out_lens,
+            ignore_id=self.ignore_id,
+            blank_id=self.blank_id,
         )
 
         self.decoder.set_device(encoder_out.device)
@@ -655,7 +665,12 @@ class ESPnetAVSRModel(AbsESPnetModel):
             encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
         )
 
-        loss_transducer = self.criterion_transducer(joint_out, target, t_len, u_len,)
+        loss_transducer = self.criterion_transducer(
+            joint_out,
+            target,
+            t_len,
+            u_len,
+        )
 
         cer_transducer, wer_transducer = None, None
         if not self.training and self.error_calculator_trans is not None:

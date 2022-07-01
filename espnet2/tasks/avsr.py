@@ -112,14 +112,19 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug,),
+    classes=dict(
+        specaug=SpecAug,
+    ),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
@@ -127,14 +132,19 @@ normalize_choices = ClassChoices(
 model_choices = ClassChoices(
     "model",
     classes=dict(
-        espnet=ESPnetASRModel, maskctc=MaskCTCModel, espnet_multimodal=ESPnetAVSRModel,
+        espnet=ESPnetASRModel,
+        maskctc=MaskCTCModel,
+        espnet_multimodal=ESPnetAVSRModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet_multimodal",
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection,),
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
@@ -160,7 +170,9 @@ encoder_choices = ClassChoices(
 
 postencoder_choices = ClassChoices(
     name="postencoder",
-    classes=dict(hugging_face_transformers=HuggingFaceTransformersPostEncoder,),
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+    ),
     type_check=AbsPostEncoder,
     default=None,
     optional=True,
@@ -183,7 +195,10 @@ decoder_choices = ClassChoices(
 
 vision_encoder_choices = ClassChoices(
     "vision_encoder",
-    classes=dict(resnet=ResNet, ViT=VisionTransformer,),
+    classes=dict(
+        resnet=ResNet,
+        ViT=VisionTransformer,
+    ),
     type_check=AbsEncoder,
     default="resnet",
 )
@@ -644,7 +659,11 @@ class AVSRTask(AbsTask):
         decoder_class = decoder_choices.get_class(args.decoder)
 
         if args.decoder == "transducer":
-            decoder = decoder_class(vocab_size, embed_pad=0, **args.decoder_conf,)
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
 
             joint_network = JointNetwork(
                 vocab_size,

@@ -12,7 +12,7 @@ test_sets="test dev"
 
 # asr_tag=train_avsr_ctc_baseline
 asr_tag=train_avsr_trans_mm
-asr_config=conf/train_avsr_transformer.yaml
+asr_config=conf/train_avsr_transformer_mm.yaml
 lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
 
 export CUDA_VISIBLE_DEVICES=2
@@ -43,10 +43,10 @@ export CUDA_VISIBLE_DEVICES=2
     --audio_input true \
     --vision_input true \
     --mouth_roi true \
-    --audio_sample_step 1 \
     --vision_sample_step 10 \
+    --audio_sample_step 1 \
     --stack_order 1 \
-    --avg_pool_width 1 \
+    --avg_pool_width 4 \
     --align_option "duplicate" \
     --fusion_stage "frontend" \
     --fusion_type "concat" \

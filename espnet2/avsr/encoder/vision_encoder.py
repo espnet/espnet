@@ -30,7 +30,7 @@ class ResNet(AbsEncoder):
     """ResNet vision encoder module.
     Args:
         input_size: input dim
-        output_size: dimension 
+        output_size: dimension
     """
 
     def __init__(
@@ -75,7 +75,10 @@ class ResNet(AbsEncoder):
         return self._output_size
 
     def forward(
-        self, x: torch.Tensor, ilens: torch.Tensor, prev_states: torch.Tensor = None,
+        self,
+        x: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward ResNET Encoder.
         Args:
@@ -143,7 +146,9 @@ class VisionTransformer(AbsEncoder):
     """
 
     def __init__(
-        self, input_size: int, output_size: int,
+        self,
+        input_size: int,
+        output_size: int,
     ):
         assert check_argument_types()
         super().__init__()
@@ -162,7 +167,10 @@ class VisionTransformer(AbsEncoder):
         return self._output_size
 
     def forward(
-        self, x: torch.Tensor, ilens: torch.Tensor, prev_states: torch.Tensor = None,
+        self,
+        x: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairSeqWav2Vec2 Encoder.
         Args:

@@ -28,7 +28,8 @@ class VisionFileReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self, fname,
+        self,
+        fname,
     ):
         if not is_cv2_avail:
             raise ImportError(
@@ -128,8 +129,8 @@ class VisionDataset(collections.abc.Mapping):
         """
         Captures video frames based on specified sample step
         Args:
-            vidcap: cv2 video capture instance 
-        Output: 
+            vidcap: cv2 video capture instance
+        Output:
             data: numpy array of (T, H, W, C) containing image capture of video
         """
         data = []

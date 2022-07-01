@@ -3,9 +3,6 @@ import numpy as np
 
 from tqdm import tqdm
 
-# from align_mouth import landmarks_interpolate, crop_patch, write_video_ffmpeg
-# from IPython.display import HTML
-# from base64 import b64encode
 import argparse
 import logging
 import shutil
@@ -36,18 +33,6 @@ import os, pickle, shutil, tempfile
 import math
 import subprocess
 from collections import deque
-
-# import os,pickle,shutil,tempfile
-# import math
-# import cv2
-# import glob
-# import subprocess
-# import argparse
-# import numpy as np
-# from collections import deque
-# import cv2
-# from skimage import transform as tf
-# from tqdm import tqdm
 
 # -- Landmark interpolation:
 def linear_interpolate(landmarks, start_idx, stop_idx):

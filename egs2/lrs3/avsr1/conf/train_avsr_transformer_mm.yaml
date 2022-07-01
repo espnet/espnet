@@ -1,7 +1,7 @@
-# preencoder: linear
-# preencoder_conf:
-#   input_size: 208 # Note: If the upstream is changed, please change this value accordingly.
-#   output_size: 80
+preencoder: linear
+preencoder_conf:
+  input_size: 144 # Note: If the upstream is changed, please change this value accordingly.
+  output_size: 80
 
 encoder: conformer
 encoder_conf:
@@ -49,9 +49,9 @@ num_workers: 4
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 1600000
 accum_grad: 4
-max_epoch: 100
+max_epoch: 70
 patience: none
 init: none
 best_model_criterion:
@@ -91,6 +91,6 @@ specaug_conf:
 # Vision Related Configurations
 vision_encoder_conf:
     input_size: 224
-    output_size: 128
+    output_size: 64
     pretrained: true
     fine_tune: false
