@@ -5,10 +5,9 @@
 
 import argparse
 import codecs
+
 import nltk
-
 from tacotron_cleaner.cleaners import custom_english_cleaners
-
 
 E_lang_tag = "en_US"
 

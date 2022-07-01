@@ -4,7 +4,6 @@
 import logging
 
 import chainer
-
 import chainer.functions as F
 
 

@@ -65,6 +65,8 @@ dereverb_ref_num=1
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+use_preprocessor=false
+extra_wav_list= # Extra list of scp files for wav formatting
 
 # Pretrained model related
 # The number of --init_param must be same.
@@ -148,6 +150,8 @@ Options:
                          for training a dereverberation model (default="${use_dereverb_ref}")
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
+    --use_preprocessor # Whether or not to apply preprocessing (default="${use_preprocessor}")
+    --extra_wav_list   # Extra list of scp files for wav formatting (default="${extra_wav_list}")
 
     # Pretrained model related
     --init_param    # pretrained model path and module name (default="${init_param}")
@@ -219,7 +223,7 @@ if [ -z "${enh_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${enh_args}" ]; then
-        enh_tag+="$(echo "${enh_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        enh_tag+="$(echo "${enh_args}" | sed -e "s/--\|\//\_/g" -e "s/[ |=]//g")"
     fi
 fi
 
@@ -351,6 +355,18 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
 
             done
+
+            for f in $extra_wav_list; do
+                if [ -e "data/${dset}/$f" ]; then
+                    # shellcheck disable=SC2086
+                    scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                        --out-filename "$f" \
+                        --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                        "data/${dset}/$f" "${data_feats}/${dset}" \
+                        "${data_feats}/${dset}/logs/${f%.*}" "${data_feats}/${dset}/data/${f%.*}"
+                fi
+            done
+
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
         done
@@ -494,17 +510,17 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
 
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
-                --use_preprocessor true \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${enh_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -594,6 +610,7 @@ if ! "${skip_train}"; then
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.enh_train \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \
@@ -652,7 +669,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
@@ -663,7 +680,7 @@ if ! "${skip_eval}"; then
                     ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/enh_inference.*.log) ; exit 1; }
 
 
             _spk_list=" "

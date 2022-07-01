@@ -1,6 +1,5 @@
 import logging
-from typing import Iterator
-from typing import Tuple
+from typing import Iterator, Tuple
 
 from typeguard import check_argument_types
 

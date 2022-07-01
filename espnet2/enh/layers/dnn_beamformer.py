@@ -1,36 +1,32 @@
 """DNN beamformer module."""
-from distutils.version import LooseVersion
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
-
 import logging
+from typing import List, Optional, Tuple, Union
+
 import torch
+from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.beamformer import apply_beamforming_vector
-from espnet2.enh.layers.beamformer import blind_analytic_normalization
-from espnet2.enh.layers.beamformer import get_gev_vector
-from espnet2.enh.layers.beamformer import get_lcmv_vector_with_rtf
-from espnet2.enh.layers.beamformer import get_mvdr_vector
-from espnet2.enh.layers.beamformer import get_mvdr_vector_with_rtf
-from espnet2.enh.layers.beamformer import get_mwf_vector
-from espnet2.enh.layers.beamformer import get_rank1_mwf_vector
-from espnet2.enh.layers.beamformer import get_rtf_matrix
-from espnet2.enh.layers.beamformer import get_sdw_mwf_vector
-from espnet2.enh.layers.beamformer import get_WPD_filter_v2
-from espnet2.enh.layers.beamformer import get_WPD_filter_with_rtf
-from espnet2.enh.layers.beamformer import perform_WPD_filtering
-from espnet2.enh.layers.beamformer import prepare_beamformer_stats
-from espnet2.enh.layers.complex_utils import stack
-from espnet2.enh.layers.complex_utils import to_double
-from espnet2.enh.layers.complex_utils import to_float
+from espnet2.enh.layers.beamformer import (
+    apply_beamforming_vector,
+    blind_analytic_normalization,
+    get_gev_vector,
+    get_lcmv_vector_with_rtf,
+    get_mvdr_vector,
+    get_mvdr_vector_with_rtf,
+    get_mwf_vector,
+    get_rank1_mwf_vector,
+    get_rtf_matrix,
+    get_sdw_mwf_vector,
+    get_WPD_filter_v2,
+    get_WPD_filter_with_rtf,
+    perform_WPD_filtering,
+    prepare_beamformer_stats,
+)
+from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer

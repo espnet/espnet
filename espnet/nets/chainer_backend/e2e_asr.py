@@ -7,8 +7,8 @@ import logging
 import math
 
 import chainer
-from chainer import reporter
 import numpy as np
+from chainer import reporter
 
 from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
 from espnet.nets.chainer_backend.ctc import ctc_for

@@ -1,10 +1,10 @@
-from distutils.version import LooseVersion
 import logging
 
 import numpy as np
 import six
 import torch
 import torch.nn.functional as F
+from packaging.version import parse as V
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 
@@ -28,11 +28,7 @@ class CTC(torch.nn.Module):
         self.probs = None  # for visualization
 
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
-        self.ctc_type = (
-            ctc_type
-            if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
-            else "builtin"
-        )
+        self.ctc_type = ctc_type if V(torch.__version__) < V("1.7.0") else "builtin"
 
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")

@@ -1,11 +1,7 @@
-from collections import defaultdict
 import logging
+from collections import defaultdict
 from pathlib import Path
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import torch

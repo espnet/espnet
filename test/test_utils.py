@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
+from test.utils_test import make_dummy_json
+
 import h5py
 import kaldiio
 import numpy as np
 import pytest
 
-from espnet.utils.io_utils import LoadInputsAndTargets
-from espnet.utils.io_utils import SoundHDF5File
+from espnet.utils.io_utils import LoadInputsAndTargets, SoundHDF5File
 from espnet.utils.training.batchfy import make_batchset
-from test.utils_test import make_dummy_json
 
 
 @pytest.mark.parametrize("swap_io", [True, False])

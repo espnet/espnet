@@ -5,9 +5,9 @@
   into per_speaker output (text) file"""
 
 import argparse
-from collections import defaultdict
 import itertools
 import os
+from collections import defaultdict
 
 
 def get_args():

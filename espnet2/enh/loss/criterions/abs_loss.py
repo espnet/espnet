@@ -1,6 +1,4 @@
-from abc import ABC
-from abc import abstractmethod
-
+from abc import ABC, abstractmethod
 
 import torch
 
@@ -14,6 +12,12 @@ class AbsEnhLoss(torch.nn.Module, ABC):
     @property
     def name(self) -> str:
         return NotImplementedError
+
+    # This property specifies whether the criterion will only
+    # be evaluated during the inference stage
+    @property
+    def only_for_test(self) -> bool:
+        return False
 
     @abstractmethod
     def forward(

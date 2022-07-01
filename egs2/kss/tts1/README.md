@@ -30,6 +30,40 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# FOURTH RESULTS
+
+- Initial JETS model
+
+```sh
+# Run with the following command for jets:
+./run.sh \
+    --tts_task gan_tts \
+    --fs 24000 \
+    --fmin 0 \
+    --fmax null \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --train_config conf/tuning/train_jets.yaml \
+    --token_type phn \
+    --g2p g2pk \
+    --cleaner null
+```
+
+## Environments
+- date: `Mon May 30 00:51:37 KST 2022`
+- python version: `3.7.11 (default, Jul 27 2021, 14:32:16) [GCC 7.5.0]`
+- espnet version: `espnet 202204`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `047d0c474c18a87c205e566948410be16787e477`
+  - Commit date: `Thu May 19 09:50:02 2022 -0400`
+
+## Pretrained models
+
+### kss_tts_train_jets_raw_phn_null_g2pk_train.total_count.ave
+- https://huggingface.co/imdanboy/kss_tts_train_jets_raw_phn_null_g2pk_train.total_count.ave
+
+
 # THIRD RESULTS
 - Applied with `korean_jaso` and `korean_cleaner`
 - Sampling frequency of 44,100 Hz

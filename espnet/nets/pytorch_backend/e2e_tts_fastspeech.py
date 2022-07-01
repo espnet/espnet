@@ -8,22 +8,22 @@ import logging
 import torch
 import torch.nn.functional as F
 
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import torch_load
-from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (
-    DurationCalculator,  # noqa: H301
+from espnet.asr.asr_utils import get_model_conf, torch_load
+from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (  # noqa: H301
+    DurationCalculator,
 )
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (
-    DurationPredictorLoss,  # noqa: H301
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
+    DurationPredictor,
+    DurationPredictorLoss,
 )
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
@@ -576,7 +576,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         alpha=1.0,
     ):
         # forward encoder
-        x_masks = self._source_mask(ilens)
+        x_masks = self._source_mask(ilens).to(xs.device)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
 
         # integrate speaker embedding
@@ -603,7 +603,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             else:
                 olens_in = olens
-            h_masks = self._source_mask(olens_in)
+            h_masks = self._source_mask(olens_in).to(xs.device)
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
@@ -816,7 +816,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
-        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
+        x_masks = make_non_pad_mask(ilens)
         return x_masks.unsqueeze(-2)
 
     def _load_teacher_model(self, model_path):

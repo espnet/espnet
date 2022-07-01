@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-from distutils.util import strtobool
 import logging
+from distutils.util import strtobool
 
 import kaldiio
 import numpy

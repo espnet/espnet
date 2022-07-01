@@ -1,17 +1,13 @@
-from collections import OrderedDict
 import math
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.enh.layers.dpmulcat import DPMulCat
-from espnet2.enh.layers.dprnn import merge_feature
-from espnet2.enh.layers.dprnn import split_feature
+from espnet2.enh.layers.dprnn import merge_feature, split_feature
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 

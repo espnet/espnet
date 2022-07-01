@@ -1,5 +1,6 @@
-from espnet2.asr.preencoder.linear import LinearProjection
 import torch
+
+from espnet2.asr.preencoder.linear import LinearProjection
 
 
 def test_linear_projection_forward():

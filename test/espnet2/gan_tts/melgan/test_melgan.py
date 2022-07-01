@@ -7,11 +7,12 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.melgan import MelGANGenerator
-from espnet2.gan_tts.melgan import MelGANMultiScaleDiscriminator
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    FeatureMatchLoss,
+    GeneratorAdversarialLoss,
+)
+from espnet2.gan_tts.melgan import MelGANGenerator, MelGANMultiScaleDiscriminator
 
 
 def make_melgan_generator_args(**kwargs):

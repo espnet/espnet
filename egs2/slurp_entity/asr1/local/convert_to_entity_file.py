@@ -1,7 +1,7 @@
-import json
-import sys
 import argparse
+import json
 import os
+import sys
 
 
 def generate_entity_file(line_arr, output_file="result_test.json"):

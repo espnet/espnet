@@ -1,11 +1,11 @@
 # Source from https://github.com/groadabike/Kaldi-Dsing-task
 
-import json
 import argparse
-from os.path import join, exists, isfile
-from os import makedirs, listdir
-import re
 import hashlib
+import json
+import re
+from os import listdir, makedirs
+from os.path import exists, isfile, join
 
 
 class DataSet:

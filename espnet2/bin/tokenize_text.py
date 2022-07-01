@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 import argparse
-from collections import Counter
 import logging
-from pathlib import Path
 import sys
-from typing import List
-from typing import Optional
+from collections import Counter
+from pathlib import Path
+from typing import List, Optional
 
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.phoneme_tokenizer import g2p_choices
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def field2slice(field: Optional[str]) -> slice:

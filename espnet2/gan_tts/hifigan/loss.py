@@ -7,10 +7,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F

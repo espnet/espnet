@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import warnings
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional
-import xml.etree.ElementTree as ET
-import warnings
 
 import numpy as np
 import soundfile

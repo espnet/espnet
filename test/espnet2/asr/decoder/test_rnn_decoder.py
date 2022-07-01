@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet.nets.beam_search import BeamSearch
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet.nets.beam_search import BeamSearch
 
 
 @pytest.mark.parametrize("context_residual", [True, False])

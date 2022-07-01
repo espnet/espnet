@@ -1,13 +1,12 @@
+import string
 from argparse import ArgumentParser
 from pathlib import Path
-import string
 
 import numpy as np
 import pytest
 
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
-
 
 pytest.importorskip("k2")
 

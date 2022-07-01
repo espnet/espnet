@@ -2,7 +2,6 @@ import os
 
 import sentencepiece as spm
 
-
 root = os.path.dirname(os.path.abspath(__file__))
 
 

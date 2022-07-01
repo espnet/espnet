@@ -9,9 +9,8 @@
 
 
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
-
+from torch.autograd import Variable
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
