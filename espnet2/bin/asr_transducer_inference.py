@@ -8,12 +8,12 @@ import argparse
 import logging
 import math
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr_transducer.beam_search_transducer import (
@@ -109,9 +109,7 @@ class Speech2Text:
             else:
                 q_config = {torch.nn.Linear}
 
-            if quantize_dtype == "float16" and (
-                torch.__version__ < LooseVersion("1.5.0")
-            ):
+            if quantize_dtype == "float16" and (torch.__version__ < V("1.5.0")):
                 raise ValueError(
                     "float16 dtype for dynamic quantization is not supported with torch"
                     " version < 1.5.0. Switching to qint8 dtype instead."

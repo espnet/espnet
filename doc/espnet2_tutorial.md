@@ -398,6 +398,7 @@ The first and second configurations are optional. If needed, fhe following param
       short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
       short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
       left_chunk_size: Number of frames in left context. (int, default = 0)
+      # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
       hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
@@ -407,7 +408,7 @@ The first and second configurations are optional. If needed, fhe following param
       smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
       softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
       softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
-      swish_beta: Beta value for Swish variant activation formulation. (float, default = 20)
+      swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
 
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
