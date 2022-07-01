@@ -94,39 +94,36 @@ class RNNDecoder(AbsDecoder):
 
     def rnn_forward(
         self,
-        sequence: torch.Tensor,
+        x: torch.Tensor,
         state: Tuple[torch.Tensor, Optional[torch.Tensor]],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """Encode source label sequences.
 
         Args:
-            sequence: RNN input sequences. (B, D_emb)
+            x: RNN input sequences. (B, D_emb)
             state: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
 
         Returns:
-            sequence: RNN output sequences. (B, D_dec)
+            x: RNN output sequences. (B, D_dec)
             (h_next, c_next): Decoder hidden states. (N, B, D_dec), (N, B, D_dec))
 
         """
         h_prev, c_prev = state
-        h_next, c_next = self.init_state(sequence.size(0))
+        h_next, c_next = self.init_state(x.size(0))
 
         for layer in range(self.dlayers):
             if self.dtype == "lstm":
-                sequence, (
-                    h_next[layer : layer + 1],
-                    c_next[layer : layer + 1],
-                ) = self.rnn[layer](
-                    sequence, hx=(h_prev[layer : layer + 1], c_prev[layer : layer + 1])
-                )
+                x, (h_next[layer : layer + 1], c_next[layer : layer + 1]) = self.rnn[
+                    layer
+                ](x, hx=(h_prev[layer : layer + 1], c_prev[layer : layer + 1]))
             else:
-                sequence, h_next[layer : layer + 1] = self.rnn[layer](
-                    sequence, hx=h_prev[layer : layer + 1]
+                x, h_next[layer : layer + 1] = self.rnn[layer](
+                    x, hx=h_prev[layer : layer + 1]
                 )
 
-            sequence = self.dropout_rnn[layer](sequence)
+            x = self.dropout_rnn[layer](x)
 
-        return sequence, (h_next, c_next)
+        return x, (h_next, c_next)
 
     def score(
         self,
