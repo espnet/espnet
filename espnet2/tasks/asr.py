@@ -41,20 +41,16 @@ from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.maskctc_model import MaskCTCModel
+from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
+from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
+    HuggingFaceTransformersPostDecoder,
+)
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
-from espnet2.asr.postencoder.conformer_postencoder import (
-    ConformerPostEncoder,  # noqa: H301
-)
-from espnet2.asr.postencoder.transformer_postencoder import (
-    TransformerPostEncoder,  # noqa: H301
-)
-from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
-from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
-    HuggingFaceTransformersPostDecoder,  # noqa: H301
-)
+from espnet2.asr.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs

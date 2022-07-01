@@ -7,16 +7,15 @@
 from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
 
 try:
-    from transformers import AutoModel
-    from transformers import AutoTokenizer
+    from transformers import AutoModel, AutoTokenizer
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
-from typeguard import check_argument_types
-
 import logging
+
 import torch
+from typeguard import check_argument_types
 
 
 class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
