@@ -73,15 +73,15 @@ class Encoder(torch.nn.Module):
         """
         return self.embed.get_size_before_subsampling(size) * hop_length
 
-    def init_streaming_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize encoder streaming cache.
+    def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize/Reset encoder streaming cache.
 
         Args:
             left_context: Number of frames in left context.
             device: Device ID.
 
         """
-        return self.encoders.init_streaming_cache(left_context, device)
+        return self.encoders.reset_streaming_cache(left_context, device)
 
     def forward(
         self,
@@ -162,7 +162,6 @@ class Encoder(torch.nn.Module):
 
         Returns:
            x: Encoder outputs. (B, T_out, D_enc)
-           cache: Encoder cache for current chunk.
 
         """
         mask = make_source_mask(x_len)

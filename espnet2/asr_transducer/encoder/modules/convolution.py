@@ -9,8 +9,10 @@ class ConformerConvolution(torch.nn.Module):
     """ConformerConvolution module definition.
 
     Args:
-        channels (int): The number of channels of conv layers.
-        kernel_size (int): Kernerl size of conv layers.
+        channels: The number of channels of conv layers.
+        kernel_size: Kernerl size of conv layers.
+        activation: Type of activation function.
+        causal: Whether to use causal convolution (set to True if streaming).
 
     """
 
@@ -74,7 +76,7 @@ class ConformerConvolution(torch.nn.Module):
         Args:
             x: ConformerConvolution input sequences. (B, T, D_hidden)
             cache: ConformerConvolution input cache. (1, conv_kernel, D_hidden)
-            right_context: Number of frames in right context
+            right_context: Number of frames in right context.
 
         Returns:
             x: ConformerConvolution output sequences. (B, T, D_hidden)

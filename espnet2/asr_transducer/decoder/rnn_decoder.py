@@ -1,6 +1,6 @@
 """RNN decoder definition for Transducer models."""
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
@@ -34,7 +34,7 @@ class RNNDecoder(AbsDecoder):
         dropout_rate: float = 0.0,
         embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
-    ):
+    ) -> None:
         assert check_argument_types()
 
         if rnn_type not in {"lstm", "gru"}:
@@ -67,6 +67,7 @@ class RNNDecoder(AbsDecoder):
         self.blank_id = embed_pad
 
         self.device = next(self.parameters()).device
+        self.score_cache = {}
 
     def forward(
         self,
@@ -132,7 +133,6 @@ class RNNDecoder(AbsDecoder):
         label: torch.Tensor,
         label_sequence: List[int],
         dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]],
-        cache: Dict[str, Any],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
         """One-step forward hypothesis.
 
@@ -141,22 +141,21 @@ class RNNDecoder(AbsDecoder):
             label_sequence: Current label sequence.
             dec_state: Previous decoder hidden states.
                        ((N, 1, D_dec), (N, 1, D_dec)) or None
-            cache: Pairs of (dec_out, state) for each label sequence (key).
 
         Returns:
             dec_out: Decoder output sequence. (1, D_dec) or None
             dec_state: Decoder hidden states. ((N, 1, D_dec), (N, 1, D_dec))
 
         """
-        str_labels = "_".join(list(map(str, label_sequence)))
+        str_labels = "_".join(map(str, label_sequence))
 
-        if str_labels in cache:
-            dec_out, dec_state = cache[str_labels]
+        if str_labels in self.score_cache:
+            dec_out, dec_state = self.score_cache[str_labels]
         else:
             dec_embed = self.embed(label)
             dec_out, dec_state = self.rnn_forward(dec_embed, dec_state)
 
-            cache[str_labels] = (dec_out, dec_state)
+            self.score_cache[str_labels] = (dec_out, dec_state)
 
         return dec_out[0], dec_state
 
@@ -184,7 +183,7 @@ class RNNDecoder(AbsDecoder):
 
         return dec_out.squeeze(1), states
 
-    def set_device(self, device: torch.device):
+    def set_device(self, device: torch.device) -> None:
         """Set GPU device to use.
 
         Args:

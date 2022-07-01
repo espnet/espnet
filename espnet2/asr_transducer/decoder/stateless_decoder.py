@@ -1,6 +1,6 @@
 """Stateless decoder definition for Transducer models."""
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
@@ -26,7 +26,7 @@ class StatelessDecoder(AbsDecoder):
         embed_size: int = 256,
         embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
-    ):
+    ) -> None:
         assert check_argument_types()
 
         super().__init__()
@@ -40,6 +40,7 @@ class StatelessDecoder(AbsDecoder):
         self.blank_id = embed_pad
 
         self.device = next(self.parameters()).device
+        self.score_cache = {}
 
     def forward(
         self,
@@ -66,7 +67,6 @@ class StatelessDecoder(AbsDecoder):
         label: torch.Tensor,
         label_sequence: List[int],
         state: None,
-        cache: Dict[str, Any],
     ) -> Tuple[torch.Tensor, None]:
         """One-step forward hypothesis.
 
@@ -74,21 +74,20 @@ class StatelessDecoder(AbsDecoder):
             label: Previous label. (1, 1)
             label_sequence: Current label sequence.
             state: Previous decoder hidden states. None
-            cache: Pairs of (dec_out, state) for each label sequence (key).
 
         Returns:
             dec_out: Decoder output sequence. (1, D_emb)
             state: Decoder hidden states. None
 
         """
-        str_labels = "_".join(list(map(str, label_sequence)))
+        str_labels = "_".join(map(str, label_sequence))
 
-        if str_labels in cache:
-            dec_embed, state = cache[str_labels]
+        if str_labels in self.score_cache:
+            dec_embed, state = self.score_cache[str_labels]
         else:
             dec_embed = self.embed(label)
 
-            cache[str_labels] = (dec_embed, state)
+            self.score_cache[str_labels] = (dec_embed, state)
 
         return dec_embed[0], None
 
@@ -111,7 +110,7 @@ class StatelessDecoder(AbsDecoder):
 
         return dec_embed.squeeze(1), None
 
-    def set_device(self, device: torch.device):
+    def set_device(self, device: torch.device) -> None:
         """Set GPU device to use.
 
         Args:

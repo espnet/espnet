@@ -55,8 +55,8 @@ class Conformer(torch.nn.Module):
         self.block_size = block_size
         self.cache = None
 
-    def init_streaming_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize self-attention and convolution modules cache for streaming.
+    def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize/Reset self-attention and convolution modules cache for streaming.
 
         Args:
             left_context: Number of left frames during chunk-by-chunk inference.
@@ -89,12 +89,14 @@ class Conformer(torch.nn.Module):
 
         Args:
             x: Conformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
             mask: Source mask. (B, T)
             chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)
+            mask: Source mask. (B, T)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
 
         """
         residual = x
@@ -146,13 +148,14 @@ class Conformer(torch.nn.Module):
 
         Args:
             x: Conformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
             mask: Source mask. (B, T_2)
             left_context: Number of frames in left context.
             right_context: Number of frames in right context.
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
 
         """
         residual = x

@@ -199,16 +199,16 @@ class Speech2Text:
             self.window_size, self.hop_length
         )
 
-        self._reset_parameters()
+        self.reset_inference_cache()
 
-    def _reset_parameters(self):
+    def reset_inference_cache(self):
         """Reset Speech2Text parameters."""
         self.frontend_cache = None
-        self.beam_search_cache = None
 
-        self.encoder_cache = self.asr_model.encoder.init_streaming_cache(
+        self.asr_model.encoder.reset_streaming_cache(
             self.left_context, device=self.device
         )
+        self.beam_search.reset_inference_cache()
 
         self.num_processed_frames = torch.tensor([[0]], device=self.device)
 
@@ -351,11 +351,8 @@ class Speech2Text:
                 right_context=self.right_context,
             )
 
-            nbest_hyps = self.beam_search(
-                enc_out[0], cache=self.beam_search_cache, is_final=is_final
-            )
+            nbest_hyps = self.beam_search(enc_out[0], is_final=is_final)
 
-            self.beam_search_cache = nbest_hyps
             self.num_processed_frames += self.chunk_size
         else:
             self.asr_model.encoder.dynamic_chunk_training = False
@@ -365,7 +362,7 @@ class Speech2Text:
             nbest_hyps = self.beam_search(enc_out[0])
 
         if is_final:
-            self._reset_parameters()
+            self.reset_inference_cache()
 
         return nbest_hyps
 
@@ -766,7 +763,7 @@ def get_parser():
         "--display_partial_hypotheses",
         type=bool,
         default=False,
-        help="Whether to display partial hypotheses during inference.",
+        help="Whether to display partial hypotheses during chunk-by-chunk inference.",
     )
 
     return parser

@@ -116,7 +116,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             value: Transformed value. (B, H, T_2, d_k)
             scores: Attention score. (B, H, T_1, T_2)
             mask: Source mask. (B, T_2)
-            chunk_mask: Chunk mask. (T_1, T_2)
+            chunk_mask: Chunk mask. (T_1, T_1)
 
         Returns:
            attn_output: Transformed value weighted by attention score. (B, T_1, H * d_k)
@@ -160,7 +160,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             value: Value tensor. (B, T_2, size)
             pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
             mask: Source mask. (B, T_2)
-            chunk_mask: Chunk mask. (T_1, T_2)
+            chunk_mask: Chunk mask. (T_1, T_1)
             left_context: Number of frames in left context.
 
         Returns:

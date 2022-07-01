@@ -145,21 +145,17 @@ class BeamSearchTransducer:
         self.score_norm = score_norm
         self.nbest = nbest
 
-        self.cache = {}
+        self.reset_inference_cache()
 
     def __call__(
         self,
         enc_out: torch.Tensor,
-        cache: Union[
-            Optional[List[Hypothesis]], Optional[List[ExtendedHypothesis]]
-        ] = None,
         is_final: bool = True,
     ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
         """Perform beam search.
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)
-            cache: N-best hypotheses from previous timesteps.
             is_final: Whether enc_out is the final chunk of data.
 
         Returns:
@@ -168,14 +164,21 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        hyps = self.search_algorithm(enc_out, cache=cache)
+        hyps = self.search_algorithm(enc_out)
 
         if is_final:
-            self.cache = {}
+            self.reset_inference_cache()
 
             return self.sort_nbest(hyps)
 
+        self.search_cache = hyps
+
         return hyps
+
+    def reset_inference_cache(self):
+        """Reset cache for decoder scoring and streaming."""
+        self.decoder.score_cache = {}
+        self.search_cache = None
 
     def sort_nbest(
         self, hyps: Union[List[Hypothesis], List[ExtendedHypothesis]]
@@ -281,18 +284,13 @@ class BeamSearchTransducer:
             device=self.decoder.device,
         )
 
-    def default_beam_search(
-        self,
-        enc_out: torch.Tensor,
-        cache: Optional[List[Hypothesis]] = None,
-    ) -> List[Hypothesis]:
+    def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
         """Beam search implementation.
 
         Modified from https://arxiv.org/pdf/1211.3711.pdf
 
         Args:
             enc_out: Encoder output sequence. (T, D)
-            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
@@ -301,8 +299,8 @@ class BeamSearchTransducer:
         beam_k = min(self.beam_size, (self.vocab_size - 1))
         max_t = len(enc_out)
 
-        if cache is not None:
-            kept_hyps = cache
+        if self.search_cache is not None:
+            kept_hyps = self.search_cache
         else:
             kept_hyps = [
                 Hypothesis(
@@ -327,7 +325,9 @@ class BeamSearchTransducer:
                     device=self.decoder.device,
                 )
                 dec_out, state = self.decoder.score(
-                    label, max_hyp.yseq, max_hyp.dec_state, self.cache
+                    label,
+                    max_hyp.yseq,
+                    max_hyp.dec_state,
                 )
 
                 logp = torch.log_softmax(
@@ -477,25 +477,20 @@ class BeamSearchTransducer:
 
         return B
 
-    def time_sync_decoding(
-        self,
-        enc_out: torch.Tensor,
-        cache: Optional[List[Hypothesis]] = None,
-    ) -> List[Hypothesis]:
+    def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
         """Time synchronous beam search implementation.
 
         Based on https://ieeexplore.ieee.org/document/9053040
 
         Args:
             enc_out: Encoder output sequence. (T, D)
-            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
 
         """
-        if cache is not None:
-            B = cache
+        if self.search_cache is not None:
+            B = self.search_cache
         else:
             B = [
                 Hypothesis(
@@ -576,7 +571,6 @@ class BeamSearchTransducer:
     def modified_adaptive_expansion_search(
         self,
         enc_out: torch.Tensor,
-        cache: Optional[List[ExtendedHypothesis]] = None,
     ) -> List[ExtendedHypothesis]:
         """Modified version of Adaptive Expansion Search (mAES).
 
@@ -585,14 +579,13 @@ class BeamSearchTransducer:
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)
-            cache: N-best hypotheses from previous timesteps.
 
         Returns:
             nbest_hyps: N-best hypothesis.
 
         """
-        if cache is not None:
-            kept_hyps = cache
+        if self.search_cache is not None:
+            kept_hyps = self.search_cache
         else:
             init_tokens = [
                 ExtendedHypothesis(

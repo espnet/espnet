@@ -28,16 +28,16 @@ class MultiBlocks(torch.nn.Module):
 
         self.num_blocks = len(block_list)
 
-    def init_streaming_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize encoder streaming cache.
+    def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize/Reset encoder streaming cache.
 
         Args:
-            left_context:
-            device:
+            left_context: Number of left frames during chunk-by-chunk inference.
+            device: Device to use for cache tensor.
 
         """
         for idx in range(self.num_blocks):
-            self.blocks[idx].init_streaming_cache(left_context, device)
+            self.blocks[idx].reset_streaming_cache(left_context, device)
 
     def forward(
         self,
@@ -49,13 +49,13 @@ class MultiBlocks(torch.nn.Module):
         """Forward each block of the encoder architecture.
 
         Args:
-            x:
-            pos_enc:
-            chunk_mask
-            src_mask:
+            x: MultiBlocks input sequences. (B, T, D_block_1)
+            pos_enc: Positional embedding sequences.
+            mask: Source mask. (B, T)
+            chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
-            x:
+            x: Output sequences. (B, T, D_block_N)
 
         """
         for block_index, block in enumerate(self.blocks):
@@ -76,15 +76,14 @@ class MultiBlocks(torch.nn.Module):
         """Forward each block of the encoder architecture.
 
         Args:
-            x:
-            pos_enc:
-            mask:
-            left_context:
-            right_context:
+            x: MultiBlocks input sequences. (B, T, D_block_1)
+            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            mask: Source mask. (B, T_2)
+            left_context: Number of frames in left context.
+            right_context: Number of frames in right context.
 
         Returns:
-            x:
-            cache:
+            x: MultiBlocks output sequences. (B, T, D_block_N)
 
         """
         for block_idx, block in enumerate(self.blocks):

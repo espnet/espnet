@@ -84,8 +84,8 @@ class Conv1d(torch.nn.Module):
 
         self.cache = None
 
-    def init_streaming_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize Conv1d cache for streaming.
+    def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize/Reset Conv1d cache for streaming.
 
         Args:
             left_context: Number of left frames during chunk-by-chunk inference.

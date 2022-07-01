@@ -45,7 +45,8 @@ def build_main_parameters(
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
         left_chunk_size: Number of frames in left context.
-        **activations_parameters: Parameters of the activation functions (Cf. tutorial).
+        **activations_parameters: Parameters of the activation functions.
+                                  See activation.py or ESPnet2 tutorial for more info.
 
     Returns:
         : Main encoder parameters
