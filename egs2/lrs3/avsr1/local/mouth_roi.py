@@ -1,14 +1,15 @@
-import os
-import numpy as np
-
-from tqdm import tqdm
-
 import argparse
 import logging
+import os
 import shutil
 
+import numpy as np
+from tqdm import tqdm
+
 try:
-    import dlib, cv2, skvideo
+    import cv2
+    import dlib
+    import skvideo
     import skvideo.io
     from skimage import transform as tf
 
@@ -29,10 +30,14 @@ except ImportError:
 
 """ Crop Mouth ROIs from videos for lipreading"""
 
-import os, pickle, shutil, tempfile
 import math
+import os
+import pickle
+import shutil
 import subprocess
+import tempfile
 from collections import deque
+
 
 # -- Landmark interpolation:
 def linear_interpolate(landmarks, start_idx, stop_idx):

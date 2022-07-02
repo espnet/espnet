@@ -1,22 +1,12 @@
+import logging
+import math
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-import logging
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-import math
 from typeguard import check_argument_types
 
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -26,13 +16,19 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr.transducer.utils import get_transducer_task_io
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 # Multimodal Related
 from espnet2.avsr.mm_align import MM_Aligner
 from espnet2.avsr.mm_fusion import MM_Fuser
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast

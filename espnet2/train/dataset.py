@@ -2,6 +2,7 @@ import collections
 import copy
 import functools
 import logging
+import math
 import numbers
 import re
 from abc import ABC, abstractmethod
@@ -12,7 +13,6 @@ import humanfriendly
 import kaldiio
 import numpy as np
 import torch
-import math
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
@@ -24,8 +24,8 @@ from espnet2.fileio.rand_gen_dataset import (
 from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.utils.sized_dict import SizedDict
 from espnet2.fileio.vision_dataset import VisionDataset, VisionFileReader
+from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):

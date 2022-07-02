@@ -1,11 +1,11 @@
 import collections.abc
-import numpy as np
-
+import logging
 import math
 
+import numpy as np
 from typeguard import check_argument_types
+
 from espnet2.fileio.read_text import read_2column_text
-import logging
 
 try:
     import cv2
