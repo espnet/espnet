@@ -25,7 +25,7 @@ def test_transducer_error_calculator(report_opts):
         hidden_size=decoder_output_size,
     )
     joint_net = JointNetwork(
-        vocab_size, encoder_output_size, decoder_output_size, dim_joint_space=2
+        vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
     )
 
     error_calc = ErrorCalculatorTransducer(

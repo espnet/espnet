@@ -41,7 +41,7 @@ def test_transducer_beam_search(rnn_type, search_params):
         vocab_size, hidden_size=decoder_output_size, rnn_type=rnn_type
     )
     joint_net = JointNetwork(
-        vocab_size, encoder_output_size, decoder_output_size, dim_joint_space=2
+        vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
     )
 
     lm = search_params.pop("lm", SequentialRNNLM(vocab_size, rnn_type="lstm"))
