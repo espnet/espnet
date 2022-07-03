@@ -47,28 +47,57 @@ def get_specaug():
     "enc_params, dec_params, joint_net_params, main_params",
     [
         (
-            [{"block_type": "rnn", "dim_hidden": 4}],
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
             {"rnn_type": "lstm", "num_layers": 2},
-            {"dim_joint_space": 4},
+            {"joint_space_size": 4},
             {"report_cer": True, "report_wer": True},
         ),
         (
-            [{"block_type": "rnn", "dim_hidden": 4}],
-            {"dim_embedding": 4},
-            {"dim_joint_space": 4},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {"embed_size": 4},
+            {"joint_space_size": 4},
             {"specaug": True},
         ),
         (
-            [{"block_type": "rnn", "dim_hidden": 4}],
-            {"dim_embedding": 4},
-            {"dim_joint_space": 4},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {"embed_size": 4},
+            {"joint_space_size": 4},
             {"auxiliary_ctc_weight": 0.1, "auxiliary_lm_loss_weight": 0.1},
         ),
         (
-            [{"block_type": "conformer", "dim_hidden": 4, "dim_linear": 4}],
-            {"dim_embedding": 4},
-            {"dim_joint_space": 4},
-            {"auxiliary_ctc_weight": 0.1, "auxiliary_lm_loss_weight": 0.1},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {"embed_size": 4},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
         ),
     ],
 )
@@ -83,7 +112,7 @@ def test_model_training(enc_params, dec_params, joint_net_params, main_params):
     decoder = get_decoder(vocab_size, dec_params)
 
     joint_network = JointNetwork(
-        vocab_size, encoder.dim_output, decoder.dim_output, **joint_net_params
+        vocab_size, encoder.output_size, decoder.output_size, **joint_net_params
     )
 
     specaug = get_specaug() if main_params.pop("specaug", False) else None
@@ -117,10 +146,22 @@ def test_collect_feats(extract_feats):
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
-    encoder = Encoder(20, [{"block_type": "rnn", "dim_hidden": 4}])
-    decoder = StatelessDecoder(vocab_size, dim_embedding=4)
+    encoder = Encoder(
+        20,
+        [
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "linear_size": 4,
+                "conv_mod_kernel_size": 3,
+            }
+        ],
+    )
+    decoder = StatelessDecoder(vocab_size, embed_size=4)
 
-    joint_network = JointNetwork(vocab_size, encoder.dim_output, decoder.dim_output, 8)
+    joint_network = JointNetwork(
+        vocab_size, encoder.output_size, decoder.output_size, 8
+    )
 
     model = ESPnetASRTransducerModel(
         vocab_size,

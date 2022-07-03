@@ -22,8 +22,8 @@ def prepare():
     "params",
     [
         {},
-        {"dim_embedding": 2, "dim_hidden": 4, "rnn_type": "gru", "num_layers": 2},
-        {"rnn_type": "lstm", "num_layers": 2, "dropout": 0.1},
+        {"embed_size": 2, "hidden_size": 4, "rnn_type": "gru", "num_layers": 2},
+        {"rnn_type": "lstm", "num_layers": 2, "dropout_rate": 0.1},
     ],
 )
 def test_rnn_decoder(params):
@@ -36,7 +36,7 @@ def test_rnn_decoder(params):
 def test_stateless_decoder():
     vocab_size, labels = prepare()
 
-    decoder = StatelessDecoder(vocab_size, dim_embedding=2)
+    decoder = StatelessDecoder(vocab_size, embed_size=2)
     _ = decoder(labels)
 
 

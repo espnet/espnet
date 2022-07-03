@@ -48,15 +48,22 @@ def test_activation(act_type, act_params):
 
     encoder = Encoder(
         input_size,
-        [{"block_type": "conformer", "dim_hidden": 8, "dim_linear": 4}],
+        [
+            {
+                "block_type": "conformer",
+                "hidden_size": 8,
+                "linear_size": 4,
+                "conv_mod_kernel_size": 3,
+            }
+        ],
         main_conf=act_params,
     )
-    decoder = StatelessDecoder(vocab_size, dim_embedding=4)
+    decoder = StatelessDecoder(vocab_size, embed_size=4)
 
     joint_network = JointNetwork(
         vocab_size,
-        encoder.dim_output,
-        decoder.dim_output,
+        encoder.output_size,
+        decoder.output_size,
         joint_activation_type=act_type,
         **act_params,
     )

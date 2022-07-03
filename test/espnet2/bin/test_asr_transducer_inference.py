@@ -42,9 +42,13 @@ def token_list(tmp_path: Path):
 
 @pytest.fixture()
 def asr_config_file(tmp_path: Path, token_list):
-    enc_body_conf = "{'body_conf': [{'block_type': 'rnn', 'dim_hidden': 4}]}"
-    decoder_conf = "{'dim_hidden': 4}"
-    joint_net_conf = "{'dim_joint_space': 4}"
+    enc_body_conf = (
+        "{'body_conf': [{'block_type': 'conformer',"
+        " 'hidden_size': 4, 'linear_size': 4,"
+        " 'conv_mod_kernel_size': 3}]}"
+    )
+    decoder_conf = "{'hidden_size': 4}"
+    joint_net_conf = "{'joint_space_size': 4}"
 
     ASRTransducerTask.main(
         cmd=[
@@ -108,7 +112,8 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
         token_type=token_type,
     )
     speech = np.random.randn(100000)
-    results = speech2text(speech)
+    hyps = speech2text(speech)
+    results = speech2text.hypotheses_to_results(hyps)
 
     for text, token, token_int, hyp in results:
         assert text is None or isinstance(text, str)

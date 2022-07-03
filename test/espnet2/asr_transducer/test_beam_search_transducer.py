@@ -15,30 +15,34 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 @pytest.mark.parametrize(
     "decoder_class, decoder_opts, search_opts",
     [
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "default", "score_norm": True}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "default", "lm": None}),
-        (StatelessDecoder, {}, {"search_type": "default", "lm": None}),
-        (StatelessDecoder, {}, {"search_type": "default"}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "alsd", "u_max": 10}),
         (
             RNNDecoder,
-            {"dim_hidden": 4},
+            {"hidden_size": 4},
+            {"search_type": "default", "score_norm": True},
+        ),
+        (RNNDecoder, {"hidden_size": 4}, {"search_type": "default", "lm": None}),
+        (StatelessDecoder, {}, {"search_type": "default", "lm": None}),
+        (StatelessDecoder, {}, {"search_type": "default"}),
+        (RNNDecoder, {"hidden_size": 4}, {"search_type": "alsd", "u_max": 10}),
+        (
+            RNNDecoder,
+            {"hidden_size": 4},
             {"search_type": "alsd", "u_max": 10, "lm": None},
         ),
         (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10}),
         (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10, "lm": None}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "tsd", "max_sym_exp": 3}),
+        (RNNDecoder, {"hidden_size": 4}, {"search_type": "tsd", "max_sym_exp": 3}),
         (
             RNNDecoder,
-            {"dim_hidden": 4},
+            {"hidden_size": 4},
             {"search_type": "tsd", "max_sym_exp": 3, "lm": None},
         ),
         (StatelessDecoder, {}, {"search_type": "tsd", "max_sym_exp": 3}),
         (StatelessDecoder, {}, {"search_type": "tsd", "max_sym_exp": 3, "lm": None}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "maes", "nstep": 2}),
+        (RNNDecoder, {"hidden_size": 4}, {"search_type": "maes", "nstep": 2}),
         (
             RNNDecoder,
-            {"dim_hidden": 4},
+            {"hidden_size": 4},
             {"search_type": "maes", "nstep": 2, "lm": None},
         ),
         (StatelessDecoder, {}, {"search_type": "maes", "nstep": 2}),
@@ -47,15 +51,15 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 )
 def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
     token_list = ["<blank>", "a", "b", "c"]
-    dim_vocab = len(token_list)
+    vocab_size = len(token_list)
 
-    dim_encoder = 4
+    encoder_size = 4
 
-    decoder = decoder_class(dim_vocab, dim_embedding=4, **decoder_opts)
-    joint_net = JointNetwork(dim_vocab, dim_encoder, 4, dim_joint_space=2)
+    decoder = decoder_class(vocab_size, embed_size=4, **decoder_opts)
+    joint_net = JointNetwork(vocab_size, encoder_size, 4, joint_space_size=2)
 
     lm = search_opts.pop(
-        "lm", SequentialRNNLM(dim_vocab, unit=8, nlayers=1, rnn_type="lstm")
+        "lm", SequentialRNNLM(vocab_size, unit=8, nlayers=1, rnn_type="lstm")
     )
 
     beam = BeamSearchTransducer(
@@ -66,7 +70,7 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
         **search_opts,
     )
 
-    enc_out = torch.randn(30, dim_encoder)
+    enc_out = torch.randn(30, encoder_size)
 
     with torch.no_grad():
         _ = beam(enc_out)
@@ -82,11 +86,11 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
     ],
 )
 def test_integer_parameters_limits(search_opts):
-    dim_vocab = 4
-    dim_encoder = 4
+    vocab_size = 4
+    encoder_size = 4
 
-    decoder = StatelessDecoder(dim_vocab, dim_embedding=4)
-    joint_net = JointNetwork(dim_vocab, dim_encoder, 4, dim_joint_space=2)
+    decoder = StatelessDecoder(vocab_size, embed_size=4)
+    joint_net = JointNetwork(vocab_size, encoder_size, 4, joint_space_size=2)
 
     with pytest.raises(AssertionError):
         _ = BeamSearchTransducer(
@@ -97,8 +101,8 @@ def test_integer_parameters_limits(search_opts):
 
 
 def test_recombine_hyps():
-    decoder = StatelessDecoder(4, dim_embedding=4)
-    joint_net = JointNetwork(4, 4, 4, dim_joint_space=2)
+    decoder = StatelessDecoder(4, embed_size=4)
+    joint_net = JointNetwork(4, 4, 4, joint_space_size=2)
     beam_search = BeamSearchTransducer(decoder, joint_net, 2)
 
     test_hyp = [

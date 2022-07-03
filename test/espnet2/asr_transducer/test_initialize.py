@@ -11,51 +11,82 @@ from espnet2.asr_transducer.joint_network import JointNetwork
 @pytest.mark.parametrize(
     "body_conf, init_mode, frontend_class",
     [
-        ([{"block_type": "rnn", "dim_hidden": 4}], "chainer", None),
-        ([{"block_type": "rnn", "dim_hidden": 4}], "chainer_espnet1", None),
         (
-            [{"block_type": "conv1d", "kernel_size": 1, "dim_output": 4}],
+            [{"block_type": "conv1d", "kernel_size": 1, "output_size": 4}],
             "xavier_uniform",
             None,
         ),
         (
-            [{"block_type": "conformer", "dim_hidden": 4, "dim_linear": 4}],
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
             "xavier_normal",
             None,
         ),
         (
-            [{"block_type": "conformer", "dim_hidden": 4, "dim_linear": 4}],
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
             "kaiming_uniform",
             None,
         ),
         (
-            [{"block_type": "conformer", "dim_hidden": 4, "dim_linear": 4}],
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
             "kaiming_normal",
             None,
         ),
-        ([{"block_type": "rnn", "dim_hidden": 4}], "chainer", DefaultFrontend),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            "chainer",
+            DefaultFrontend,
+        ),
     ],
 )
 def test_model_initialization(body_conf, init_mode, frontend_class):
     token_list = ["<blank>", "a", "b", "c"]
 
-    dim_vocab = len(token_list)
-    dim_decoder = 4
+    vocab_size = len(token_list)
+    decoder_size = 4
 
     if frontend_class is not None:
         frontend = frontend_class()
         input_size = frontend.output_size()
     else:
         frontend = None
-        input_size = 4
+        input_size = 8
 
     encoder = Encoder(input_size, body_conf)
 
-    decoder = RNNDecoder(dim_vocab, dim_embedding=4, dim_hidden=dim_decoder)
-    joint_net = JointNetwork(dim_vocab, 4, dim_decoder, dim_joint_space=2)
+    decoder = RNNDecoder(vocab_size, embed_size=4, hidden_size=decoder_size)
+    joint_net = JointNetwork(vocab_size, 4, decoder_size, joint_space_size=2)
 
     model = ESPnetASRTransducerModel(
-        vocab_size=dim_vocab,
+        vocab_size=vocab_size,
         token_list=token_list,
         frontend=frontend,
         specaug=None,
@@ -71,16 +102,27 @@ def test_model_initialization(body_conf, init_mode, frontend_class):
 def test_wrong_model_initialization():
     token_list = ["<blank>", "a", "b", "c"]
 
-    dim_vocab = len(token_list)
-    dim_encoder = 4
-    dim_decoder = 4
+    vocab_size = len(token_list)
+    decoder_size = 4
 
-    encoder = Encoder(4, [{"block_type": "rnn", "dim_hidden": 4}])
-    decoder = RNNDecoder(dim_vocab, dim_embedding=dim_decoder, dim_hidden=dim_decoder)
-    joint_net = JointNetwork(dim_vocab, dim_encoder, dim_decoder, dim_joint_space=2)
+    encoder = Encoder(
+        8,
+        [
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "linear_size": 4,
+                "conv_mod_kernel_size": 3,
+            }
+        ],
+    )
+    decoder = RNNDecoder(vocab_size, embed_size=decoder_size, hidden_size=decoder_size)
+    joint_net = JointNetwork(
+        vocab_size, encoder.output_size, decoder.output_size, joint_space_size=2
+    )
 
     model = ESPnetASRTransducerModel(
-        vocab_size=dim_vocab,
+        vocab_size=vocab_size,
         token_list=token_list,
         frontend=None,
         specaug=None,

@@ -49,10 +49,19 @@ def get_dummy_namespace():
         specaug_conf={"apply_time_warp": True, "time_mask_width_range": 4},
         normalize=None,
         normalize_conf=None,
-        encoder_conf={"body_conf": [{"block_type": "rnn", "dim_hidden": 16}]},
+        encoder_conf={
+            "body_conf": [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 16,
+                    "linear_size": 8,
+                    "conv_mod_kernel_size": 3,
+                }
+            ]
+        },
         decoder="stateless",
-        decoder_conf={"dim_embedding": 8},
-        joint_network_conf={"dim_joint_space": 8},
+        decoder_conf={"embed_size": 8},
+        joint_network_conf={"joint_space_size": 8},
         model_conf={"transducer_weight": 1.0},
         init="chainer_espnet1",
     )
