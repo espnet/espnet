@@ -109,7 +109,7 @@ class Speech2Text:
             else:
                 q_config = {torch.nn.Linear}
 
-            if quantize_dtype == "float16" and (torch.__version__ < V("1.5.0")):
+            if quantize_dtype == "float16" and (V(torch.__version__) < V("1.5.0")):
                 raise ValueError(
                     "float16 dtype for dynamic quantization is not supported with torch"
                     " version < 1.5.0. Switching to qint8 dtype instead."

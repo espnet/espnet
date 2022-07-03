@@ -43,11 +43,9 @@ class Conv1d(torch.nn.Module):
 
         if causal:
             self.lorder = kernel_size - 1
-            padding = 0
             stride = 1
         else:
             self.lorder = 0
-            padding = dilation * (kernel_size - 1)
             stride = stride
 
         self.conv = torch.nn.Conv1d(
@@ -55,7 +53,6 @@ class Conv1d(torch.nn.Module):
             output_size,
             kernel_size,
             stride=stride,
-            padding=padding,
             dilation=dilation,
             groups=groups,
             bias=bias,
@@ -79,7 +76,7 @@ class Conv1d(torch.nn.Module):
         self.causal = causal
 
         self.kernel_size = kernel_size
-        self.padding = padding
+        self.padding = dilation * (kernel_size - 1)
         self.stride = stride
 
         self.cache = None
@@ -187,16 +184,16 @@ class Conv1d(torch.nn.Module):
         """Create new mask for output sequences.
 
         Args:
-            mask: Mask of input sequences. (B, 1, T)
+            mask: Mask of input sequences. (B, T)
 
         Returns:
-            mask: Mask of output sequences. (B, 1, sub(T))
+            mask: Mask of output sequences. (B, sub(T))
 
         """
         if self.padding != 0:
-            mask = mask[:, :, : -self.padding]
+            mask = mask[:, : -self.padding]
 
-        return mask[:, :, :: self.stride]
+        return mask[:, :: self.stride]
 
     def create_new_pos_enc(self, pos_enc: torch.Tensor) -> torch.Tensor:
         """Create new positional embedding vector.

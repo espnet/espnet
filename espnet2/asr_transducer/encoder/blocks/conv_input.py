@@ -112,10 +112,10 @@ class ConvInput(torch.nn.Module):
         """Create a new mask for VGG output sequences.
 
         Args:
-            mask: Mask of input sequences. (B, 1, T)
+            mask: Mask of input sequences. (B, T)
 
         Returns:
-            mask: Mask of output sequences. (B, 1, sub(T))
+            mask: Mask of output sequences. (B, sub(T))
 
         """
         vgg1_t_len = mask.size(1) - (mask.size(1) % 3)
@@ -130,10 +130,10 @@ class ConvInput(torch.nn.Module):
         """Create new conformer mask for Conv2d output sequences.
 
         Args:
-            mask: Mask of input sequences. (B, 1, T)
+            mask: Mask of input sequences. (B, T)
 
         Returns:
-            mask: Mask of output sequences. (B, 1, T // subsampling_factor)
+            mask: Mask of output sequences. (B, sub(T))
 
         """
         return mask[:, :-2:2][:, : -(self.kernel_2 - 1) : self.stride_2]

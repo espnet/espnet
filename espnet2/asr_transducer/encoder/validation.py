@@ -45,13 +45,19 @@ def validate_block_arguments(
         output_size = configuration.get("hidden_size")
 
     elif block_type == "conv1d":
+        output_size = configuration.get("output_size")
+
+        if output_size is None:
+            raise ValueError(
+                "Missing 'output_size' argument for Conv1d block (ID: %d)" % block_id
+            )
+
         if configuration.get("kernel_size") is None:
             raise ValueError(
                 "Missing 'kernel_size' argument for Conv1d block (ID: %d)" % block_id
             )
 
         input_size = configuration["input_size"] = previous_block_output
-        output_size = configuration.get("output_size")
     else:
         raise ValueError("Block type: %s is not supported." % block_type)
 
@@ -98,8 +104,14 @@ def validate_input_block(
             elif isinstance(conv_size, tuple):
                 conv_size = conv_size[0]
 
-            _, _, conv_osize = sub_factor_to_params(
-                configuration["subsampling_factor"], input_size
+            sub_factor = configuration["subsampling_factor"]
+
+            _, _, conv_osize = sub_factor_to_params(sub_factor, input_size)
+            assert (
+                conv_osize > 0
+            ), "Conv2D output size is <1 with input size %d and subsampling %d" % (
+                input_size,
+                sub_factor,
             )
 
             output_size = conv_osize * conv_size
