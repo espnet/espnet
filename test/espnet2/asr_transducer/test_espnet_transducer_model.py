@@ -44,7 +44,7 @@ def get_specaug():
 
 
 @pytest.mark.parametrize(
-    "enc_params, dec_params, joint_net_params, main_params",
+    "enc_params, enc_gen_params, dec_params, joint_net_params, main_params",
     [
         (
             [
@@ -55,6 +55,7 @@ def get_specaug():
                     "conv_mod_kernel_size": 3,
                 }
             ],
+            {},
             {"rnn_type": "lstm", "num_layers": 2},
             {"joint_space_size": 4},
             {"report_cer": True, "report_wer": True},
@@ -68,6 +69,7 @@ def get_specaug():
                     "conv_mod_kernel_size": 3,
                 }
             ],
+            {},
             {"embed_size": 4},
             {"joint_space_size": 4},
             {"specaug": True},
@@ -81,6 +83,7 @@ def get_specaug():
                     "conv_mod_kernel_size": 3,
                 }
             ],
+            {},
             {"embed_size": 4},
             {"joint_space_size": 4},
             {"auxiliary_ctc_weight": 0.1, "auxiliary_lm_loss_weight": 0.1},
@@ -95,20 +98,42 @@ def get_specaug():
                 },
                 {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
             ],
+            {},
+            {"embed_size": 4},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "left_chunk_size": 1,
+            },
             {"embed_size": 4},
             {"joint_space_size": 4},
             {"transducer_weight": 1.0},
         ),
     ],
 )
-def test_model_training(enc_params, dec_params, joint_net_params, main_params):
+def test_model_training(
+    enc_params, enc_gen_params, dec_params, joint_net_params, main_params
+):
     batch_size = 2
     input_size = 10
 
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
-    encoder = Encoder(input_size, enc_params)
+    encoder = Encoder(input_size, enc_params, main_conf=enc_gen_params)
     decoder = get_decoder(vocab_size, dec_params)
 
     joint_network = JointNetwork(

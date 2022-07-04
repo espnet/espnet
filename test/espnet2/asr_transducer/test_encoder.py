@@ -80,6 +80,8 @@ from espnet2.asr_transducer.utils import TooShortUttError
                     "output_size": 4,
                     "kernel_size": 2,
                     "dilation": 2,
+                    "use_batchnorm": True,
+                    "use_relu": True,
                 },
                 {
                     "block_type": "conformer",
@@ -90,6 +92,45 @@ from espnet2.asr_transducer.utils import TooShortUttError
                 },
             ],
             {},
+        ),
+        (
+            {"dim_conv": 2},
+            [
+                {
+                    "block_type": "conv1d",
+                    "output_size": 8,
+                    "kernel_size": 2,
+                },
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 8,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                    "num_blocks": 2,
+                },
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "left_chunk_size": 2,
+            },
+        ),
+        (
+            {},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 8,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                    "num_blocks": 2,
+                },
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "left_chunk_size": 2,
+            },
         ),
     ],
 )

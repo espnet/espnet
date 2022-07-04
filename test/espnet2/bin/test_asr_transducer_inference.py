@@ -74,6 +74,42 @@ def asr_config_file(tmp_path: Path, token_list):
 
 
 @pytest.fixture()
+def asr_stream_config_file(tmp_path: Path, token_list, right_context):
+    enc_body_conf = (
+        "{'body_conf': [{'block_type': 'conformer', 'hidden_size': 4, "
+        "'linear_size': 4, 'conv_mod_kernel_size': 3},"
+        "{'block_type': 'conv1d', 'kernel_size': 2, 'output_size': 2, "
+        "'use_batchnorm': True, 'use_relu': True}], "
+        "'main_conf': {'dynamic_chunk_training': True',"
+        "'short_chunk_size': 1, 'left_chunk_size': 1}}"
+    )
+    decoder_conf = "{'hidden_size': 4}"
+    joint_net_conf = "{'joint_space_size': 4}"
+
+    ASRTransducerTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr_stream"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--encoder_conf",
+            enc_body_conf,
+            "--decoder",
+            "rnn",
+            "--decoder_conf",
+            decoder_conf,
+            "--joint_network_conf",
+            joint_net_conf,
+        ]
+    )
+    return tmp_path / "asr_stream" / "config.yaml"
+
+
+@pytest.fixture()
 def lm_config_file(tmp_path: Path, token_list):
     lm_conf = "{'nlayers': 1, 'unit': 8}"
 
@@ -111,8 +147,49 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
         beam_size=1,
         token_type=token_type,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(10000)
     hyps = speech2text(speech)
+    results = speech2text.hypotheses_to_results(hyps)
+
+    for text, token, token_int, hyp in results:
+        assert text is None or isinstance(text, str)
+        assert isinstance(token, List)
+        assert isinstance(token_int, List)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(10)
+@pytest.mark.parametrize(
+    "use_lm, token_type, right_context",
+    [
+        (False, "char", 0),
+        (True, "char", 1),
+        (False, "bpe", 0),
+        (False, None, 1),
+    ],
+)
+def test_streaming_Speech2Text(
+    use_lm, token_type, right_context, asr_stream_config_file, lm_config_file
+):
+    speech2text = Speech2Text(
+        asr_train_config=asr_stream_config_file,
+        lm_train_config=lm_config_file if use_lm else None,
+        beam_size=1,
+        token_type=token_type,
+        streaming=True,
+        chunk_size=1,
+        left_context=1,
+        right_context=right_context,
+    )
+
+    speech = np.random.randn(10000)
+    _steps = len(speech) // speech2text._raw_ctx
+
+    for i in range(_steps):
+        _end = (i + 1) * speech2text._raw_ctx
+
+        speech2text(speech[i * speech2text._raw_ctx : _end], is_final=False)
+    hyps = speech2text(speech[_end : len(speech)], is_final=True)
     results = speech2text.hypotheses_to_results(hyps)
 
     for text, token, token_int, hyp in results:
