@@ -176,9 +176,7 @@ class RNNDecoder(AbsDecoder):
         labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
         dec_embed = self.embed(labels)
 
-        states = self.create_batch_states(
-            self.init_state(labels.size(0)), [h.dec_state for h in hyps]
-        )
+        states = self.create_batch_states([h.dec_state for h in hyps])
         dec_out, states = self.rnn_forward(dec_embed, states)
 
         return dec_out.squeeze(1), states
@@ -243,13 +241,11 @@ class RNNDecoder(AbsDecoder):
 
     def create_batch_states(
         self,
-        states: Tuple[torch.Tensor, Optional[torch.Tensor]],
         new_states: List[Tuple[torch.Tensor, Optional[torch.Tensor]]],
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Create decoder hidden states.
 
         Args:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
             new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec) or None)]
 
         Returns:

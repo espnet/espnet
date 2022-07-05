@@ -52,7 +52,7 @@ class BeamSearchTransducer:
         decoder: AbsDecoder,
         joint_network: JointNetwork,
         beam_size: int,
-        lm: torch.nn.Module = None,
+        lm: Optional[torch.nn.Module] = None,
         lm_weight: float = 0.1,
         search_type: str = "default",
         max_sym_exp: int = 3,
@@ -232,8 +232,8 @@ class BeamSearchTransducer:
 
         Args:
             hyps: Hypotheses.
-            idx: Indices of candidates hypothesis.
-            logps: Log-probabilities of candidates hypothesis.
+            topk_idx: Indices of candidates hypothesis.
+            topk_logp: Log-probabilities of candidates hypothesis.
 
         Returns:
             k_expansions: Best K expansion hypotheses candidates.
@@ -281,7 +281,7 @@ class BeamSearchTransducer:
         )
 
     def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
-        """Beam search implementation.
+        """Beam search implementation without prefix search.
 
         Modified from https://arxiv.org/pdf/1211.3711.pdf
 
