@@ -5,18 +5,6 @@ from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
 
-
-# @pytest.mark.parametrize(
-#     "model_name_or_path",
-#     [
-#         "akreal/tiny-random-bert",
-#         "akreal/tiny-random-gpt2",
-#         "akreal/tiny-random-xlnet",
-#         "akreal/tiny-random-t5",
-#         "akreal/tiny-random-mbart",
-#         "akreal/tiny-random-mpnet",
-#     ],
-# )
 @pytest.mark.execution_timeout(50)
 def test_transformers_forward():
     postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
@@ -64,13 +52,3 @@ def test_convert_examples_to_features():
         [1, max_length]
     )
     assert torch.LongTensor(input_id_length).shape == torch.Size([1])
-
-    # saved_param = postencoder.parameters().__next__().detach().clone()
-
-    # postencoder.parameters().__next__().data *= 0
-    # new_param = postencoder.parameters().__next__().detach().clone()
-    # assert not torch.equal(saved_param, new_param)
-
-    # postencoder.reload_pretrained_parameters()
-    # new_param = postencoder.parameters().__next__().detach().clone()
-    # assert torch.equal(saved_param, new_param)
