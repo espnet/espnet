@@ -54,8 +54,7 @@ class StatelessDecoder(AbsDecoder):
             states: Decoder hidden states. None
 
         Returns:
-            dec_out: Decoder output sequences. (B, U, D_dec)
-            states: Decoder hidden states. None
+            dec_embed: Decoder output sequences. (B, U, D_emb)
 
         """
         dec_embed = self.embed_dropout_rate(self.embed(labels))
@@ -83,11 +82,11 @@ class StatelessDecoder(AbsDecoder):
         str_labels = "_".join(map(str, label_sequence))
 
         if str_labels in self.score_cache:
-            dec_embed, state = self.score_cache[str_labels]
+            dec_embed = self.score_cache[str_labels]
         else:
             dec_embed = self.embed(label)
 
-            self.score_cache[str_labels] = (dec_embed, state)
+            self.score_cache[str_labels] = dec_embed
 
         return dec_embed[0], None
 
