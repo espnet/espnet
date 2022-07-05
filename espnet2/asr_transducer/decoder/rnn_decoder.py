@@ -73,7 +73,7 @@ class RNNDecoder(AbsDecoder):
         self,
         labels: torch.Tensor,
         states: Tuple[torch.Tensor, Optional[torch.Tensor]] = None,
-    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
+    ) -> torch.Tensor:
         """Encode source label sequences.
 
         Args:
@@ -81,7 +81,6 @@ class RNNDecoder(AbsDecoder):
 
         Returns:
             dec_out: Decoder output sequences. (B, U, D_dec)
-            states: Decoder states. ((N, 1, D_dec), (N, 1, D_dec))
 
         """
         if states is None:
@@ -101,11 +100,12 @@ class RNNDecoder(AbsDecoder):
 
         Args:
             x: RNN input sequences. (B, D_emb)
-            state: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+            state: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
 
         Returns:
             x: RNN output sequences. (B, D_dec)
-            (h_next, c_next): Decoder hidden states. (N, B, D_dec), (N, B, D_dec))
+            (h_next, c_next): Decoder hidden states.
+                                (N, B, D_dec), (N, B, D_dec) or None)
 
         """
         h_prev, c_prev = state
@@ -129,19 +129,20 @@ class RNNDecoder(AbsDecoder):
         self,
         label: torch.Tensor,
         label_sequence: List[int],
-        dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]],
-    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
+        dec_state: Tuple[torch.Tensor, Optional[torch.Tensor]],
+    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """One-step forward hypothesis.
 
         Args:
             label: Previous label. (1, 1)
             label_sequence: Current label sequence.
             dec_state: Previous decoder hidden states.
-                       ((N, 1, D_dec), (N, 1, D_dec)) or None
+                         ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         Returns:
             dec_out: Decoder output sequence. (1, D_dec) or None
-            dec_state: Decoder hidden states. ((N, 1, D_dec), (N, 1, D_dec))
+            dec_state: Decoder hidden states.
+                         ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         """
         str_labels = "_".join(map(str, label_sequence))
@@ -159,7 +160,7 @@ class RNNDecoder(AbsDecoder):
     def batch_score(
         self,
         hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
-    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """One-step forward hypotheses.
 
         Args:
@@ -167,7 +168,7 @@ class RNNDecoder(AbsDecoder):
 
         Returns:
             dec_out: Decoder output sequences. (B, D_dec)
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
 
         """
         labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
@@ -198,7 +199,7 @@ class RNNDecoder(AbsDecoder):
             batch_size: Batch size.
 
         Returns:
-            : Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+            : Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
 
         """
         h_n = torch.zeros(
@@ -226,12 +227,11 @@ class RNNDecoder(AbsDecoder):
         """Get specified ID state from decoder hidden states.
 
         Args:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
             idx: State ID to extract.
 
         Returns:
-            : Decoder hidden state for given ID.
-              ((N, 1, D_dec), (N, 1, D_dec))
+            : Decoder hidden state for given ID. ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         """
         return (
@@ -247,11 +247,11 @@ class RNNDecoder(AbsDecoder):
         """Create decoder hidden states.
 
         Args:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
-            new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec))]
+            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
+            new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec) or None)]
 
         Returns:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
 
         """
         return (

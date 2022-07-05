@@ -14,6 +14,7 @@ class JointNetwork(torch.nn.Module):
         decoder_size: Decoder output size..
         joint_space_size: Joint space size.
         joint_act_type: Type of activation for joint network.
+        **activation_parameters: Parameters for the activation function.
 
     """
 

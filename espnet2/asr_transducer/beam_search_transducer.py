@@ -18,14 +18,14 @@ class Hypothesis:
         score: Total log-probability.
         yseq: Label sequence as integer ID sequence.
         dec_state: RNNDecoder or StatelessDecoder state.
-                     ((N, 1, D_dec), (N, 1, D_dec)
+                     ((N, 1, D_dec), (N, 1, D_dec) or None) or None
         lm_state: RNNLM state. ((N, D_lm), (N, D_lm))
 
     """
 
     score: float
     yseq: List[int]
-    dec_state: Tuple[torch.Tensor, Optional[torch.Tensor]]
+    dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None
     lm_state: Optional[Union[Dict[str, Any], List[Any]]] = None
 
 
@@ -35,7 +35,7 @@ class ExtendedHypothesis(Hypothesis):
 
     Args:
         : Hypothesis dataclass arguments.
-        dec_out: Decoder output sequence. (B, 1, D_out)
+        dec_out: Decoder output sequence. (B, D_dec)
         lm_score: Log-probabilities of the LM for given label. (vocab_size)
 
     """

@@ -15,7 +15,7 @@ class TooShortUttError(Exception):
 
     """
 
-    def __init__(self, message: str, actual_size: int, limit: int):
+    def __init__(self, message: str, actual_size: int, limit: int) -> None:
         """Construct a TooShortUttError module."""
         super().__init__(message)
 
@@ -87,7 +87,7 @@ def make_chunk_mask(
         device: Device for the mask tensor.
 
     Returns:
-        mask: Chunk mask. (B, 1, size)
+        mask: Chunk mask. (size, size)
 
     """
     mask = torch.zeros(size, size, device=device, dtype=torch.bool)
@@ -113,7 +113,7 @@ def make_source_mask(lengths: torch.Tensor) -> torch.Tensor:
         lengths: Sequence lengths. (B,)
 
     Returns:
-        : Mask for the sequence lengths. (B, 1, max_len)
+        : Mask for the sequence lengths. (B, max_len)
 
     """
     max_len = lengths.max()

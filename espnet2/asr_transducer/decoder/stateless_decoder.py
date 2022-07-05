@@ -46,7 +46,7 @@ class StatelessDecoder(AbsDecoder):
         self,
         labels: torch.Tensor,
         states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
-    ) -> Tuple[torch.Tensor, None]:
+    ) -> torch.Tensor:
         """Encode source label sequences.
 
         Args:
@@ -119,7 +119,7 @@ class StatelessDecoder(AbsDecoder):
         """
         self.device = device
 
-    def init_state(self, batch_size: Optional[int]) -> None:
+    def init_state(self, batch_size: int) -> None:
         """Initialize decoder states.
 
         Args:
@@ -131,7 +131,7 @@ class StatelessDecoder(AbsDecoder):
         """
         return None
 
-    def select_state(self, states: Optional[torch.Tensor], idx: Optional[int]) -> None:
+    def select_state(self, states: Optional[torch.Tensor], idx: int) -> None:
         """Get specified ID state from decoder hidden states.
 
         Args:

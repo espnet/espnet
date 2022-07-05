@@ -199,7 +199,7 @@ class Speech2Text:
 
         self.reset_inference_cache()
 
-    def reset_inference_cache(self):
+    def reset_inference_cache(self) -> None:
         """Reset Speech2Text parameters."""
         self.frontend_cache = None
 
@@ -453,7 +453,7 @@ def inference(
     left_context: Optional[int],
     right_context: Optional[int],
     display_partial_hypotheses: bool,
-):
+) -> None:
     """Transducer model inference.
 
     Args:
