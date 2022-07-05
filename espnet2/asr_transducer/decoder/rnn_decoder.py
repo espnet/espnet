@@ -37,7 +37,7 @@ class RNNDecoder(AbsDecoder):
     ) -> None:
         assert check_argument_types()
 
-        if rnn_type not in {"lstm", "gru"}:
+        if rnn_type not in ("lstm", "gru"):
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
 
         super().__init__()
@@ -72,12 +72,14 @@ class RNNDecoder(AbsDecoder):
     def forward(
         self,
         labels: torch.Tensor,
-        states: Tuple[torch.Tensor, Optional[torch.Tensor]] = None,
+        states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
     ) -> torch.Tensor:
         """Encode source label sequences.
 
         Args:
             labels: Label ID sequences. (B, L)
+            states: Decoder hidden states.
+                      ((N, B, D_dec), (N, B, D_dec) or None) or None
 
         Returns:
             dec_out: Decoder output sequences. (B, U, D_dec)
@@ -140,7 +142,7 @@ class RNNDecoder(AbsDecoder):
                          ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         Returns:
-            dec_out: Decoder output sequence. (1, D_dec) or None
+            dec_out: Decoder output sequence. (1, D_dec)
             dec_state: Decoder hidden states.
                          ((N, 1, D_dec), (N, 1, D_dec) or None)
 
