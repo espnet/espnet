@@ -5,12 +5,13 @@
 # Apache 2.0
 
 
+import argparse
 import os
 import re
 import sys
-import pandas as pd
-import argparse
+
 import numpy as np
+import pandas as pd
 
 
 def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
