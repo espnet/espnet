@@ -151,7 +151,7 @@ class BeamSearchTransducer:
         self,
         enc_out: torch.Tensor,
         is_final: bool = True,
-    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
+    ) -> List[Hypothesis]:
         """Perform beam search.
 
         Args:
@@ -180,9 +180,7 @@ class BeamSearchTransducer:
         self.decoder.score_cache = {}
         self.search_cache = None
 
-    def sort_nbest(
-        self, hyps: Union[List[Hypothesis], List[ExtendedHypothesis]]
-    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
+    def sort_nbest(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
         """Sort in-place hypotheses by score or score given sequence length.
 
         Args:
@@ -199,9 +197,7 @@ class BeamSearchTransducer:
 
         return hyps[: self.nbest]
 
-    def recombine_hyps(
-        self, hyps: List[Union[Hypothesis, ExtendedHypothesis]]
-    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
+    def recombine_hyps(self, hyps: List[Hypothesis]) -> List[Hypothesis]:
         """Recombine hypotheses with same label ID sequence.
 
         Args:

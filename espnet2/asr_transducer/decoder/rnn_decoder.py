@@ -1,11 +1,11 @@
 """RNN decoder definition for Transducer models."""
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis, Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 
 
@@ -159,7 +159,7 @@ class RNNDecoder(AbsDecoder):
 
     def batch_score(
         self,
-        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
+        hyps: List[Hypothesis],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """One-step forward hypotheses.
 

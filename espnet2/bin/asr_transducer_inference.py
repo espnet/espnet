@@ -18,7 +18,6 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr_transducer.beam_search_transducer import (
     BeamSearchTransducer,
-    ExtendedHypothesis,
     Hypothesis,
 )
 from espnet2.asr_transducer.utils import TooShortUttError
@@ -322,7 +321,7 @@ class Speech2Text:
         self,
         speech: Union[torch.Tensor, np.ndarray],
         is_final: bool = True,
-    ) -> List[Union[Hypothesis, ExtendedHypothesis]]:
+    ) -> List[Hypothesis]:
         """Speech2Text call.
 
         Args:
@@ -364,9 +363,7 @@ class Speech2Text:
 
         return nbest_hyps
 
-    def hypotheses_to_results(
-        self, nbest_hyps: List[Union[Hypothesis, ExtendedHypothesis]]
-    ) -> List[Any]:
+    def hypotheses_to_results(self, nbest_hyps: List[Hypothesis]) -> List[Any]:
         """Build partial or final results from the hypotheses.
 
         Args:
