@@ -67,7 +67,7 @@ sox.done: activate_python.sh
 	. ./activate_python.sh && { command -v sox || conda install -y sox -c conda-forge; }
 	touch sox.done
 sndfile.done: activate_python.sh
-	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile=1.0.28 -c conda-forge; }
+	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(USE_CONDA)),)
 conda_packages.done: bc.done cmake.done flac.done ffmpeg.done sox.done sndfile.done
@@ -90,12 +90,12 @@ packaging.done: activate_python.sh
 
 pytorch.done: activate_python.sh packaging.done
 ifeq ($(strip $(USE_CONDA)),)
-	# NOTE(kan-bayashi): Temporary fixed numpy version
-	. ./activate_python.sh && pip install "numpy<=1.21.3"
+	# NOTE(kamo): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.4"
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
-	# NOTE(kan-bayashi): Temporary fixed numpy version
-	. ./activate_python.sh && conda install -y "numpy<=1.21.3"
+	# NOTE(kamo): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.4"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done

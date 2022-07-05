@@ -1,17 +1,14 @@
 """Module implementing Transducer main and auxiliary tasks."""
 
-from typing import Any
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 
 
 class TransducerTasks(torch.nn.Module):

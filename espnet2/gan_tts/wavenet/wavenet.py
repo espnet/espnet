@@ -9,13 +9,11 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 import logging
 import math
-
 from typing import Optional
 
 import torch
 
-from espnet2.gan_tts.wavenet.residual_block import Conv1d1x1
-from espnet2.gan_tts.wavenet.residual_block import ResidualBlock
+from espnet2.gan_tts.wavenet.residual_block import Conv1d1x1, ResidualBlock
 
 
 class WaveNet(torch.nn.Module):

@@ -1,23 +1,21 @@
 """Search algorithms for Transducer models."""
 
+import logging
 from dataclasses import dataclass
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
-from espnet.nets.pytorch_backend.transducer.utils import is_prefix
-from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
-from espnet.nets.pytorch_backend.transducer.utils import select_k_expansions
-from espnet.nets.pytorch_backend.transducer.utils import subtract
-
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.lm.transformer_lm import TransformerLM
+from espnet.nets.pytorch_backend.transducer.utils import (
+    is_prefix,
+    recombine_hyps,
+    select_k_expansions,
+    subtract,
+)
 
 
 @dataclass
@@ -61,6 +59,7 @@ class BeamSearchTransducer:
         expansion_beta: int = 2,
         score_norm: bool = True,
         nbest: int = 1,
+        token_list: List[str] = None,
     ):
         """Initialize Transducer search module.
 
@@ -89,6 +88,9 @@ class BeamSearchTransducer:
         self.hidden_size = decoder.dunits
         self.vocab_size = decoder.odim
 
+        self.sos = self.vocab_size - 1
+        self.token_list = token_list
+
         self.blank_id = decoder.blank_id
 
         if self.beam_size <= 1:
@@ -96,19 +98,27 @@ class BeamSearchTransducer:
         elif search_type == "default":
             self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.max_sym_exp = max_sym_exp
 
             self.search_algorithm = self.time_sync_decoding
         elif search_type == "alsd":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.u_max = u_max
 
             self.search_algorithm = self.align_length_sync_decoding
         elif search_type == "nsc":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.nstep = nstep
             self.prefix_alpha = prefix_alpha
 
             self.search_algorithm = self.nsc_beam_search
         elif search_type == "maes":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.nstep = nstep if nstep > 1 else 2
             self.prefix_alpha = prefix_alpha
             self.expansion_gamma = expansion_gamma
@@ -251,11 +261,24 @@ class BeamSearchTransducer:
 
         kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
         cache = {}
+        cache_lm = {}
 
         for enc_out_t in enc_out:
             hyps = kept_hyps
             kept_hyps = []
 
+            if self.token_list is not None:
+                logging.debug(
+                    "\n"
+                    + "\n".join(
+                        [
+                            "hypo: "
+                            + "".join([self.token_list[x] for x in hyp.yseq[1:]])
+                            + f", score: {round(float(hyp.score), 2)}"
+                            for hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
+                        ]
+                    )
+                )
             while True:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
@@ -278,9 +301,18 @@ class BeamSearchTransducer:
                 )
 
                 if self.use_lm:
-                    lm_scores, lm_state = self.lm.score(
-                        lm_tokens, max_hyp.lm_state, None
-                    )
+                    if tuple(max_hyp.yseq) not in cache_lm:
+                        lm_scores, lm_state = self.lm.score(
+                            torch.LongTensor(
+                                [self.sos] + max_hyp.yseq[1:],
+                                device=self.decoder.device,
+                            ),
+                            max_hyp.lm_state,
+                            None,
+                        )
+                        cache_lm[tuple(max_hyp.yseq)] = (lm_scores, lm_state)
+                    else:
+                        lm_scores, lm_state = cache_lm[tuple(max_hyp.yseq)]
                 else:
                     lm_state = max_hyp.lm_state
 

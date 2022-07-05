@@ -1,18 +1,13 @@
 """Utility functions for Transducer models."""
 
 import os
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
-from espnet.nets.transducer_decoder_interface import Hypothesis
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
 
 
 def get_decoder_input(

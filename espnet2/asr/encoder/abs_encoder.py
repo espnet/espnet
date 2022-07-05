@@ -1,7 +1,5 @@
-from abc import ABC
-from abc import abstractmethod
-from typing import Optional
-from typing import Tuple
+from abc import ABC, abstractmethod
+from typing import Optional, Tuple
 
 import torch
 

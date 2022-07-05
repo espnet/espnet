@@ -1,6 +1,5 @@
-from packaging.version import parse as V
-
 import torch
+from packaging.version import parse as V
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 

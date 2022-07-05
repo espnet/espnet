@@ -8,7 +8,6 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-
 from typing import Tuple
 
 import torch

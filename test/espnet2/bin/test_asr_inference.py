@@ -1,19 +1,17 @@
+import string
 from argparse import ArgumentParser
 from pathlib import Path
-import string
 
 import numpy as np
 import pytest
 import yaml
 
-from espnet.nets.beam_search import Hypothesis
-from espnet2.bin.asr_inference import get_parser
-from espnet2.bin.asr_inference import main
-from espnet2.bin.asr_inference import Speech2Text
+from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
+from espnet.nets.beam_search import Hypothesis
 
 
 def test_get_parser():

@@ -10,7 +10,11 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_asr_transformer import subsequent_mask
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    Tacotron2Loss as TransformerLoss,  # noqa: H301
+    Tacotron2Loss as TransformerLoss,
+)
+from espnet.nets.pytorch_backend.e2e_tts_transformer import TTSPlot  # noqa: H301
+from espnet.nets.pytorch_backend.e2e_tts_transformer import (  # noqa: H301
+    GuidedMultiHeadAttentionLoss,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
@@ -18,17 +22,15 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrene
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.fill_missing_args import fill_missing_args
-from espnet.nets.pytorch_backend.e2e_tts_transformer import (
-    GuidedMultiHeadAttentionLoss,  # noqa: H301
-    TTSPlot,  # noqa: H301
-)
 
 
 class Transformer(TTSInterface, torch.nn.Module):

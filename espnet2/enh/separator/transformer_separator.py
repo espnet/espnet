@@ -1,26 +1,20 @@
 from collections import OrderedDict
-from packaging.version import parse as V
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,  # noqa: H301
-)
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
-
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

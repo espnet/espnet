@@ -1,8 +1,8 @@
-import skvideo.io
-import skimage.transform
+import cvtransforms
 import face_alignment
 import numpy as np
-import cvtransforms
+import skimage.transform
+import skvideo.io
 import torch
 from models import pretrained
 

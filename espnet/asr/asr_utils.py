@@ -12,7 +12,6 @@ import tempfile
 import numpy as np
 import torch
 
-
 # * -------------------- training iterator related -------------------- *
 
 

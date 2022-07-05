@@ -8,13 +8,11 @@
 import os
 import re
 import sys
-import pandas as pd
-from tqdm import tqdm
-import pandas as pd
-import os
-import numpy as np
-from sklearn.model_selection import train_test_split
 
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [SINHALA]")

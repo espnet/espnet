@@ -1,5 +1,5 @@
-from packaging.version import parse as V
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder

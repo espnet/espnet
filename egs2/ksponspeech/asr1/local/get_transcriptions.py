@@ -5,12 +5,13 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import codecs
-import configargparse
 import logging
 import os
 import re
 import shutil
 import sys
+
+import configargparse
 
 
 def get_parser():

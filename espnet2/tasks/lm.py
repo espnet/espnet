@@ -1,16 +1,10 @@
 import argparse
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
@@ -25,9 +19,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
-
+from espnet2.utils.types import str2bool, str_or_none
 
 lm_choices = ClassChoices(
     "lm",

@@ -1,13 +1,10 @@
 """Beamformer module."""
-from packaging.version import parse as V
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Sequence, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
-
 
 EPS = torch.finfo(torch.double).eps
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")

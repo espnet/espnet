@@ -2,14 +2,12 @@
 
 # Copyright 2022  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
 # Apache 2.0
-from collections import Counter
-from collections import defaultdict
-from fractions import Fraction
 import math
-from pathlib import Path
 import random
-from typing import List
-from typing import Tuple
+from collections import Counter, defaultdict
+from fractions import Fraction
+from pathlib import Path
+from typing import List, Tuple
 
 
 def int_or_float_or_numstr(value):

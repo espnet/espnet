@@ -4,12 +4,10 @@ import numpy as np
 import torch
 from typeguard import check_argument_types
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP
-from espnet.nets.pytorch_backend.rnn.encoders import VGG2L
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP, VGG2L
 
 
 class VGGRNNEncoder(AbsEncoder):
@@ -48,7 +46,7 @@ class VGGRNNEncoder(AbsEncoder):
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         # Subsample is not used for VGGRNN
-        subsample = np.ones(num_layers + 1, dtype=np.int)
+        subsample = np.ones(num_layers + 1, dtype=np.int64)
         rnn_type = ("b" if bidirectional else "") + rnn_type
         if use_projection:
             self.enc = torch.nn.ModuleList(

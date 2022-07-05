@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-from collections import defaultdict
 import os
 import pathlib
-from random import shuffle
 import re
 import subprocess
 import sys
+from collections import defaultdict
+from random import shuffle
 
 
 class FrPolyphonePrepper:
@@ -570,6 +570,7 @@ class FrPolyphonePrepper:
 
 if __name__ == "__main__":
     import argparse
+
     import yaml
 
     example = "{0} --config conf/dataprep.yml".format(sys.argv[0])

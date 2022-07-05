@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import argparse
-from distutils.util import strtobool
 import logging
+from distutils.util import strtobool
 
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import get_commandline_args
-from espnet.utils.cli_utils import is_scipy_wav_style
+from espnet.utils.cli_utils import get_commandline_args, is_scipy_wav_style
 from espnet.utils.cli_writers import file_writer_helper
 
 

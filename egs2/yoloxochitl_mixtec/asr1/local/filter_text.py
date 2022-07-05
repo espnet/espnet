@@ -5,9 +5,8 @@
 
 import argparse
 import codecs
-from io import open
 import sys
-
+from io import open
 
 sys.stdin = codecs.getreader("utf-8")(sys.stdin.buffer)
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)

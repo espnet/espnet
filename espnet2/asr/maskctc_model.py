@@ -1,24 +1,13 @@
+import logging
 from contextlib import contextmanager
 from itertools import groupby
-import logging
-from packaging.version import parse as V
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -30,6 +19,13 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet.nets.beam_search import Hypothesis
+from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -314,7 +310,10 @@ class MaskCTCInference(torch.nn.Module):
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)
 
-        y_in = torch.zeros(1, len(y_idx), dtype=torch.long) + self.mask_token
+        y_in = (
+            torch.zeros(1, len(y_idx), dtype=torch.long).to(enc_out.device)
+            + self.mask_token
+        )
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
 
         logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))

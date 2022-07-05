@@ -2,31 +2,35 @@
 
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from itertools import permutations
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from tqdm import trange
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.diar import DiarizationTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import humanfriendly_parse_size_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import (
+    humanfriendly_parse_size_or_none,
+    int_or_none,
+    str2bool,
+    str2triple_str,
+    str_or_none,
+)
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class DiarizeSpeech:
@@ -46,18 +50,35 @@ class DiarizeSpeech:
         train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
+        hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,
+        normalize_output_wav: bool = False,
         num_spk: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",
+        enh_s2t_task: bool = False,
+        multiply_diar_result: bool = False,
     ):
         assert check_argument_types()
 
+        task = DiarizationTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build Diar model
-        diar_model, diar_train_args = DiarizationTask.build_model_from_file(
+        diar_model, diar_train_args = task.build_model_from_file(
             train_config, model_file, device
         )
+        if enh_s2t_task:
+            diar_model.inherite_attributes(
+                inherite_s2t_attrs=[
+                    "decoder",
+                    "attractor",
+                ],
+                inherite_enh_attrs=[
+                    "mask_module",
+                ],
+            )
+
         diar_model.to(dtype=getattr(torch, dtype)).eval()
 
         self.device = device
@@ -68,16 +89,33 @@ class DiarizeSpeech:
         # only used when processing long speech, i.e.
         # segment_size is not None and hop_size is not None
         self.segment_size = segment_size
+        self.hop_size = hop_size
         self.normalize_segment_scale = normalize_segment_scale
+        self.normalize_output_wav = normalize_output_wav
         self.show_progressbar = show_progressbar
         # not specifying "num_spk" in inference config file
         # will enable speaker number prediction during inference
         self.num_spk = num_spk
 
-        self.segmenting = segment_size is not None
-        if self.segmenting:
+        # multiply_diar_result corresponds to the "Post-processing"
+        # in https://arxiv.org/pdf/2203.17068.pdf
+        self.multiply_diar_result = multiply_diar_result
+        self.enh_s2t_task = enh_s2t_task
+
+        self.segmenting_diar = segment_size is not None and not enh_s2t_task
+        self.segmenting_enh_diar = (
+            segment_size is not None and hop_size is not None and enh_s2t_task
+        )
+        if self.segmenting_diar:
             logging.info("Perform segment-wise speaker diarization")
             logging.info("Segment length = {} sec".format(segment_size))
+        elif self.segmenting_enh_diar:
+            logging.info("Perform segment-wise speech separation and diarization")
+            logging.info(
+                "Segment length = {} sec, hop length = {} sec".format(
+                    segment_size, hop_size
+                )
+            )
         else:
             logging.info("Perform direct speaker diarization on the input")
 
@@ -112,8 +150,10 @@ class DiarizeSpeech:
         speech = to_device(speech, device=self.device)
         lengths = to_device(lengths, device=self.device)
 
-        if self.segmenting and lengths[0] > self.segment_size * fs:
+        if self.segmenting_diar and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
+            # Note that the segments are processed independently for now
+            # i.e., no speaker tracing is performed
             num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
@@ -136,53 +176,11 @@ class DiarizeSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.diar_model.encode(
-                    speech_seg, lengths_seg
+                encoder_out, encoder_out_lens = self.encode(
+                    speech_seg,
+                    lengths_seg,
                 )
-                # SA-EEND
-                if self.diar_model.attractor is None:
-                    assert (
-                        self.num_spk is not None
-                    ), 'Argument "num_spk" must be specified'
-                    spk_prediction = self.diar_model.decoder(
-                        encoder_out, encoder_out_lens
-                    )
-                # EEND-EDA
-                else:
-                    # if num_spk is specified, use that number
-                    if self.num_spk is not None:
-                        attractor, att_prob = self.diar_model.attractor(
-                            encoder_out,
-                            encoder_out_lens,
-                            torch.zeros(
-                                encoder_out.size(0),
-                                self.num_spk + 1,
-                                encoder_out.size(2),
-                            ),
-                        )
-                        spk_prediction = torch.bmm(
-                            encoder_out,
-                            attractor[:, : self.num_spk, :].permute(0, 2, 1),
-                        )
-                    # else find the first att_prob[i] < 0
-                    else:
-                        max_num_spk = 15  # upper bound number for estimation
-                        attractor, att_prob = self.diar_model.attractor(
-                            encoder_out,
-                            encoder_out_lens,
-                            torch.zeros(
-                                encoder_out.size(0),
-                                max_num_spk + 1,
-                                encoder_out.size(2),
-                            ),
-                        )
-                        att_prob = torch.squeeze(att_prob)
-                        for pred_num_spk in range(len(att_prob)):
-                            if att_prob[pred_num_spk].item() < 0:
-                                break
-                        spk_prediction = torch.bmm(
-                            encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
-                        )
+                spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
                 # List[torch.Tensor(B, T, num_spks)]
                 diarized_wavs.append(spk_prediction)
             # Determine maximum estimated number of speakers among the segments
@@ -195,44 +193,119 @@ class DiarizeSpeech:
                 for x in diarized_wavs
             ]
             spk_prediction = torch.cat(diarized_wavs, dim=1)
+            waves = None
         else:
             # b. Diarization Forward
-            encoder_out, encoder_out_lens = self.diar_model.encode(speech, lengths)
-            # SA-EEND
-            if self.diar_model.attractor is None:
-                assert self.num_spk is not None, 'Argument "num_spk" must be specified'
-                spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
-            # EEND-EDA
-            else:
-                # if num_spk is specified, use that number
-                if self.num_spk is not None:
-                    attractor, att_prob = self.diar_model.attractor(
-                        encoder_out,
-                        encoder_out_lens,
-                        torch.zeros(
-                            encoder_out.size(0), self.num_spk + 1, encoder_out.size(2)
-                        ),
+            encoder_out, encoder_out_lens = self.encode(speech, lengths)
+            spk_prediction, num_spk = self.decode(encoder_out, encoder_out_lens)
+            if self.enh_s2t_task:
+                # Segment-wise speech separation
+                # Note that this is done after diarization using the whole sequence
+                if self.segmenting_enh_diar and lengths[0] > self.segment_size * fs:
+                    overlap_length = int(
+                        np.round(fs * (self.segment_size - self.hop_size))
                     )
-                    spk_prediction = torch.bmm(
-                        encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1)
+                    num_segments = int(
+                        np.ceil(
+                            (speech.size(1) - overlap_length) / (self.hop_size * fs)
+                        )
                     )
-                # else find the first att_prob[i] < 0
+                    t = T = int(self.segment_size * fs)
+                    pad_shape = speech[:, :T].shape
+                    enh_waves = []
+                    range_ = trange if self.show_progressbar else range
+                    for i in range_(num_segments):
+                        st = int(i * self.hop_size * fs)
+                        en = st + T
+                        if en >= lengths[0]:
+                            # en - st < T (last segment)
+                            en = lengths[0]
+                            speech_seg = speech.new_zeros(pad_shape)
+                            t = en - st
+                            speech_seg[:, :t] = speech[:, st:en]
+                        else:
+                            t = T
+                            speech_seg = speech[:, st:en]  # B x T [x C]
+
+                        lengths_seg = speech.new_full(
+                            [batch_size], dtype=torch.long, fill_value=T
+                        )
+                        # Separation Forward
+                        _, _, processed_wav = self.diar_model.encode_diar(
+                            speech_seg, lengths_seg, num_spk
+                        )
+                        if self.normalize_segment_scale:
+                            # normalize the scale to match the input mixture scale
+                            mix_energy = torch.sqrt(
+                                torch.mean(
+                                    speech_seg[:, :t].pow(2), dim=1, keepdim=True
+                                )
+                            )
+                            enh_energy = torch.sqrt(
+                                torch.mean(
+                                    sum(processed_wav)[:, :t].pow(2),
+                                    dim=1,
+                                    keepdim=True,
+                                )
+                            )
+                            processed_wav = [
+                                w * (mix_energy / enh_energy) for w in processed_wav
+                            ]
+                        # List[torch.Tensor(num_spk, B, T)]
+                        enh_waves.append(torch.stack(processed_wav, dim=0))
+
+                    # c. Stitch the enhanced segments together
+                    waves = enh_waves[0]
+                    for i in range(1, num_segments):
+                        # permutation between separated streams
+                        # in last and current segments
+                        perm = self.cal_permumation(
+                            waves[:, :, -overlap_length:],
+                            enh_waves[i][:, :, :overlap_length],
+                            criterion="si_snr",
+                        )
+                        # repermute separated streams in current segment
+                        for batch in range(batch_size):
+                            enh_waves[i][:, batch] = enh_waves[i][perm[batch], batch]
+
+                        if i == num_segments - 1:
+                            enh_waves[i][:, :, t:] = 0
+                            enh_waves_res_i = enh_waves[i][:, :, overlap_length:t]
+                        else:
+                            enh_waves_res_i = enh_waves[i][:, :, overlap_length:]
+
+                        # overlap-and-add (average over the overlapped part)
+                        waves[:, :, -overlap_length:] = (
+                            waves[:, :, -overlap_length:]
+                            + enh_waves[i][:, :, :overlap_length]
+                        ) / 2
+                        # concatenate the residual parts of the later segment
+                        waves = torch.cat([waves, enh_waves_res_i], dim=2)
+                    # ensure the stitched length is same as input
+                    assert waves.size(2) == speech.size(1), (waves.shape, speech.shape)
+                    waves = torch.unbind(waves, dim=0)
                 else:
-                    max_num_spk = 15  # upper bound number for estimation
-                    attractor, att_prob = self.diar_model.attractor(
-                        encoder_out,
-                        encoder_out_lens,
-                        torch.zeros(
-                            encoder_out.size(0), max_num_spk + 1, encoder_out.size(2)
-                        ),
+                    # Separation Forward using the whole signal
+                    _, _, waves = self.diar_model.encode_diar(speech, lengths, num_spk)
+                # multiply diarization result and separation result
+                # by calculating the correlation
+                if self.multiply_diar_result:
+                    spk_prediction, interp_prediction, _ = self.permute_diar(
+                        waves, spk_prediction
                     )
-                    att_prob = torch.squeeze(att_prob)
-                    for pred_num_spk in range(len(att_prob)):
-                        if att_prob[pred_num_spk].item() < 0:
-                            break
-                    spk_prediction = torch.bmm(
-                        encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
-                    )
+                    waves = [
+                        waves[i] * interp_prediction[:, :, i] for i in range(num_spk)
+                    ]
+                if self.normalize_output_wav:
+                    waves = [
+                        (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).cpu().numpy()
+                        for w in waves
+                    ]  # list[(batch, sample)]
+                else:
+                    waves = [w.cpu().numpy() for w in waves]
+            else:
+                waves = None
+
         if self.num_spk is not None:
             assert spk_prediction.size(2) == self.num_spk, (
                 spk_prediction.size(2),
@@ -245,7 +318,27 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return spk_prediction
+        return waves, spk_prediction if self.enh_s2t_task else spk_prediction
+
+    @torch.no_grad()
+    def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
+        """Calculate the permutation between seaprated streams in two adjacent segments.
+
+        Args:
+            ref_wavs (List[torch.Tensor]): [(Batch, Nsamples)]
+            enh_wavs (List[torch.Tensor]): [(Batch, Nsamples)]
+            criterion (str): one of ("si_snr", "mse", "corr)
+        Returns:
+            perm (torch.Tensor): permutation for enh_wavs (Batch, num_spk)
+        """
+
+        criterion_class = {"si_snr": SISNRLoss, "mse": FrequencyDomainMSE}[criterion]
+
+        pit_solver = PITSolver(criterion=criterion_class())
+
+        _, _, others = pit_solver(ref_wavs, enh_wavs)
+        perm = others["perm"]
+        return perm
 
     @staticmethod
     def from_pretrained(
@@ -277,6 +370,97 @@ class DiarizeSpeech:
 
         return DiarizeSpeech(**kwargs)
 
+    def permute_diar(self, waves, spk_prediction):
+        # Permute the diarization result using the correlation
+        # between wav and spk_prediction
+        # FIXME(YushiUeda): batch_size > 1 is not considered
+        num_spk = len(waves)
+        permute_list = [np.array(p) for p in permutations(range(num_spk))]
+        corr_list = []
+        interp_prediction = F.interpolate(
+            torch.sigmoid(spk_prediction).transpose(1, 2),
+            size=waves[0].size(1),
+            mode="linear",
+        ).transpose(1, 2)
+        for p in permute_list:
+            diar_perm = interp_prediction[:, :, p]
+            corr_perm = [0]
+            for q in range(num_spk):
+                corr_perm += np.corrcoef(
+                    torch.squeeze(abs(waves[q])).cpu().numpy(),
+                    torch.squeeze(diar_perm[:, :, q]).cpu().numpy(),
+                )[0, 1]
+            corr_list.append(corr_perm)
+        max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)), dim=0)
+        return (
+            spk_prediction[:, :, permute_list[max_idx]],
+            interp_prediction[:, :, permute_list[max_idx]],
+            permute_list[max_idx],
+        )
+
+    def encode(self, speech, lengths):
+        if self.enh_s2t_task:
+            encoder_out, encoder_out_lens, _ = self.diar_model.encode_diar(
+                speech, lengths, self.num_spk
+            )
+        else:
+            bottleneck_feats = bottleneck_feats_lengths = None
+            encoder_out, encoder_out_lens = self.diar_model.encode(
+                speech, lengths, bottleneck_feats, bottleneck_feats_lengths
+            )
+        return encoder_out, encoder_out_lens
+
+    def decode(self, encoder_out, encoder_out_lens):
+        # SA-EEND
+        if self.diar_model.attractor is None:
+            assert self.num_spk is not None, 'Argument "num_spk" must be specified'
+            spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
+            num_spk = self.num_spk
+        # EEND-EDA
+        else:
+            # if num_spk is specified, use that number
+            if self.num_spk is not None:
+                attractor, att_prob = self.diar_model.attractor(
+                    encoder_out,
+                    encoder_out_lens,
+                    to_device(
+                        torch.zeros(
+                            encoder_out.size(0),
+                            self.num_spk + 1,
+                            encoder_out.size(2),
+                        ),
+                        device=self.device,
+                    ),
+                )
+                spk_prediction = torch.bmm(
+                    encoder_out,
+                    attractor[:, : self.num_spk, :].permute(0, 2, 1),
+                )
+                num_spk = self.num_spk
+            # else find the first att_prob[i] < 0
+            else:
+                max_num_spk = 15  # upper bound number for estimation
+                attractor, att_prob = self.diar_model.attractor(
+                    encoder_out,
+                    encoder_out_lens,
+                    to_device(
+                        torch.zeros(
+                            encoder_out.size(0),
+                            max_num_spk + 1,
+                            encoder_out.size(2),
+                        ),
+                        device=self.device,
+                    ),
+                )
+                att_prob = torch.squeeze(att_prob)
+                for num_spk in range(len(att_prob)):
+                    if att_prob[num_spk].item() < 0:
+                        break
+                spk_prediction = torch.bmm(
+                    encoder_out, attractor[:, :num_spk, :].permute(0, 2, 1)
+                )
+        return spk_prediction, num_spk
+
 
 def inference(
     output_dir: str,
@@ -294,8 +478,13 @@ def inference(
     model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
+    hop_size: Optional[float],
+    normalize_segment_scale: bool,
     show_progressbar: bool,
     num_spk: Optional[int],
+    normalize_output_wav: bool,
+    multiply_diar_result: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -321,10 +510,15 @@ def inference(
         train_config=train_config,
         model_file=model_file,
         segment_size=segment_size,
+        hop_size=hop_size,
+        normalize_segment_scale=normalize_segment_scale,
         show_progressbar=show_progressbar,
+        normalize_output_wav=normalize_output_wav,
         num_spk=num_spk,
         device=device,
         dtype=dtype,
+        multiply_diar_result=multiply_diar_result,
+        enh_s2t_task=enh_s2t_task,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
         model_tag=model_tag,
@@ -351,6 +545,23 @@ def inference(
     # 4. Start for-loop
     writer = NpyScpWriter(f"{output_dir}/predictions", f"{output_dir}/diarize.scp")
 
+    if enh_s2t_task:
+        wav_writers = []
+        if diarize_speech.num_spk is not None:
+            for i in range(diarize_speech.num_spk):
+                wav_writers.append(
+                    SoundScpWriter(
+                        f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp"
+                    )
+                )
+        else:
+            for i in range(diarize_speech.diar_model.mask_module.max_num_spk):
+                wav_writers.append(
+                    SoundScpWriter(
+                        f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp"
+                    )
+                )
+
     for keys, batch in loader:
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
@@ -358,10 +569,20 @@ def inference(
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
-        spk_predictions = diarize_speech(**batch)
-        for b in range(batch_size):
-            writer[keys[b]] = spk_predictions[b]
+        if enh_s2t_task:
+            waves, spk_predictions = diarize_speech(**batch)
+            for b in range(batch_size):
+                writer[keys[b]] = spk_predictions[b]
+                for (spk, w) in enumerate(waves):
+                    wav_writers[spk][keys[b]] = fs, w[b]
+        else:
+            spk_predictions = diarize_speech(**batch)
+            for b in range(batch_size):
+                writer[keys[b]] = spk_predictions[b]
 
+    if enh_s2t_task:
+        for w in wav_writers:
+            w.close()
     writer.close()
 
 
@@ -451,6 +672,12 @@ def get_parser():
         help="Segment length in seconds for segment-wise speaker diarization",
     )
     group.add_argument(
+        "--hop_size",
+        type=float,
+        default=None,
+        help="Hop length in seconds for segment-wise speech enhancement/separation",
+    )
+    group.add_argument(
         "--show_progressbar",
         type=str2bool,
         default=False,
@@ -462,6 +689,32 @@ def get_parser():
         type=int_or_none,
         default=None,
         help="Predetermined number of speakers for inference",
+    )
+
+    group = parser.add_argument_group("Enh + Diar related")
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and diarization joint model",
+    )
+    group.add_argument(
+        "--normalize_segment_scale",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the energy of the separated streams in each segment",
+    )
+    group.add_argument(
+        "--normalize_output_wav",
+        type=str2bool,
+        default=False,
+        help="Whether to normalize the predicted wav to [-1~1]",
+    )
+    group.add_argument(
+        "--multiply_diar_result",
+        type=str2bool,
+        default=False,
+        help="Whether to multiply diar results to separated waves",
     )
 
     return parser

@@ -11,8 +11,8 @@
 
 """Hubert Pretrain Loss module."""
 
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class HubertPretrainLoss(nn.Module):

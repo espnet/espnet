@@ -2,16 +2,15 @@
 import argparse
 import logging
 import os
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
 import sys
 import uuid
+from pathlib import Path
 
+from espnet2.utils.types import str2bool, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
 
 
 def get_parser():

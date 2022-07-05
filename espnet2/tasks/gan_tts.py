@@ -5,29 +5,21 @@
 
 import argparse
 import logging
-
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
+from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.tasks.abs_task import AbsTask
-from espnet2.tasks.abs_task import optim_classes
+from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -41,9 +33,7 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
@@ -70,6 +60,7 @@ tts_choices = ClassChoices(
     classes=dict(
         vits=VITS,
         joint_text2wav=JointText2Wav,
+        jets=JETS,
     ),
     type_check=AbsGANTTS,
     default="vits",

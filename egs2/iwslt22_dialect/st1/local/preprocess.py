@@ -5,11 +5,11 @@
    TBD
 """
 
-import re
-import os
-import sys
 import argparse
 import itertools
+import os
+import re
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

@@ -9,42 +9,48 @@ import json
 import logging
 import math
 import os
-from packaging.version import parse as V
 
+import numpy as np
+import torch
+import torch.distributed as dist
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
-import numpy as np
-import torch
+from packaging.version import parse as V
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.nn.parallel import data_parallel
+from torch.utils.data.distributed import DistributedSampler
 
-from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import format_mulenc_args
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import plot_spectrogram
-from espnet.asr.asr_utils import restore_snapshot
-from espnet.asr.asr_utils import snapshot_object
-from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr_init import freeze_modules
-from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.asr.asr_utils import (
+    CompareValueTrigger,
+    adadelta_eps_decay,
+    add_results_to_json,
+    format_mulenc_args,
+    get_model_conf,
+    plot_spectrogram,
+    restore_snapshot,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.asr.pytorch_backend.asr_init import (
+    freeze_modules,
+    load_trained_model,
+    load_trained_modules,
+)
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
-from espnet.utils.dataset import ChainerDataLoader
-from espnet.utils.dataset import TransformDataset
+from espnet.utils.dataset import ChainerDataLoader, Transform, TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -52,8 +58,7 @@ from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
 
 def _recursive_to(xs, device):
@@ -62,6 +67,65 @@ def _recursive_to(xs, device):
     if isinstance(xs, tuple):
         return tuple(_recursive_to(x, device) for x in xs)
     return xs
+
+
+class DistributedDictSummary:
+    """Distributed version of DictSummary.
+
+    This implementation is based on an official implementation below.
+    https://github.com/chainer/chainer/blob/v6.7.0/chainer/reporter.py
+
+    To gather stats information from all processes and calculate exact mean values,
+    this class is running AllReduce operation in compute_mean().
+    """
+
+    def __init__(self, device=None):
+        self._local_summary = reporter_module.DictSummary()
+        self._summary_names = None
+        self._device = device
+
+    def add(self, d):
+        if self._summary_names is None:
+            # This assumes that `d` always includes the same name list,
+            # and the name list is identical accross all processes.
+            self._summary_names = frozenset(d.keys())
+        return self._local_summary.add(d)
+
+    def compute_mean(self):
+        # Even if `self._local_summary` doesn't have a few keys
+        # due to invalid observations like NaN, zero, etc,
+        # `raw_values` can properly these entries
+        # thanks to zero as an initial value.
+        raw_values = {name: [0.0, 0] for name in self._summary_names}
+        for name, summary in self._local_summary._summaries.items():
+            raw_values[name][0] += summary._x
+            raw_values[name][1] += summary._n
+
+        sum_list = []
+        count_list = []
+        for name in sorted(self._summary_names):
+            sum_list.append(raw_values[name][0])
+            count_list.append(raw_values[name][1])
+        sum_tensor = torch.tensor(sum_list, device=self._device)
+        count_tensor = torch.tensor(count_list, device=self._device)
+
+        # AllReduce both of sum and count in parallel.
+        sum_handle = dist.all_reduce(sum_tensor, async_op=True)
+        count_handle = dist.all_reduce(count_tensor, async_op=True)
+        sum_handle.wait()
+        count_handle.wait()
+
+        # Once both ops are enqueued, putting an op to calculate actual average value.
+        mean_tensor = sum_tensor / count_tensor
+        result_dict = {}
+        for idx, name in enumerate(sorted(self._summary_names)):
+            if name not in self._local_summary._summaries:
+                # If an entry with a target name doesn't exist in `self._local_summary`,
+                # this entry must be removed from `result_dict`.
+                # This behavior is the same with original DictSummary.
+                continue
+            result_dict[name] = mean_tensor[idx].item()
+        return result_dict
 
 
 class CustomEvaluator(BaseEvaluator):
@@ -77,10 +141,11 @@ class CustomEvaluator(BaseEvaluator):
 
         device (torch.device): The device used.
         ngpu (int): The number of GPUs.
+        use_ddp (bool): The flag to use DDP.
 
     """
 
-    def __init__(self, model, iterator, target, device, ngpu=None):
+    def __init__(self, model, iterator, target, device, ngpu=None, use_ddp=False):
         super(CustomEvaluator, self).__init__(iterator, target)
         self.model = model
         self.device = device
@@ -90,6 +155,7 @@ class CustomEvaluator(BaseEvaluator):
             self.ngpu = 0
         else:
             self.ngpu = 1
+        self.use_ddp = use_ddp
 
     # The core part of the update routine can be customized by overriding
     def evaluate(self):
@@ -105,7 +171,10 @@ class CustomEvaluator(BaseEvaluator):
         else:
             it = copy.copy(iterator)
 
-        summary = reporter_module.DictSummary()
+        if self.use_ddp:
+            summary = DistributedDictSummary(self.device)
+        else:
+            summary = reporter_module.DictSummary()
 
         self.model.eval()
         with torch.no_grad():
@@ -116,7 +185,7 @@ class CustomEvaluator(BaseEvaluator):
                     # read scp files
                     # x: original json with loaded features
                     #    will be converted to chainer variable later
-                    if self.ngpu == 0:
+                    if self.ngpu == 0 or self.use_ddp:
                         self.model(*x)
                     else:
                         # apex does not support torch.nn.DataParallel
@@ -140,6 +209,7 @@ class CustomUpdater(StandardUpdater):
         device (torch.device): The device to use.
         ngpu (int): The number of gpus to use.
         use_apex (bool): The flag to use Apex in backprop.
+        use_ddp (bool): The flag to use DDP for multi-GPU training.
 
     """
 
@@ -154,6 +224,7 @@ class CustomUpdater(StandardUpdater):
         grad_noise=False,
         accum_grad=1,
         use_apex=False,
+        use_ddp=False,
     ):
         super(CustomUpdater, self).__init__(train_iter, optimizer)
         self.model = model
@@ -165,6 +236,7 @@ class CustomUpdater(StandardUpdater):
         self.grad_noise = grad_noise
         self.iteration = 0
         self.use_apex = use_apex
+        self.use_ddp = use_ddp
 
     # The core part of the update routine can be customized by overriding.
     def update_core(self):
@@ -187,7 +259,7 @@ class CustomUpdater(StandardUpdater):
         # see details in https://github.com/espnet/espnet/pull/1388
 
         # Compute the loss at this time step and accumulate it
-        if self.ngpu == 0:
+        if self.ngpu == 0 or self.use_ddp:
             loss = self.model(*x).mean() / self.accum_grad
         else:
             # apex does not support torch.nn.DataParallel
@@ -220,6 +292,11 @@ class CustomUpdater(StandardUpdater):
         grad_norm = torch.nn.utils.clip_grad_norm_(
             self.model.parameters(), self.grad_clip_threshold
         )
+        if self.use_ddp:
+            # NOTE: assuming gradients have not been reduced yet here.
+            # Try to gather the norm of gradients from all workers,
+            # and calculate average grad norm.
+            dist.all_reduce(grad_norm)
         logging.info("grad norm={}".format(grad_norm))
         if math.isnan(grad_norm):
             logging.warning("grad norm is nan. Do not update model.")
@@ -374,6 +451,10 @@ class CustomConverterMulEnc(object):
         return xs_list_pad, ilens_list, ys_pad
 
 
+def is_writable_process(args, worldsize, rank, localrank):
+    return not args.use_ddp or rank == 0
+
+
 def train(args):
     """Train with the given args.
 
@@ -381,6 +462,40 @@ def train(args):
         args (namespace): The program arguments.
 
     """
+    if args.use_ddp:
+        # initialize distributed environment.
+        # NOTE: current implementation supports
+        # only single-node training.
+
+        # get process information.
+        worldsize = os.environ.get("WORLD_SIZE", None)
+        assert worldsize is not None
+        worldsize = int(worldsize)
+        assert worldsize == args.ngpu
+
+        rank = os.environ.get("RANK", None)
+        assert rank is not None
+        rank = int(rank)
+
+        localrank = os.environ.get("LOCAL_RANK", None)
+        assert localrank is not None
+        localrank = int(localrank)
+
+        dist.init_process_group(
+            backend="nccl",
+            init_method="env://",
+            rank=rank,
+            world_size=worldsize,
+        )
+
+        if rank != 0:
+            # Disable all logs in non-master process.
+            logging.disable()
+    else:
+        worldsize = 1
+        rank = 0
+        localrank = 0
+
     set_deterministic_pytorch(args)
     if args.num_encs > 1:
         args = format_mulenc_args(args)
@@ -444,41 +559,56 @@ def train(args):
         torch_load(args.rnnlm, rnnlm)
         model.rnnlm = rnnlm
 
-    # write model config
-    if not os.path.exists(args.outdir):
-        os.makedirs(args.outdir)
-    model_conf = args.outdir + "/model.json"
-    with open(model_conf, "wb") as f:
-        logging.info("writing a model config file to " + model_conf)
-        f.write(
-            json.dumps(
-                (idim_list[0] if args.num_encs == 1 else idim_list, odim, vars(args)),
-                indent=4,
-                ensure_ascii=False,
-                sort_keys=True,
-            ).encode("utf_8")
-        )
+    if is_writable_process(args, worldsize, rank, localrank):
+        # write model config
+        if not os.path.exists(args.outdir):
+            os.makedirs(args.outdir)
+        model_conf = args.outdir + "/model.json"
+        with open(model_conf, "wb") as f:
+            logging.info("writing a model config file to " + model_conf)
+            f.write(
+                json.dumps(
+                    (
+                        idim_list[0] if args.num_encs == 1 else idim_list,
+                        odim,
+                        vars(args),
+                    ),
+                    indent=4,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ).encode("utf_8")
+            )
     for key in sorted(vars(args).keys()):
         logging.info("ARGS: " + key + ": " + str(vars(args)[key]))
 
     reporter = model.reporter
 
-    # check the use of multi-gpu
-    if args.ngpu > 1:
-        if args.batch_size != 0:
-            logging.warning(
-                "batch size is automatically increased (%d -> %d)"
-                % (args.batch_size, args.batch_size * args.ngpu)
-            )
-            args.batch_size *= args.ngpu
+    if args.use_ddp:
         if args.num_encs > 1:
             # TODO(ruizhili): implement data parallel for multi-encoder setup.
             raise NotImplementedError(
                 "Data parallel is not supported for multi-encoder setup."
             )
+    else:
+        # check the use of multi-gpu
+        if args.ngpu > 1:
+            if args.batch_size != 0:
+                logging.warning(
+                    "batch size is automatically increased (%d -> %d)"
+                    % (args.batch_size, args.batch_size * args.ngpu)
+                )
+                args.batch_size *= args.ngpu
+            if args.num_encs > 1:
+                # TODO(ruizhili): implement data parallel for multi-encoder setup.
+                raise NotImplementedError(
+                    "Data parallel is not supported for multi-encoder setup."
+                )
 
     # set torch device
-    device = torch.device("cuda" if args.ngpu > 0 else "cpu")
+    if args.use_ddp:
+        device = torch.device(f"cuda:{localrank}")
+    else:
+        device = torch.device("cuda" if args.ngpu > 0 else "cpu")
     if args.train_dtype in ("float16", "float32", "float64"):
         dtype = getattr(torch, args.train_dtype)
     else:
@@ -578,13 +708,18 @@ def train(args):
 
     use_sortagrad = args.sortagrad == -1 or args.sortagrad > 0
     # make minibatch list (variable length)
+    if args.use_ddp:
+        # When using DDP, minimum batch size for each process is 1.
+        min_batch_size = 1
+    else:
+        min_batch_size = args.ngpu if args.ngpu > 1 else 1
     train = make_batchset(
         train_json,
         args.batch_size,
         args.maxlen_in,
         args.maxlen_out,
         args.minibatches,
-        min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+        min_batch_size=min_batch_size,
         shortest_first=use_sortagrad,
         count=args.batch_count,
         batch_bins=args.batch_bins,
@@ -600,7 +735,7 @@ def train(args):
         args.maxlen_in,
         args.maxlen_out,
         args.minibatches,
-        min_batch_size=args.ngpu if args.ngpu > 1 else 1,
+        min_batch_size=min_batch_size,
         count=args.batch_count,
         batch_bins=args.batch_bins,
         batch_frames_in=args.batch_frames_in,
@@ -626,22 +761,36 @@ def train(args):
     # actual bathsize is included in a list
     # default collate function converts numpy array to pytorch tensor
     # we used an empty collate function instead which returns list
+    train_ds = TransformDataset(train, Transform(converter, load_tr))
+    val_ds = TransformDataset(valid, Transform(converter, load_cv))
+    train_sampler = None
+    val_sampler = None
+    shuffle = not use_sortagrad
+    if args.use_ddp:
+        train_sampler = DistributedSampler(train_ds)
+        val_sampler = DistributedSampler(val_ds)
+        shuffle = False
+
     train_iter = ChainerDataLoader(
-        dataset=TransformDataset(train, lambda data: converter([load_tr(data)])),
+        dataset=train_ds,
         batch_size=1,
         num_workers=args.n_iter_processes,
-        shuffle=not use_sortagrad,
-        collate_fn=lambda x: x[0],
+        shuffle=shuffle,
+        sampler=train_sampler,
+        collate_fn=ChainerDataLoader.get_first_element,
     )
     valid_iter = ChainerDataLoader(
-        dataset=TransformDataset(valid, lambda data: converter([load_cv(data)])),
+        dataset=val_ds,
         batch_size=1,
         shuffle=False,
-        collate_fn=lambda x: x[0],
+        sampler=val_sampler,
+        collate_fn=ChainerDataLoader.get_first_element,
         num_workers=args.n_iter_processes,
     )
 
     # Set up a trainer
+    if args.use_ddp:
+        model = DDP(model, device_ids=[localrank])
     updater = CustomUpdater(
         model,
         args.grad_clip,
@@ -652,8 +801,29 @@ def train(args):
         args.grad_noise,
         args.accum_grad,
         use_apex=use_apex,
+        use_ddp=args.use_ddp,
     )
     trainer = training.Trainer(updater, (args.epochs, "epoch"), out=args.outdir)
+
+    # call DistributedSampler.set_epoch at begining of each epoch.
+    if args.use_ddp:
+
+        @training.make_extension(trigger=(1, "epoch"))
+        def set_epoch_to_distributed_sampler(trainer):
+            # NOTE: at the first time when this fuction is called,
+            # `sampler.epoch` should be 0, and a given trainer object
+            # has 1 as a `trainer.updater.epoch`.
+            # This means that, in the first epoch,
+            # dataset is shuffled with random seed and a value 0,
+            # and, in the second epoch, dataset is shuffled
+            # with the same random seed and a value 1.
+            #
+            # See a link below for more details.
+            # https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler
+            train_sampler.set_epoch(trainer.updater.epoch)
+            val_sampler.set_epoch(trainer.updater.epoch)
+
+        trainer.extend(set_epoch_to_distributed_sampler)
 
     if use_sortagrad:
         trainer.extend(
@@ -669,183 +839,195 @@ def train(args):
     # Evaluate the model with the test dataset for each epoch
     if args.save_interval_iters > 0:
         trainer.extend(
-            CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu),
+            CustomEvaluator(
+                model, {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp
+            ),
             trigger=(args.save_interval_iters, "iteration"),
         )
     else:
         trainer.extend(
-            CustomEvaluator(model, {"main": valid_iter}, reporter, device, args.ngpu)
-        )
-
-    # Save attention weight each epoch
-    is_attn_plot = (
-        "transformer" in args.model_module
-        or "conformer" in args.model_module
-        or mtl_mode in ["att", "mtl", "custom_transducer"]
-    )
-
-    if args.num_save_attention > 0 and is_attn_plot:
-        data = sorted(
-            list(valid_json.items())[: args.num_save_attention],
-            key=lambda x: int(x[1]["input"][0]["shape"][1]),
-            reverse=True,
-        )
-        if hasattr(model, "module"):
-            att_vis_fn = model.module.calculate_all_attentions
-            plot_class = model.module.attention_plot_class
-        else:
-            att_vis_fn = model.calculate_all_attentions
-            plot_class = model.attention_plot_class
-        att_reporter = plot_class(
-            att_vis_fn,
-            data,
-            args.outdir + "/att_ws",
-            converter=converter,
-            transform=load_cv,
-            device=device,
-            subsampling_factor=total_subsampling_factor,
-        )
-        trainer.extend(att_reporter, trigger=(1, "epoch"))
-    else:
-        att_reporter = None
-
-    # Save CTC prob at each epoch
-    if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
-        # NOTE: sort it by output lengths
-        data = sorted(
-            list(valid_json.items())[: args.num_save_ctc],
-            key=lambda x: int(x[1]["output"][0]["shape"][0]),
-            reverse=True,
-        )
-        if hasattr(model, "module"):
-            ctc_vis_fn = model.module.calculate_all_ctc_probs
-            plot_class = model.module.ctc_plot_class
-        else:
-            ctc_vis_fn = model.calculate_all_ctc_probs
-            plot_class = model.ctc_plot_class
-        ctc_reporter = plot_class(
-            ctc_vis_fn,
-            data,
-            args.outdir + "/ctc_prob",
-            converter=converter,
-            transform=load_cv,
-            device=device,
-            subsampling_factor=total_subsampling_factor,
-        )
-        trainer.extend(ctc_reporter, trigger=(1, "epoch"))
-    else:
-        ctc_reporter = None
-
-    # Make a plot for training and validation values
-    if args.num_encs > 1:
-        report_keys_loss_ctc = [
-            "main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)
-        ] + ["validation/main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)]
-        report_keys_cer_ctc = [
-            "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
-        ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
-
-    if hasattr(model, "is_transducer"):
-        trans_keys = [
-            "main/loss",
-            "validation/main/loss",
-            "main/loss_trans",
-            "validation/main/loss_trans",
-        ]
-
-        ctc_keys = (
-            ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
-        )
-
-        aux_trans_keys = (
-            [
-                "main/loss_aux_trans",
-                "validation/main/loss_aux_trans",
-            ]
-            if args.use_aux_transducer_loss
-            else []
-        )
-
-        symm_kl_div_keys = (
-            [
-                "main/loss_symm_kl_div",
-                "validation/main/loss_symm_kl_div",
-            ]
-            if args.use_symm_kl_div_loss
-            else []
-        )
-
-        lm_keys = (
-            [
-                "main/loss_lm",
-                "validation/main/loss_lm",
-            ]
-            if args.use_lm_loss
-            else []
-        )
-
-        transducer_keys = (
-            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
-        )
-
-        trainer.extend(
-            extensions.PlotReport(
-                transducer_keys,
-                "epoch",
-                file_name="loss.png",
+            CustomEvaluator(
+                model, {"main": valid_iter}, reporter, device, args.ngpu, args.use_ddp
             )
         )
-    else:
+
+    if is_writable_process(args, worldsize, rank, localrank):
+        # Save attention weight each epoch
+        is_attn_plot = (
+            "transformer" in args.model_module
+            or "conformer" in args.model_module
+            or mtl_mode in ["att", "mtl", "custom_transducer"]
+        )
+
+        if args.num_save_attention > 0 and is_attn_plot:
+            data = sorted(
+                list(valid_json.items())[: args.num_save_attention],
+                key=lambda x: int(x[1]["input"][0]["shape"][1]),
+                reverse=True,
+            )
+            if hasattr(model, "module"):
+                att_vis_fn = model.module.calculate_all_attentions
+                plot_class = model.module.attention_plot_class
+            else:
+                att_vis_fn = model.calculate_all_attentions
+                plot_class = model.attention_plot_class
+            att_reporter = plot_class(
+                att_vis_fn,
+                data,
+                args.outdir + "/att_ws",
+                converter=converter,
+                transform=load_cv,
+                device=device,
+                subsampling_factor=total_subsampling_factor,
+            )
+            trainer.extend(att_reporter, trigger=(1, "epoch"))
+        else:
+            att_reporter = None
+
+        # Save CTC prob at each epoch
+        if mtl_mode in ["ctc", "mtl"] and args.num_save_ctc > 0:
+            # NOTE: sort it by output lengths
+            data = sorted(
+                list(valid_json.items())[: args.num_save_ctc],
+                key=lambda x: int(x[1]["output"][0]["shape"][0]),
+                reverse=True,
+            )
+            if hasattr(model, "module"):
+                ctc_vis_fn = model.module.calculate_all_ctc_probs
+                plot_class = model.module.ctc_plot_class
+            else:
+                ctc_vis_fn = model.calculate_all_ctc_probs
+                plot_class = model.ctc_plot_class
+            ctc_reporter = plot_class(
+                ctc_vis_fn,
+                data,
+                args.outdir + "/ctc_prob",
+                converter=converter,
+                transform=load_cv,
+                device=device,
+                subsampling_factor=total_subsampling_factor,
+            )
+            trainer.extend(ctc_reporter, trigger=(1, "epoch"))
+        else:
+            ctc_reporter = None
+
+        # Make a plot for training and validation values
+        if args.num_encs > 1:
+            report_keys_loss_ctc = [
+                "main/loss_ctc{}".format(i + 1) for i in range(model.num_encs)
+            ] + [
+                "validation/main/loss_ctc{}".format(i + 1)
+                for i in range(model.num_encs)
+            ]
+            report_keys_cer_ctc = [
+                "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
+            ] + [
+                "validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
+            ]
+
+        if hasattr(model, "is_transducer"):
+            trans_keys = [
+                "main/loss",
+                "validation/main/loss",
+                "main/loss_trans",
+                "validation/main/loss_trans",
+            ]
+
+            ctc_keys = (
+                ["main/loss_ctc", "validation/main/loss_ctc"]
+                if args.use_ctc_loss
+                else []
+            )
+
+            aux_trans_keys = (
+                [
+                    "main/loss_aux_trans",
+                    "validation/main/loss_aux_trans",
+                ]
+                if args.use_aux_transducer_loss
+                else []
+            )
+
+            symm_kl_div_keys = (
+                [
+                    "main/loss_symm_kl_div",
+                    "validation/main/loss_symm_kl_div",
+                ]
+                if args.use_symm_kl_div_loss
+                else []
+            )
+
+            lm_keys = (
+                [
+                    "main/loss_lm",
+                    "validation/main/loss_lm",
+                ]
+                if args.use_lm_loss
+                else []
+            )
+
+            transducer_keys = (
+                trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+            )
+
+            trainer.extend(
+                extensions.PlotReport(
+                    transducer_keys,
+                    "epoch",
+                    file_name="loss.png",
+                )
+            )
+        else:
+            trainer.extend(
+                extensions.PlotReport(
+                    [
+                        "main/loss",
+                        "validation/main/loss",
+                        "main/loss_ctc",
+                        "validation/main/loss_ctc",
+                        "main/loss_att",
+                        "validation/main/loss_att",
+                    ]
+                    + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+                    "epoch",
+                    file_name="loss.png",
+                )
+            )
+
         trainer.extend(
             extensions.PlotReport(
-                [
-                    "main/loss",
-                    "validation/main/loss",
-                    "main/loss_ctc",
-                    "validation/main/loss_ctc",
-                    "main/loss_att",
-                    "validation/main/loss_att",
-                ]
+                ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
+            )
+        )
+        trainer.extend(
+            extensions.PlotReport(
+                ["main/cer_ctc", "validation/main/cer_ctc"]
                 + ([] if args.num_encs == 1 else report_keys_loss_ctc),
                 "epoch",
-                file_name="loss.png",
+                file_name="cer.png",
             )
         )
 
-    trainer.extend(
-        extensions.PlotReport(
-            ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
-        )
-    )
-    trainer.extend(
-        extensions.PlotReport(
-            ["main/cer_ctc", "validation/main/cer_ctc"]
-            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
-            "epoch",
-            file_name="cer.png",
-        )
-    )
-
-    # Save best models
-    trainer.extend(
-        snapshot_object(model, "model.loss.best"),
-        trigger=training.triggers.MinValueTrigger("validation/main/loss"),
-    )
-    if mtl_mode not in ["ctc", "transducer", "custom_transducer"]:
+        # Save best models
         trainer.extend(
-            snapshot_object(model, "model.acc.best"),
-            trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
+            snapshot_object(model, "model.loss.best"),
+            trigger=training.triggers.MinValueTrigger("validation/main/loss"),
         )
+        if mtl_mode not in ["ctc", "transducer", "custom_transducer"]:
+            trainer.extend(
+                snapshot_object(model, "model.acc.best"),
+                trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
+            )
 
-    # save snapshot which contains model and optimizer states
-    if args.save_interval_iters > 0:
-        trainer.extend(
-            torch_snapshot(filename="snapshot.iter.{.updater.iteration}"),
-            trigger=(args.save_interval_iters, "iteration"),
-        )
+        # save snapshot which contains model and optimizer states
+        if args.save_interval_iters > 0:
+            trainer.extend(
+                torch_snapshot(filename="snapshot.iter.{.updater.iteration}"),
+                trigger=(args.save_interval_iters, "iteration"),
+            )
 
-    # save snapshot at every epoch - for model averaging
-    trainer.extend(torch_snapshot(), trigger=(1, "epoch"))
+        # save snapshot at every epoch - for model averaging
+        trainer.extend(torch_snapshot(), trigger=(1, "epoch"))
 
     # epsilon decay in the optimizer
     if args.opt == "adadelta":
@@ -896,74 +1078,100 @@ def train(args):
                 ),
             )
 
-    # Write a log of evaluation statistics for each epoch
-    trainer.extend(
-        extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
-    )
+    if is_writable_process(args, worldsize, rank, localrank):
+        # Write a log of evaluation statistics for each epoch
+        trainer.extend(
+            extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
+        )
 
-    if hasattr(model, "is_transducer"):
-        report_keys = (
-            [
+        if hasattr(model, "is_transducer"):
+            report_keys = (
+                [
+                    "epoch",
+                    "iteration",
+                ]
+                + transducer_keys
+                + ["elapsed_time"]
+            )
+        else:
+            report_keys = [
                 "epoch",
                 "iteration",
-            ]
-            + transducer_keys
-            + ["elapsed_time"]
-        )
-    else:
-        report_keys = [
-            "epoch",
-            "iteration",
-            "main/loss",
-            "main/loss_ctc",
-            "main/loss_att",
-            "validation/main/loss",
-            "validation/main/loss_ctc",
-            "validation/main/loss_att",
-            "main/acc",
-            "validation/main/acc",
-            "main/cer_ctc",
-            "validation/main/cer_ctc",
-            "elapsed_time",
-        ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+                "main/loss",
+                "main/loss_ctc",
+                "main/loss_att",
+                "validation/main/loss",
+                "validation/main/loss_ctc",
+                "validation/main/loss_att",
+                "main/acc",
+                "validation/main/acc",
+                "main/cer_ctc",
+                "validation/main/cer_ctc",
+                "elapsed_time",
+            ] + (
+                [] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc
+            )
 
-    if args.opt == "adadelta":
+        if args.opt == "adadelta":
+            trainer.extend(
+                extensions.observe_value(
+                    "eps",
+                    lambda trainer: trainer.updater.get_optimizer("main").param_groups[
+                        0
+                    ]["eps"],
+                ),
+                trigger=(args.report_interval_iters, "iteration"),
+            )
+            report_keys.append("eps")
+        if args.report_cer:
+            report_keys.append("validation/main/cer")
+        if args.report_wer:
+            report_keys.append("validation/main/wer")
         trainer.extend(
-            extensions.observe_value(
-                "eps",
-                lambda trainer: trainer.updater.get_optimizer("main").param_groups[0][
-                    "eps"
-                ],
-            ),
+            extensions.PrintReport(report_keys),
             trigger=(args.report_interval_iters, "iteration"),
         )
-        report_keys.append("eps")
-    if args.report_cer:
-        report_keys.append("validation/main/cer")
-    if args.report_wer:
-        report_keys.append("validation/main/wer")
-    trainer.extend(
-        extensions.PrintReport(report_keys),
-        trigger=(args.report_interval_iters, "iteration"),
-    )
 
-    trainer.extend(extensions.ProgressBar(update_interval=args.report_interval_iters))
+        trainer.extend(
+            extensions.ProgressBar(update_interval=args.report_interval_iters)
+        )
     set_early_stop(trainer, args)
 
-    if args.tensorboard_dir is not None and args.tensorboard_dir != "":
-        from torch.utils.tensorboard import SummaryWriter
+    if is_writable_process(args, worldsize, rank, localrank):
+        if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+            from torch.utils.tensorboard import SummaryWriter
 
-        trainer.extend(
-            TensorboardLogger(
-                SummaryWriter(args.tensorboard_dir),
-                att_reporter=att_reporter,
-                ctc_reporter=ctc_reporter,
-            ),
-            trigger=(args.report_interval_iters, "iteration"),
-        )
+            trainer.extend(
+                TensorboardLogger(
+                    SummaryWriter(args.tensorboard_dir),
+                    att_reporter=att_reporter,
+                    ctc_reporter=ctc_reporter,
+                ),
+                trigger=(args.report_interval_iters, "iteration"),
+            )
+
+    if args.use_ddp:
+        # To avoid busy wait on non-main processes
+        # during a main process is writing plot, logs, etc,
+        # one additional extension must be added at the last.
+        # Within this additional extension,
+        # a main process will send a notification tensor
+        # to other processes when the main process finishes
+        # all operations like writing plot, log, etc.
+        src_rank = 0  # TODO(lazykyama): removing hard-coded value.
+
+        @training.make_extension(trigger=(1, "epoch"))
+        def barrier_extension_per_epoch(trainer):
+            notification = torch.zeros(1, device=device)
+            dist.broadcast(notification, src=src_rank)
+            torch.cuda.synchronize(device=device)
+
+        trainer.extend(barrier_extension_per_epoch)
+
     # Run the training
     trainer.run()
-    check_early_stop(trainer, args.epochs)
+    if is_writable_process(args, worldsize, rank, localrank):
+        check_early_stop(trainer, args.epochs)
 
 
 def recog(args):

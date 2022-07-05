@@ -60,7 +60,7 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
+bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 
 # Ngram model related
@@ -186,7 +186,7 @@ Options:
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
+    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
 
     # Language model related
@@ -643,7 +643,12 @@ if ! "${skip_data_prep}"; then
             cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
             if [ -n "${bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                if test -f "${bpe_nlsyms}"; then
+                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                else
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                fi
             else
                 _opts_spm=""
             fi

@@ -3,10 +3,8 @@
 
 """ESPnetModel abstract class for GAN-based training."""
 
-from abc import ABC
-from abc import abstractmethod
-from typing import Dict
-from typing import Union
+from abc import ABC, abstractmethod
+from typing import Dict, Union
 
 import torch
 

@@ -54,7 +54,7 @@ criterions:
   # The first criterion
   - name: si_snr
     conf:
-        eps: 1e-7
+        eps: 1.0e-07
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper:

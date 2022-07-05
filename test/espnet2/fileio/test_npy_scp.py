@@ -3,10 +3,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.fileio.npy_scp import NpyScpReader
-from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.fileio.npy_scp import NpyScpReader, NpyScpWriter
+from espnet2.fileio.sound_scp import SoundScpReader, SoundScpWriter
 
 
 def test_NpyScpReader(tmp_path: Path):

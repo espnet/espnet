@@ -1,19 +1,19 @@
 # coding: utf-8
 
 import argparse
-from packaging.version import parse as V
+import json
 import tempfile
 
-import json
 import numpy as np
 import pytest
 import torch
+from packaging.version import parse as V
 
-from espnet.asr.pytorch_backend.asr_init import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.asr.pytorch_backend.asr_init import load_trained_model
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 is_torch_1_4_plus = V(torch.__version__) >= V("1.4.0")

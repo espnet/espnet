@@ -1,7 +1,8 @@
-from typing import List
 from collections import defaultdict
-import numpy as np
+from typing import List
+
 import editdistance
+import numpy as np
 
 
 def get_ner_scores(all_gt, all_predictions):

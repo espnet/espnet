@@ -1,13 +1,8 @@
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 

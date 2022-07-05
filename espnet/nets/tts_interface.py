@@ -7,7 +7,6 @@
 
 from espnet.asr.asr_utils import torch_load
 
-
 try:
     import chainer
 except ImportError:
