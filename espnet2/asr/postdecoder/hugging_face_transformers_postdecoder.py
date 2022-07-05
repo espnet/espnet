@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-#  2021, University of Stuttgart;  Pavel Denisov
+#  2022, Carnegie Mellon University;  Siddhant Arora
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Hugging Face Transformers PostEncoder."""
+"""Hugging Face Transformers PostDecoder."""
 
 from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
 
@@ -104,9 +104,3 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
             position_ids_feature,
             input_id_length,
         )
-
-
-def _extend_attention_mask(mask: torch.Tensor) -> torch.Tensor:
-    mask = mask[:, None, None, :]
-    mask = (1.0 - mask) * -10000.0
-    return mask
