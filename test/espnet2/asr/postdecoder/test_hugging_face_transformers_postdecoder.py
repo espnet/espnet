@@ -5,6 +5,7 @@ from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
 
+
 @pytest.mark.execution_timeout(50)
 def test_transformers_forward():
     postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)

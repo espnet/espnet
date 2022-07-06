@@ -289,10 +289,6 @@ class ConformerPostEncoder(AbsPostEncoder):
             xs_pad = xs_pad
         else:
             xs_pad = self.embed(xs_pad)
-        # print("postencoder")
-        # print(xs_pad[0].shape)
-        # print(xs_pad[1].shape)
-        # print(masks.shape)
         masks = masks.reshape(masks.shape[0], 1, masks.shape[1])
         xs_pad, masks = self.encoders(xs_pad, masks)
 
