@@ -88,7 +88,6 @@ class BeamSearchTransducer:
         self.joint_network = joint_network
 
         self.vocab_size = decoder.vocab_size
-        self.blank_id = decoder.blank_id
 
         assert beam_size <= self.vocab_size, (
             "beam_size (%d) should be smaller than or equal to vocabulary size (%d)."
@@ -274,7 +273,7 @@ class BeamSearchTransducer:
 
         return torch.LongTensor(
             [
-                [self.sos] + ([self.blank_id] * (max_len - len(h))) + h[1:]
+                [self.sos] + ([0] * (max_len - len(h))) + h[1:]
                 for h in hyps_seq
             ],
             device=self.decoder.device,
@@ -301,7 +300,7 @@ class BeamSearchTransducer:
             kept_hyps = [
                 Hypothesis(
                     score=0.0,
-                    yseq=[self.blank_id],
+                    yseq=[0],
                     dec_state=self.decoder.init_state(1),
                 )
             ]
@@ -398,7 +397,7 @@ class BeamSearchTransducer:
 
         B = [
             Hypothesis(
-                yseq=[self.blank_id], score=0.0, dec_state=self.decoder.init_state(1)
+                yseq=[0], score=0.0, dec_state=self.decoder.init_state(1)
             )
         ]
         final = []
@@ -490,7 +489,7 @@ class BeamSearchTransducer:
         else:
             B = [
                 Hypothesis(
-                    yseq=[self.blank_id],
+                    yseq=[0],
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
@@ -585,7 +584,7 @@ class BeamSearchTransducer:
         else:
             init_tokens = [
                 ExtendedHypothesis(
-                    yseq=[self.blank_id],
+                    yseq=[0],
                     score=0.0,
                     dec_state=self.decoder.init_state(1),
                 )
@@ -610,7 +609,7 @@ class BeamSearchTransducer:
 
             kept_hyps = [
                 ExtendedHypothesis(
-                    yseq=[self.blank_id],
+                    yseq=[0],
                     score=0.0,
                     dec_state=self.decoder.select_state(beam_state, 0),
                     dec_out=beam_dec_out[0],

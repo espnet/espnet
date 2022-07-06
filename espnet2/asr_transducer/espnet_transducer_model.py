@@ -81,7 +81,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         super().__init__()
 
-        self.blank_id = 0
+        # The following labels ID are reserved: 0 (blank) and vocab_size - 1 (sos/eos)
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
@@ -164,7 +164,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             text,
             encoder_out_lens,
             ignore_id=self.ignore_id,
-            blank_id=self.blank_id,
         )
 
         # 3. Decoder
@@ -350,7 +349,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 from warprnnt_pytorch import RNNTLoss
 
                 self.criterion_transducer = RNNTLoss(
-                    blank=self.blank_id,
                     reduction="mean",
                     fastemit_lambda=self.fastemit_lambda,
                 )
@@ -421,7 +419,6 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 ctc_target,
                 t_len,
                 u_len,
-                blank=self.blank_id,
                 zero_infinity=True,
                 reduction="sum",
             )
@@ -451,7 +448,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             true_dist = lm_loss_in.clone()
             true_dist.fill_(self.lm_loss_smoothing / (self.vocab_size - 1))
 
-            ignore = lm_target == self.blank_id
+            ## ignore blank ID
+            ignore = lm_target == 0
             lm_target = lm_target.masked_fill(ignore, 0)
 
             true_dist.scatter_(1, lm_target.unsqueeze(1), (1 - self.lm_loss_smoothing))

@@ -37,8 +37,6 @@ class StatelessDecoder(AbsDecoder):
         self.output_size = embed_size
         self.vocab_size = vocab_size
 
-        self.blank_id = embed_pad
-
         self.device = next(self.parameters()).device
         self.score_cache = {}
 
