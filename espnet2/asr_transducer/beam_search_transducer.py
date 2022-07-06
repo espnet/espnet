@@ -272,10 +272,7 @@ class BeamSearchTransducer:
         max_len = max([len(h) for h in hyps_seq])
 
         return torch.LongTensor(
-            [
-                [self.sos] + ([0] * (max_len - len(h))) + h[1:]
-                for h in hyps_seq
-            ],
+            [[self.sos] + ([0] * (max_len - len(h))) + h[1:] for h in hyps_seq],
             device=self.decoder.device,
         )
 
@@ -395,11 +392,7 @@ class BeamSearchTransducer:
         t_max = int(enc_out.size(0))
         u_max = min(self.u_max, (t_max - 1))
 
-        B = [
-            Hypothesis(
-                yseq=[0], score=0.0, dec_state=self.decoder.init_state(1)
-            )
-        ]
+        B = [Hypothesis(yseq=[0], score=0.0, dec_state=self.decoder.init_state(1))]
         final = []
 
         if self.use_lm:
