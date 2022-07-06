@@ -21,15 +21,13 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-DCASE="/ocean/projects/cis210027p/siddhana/TAU-urban-acoustic-scenes-2022-mobile-development/"
-
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
 
 if [ -z "${DCASE}" ]; then
-    log "Fill the value of 'FSC' of db.sh"
+    log "Fill the value of 'DCASE' of db.sh"
     exit 1
 fi
 
