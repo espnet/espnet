@@ -50,9 +50,11 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.cer_transducer.ave/dev_ios|2500|24802|94.8|5.0|0.2|0.1|5.3|32.4|
 |decode_asr_model_valid.cer_transducer.ave/test_android|5000|49534|94.0|5.7|0.2|0.1|6.1|36.8|
 |decode_asr_model_valid.cer_transducer.ave/test_ios|5000|49534|94.8|5.0|0.2|0.1|5.4|33.8|
 |decode_asr_model_valid.cer_transducer.ave/test_mic|5000|49534|94.1|5.7|0.2|0.1|6.0|36.1|
+|decode_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.cer_transducer.ave/dev_ios|2500|24802|95.1|4.7|0.2|0.1|5.1|31.1|
 |decode_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.cer_transducer.ave/test_android|5000|49534|94.2|5.5|0.3|0.1|5.9|35.6|
 |decode_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.cer_transducer.ave/test_ios|5000|49534|94.9|4.9|0.2|0.1|5.2|32.6|
 |decode_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.cer_transducer.ave/test_mic|5000|49534|94.3|5.4|0.2|0.1|5.8|34.7|
