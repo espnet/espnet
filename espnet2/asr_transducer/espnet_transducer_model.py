@@ -448,7 +448,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             true_dist = lm_loss_in.clone()
             true_dist.fill_(self.lm_loss_smoothing / (self.vocab_size - 1))
 
-            ## ignore blank ID
+            # Ignore blank ID (0)
             ignore = lm_target == 0
             lm_target = lm_target.masked_fill(ignore, 0)
 
