@@ -31,6 +31,7 @@ from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sample
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
+from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
 from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
@@ -142,6 +143,7 @@ scheduler_classes = dict(
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
+    warmupsteplr=WarmupStepLR,
     warmuplr=WarmupLR,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
