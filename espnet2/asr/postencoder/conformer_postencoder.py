@@ -33,14 +33,6 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import (
-    Conv2dSubsampling,
-    Conv2dSubsampling2,
-    Conv2dSubsampling6,
-    Conv2dSubsampling8,
-    TooShortUttError,
-    check_short_utt,
-)
 
 
 class ConformerPostEncoder(AbsPostEncoder):
@@ -90,7 +82,7 @@ class ConformerPostEncoder(AbsPostEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: str = "conv2d",
+        input_layer: str = "linear",
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
@@ -141,39 +133,6 @@ class ConformerPostEncoder(AbsPostEncoder):
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate),
-            )
-        elif input_layer == "conv2d":
-            self.embed = Conv2dSubsampling(
-                input_size,
-                output_size,
-                dropout_rate,
-                pos_enc_class(output_size, positional_dropout_rate),
-            )
-        elif input_layer == "conv2d2":
-            self.embed = Conv2dSubsampling2(
-                input_size,
-                output_size,
-                dropout_rate,
-                pos_enc_class(output_size, positional_dropout_rate),
-            )
-        elif input_layer == "conv2d6":
-            self.embed = Conv2dSubsampling6(
-                input_size,
-                output_size,
-                dropout_rate,
-                pos_enc_class(output_size, positional_dropout_rate),
-            )
-        elif input_layer == "conv2d8":
-            self.embed = Conv2dSubsampling8(
-                input_size,
-                output_size,
-                dropout_rate,
-                pos_enc_class(output_size, positional_dropout_rate),
-            )
-        elif input_layer == "embed":
-            self.embed = torch.nn.Sequential(
-                torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif isinstance(input_layer, torch.nn.Module):
@@ -270,22 +229,7 @@ class ConformerPostEncoder(AbsPostEncoder):
         xs_pad = input
         masks = (~make_pad_mask(input_lengths)).to(input[0].device)
         # print(mask)
-        if (
-            isinstance(self.embed, Conv2dSubsampling)
-            or isinstance(self.embed, Conv2dSubsampling2)
-            or isinstance(self.embed, Conv2dSubsampling6)
-            or isinstance(self.embed, Conv2dSubsampling8)
-        ):
-            short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
-            if short_status:
-                raise TooShortUttError(
-                    f"has {xs_pad.size(1)} frames and is too short for subsampling "
-                    + f"(it needs more than {limit_size} frames), return empty results",
-                    xs_pad.size(1),
-                    limit_size,
-                )
-            xs_pad, masks = self.embed(xs_pad, masks)
-        elif self.embed is None:
+        if self.embed is None:
             xs_pad = xs_pad
         else:
             xs_pad = self.embed(xs_pad)
