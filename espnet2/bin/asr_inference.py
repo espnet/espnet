@@ -166,6 +166,7 @@ class Speech2Text:
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
+                token_list=token_list,
                 **transducer_conf,
             )
             beam_search = None
@@ -292,7 +293,17 @@ class Speech2Text:
 
         # c. Passed the encoder result and the beam search
         if self.beam_search_transducer:
+            logging.info("encoder output length: " + str(enc[0].shape[0]))
             nbest_hyps = self.beam_search_transducer(enc[0])
+
+            best = nbest_hyps[0]
+            logging.info(f"total log probability: {best.score:.2f}")
+            logging.info(
+                f"normalized log probability: {best.score / len(best.yseq):.2f}"
+            )
+            logging.info(
+                "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+            )
         else:
             nbest_hyps = self.beam_search(
                 x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio

@@ -1,0 +1,59 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 8 
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: steplr
+scheduler_conf:
+    step_size: 2
+    gamma: 0.98
+
+encoder: same
+encoder_conf: {}
+decoder: same
+decoder_conf: {}
+separator: fasnet
+separator_conf:
+    enc_dim: 64
+    feature_dim: 64
+    hidden_dim: 128
+    layer: 6
+    segment_size: 24
+    num_spk: 1
+    win_len: 16
+    context_len: 16
+    sr: 16000
+    fasnet_type: 'fasnet'
+    dropout: 0.2
+
+
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

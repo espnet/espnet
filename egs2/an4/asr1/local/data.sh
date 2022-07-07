@@ -17,6 +17,7 @@ stop_stage=100
 datadir=./downloads
 an4_root=${datadir}/an4
 data_url=http://www.speech.cs.cmu.edu/databases/an4/
+data_url2=https://huggingface.co/datasets/espnet/an4/resolve/main
 ndev_utt=100
 
 log "$0 $*"
@@ -37,7 +38,10 @@ train_dev="train_dev"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Download"
     mkdir -p ${datadir}
-    local/download_and_untar.sh ${datadir} ${data_url}
+    if ! local/download_and_untar.sh ${datadir} ${data_url}; then
+        log "Failed to download from the original site, try a backup site."
+        local/download_and_untar.sh ${datadir} ${data_url2}
+    fi
 fi
 
 

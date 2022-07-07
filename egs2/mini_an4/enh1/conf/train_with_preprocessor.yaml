@@ -1,0 +1,41 @@
+# preprocessor config
+speech_volume_normalize: "0.5_1.0"
+rir_scp: dump/raw/train_nodev/rirs.scp
+rir_apply_prob: 1.0
+noise_scp: dump/raw/train_nodev/noises.scp
+noise_apply_prob: 1.0
+noise_db_range: "5_20"
+use_reverberant_ref: true
+num_spk: 1
+num_noise_type: 1
+sample_rate: 16000
+force_single_channel: true
+
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 1
+    nonlinear: relu
+    layer: 1
+    unit: 128
+    dropout: 0.2
+
+criterions: 
+  # The first criterion
+  - name: mse 
+    conf:
+      compute_on_mask: True
+      mask_type: PSM^2
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

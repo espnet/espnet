@@ -8,6 +8,7 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -28,7 +29,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
     def __init__(
         self,
         enh_model: ESPnetEnhancementModel,
-        s2t_model: Union[ESPnetASRModel, ESPnetSTModel],
+        s2t_model: Union[ESPnetASRModel, ESPnetSTModel, ESPnetDiarizationModel],
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
@@ -36,39 +37,50 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         super().__init__()
         self.enh_model = enh_model
-        self.s2t_model = s2t_model  # ASR or ST model
+        self.s2t_model = s2t_model  # ASR or ST or DIAR model
 
         self.bypass_enh_prob = bypass_enh_prob
 
         self.calc_enh_loss = calc_enh_loss
-        self.extract_feats_in_collect_stats = (
-            self.s2t_model.extract_feats_in_collect_stats
-        )
+        if isinstance(self.s2t_model, ESPnetDiarizationModel):
+            self.extract_feats_in_collect_stats = False
+        else:
+            self.extract_feats_in_collect_stats = (
+                self.s2t_model.extract_feats_in_collect_stats
+            )
 
     def forward(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        speech_lengths: torch.Tensor = None,
+        text: torch.Tensor = None,
+        text_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
             speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
+            speech_lengths: (Batch, ) default None for chunk interator,
+                                      because the chunk-iterator does not
+                                      have the speech_lengths returned.
+                                      see in
+                                      espnet2/iterators/chunk_iter_factory.py
+            text: (Batch, Length) default None just to keep the argument order
+            text_lengths: (Batch,) default None for the same reason as speech_lengths
         """
-        assert text_lengths.dim() == 1, text_lengths.shape
-        # Check that batch_size is unified
-        assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-            == text.shape[0]
-            == text_lengths.shape[0]
-        ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        if text_lengths is not None:
+            assert text_lengths.dim() == 1, text_lengths.shape
+        if speech_lengths is not None and text_lengths is not None:
+            # Check that batch_size is unified
+            assert (
+                speech.shape[0]
+                == speech_lengths.shape[0]
+                == text.shape[0]
+                == text_lengths.shape[0]
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        else:
+            assert speech.shape[0] == text.shape[0], (speech.shape, text.shape)
 
         # additional checks with valid src_text
         if "src_text" in kwargs:
@@ -89,17 +101,38 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             src_text_lengths = None
 
         batch_size = speech.shape[0]
+        speech_lengths = (
+            speech_lengths
+            if speech_lengths is not None
+            else torch.ones(batch_size).int() * speech.shape[1]
+        )
 
-        # clean speech signal
+        # number of speakers
+        # Take the number of speakers from text
+        # (= spk_label [Batch, length, num_spk] ) if it is 3-D.
+        # This is to handle flexible number of speakers.
+        # Used only in "enh + diar" task for now.
+        num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
+
+        # clean speech signal of each speaker
         speech_ref = None
         if self.calc_enh_loss:
             assert "speech_ref1" in kwargs
-            speech_ref = [kwargs["speech_ref1"]]  # [(Batch, samples)] x num_spkr
+            speech_ref = [
+                kwargs["speech_ref{}".format(spk + 1)] for spk in range(num_spk)
+            ]
+            # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
+            speech_ref = torch.stack(speech_ref, dim=1)
+            # for data-parallel
+            speech_ref = speech_ref[..., : speech_lengths.max()]
+            speech_ref = speech_ref.unbind(dim=1)
 
         # Calculating enhancement loss
         utt_id = kwargs.get("utt_id", None)
         bypass_enh_flag, skip_enhloss_flag = False, False
-        if utt_id is not None:
+        if utt_id is not None and not isinstance(
+            self.s2t_model, ESPnetDiarizationModel
+        ):
             # TODO(xkc): to pass category info and use predefined category list
             if utt_id[0].endswith("SIMU"):
                 # For simulated single-/multi-speaker data
@@ -136,7 +169,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 feature_mix,
                 feature_pre,
                 others,
-            ) = self.enh_model.forward_enhance(speech, speech_lengths)
+            ) = self.enh_model.forward_enhance(
+                speech, speech_lengths, {"num_spk": num_spk}
+            )
             # loss computation
             if not skip_enhloss_flag:
                 loss_enh, _, _ = self.enh_model.forward_loss(
@@ -152,7 +187,8 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             speech_pre = [speech]
 
         # for data-parallel
-        text = text[:, : text_lengths.max()]
+        if text_lengths is not None:
+            text = text[:, : text_lengths.max()]
         if src_text is not None:
             src_text = src_text[:, : src_text_lengths.max()]
 
@@ -169,6 +205,15 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 text_lengths,
                 src_text,
                 src_text_lengths,
+            )
+        elif isinstance(self.s2t_model, ESPnetDiarizationModel):  # DIAR
+            loss_asr, stats, weight = self.s2t_model(
+                speech=speech.clone(),
+                speech_lengths=speech_lengths,
+                spk_labels=text,
+                spk_labels_lengths=text_lengths,
+                bottleneck_feats=others.get("bottleneck_feats"),
+                bottleneck_feats_lengths=others.get("bottleneck_feats_lengths"),
             )
         else:
             raise NotImplementedError(f"{type(self.s2t_model)} is not supported yet.")
@@ -221,14 +266,42 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        speech_pre, feature_mix, feature_pre, others = self.enh_model.forward_enhance(
-            speech, speech_lengths
-        )
+        (
+            speech_pre,
+            feature_mix,
+            feature_pre,
+            others,
+        ) = self.enh_model.forward_enhance(speech, speech_lengths)
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech_pre[0], speech_lengths
         )
 
         return encoder_out, encoder_out_lens
+
+    def encode_diar(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor, num_spk: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Frontend + Encoder. Note that this method is used by diar_inference.py
+
+        Args:
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch, )
+            num_spk: int
+        """
+        (
+            speech_pre,
+            _,
+            _,
+            others,
+        ) = self.enh_model.forward_enhance(speech, speech_lengths, {"num_spk": num_spk})
+        encoder_out, encoder_out_lens = self.s2t_model.encode(
+            speech,
+            speech_lengths,
+            others.get("bottleneck_feats"),
+            others.get("bottleneck_feats_lengths"),
+        )
+
+        return encoder_out, encoder_out_lens, speech_pre
 
     def nll(
         self,
