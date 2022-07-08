@@ -204,7 +204,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot; &quot;</span><span class="p">:</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span>
                 <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
                 <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
         <span class="k">return</span> <span class="n">tokens</span></div>
