@@ -18,7 +18,8 @@ from espnet2.asr.postencoder.transformer_postencoder import TransformerPostEncod
     "encoder_del", [None, TransformerPostEncoder, ConformerPostEncoder]
 )
 @pytest.mark.parametrize("decoder_post", [None, HuggingFaceTransformersPostDecoder])
-def test_maskctc(encoder_arch, encoder_del, decoder_post):
+@pytest.mark.execution_timeout(50)
+def test_asr_training(encoder_arch, encoder_del, decoder_post):
     vocab_size = 5
     enc_out = 20
     encoder = encoder_arch(
