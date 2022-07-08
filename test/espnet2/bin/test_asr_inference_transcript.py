@@ -51,12 +51,11 @@ def asr_config_file(tmp_path: Path, token_list):
     return tmp_path / "asr" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(50)
 def test_Speech2Text(asr_config_file):
     speech2text = Speech2Text(asr_train_config=asr_config_file)
     speech = np.random.randn(100000)
     transcript = torch.randint(2, 4, [1, 4], dtype=torch.long)
-    print(transcript.shape)
     results = speech2text(speech, transcript)
 
     for text, token, token_int, hyp in results:
