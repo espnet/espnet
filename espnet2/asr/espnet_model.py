@@ -334,7 +334,6 @@ class ESPnetASRModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         transcript_pad: torch.Tensor = None,
         transcript_pad_lens: torch.Tensor = None,
-        device="cuda",
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_inference.py
 
@@ -398,18 +397,26 @@ class ESPnetASRModel(AbsESPnetModel):
                 input_id_length,
             ) = self.postdecoder.convert_examples_to_features(transcript_list, 128)
             bert_encoder_out = self.postdecoder(
-                torch.LongTensor(transcript_input_id_features).to(device=device),
-                torch.LongTensor(transcript_input_mask_features).to(device=device),
-                torch.LongTensor(transcript_segment_ids_feature).to(device=device),
-                torch.LongTensor(transcript_position_ids_feature).to(device=device),
+                torch.LongTensor(transcript_input_id_features).to(device=speech.device),
+                torch.LongTensor(transcript_input_mask_features).to(
+                    device=speech.device
+                ),
+                torch.LongTensor(transcript_segment_ids_feature).to(
+                    device=speech.device
+                ),
+                torch.LongTensor(transcript_position_ids_feature).to(
+                    device=speech.device
+                ),
             )
-            bert_encoder_lens = torch.LongTensor(input_id_length).to(device=device)
+            bert_encoder_lens = torch.LongTensor(input_id_length).to(
+                device=speech.device
+            )
             bert_encoder_out = bert_encoder_out[:, : torch.max(bert_encoder_lens)]
             final_encoder_out_lens = encoder_out_lens + bert_encoder_lens
             max_lens = torch.max(final_encoder_out_lens)
             encoder_new_out = torch.zeros(
                 (encoder_out.shape[0], max_lens, encoder_out.shape[2])
-            ).to(device=device)
+            ).to(device=speech.device)
             for k in range(len(encoder_out)):
                 encoder_new_out[k] = torch.cat(
                     (
@@ -417,7 +424,7 @@ class ESPnetASRModel(AbsESPnetModel):
                         bert_encoder_out[k, : bert_encoder_lens[k]],
                         torch.zeros(
                             (max_lens - final_encoder_out_lens[k], encoder_out.shape[2])
-                        ).to(device=device),
+                        ).to(device=speech.device),
                     ),
                     0,
                 )

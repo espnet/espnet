@@ -281,7 +281,7 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         if transcript is None:
-            batch = {"speech": speech, "speech_lengths": lengths, "device": "cpu"}
+            batch = {"speech": speech, "speech_lengths": lengths}
         else:
             transcript = transcript.unsqueeze(0).to(getattr(torch, self.dtype))
             # lengths: (1,)
@@ -295,7 +295,6 @@ class Speech2Text:
                 "speech_lengths": lengths,
                 "transcript_pad": transcript,
                 "transcript_pad_lens": transcript_lengths,
-                "device": self.device,
             }
 
         # a. To device
