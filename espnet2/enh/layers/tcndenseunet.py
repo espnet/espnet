@@ -49,7 +49,6 @@ class FreqWiseBlock(torch.nn.Module):
 
     def forward(self, inp):
         # bsz, chans, x, y
-
         out = self.freq_proc(self.bottleneck(inp).permute(0, 3, 2, 1)).permute(
             0, 3, 2, 1
         )
@@ -168,14 +167,39 @@ class TCNResBlock(torch.nn.Module):
         )
 
     def forward(self, inp):
+        # [B, C, F] batch, channels, frames
         return self.layer(inp) + inp
 
 
 class TCNDenseUNet(torch.nn.Module):
+    """TCNDenseNet block from iNeuBe
+
+    Reference:
+    Lu, Y. J., Cornell, S., Chang, X., Zhang, W., Li, C., Ni, Z., ... & Watanabe, S.
+    Towards Low-Distortion Multi-Channel Speech Enhancement:
+    The ESPNET-Se Submission to the L3DAS22 Challenge. ICASSP 2022 p. 9201-9205.
+
+    Args:
+        n_spk: number of output sources/speakers.
+        in_freqs: number of complex STFT frequencies.
+        mic_channels: number of microphones channels
+            (only fixed-array geometry supported).
+        hid_chans: number of channels in the subsampling/upsampling conv layers.
+        hid_chans_dense: number of channels in the densenet layers
+            (reduce this to reduce VRAM requirements).
+        ksz_dense: kernel size in the densenet layers thorough iNeuBe.
+        ksz_tcn: kernel size in the TCN submodule.
+        tcn_repeats: number of repetitions of blocks in the TCN submodule.
+        tcn_blocks: number of blocks in the TCN submodule.
+        tcn_channels: number of channels in the TCN submodule.
+        activation: activation function to use in the whole iNeuBe model,
+            you can use any torch supported activation e.g. 'relu' or 'elu'.
+    """
+
     def __init__(
         self,
         n_spk=1,
-        in_channels=257,
+        in_freqs=257,
         mic_channels=1,
         hid_chans=32,
         hid_chans_dense=32,
@@ -188,10 +212,10 @@ class TCNDenseUNet(torch.nn.Module):
     ):
         super(TCNDenseUNet, self).__init__()
         self.n_spk = n_spk
-        self.in_channels = in_channels
+        self.in_channels = in_freqs
         self.mic_channels = mic_channels
 
-        num_freqs = in_channels - 2
+        num_freqs = in_freqs - 2
         first = torch.nn.Sequential(
             torch.nn.Conv2d(
                 self.mic_channels * 2,
@@ -353,6 +377,17 @@ class TCNDenseUNet(torch.nn.Module):
         return freqs
 
     def forward(self, tf_rep):
+        """forward.
+
+        Args:
+            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)
+                        of shape [B, T, C, F] batch, frames, microphones, frequencies.
+
+        Returns:
+            out (torch.Tensor): complex 3D tensor monaural STFT of the targets
+                shape is [B, T, F] batch, frames, frequencies.
+
+        """
         # B, T, C, F
         tf_rep = tf_rep.permute(0, 2, 3, 1)
         bsz, mics, _, frames = tf_rep.shape
