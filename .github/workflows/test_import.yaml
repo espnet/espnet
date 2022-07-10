@@ -30,14 +30,15 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get install -qq -y libsndfile1-dev
-        python3 -m pip install --upgrade pip
+        python3 -m pip install --upgrade pip setuptools wheel
     - name: Install espnet with the least requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
-        python3 -m pip install -e .
+        python3 setup.py bdist_wheel
+        python3 -m pip install dist/espnet-*.whl
     - name: Import all modules (Try1)
       run: |
         python3 ./ci/test_import_all.py
@@ -45,7 +46,7 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
-        python3 -m pip install -e ".[all]"
+        python3 -m pip install "$(ls dist/espnet-*.whl)[all]"
     - name: Import all modules (Try2)
       run: |
         python3 ./ci/test_import_all.py
