@@ -57,14 +57,18 @@ class S3prlFrontend(AbsFrontend):
         )
         self.args = s3prl_args
 
-        s3prl_path = None
-        python_path_list = os.environ.get("PYTHONPATH", "(None)").split(":")
-        for p in python_path_list:
-            if p.endswith("s3prl"):
-                s3prl_path = p
-                break
-        assert s3prl_path is not None, "Cannot find s3prl in your PYTHONPATH, " \
-                               "you can install it via pip install s3prl"
+        try:
+            import s3prl #noqa
+        except:
+            raise RuntimeError("s3prl is not installed, please git clone s3prl" \
+                               " (DO NOT USE PIP or CONDA) "
+                               "and install it from Github repo, " \
+                               "by cloning it locally.")
+        s3prl_root = Path(os.path.abspath(s3prl.__file__)).parent.parent
+        if not os.path.exists(os.path.join(s3prl_root, "hubconf.py")):
+            raise RuntimeError("You probably have s3prl installed as a pip" \
+                               "package, please uninstall it and then install it from "
+                               "the GitHub repo, by cloning it locally.")
 
         s3prl_upstream = torch.hub.load(
             s3prl_path,
