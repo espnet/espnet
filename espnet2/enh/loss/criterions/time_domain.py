@@ -269,6 +269,24 @@ class TimeDomainL1(TimeDomainLoss):
 
 
 class MultiResL1SpecLoss(TimeDomainLoss):
+    """Multi-Resolution L1 time-domain + STFT mag loss
+
+    Reference:
+    Lu, Y. J., Cornell, S., Chang, X., Zhang, W., Li, C., Ni, Z., ... & Watanabe, S.
+    Towards Low-Distortion Multi-Channel Speech Enhancement:
+    The ESPNET-Se Submission to the L3DAS22 Challenge. ICASSP 2022 p. 9201-9205.
+
+    Attributes:
+        window_sz: (list)
+            list of STFT window sizes.
+        hop_sz: (list, optional)
+            list of hop_sizes, default is each window_sz // 2.
+        eps: (float)
+            stability epsilon
+        time_domain_weight: (float)
+            weight for time domain loss.
+    """
+
     def __init__(self, window_sz=[512], hop_sz=None, eps=1e-8, time_domain_weight=0.5):
         super(MultiResL1SpecLoss, self).__init__()
 
@@ -312,6 +330,14 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         target: torch.Tensor,
         estimate: torch.Tensor,
     ):
+        """forward.
+
+        Args:
+            target: (Batch, T)
+            estimate: (Batch, T)
+        Returns:
+            loss: (Batch,)
+        """
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps

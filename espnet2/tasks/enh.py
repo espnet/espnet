@@ -26,6 +26,7 @@ from espnet2.enh.loss.criterions.tf_domain import (
 )
 from espnet2.enh.loss.criterions.time_domain import (
     CISDRLoss,
+    MultiResL1SpecLoss,
     SDRLoss,
     SISNRLoss,
     SNRLoss,
@@ -139,6 +140,7 @@ criterion_choices = ClassChoices(
         mse=FrequencyDomainMSE,
         mse_fd=FrequencyDomainMSE,
         mse_td=TimeDomainMSE,
+        mr_l1_tfd=MultiResL1SpecLoss,
     ),
     type_check=AbsEnhLoss,
     default=None,
