@@ -12,6 +12,36 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 class iNeuBe(AbsSeparator):
+    """iNeuBe, iterative neural/beamforming enhancement
+
+    Reference:
+    Lu, Y. J., Cornell, S., Chang, X., Zhang, W., Li, C., Ni, Z., ... & Watanabe, S.
+    Towards Low-Distortion Multi-Channel Speech Enhancement:
+    The ESPNET-Se Submission to the L3DAS22 Challenge. ICASSP 2022 p. 9201-9205.
+
+    Args:
+        n_spk: number of output sources/speakers.
+        n_fft: stft window size.
+        stride: stft stride.
+        window: stft window type choose between 'hamming', 'hanning' or None.
+        mic_channels: number of microphones channels
+            (only fixed-array geometry supported).
+        hid_chans: number of channels in the subsampling/upsampling conv layers.
+        hid_chans_dense: number of channels in the densenet layers
+            (reduce this to reduce VRAM requirements).
+        ksz_dense: kernel size in the densenet layers thorough iNeuBe.
+        ksz_tcn: kernel size in the TCN submodule.
+        tcn_repeats: number of repetitions of blocks in the TCN submodule.
+        tcn_blocks: number of blocks in the TCN submodule.
+        tcn_channels: number of channels in the TCN submodule.
+        activation: activation function to use in the whole iNeuBe model,
+            you can use any torch supported activation e.g. 'relu' or 'elu'.
+        output_from: output the estimate from 'dnn1', 'mfmcwf' or 'dnn2'.
+        n_chunks: number of future and past frames to consider for mfMCWF computation.
+        freeze_dnn1: whether or not freezing dnn1 parameters during training of dnn2.
+        tik_eps: diagonal loading in the mfMCWF computation.
+    """
+
     def __init__(
         self,
         n_spk=1,
@@ -73,7 +103,22 @@ class iNeuBe(AbsSeparator):
 
     @staticmethod
     def unfold(tf_rep, chunk_size):
+        """unfolding STFT representation to add context in the mics channel.
+
+        Args:
+            mixture (torch.Tensor): 3D tensor (monaural complex STFT)
+                of shape [B, T, F] batch, frames, microphones, frequencies.
+            n_chunks (int): number of past and future to consider.
+
+        Returns:
+            est_unfolded (torch.Tensor): complex 3D tensor STFT with context channel.
+                shape now is [B, T, C, F] batch, frames, context, frequencies.
+                Basically same shape as a multi-channel STFT with C microphones.
+
+        """
         bsz, freq, _ = tf_rep.shape
+        if chunk_size == 0:
+            return tf_rep
 
         est_unfolded = torch.nn.functional.unfold(
             torch.nn.functional.pad(
@@ -90,11 +135,26 @@ class iNeuBe(AbsSeparator):
 
     @staticmethod
     def mfmcwf(mixture, estimate, n_chunks, tik_eps):
+        """multi-frame multi-channel wiener filter.
 
+        Args:
+            mixture (torch.Tensor): multi-channel STFT complex mixture tensor,
+                of shape [B, T, C, F] batch, frames, microphones, frequencies.
+            estimate (torch.Tensor): monaural STFT complex estimate
+                of target source [B, T, F] batch, frames, frequencies.
+            n_chunks (int): number of past and future mfMCWF frames.
+                If 0 then standard MCWF.
+            tik_eps (float): diagonal loading for matrix inversion in MCWF computation.
+
+        Returns:
+            beamformed (torch.Tensor): monaural STFT complex estimate
+                of target source after MFMCWF [B, T, F] batch, frames, frequencies.
+        """
         mixture = mixture.permute(0, 2, 3, 1)
         estimate = estimate.transpose(-1, -2)
 
         bsz, mics, _, frames = mixture.shape
+
         mix_unfolded = iNeuBe.unfold(
             mixture.reshape(bsz * mics, -1, frames), n_chunks
         ).reshape(bsz, mics * (2 * n_chunks + 1), -1, frames)
@@ -126,6 +186,28 @@ class iNeuBe(AbsSeparator):
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+        """Forward.
+
+        Args:
+            input (torch.Tensor): batched multi-channel audio tensor with
+                    C audio channels and T samples [B, T, C]
+            ilens (torch.Tensor): input lengths [Batch]
+            additional (Dict or None): other data, currently unused in this model.
+
+        Returns:
+            enhanced (List[Union(torch.Tensor, ComplexTensor)]):
+                    [(B, T), ...] list of len n_spk
+                    of mono audio tensors with T samples.
+            ilens (torch.Tensor): (B,)
+                others predicted data, e.g. masks: OrderedDict[
+                    'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                    'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                    ...
+                    'mask_spkn': torch.Tensor(Batch, Frames, Freq),
+                ]
+            additional (Dict or None): other data, currently unused in this model,
+                    we return it also in output.
+        """
         # B, T, C
         bsz, mixture_len, mics = input.shape
 

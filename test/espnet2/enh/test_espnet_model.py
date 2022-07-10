@@ -17,6 +17,8 @@ from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
@@ -189,6 +191,7 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     }
     loss, stats, weight = enh_model(**kwargs)
 
+
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
@@ -205,9 +208,7 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     encoder = NullEncoder()
     decoder = NullDecoder()
     separator = iNeuBe(
-        2, mic_channels=n_mics, output_from=output_from,
-        tcn_blocks=1,
-        tcn_repeats=1
+        2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
