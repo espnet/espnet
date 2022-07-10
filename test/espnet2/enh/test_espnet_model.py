@@ -237,7 +237,7 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("n_mics", [1, 2])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
-@pytest.mark.parametrize("output_from", ["dnn1", "dnn2"])
+@pytest.mark.parametrize("output_from", ["dnn1", "dnn2", "mfmcwf"])
 def test_ineube(n_mics, training, loss_wrappers, output_from):
     if not is_torch_1_9_plus:
         return
@@ -250,7 +250,9 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     encoder = NullEncoder()
     decoder = NullDecoder()
     separator = iNeuBe(
-        2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
+        2, mic_channels=n_mics, output_from=output_from,
+        tcn_blocks=1,
+        tcn_repeats=1
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
