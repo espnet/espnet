@@ -57,6 +57,23 @@ class FreqWiseBlock(torch.nn.Module):
 
 
 class DenseBlock(torch.nn.Module):
+    """single DenseNet block as used in iNeuBe model.
+
+    Args:
+        in_channels: number of input channels (image axis).
+        out_channels: number of output channels (image axis).
+        num_freqs: number of complex frequencies in the
+            input STFT complex image-like tensor.
+            The input is batch, image_channels, frames, freqs.
+        pre_blocks: dense block before point-wise convolution block over frequency axis.
+        freq_proc_blocks: number of frequency axis processing blocks.
+        post_blocks: dense block after point-wise convolution block over frequency axis.
+        ksz: kernel size used in densenet Conv2D layers.
+        activation: activation function to use in the whole iNeuBe model,
+                you can use any torch supported activation e.g. 'relu' or 'elu'.
+        hid_chans: number of hidden channels in densenet Conv2D.
+    """
+
     def __init__(
         self,
         in_channels,
@@ -124,6 +141,7 @@ class DenseBlock(torch.nn.Module):
         self.post_blocks.append(last)
 
     def forward(self, input):
+        # batch, channels, frames, freq
 
         out = [input]
         for pre_block in self.pre_blocks:
@@ -142,6 +160,18 @@ class DenseBlock(torch.nn.Module):
 
 
 class TCNResBlock(torch.nn.Module):
+    """single depth-wise separable TCN block as used in iNeuBe TCN.
+
+    Args:
+        in_chan: number of input feature channels.
+        out_chan: number of output feature channels.
+        ksz: kernel size.
+        stride: stride in depth-wise convolution.
+        dilation: dilation in depth-wise convolution.
+        activation: activation function to use in the whole iNeuBe model,
+            you can use any torch supported activation e.g. 'relu' or 'elu'.
+    """
+
     def __init__(
         self, in_chan, out_chan, ksz=3, stride=1, dilation=1, activation=torch.nn.ELU
     ):
