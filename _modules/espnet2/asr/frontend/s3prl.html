@@ -156,6 +156,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">humanfriendly</span>
@@ -211,13 +212,22 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">s3prl_args</span>
 
-        <span class="n">s3prl_path</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">python_path_list</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;PYTHONPATH&quot;</span><span class="p">,</span> <span class="s2">&quot;(None)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">python_path_list</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;s3prl&quot;</span><span class="p">):</span>
-                <span class="n">s3prl_path</span> <span class="o">=</span> <span class="n">p</span>
-                <span class="k">break</span>
-        <span class="k">assert</span> <span class="n">s3prl_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">s3prl</span>  <span class="c1"># noqa</span>
+        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
+                <span class="s2">&quot;s3prl is not installed, please git clone s3prl&quot;</span>
+                <span class="s2">&quot; (DO NOT USE PIP or CONDA) &quot;</span>
+                <span class="s2">&quot;and install it from Github repo, &quot;</span>
+                <span class="s2">&quot;by cloning it locally.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">s3prl_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">s3prl</span><span class="o">.</span><span class="vm">__file__</span><span class="p">))</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s3prl_path</span><span class="p">,</span> <span class="s2">&quot;hubconf.py&quot;</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;You probably have s3prl installed as a pip&quot;</span>
+                <span class="s2">&quot;package, please uninstall it and then install it from &quot;</span>
+                <span class="s2">&quot;the GitHub repo, by cloning it locally.&quot;</span>
+            <span class="p">)</span>
 
         <span class="n">s3prl_upstream</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
             <span class="n">s3prl_path</span><span class="p">,</span>
@@ -255,6 +265,7 @@
 
 <span class="sd">        Input - sequence of representations</span>
 <span class="sd">                shape: (batch_size, seq_len, feature_dim)</span>
+
 <span class="sd">        Output - sequence of tiled representations</span>
 <span class="sd">                 shape: (batch_size, seq_len * factor, feature_dim)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
