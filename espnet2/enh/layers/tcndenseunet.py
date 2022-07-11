@@ -8,6 +8,8 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class Conv2DActNorm(torch.nn.Module):
+    """Basic Conv2D + activation + instance norm building block."""
+
     def __init__(
         self,
         in_channels,
@@ -37,6 +39,14 @@ class Conv2DActNorm(torch.nn.Module):
 
 
 class FreqWiseBlock(torch.nn.Module):
+    """FreqWiseBlock, see iNeuBe paper.
+
+    Block that applies pointwise 2D convolution over
+    STFT-like image tensor on frequency axis.
+    The input is assumed to be [batch, image_channels, frames, freq].
+
+    """
+
     def __init__(self, in_channels, num_freqs, out_channels, activation=torch.nn.ELU):
         super(FreqWiseBlock, self).__init__()
 
