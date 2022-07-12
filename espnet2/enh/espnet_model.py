@@ -5,6 +5,7 @@ import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
+from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
@@ -28,6 +29,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         encoder: AbsEncoder,
         separator: AbsSeparator,
         decoder: AbsDecoder,
+        mask_module: Optional[AbsMask],
         loss_wrappers: List[AbsLossWrapper],
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
@@ -40,6 +42,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.encoder = encoder
         self.separator = separator
         self.decoder = decoder
+        self.mask_module = mask_module
         self.loss_wrappers = loss_wrappers
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
@@ -165,14 +168,38 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         additional: Optional[Dict] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
-        feature_pre, flens, others = self.separator(feature_mix, flens, additional)
+        if self.mask_module is None:
+            feature_pre, flens, others = self.separator(feature_mix, flens, additional)
+        else:
+            # Obtain bottleneck_feats from separator.
+            # This is used for the input of diarization module in "enh + diar" task
+            bottleneck_feats, bottleneck_feats_lengths = self.separator(
+                feature_mix, flens
+            )
+            if additional.get("num_spk") is not None:
+                feature_pre, flens, others = self.mask_module(
+                    feature_mix, flens, bottleneck_feats, additional["num_spk"]
+                )
+                others["bottleneck_feats"] = bottleneck_feats
+                others["bottleneck_feats_lengths"] = bottleneck_feats_lengths
+            else:
+                feature_pre = None
+                others = {
+                    "bottleneck_feats": bottleneck_feats,
+                    "bottleneck_feats_lengths": bottleneck_feats_lengths,
+                }
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
             speech_pre = None
-        return speech_pre, feature_mix, feature_pre, others
+        return (
+            speech_pre,
+            feature_mix,
+            feature_pre,
+            others,
+        )
 
     def forward_loss(
         self,

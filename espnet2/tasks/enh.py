@@ -5,6 +5,9 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.diar.layers.multi_mask import MultiMask
+from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -43,6 +46,7 @@ from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dpcl_e2e_separator import DPCLE2ESeparator
 from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
@@ -78,6 +82,7 @@ separator_choices = ClassChoices(
         dpcl=DPCLSeparator,
         dpcl_e2e=DPCLE2ESeparator,
         dprnn=DPRNNSeparator,
+        dptnet=DPTNetSeparator,
         fasnet=FaSNetSeparator,
         rnn=RNNSeparator,
         skim=SkiMSeparator,
@@ -85,9 +90,17 @@ separator_choices = ClassChoices(
         tcn=TCNSeparator,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
+        tcn_nomask=TCNSeparatorNomask,
     ),
     type_check=AbsSeparator,
     default="rnn",
+)
+
+mask_module_choices = ClassChoices(
+    name="mask_module",
+    classes=dict(multi_mask=MultiMask),
+    type_check=AbsMask,
+    default="multi_mask",
 )
 
 decoder_choices = ClassChoices(
@@ -143,6 +156,8 @@ class EnhancementTask(AbsTask):
         separator_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --mask_module and --mask_module_conf
+        mask_module_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -407,6 +422,13 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+        if args.separator.endswith("nomask"):
+            mask_module = mask_module_choices.get_class(args.mask_module)(
+                input_dim=encoder.output_dim,
+                **args.mask_module_conf,
+            )
+        else:
+            mask_module = None
 
         loss_wrappers = []
 
@@ -427,7 +449,8 @@ class EnhancementTask(AbsTask):
             separator=separator,
             decoder=decoder,
             loss_wrappers=loss_wrappers,
-            **args.model_conf
+            mask_module=mask_module,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
