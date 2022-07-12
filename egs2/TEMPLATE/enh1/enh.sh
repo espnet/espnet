@@ -589,7 +589,7 @@ if ! "${skip_train}"; then
             _fold_length_param="--fold_length ${_fold_length} "
             _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
             _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
-
+            _opts+="--utt2spk ${_enh_train_dir}/utt2spk "
         fi
 
         for spk in $(seq "${spk_num}"); do

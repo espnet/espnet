@@ -334,8 +334,8 @@ class EnhancementTask(AbsTask):
                 train=train,
                 source_scp=args.train_data_path_and_name_and_type[0][0],
                 num_spk=args.separator_conf["num_spk"],
-                dynamic_mixing_gain_db=args.dynamic_mixing_gain_db,
-                utt2spk=args.utt2spk,
+                dynamic_mixing_gain_db=getattr(args, "dynamic_mixing_gain_db", 0.0),
+                utt2spk=getattr(args, "utt2spk", None),
             )
         elif use_preprocessor:
             retval = EnhPreprocessor(
@@ -390,9 +390,7 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = [
-            "speech_mix",
-        ]
+        retval = ["speech_mix"]
         retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
