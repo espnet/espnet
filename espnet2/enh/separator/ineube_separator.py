@@ -21,6 +21,19 @@ class iNeuBe(AbsSeparator):
     Towards Low-Distortion Multi-Channel Speech Enhancement:
     The ESPNET-Se Submission to the L3DAS22 Challenge. ICASSP 2022 p. 9201-9205.
 
+    NOTES:
+    As outlined in the Reference, this model works best when coupled with
+    the MultiResL1SpecLoss defined in criterions/time_domain.py.
+    The model is trained with variance normalized mixture input and target.
+    e.g. with mixture of shape [batch, microphones, samples] you normalize
+    it by dividing with torch.std(mixture, (1, 2)). You must do the same
+    for the target signal.
+    In the Reference, the variance normalization was performed offline
+    (we normalized by the std computed on the entire training set and not
+    for each input separately). However we found out that also normalizing
+    each input and target separately works well.
+
+
     Args:
         n_spk: number of output sources/speakers.
         n_fft: stft window size.
