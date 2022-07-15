@@ -2,6 +2,7 @@ import copy
 import logging
 import os
 from argparse import Namespace
+from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import humanfriendly
@@ -57,13 +58,22 @@ class S3prlFrontend(AbsFrontend):
         )
         self.args = s3prl_args
 
-        s3prl_path = None
-        python_path_list = os.environ.get("PYTHONPATH", "(None)").split(":")
-        for p in python_path_list:
-            if p.endswith("s3prl"):
-                s3prl_path = p
-                break
-        assert s3prl_path is not None
+        try:
+            import s3prl  # noqa
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "s3prl is not installed, please git clone s3prl"
+                " (DO NOT USE PIP or CONDA) "
+                "and install it from Github repo, "
+                "by cloning it locally."
+            )
+        s3prl_path = Path(os.path.abspath(s3prl.__file__)).parent.parent
+        if not os.path.exists(os.path.join(s3prl_path, "hubconf.py")):
+            raise RuntimeError(
+                "You probably have s3prl installed as a pip"
+                "package, please uninstall it and then install it from "
+                "the GitHub repo, by cloning it locally."
+            )
 
         s3prl_upstream = torch.hub.load(
             s3prl_path,
@@ -101,6 +111,7 @@ class S3prlFrontend(AbsFrontend):
 
         Input - sequence of representations
                 shape: (batch_size, seq_len, feature_dim)
+
         Output - sequence of tiled representations
                  shape: (batch_size, seq_len * factor, feature_dim)
         """
