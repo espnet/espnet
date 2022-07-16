@@ -219,7 +219,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
                 else:
                     # branch1
                     score1 = (
-                        self.pooling_proj1(x1).transpose(1, 2) / self.size**0.5
+                        self.pooling_proj1(x1).transpose(1, 2) / self.size ** 0.5
                     )  # (batch, 1, time)
                     if mask is not None:
                         min_value = float(
@@ -238,7 +238,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
 
                     # branch2
                     score2 = (
-                        self.pooling_proj2(x2).transpose(1, 2) / self.size**0.5
+                        self.pooling_proj2(x2).transpose(1, 2) / self.size ** 0.5
                     )  # (batch, 1, time)
                     if mask is not None:
                         min_value = float(
@@ -394,8 +394,7 @@ class BranchformerEncoder(AbsEncoder):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(output_size, positional_dropout_rate),
+                input_layer, pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
             if input_size == output_size:

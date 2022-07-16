@@ -15,10 +15,7 @@ class FastSelfAttention(torch.nn.Module):
     """Fast self-attention used in Fastformer."""
 
     def __init__(
-        self,
-        size,
-        attention_heads,
-        dropout_rate,
+        self, size, attention_heads, dropout_rate,
     ):
         super().__init__()
         if size % attention_heads != 0:
@@ -82,7 +79,7 @@ class FastSelfAttention(torch.nn.Module):
         # (batch, n_heads, time)
         query_for_score = (
             self.query_att(mixed_query_layer).transpose(1, 2)
-            / self.attention_head_size**0.5
+            / self.attention_head_size ** 0.5
         )
         if mask is not None:
             min_value = float(
@@ -114,7 +111,7 @@ class FastSelfAttention(torch.nn.Module):
 
         # (batch, n_heads, time)
         query_key_score = (
-            self.key_att(mixed_query_key_layer) / self.attention_head_size**0.5
+            self.key_att(mixed_query_key_layer) / self.attention_head_size ** 0.5
         ).transpose(1, 2)
         if mask is not None:
             min_value = float(
