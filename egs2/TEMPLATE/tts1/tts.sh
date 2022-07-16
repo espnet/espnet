@@ -357,8 +357,13 @@ if ! "${skip_data_prep}"; then
 
                 # Generate the MFCC features, VAD decision, and X-vector
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
                     # 1. Copy datadir and resample to 16k
-                    utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
+                    utils/copy_data_dir.sh "${data_feats}${_suf}/${dset}" "${dumpdir}/mfcc/${dset}"
                     utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
 
                     # 2. Extract mfcc features
@@ -386,11 +391,6 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
                     #   the number of utts will be different from the original features (raw or fbank).
                     #   To avoid this mismatch, perform filtering of the original feature scp here.
-                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                        _suf="/org"
-                    else
-                        _suf=""
-                    fi
                     cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
                     <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
                         utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \

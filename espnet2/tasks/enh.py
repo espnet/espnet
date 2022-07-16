@@ -5,6 +5,9 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.diar.layers.multi_mask import MultiMask
+from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -43,6 +46,7 @@ from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dpcl_e2e_separator import DPCLE2ESeparator
 from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
@@ -54,6 +58,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.preprocessor import EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -77,6 +82,7 @@ separator_choices = ClassChoices(
         dpcl=DPCLSeparator,
         dpcl_e2e=DPCLE2ESeparator,
         dprnn=DPRNNSeparator,
+        dptnet=DPTNetSeparator,
         fasnet=FaSNetSeparator,
         rnn=RNNSeparator,
         skim=SkiMSeparator,
@@ -84,9 +90,17 @@ separator_choices = ClassChoices(
         tcn=TCNSeparator,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
+        tcn_nomask=TCNSeparatorNomask,
     ),
     type_check=AbsSeparator,
     default="rnn",
+)
+
+mask_module_choices = ClassChoices(
+    name="mask_module",
+    classes=dict(multi_mask=MultiMask),
+    type_check=AbsMask,
+    default="multi_mask",
 )
 
 decoder_choices = ClassChoices(
@@ -142,6 +156,8 @@ class EnhancementTask(AbsTask):
         separator_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --mask_module and --mask_module_conf
+        mask_module_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -196,7 +212,84 @@ class EnhancementTask(AbsTask):
             "--use_preprocessor",
             type=str2bool,
             default=False,
-            help="Apply preprocessing to data or not",
+            help="Whether to apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--speech_volume_normalize",
+            type=str_or_none,
+            default=None,
+            help="Scale the maximum amplitude to the given value or range. "
+            "e.g. --speech_volume_normalize 1.0 scales it to 1.0.\n"
+            "--speech_volume_normalize 0.5_1.0 scales it to a random number in "
+            "the range [0.5, 1.0)",
+        )
+        group.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        group.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="THe probability for applying RIR convolution.",
+        )
+        group.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        group.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability applying Noise adding.",
+        )
+        group.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of signal-to-noise ratio (SNR) level in decibel.",
+        )
+        group.add_argument(
+            "--short_noise_thres",
+            type=float,
+            default=0.5,
+            help="If len(noise) / len(speech) is smaller than this threshold during "
+            "dynamic mixing, a warning will be displayed.",
+        )
+        group.add_argument(
+            "--use_reverberant_ref",
+            type=str2bool,
+            default=False,
+            help="Whether to use reverberant speech references "
+            "instead of anechoic ones",
+        )
+        group.add_argument(
+            "--num_spk",
+            type=int,
+            default=1,
+            help="Number of speakers in the input signal.",
+        )
+        group.add_argument(
+            "--num_noise_type",
+            type=int,
+            default=1,
+            help="Number of noise types.",
+        )
+        group.add_argument(
+            "--sample_rate",
+            type=int,
+            default=8000,
+            help="Sampling rate of the data (in Hz).",
+        )
+        group.add_argument(
+            "--force_single_channel",
+            type=str2bool,
+            default=False,
+            help="Whether to force all data to be single-channel.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -220,7 +313,41 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        retval = None
+        if args.use_preprocessor:
+            retval = EnhPreprocessor(
+                train=train,
+                # NOTE(kamo): Check attribute existence for backward compatibility
+                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                rir_apply_prob=args.rir_apply_prob
+                if hasattr(args, "rir_apply_prob")
+                else 1.0,
+                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                noise_apply_prob=args.noise_apply_prob
+                if hasattr(args, "noise_apply_prob")
+                else 1.0,
+                noise_db_range=args.noise_db_range
+                if hasattr(args, "noise_db_range")
+                else "13_15",
+                short_noise_thres=args.short_noise_thres
+                if hasattr(args, "short_noise_thres")
+                else 0.5,
+                speech_volume_normalize=args.speech_volume_normalize
+                if hasattr(args, "speech_volume_normalize")
+                else None,
+                use_reverberant_ref=args.use_reverberant_ref
+                if hasattr(args, "use_reverberant_ref")
+                else None,
+                num_spk=args.num_spk if hasattr(args, "num_spk") else 1,
+                num_noise_type=args.num_noise_type
+                if hasattr(args, "num_noise_type")
+                else 1,
+                sample_rate=args.sample_rate if hasattr(args, "sample_rate") else 8000,
+                force_single_channel=args.force_single_channel
+                if hasattr(args, "force_single_channel")
+                else False,
+            )
+        else:
+            retval = None
         assert check_return_type(retval)
         return retval
 
@@ -255,6 +382,13 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+        if args.separator.endswith("nomask"):
+            mask_module = mask_module_choices.get_class(args.mask_module)(
+                input_dim=encoder.output_dim,
+                **args.mask_module_conf,
+            )
+        else:
+            mask_module = None
 
         loss_wrappers = []
 
@@ -262,7 +396,8 @@ class EnhancementTask(AbsTask):
             # This check is for the compatibility when load models
             # that packed by older version
             for ctr in args.criterions:
-                criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+                criterion_conf = ctr.get("conf", {})
+                criterion = criterion_choices.get_class(ctr["name"])(**criterion_conf)
                 loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
                     criterion=criterion, **ctr["wrapper_conf"]
                 )
@@ -274,7 +409,8 @@ class EnhancementTask(AbsTask):
             separator=separator,
             decoder=decoder,
             loss_wrappers=loss_wrappers,
-            **args.model_conf
+            mask_module=mask_module,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?

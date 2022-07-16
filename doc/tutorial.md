@@ -136,6 +136,8 @@ echo 2
 - Currently, espnet1 only supports multiple GPU training within a single node. The distributed setup across multiple nodes is only supported in [espnet2](https://espnet.github.io/espnet/espnet2_distributed.html). 
 - We don't support multiple GPU inference. Instead, please split the recognition task for multiple jobs and distribute these split jobs to multiple GPUs.
 - If you could not get enough speed improvement with multiple GPUs, you should first check the GPU usage by `nvidia-smi`. If the GPU-Util percentage is low, the bottleneck would come from the disk access. You can apply data prefetching by `--n-iter-processes 2` in your `run.sh` to mitigate the problem. Note that this data prefetching consumes a lot of CPU memory, so please be careful when you increase the number of processes.
+- The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. **In ESPnet2, the total batch size is not changed regardless of the number of GPUs.** Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this [doc](https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus) for more information.
+
 
 ### Start from the middle stage or stop at specified stage
 
