@@ -4,9 +4,9 @@
 """Branchformer encoder definition.
 
 Reference:
-    Yifan Peng, Siddharth Dalmia, Ian Lane, and Shinji Watanabe, 
-    “Branchformer: Parallel MLP-Attention Architectures to Capture 
-    Local and Global Context for Speech Recognition and Understanding,” 
+    Yifan Peng, Siddharth Dalmia, Ian Lane, and Shinji Watanabe,
+    “Branchformer: Parallel MLP-Attention Architectures to Capture
+    Local and Global Context for Speech Recognition and Understanding,”
     in Proceedings of ICML, 2022.
 
 """
