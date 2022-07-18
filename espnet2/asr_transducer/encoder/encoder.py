@@ -149,7 +149,7 @@ class Encoder(torch.nn.Module):
         x_len: torch.Tensor,
         processed_frames: torch.tensor,
         left_context: int = 32,
-        right_context: int = 2,
+        right_context: int = 0,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Encode input sequences as chunks.
 
@@ -167,12 +167,14 @@ class Encoder(torch.nn.Module):
         mask = make_source_mask(x_len)
         x, mask = self.embed(x, mask)
 
-        processed_mask = (
-            torch.arange(left_context, device=x.device).view(1, left_context).flip(1)
-        )
-
-        processed_mask = processed_mask >= processed_frames
-        mask = torch.cat([processed_mask, mask], dim=1)
+        if left_context > 0:
+            processed_mask = (
+                torch.arange(left_context, device=x.device)
+                .view(1, left_context)
+                .flip(1)
+            )
+            processed_mask = processed_mask >= processed_frames
+            mask = torch.cat([processed_mask, mask], dim=1)
 
         pos_enc = self.pos_enc(x, left_context=left_context)
 

@@ -87,7 +87,7 @@ class Speech2Text:
         streaming: bool = False,
         chunk_size: int = 8,
         left_context: int = 32,
-        right_context: int = 2,
+        right_context: int = 0,
         display_partial_hypotheses: bool = False,
     ) -> None:
         assert check_argument_types()
@@ -739,7 +739,7 @@ def get_parser():
     parser.add_argument(
         "--chunk_size",
         type=int,
-        default=8,
+        default=16,
         help="Number of frames in chunk AFTER subsampling.",
     )
     parser.add_argument(
@@ -751,7 +751,7 @@ def get_parser():
     parser.add_argument(
         "--right_context",
         type=int,
-        default=2,
+        default=0,
         help="Number of frames in right context of the chunk AFTER subsampling.",
     )
     parser.add_argument(

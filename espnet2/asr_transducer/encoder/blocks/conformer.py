@@ -165,7 +165,10 @@ class Conformer(torch.nn.Module):
 
         residual = x
         x = self.norm_self_att(x)
-        key = torch.cat([self.cache[0], x], dim=1)
+        if left_context > 0:
+            key = torch.cat([self.cache[0], x], dim=1)
+        else:
+            key = x
         val = key
 
         if right_context > 0:
