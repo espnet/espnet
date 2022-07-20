@@ -785,6 +785,8 @@ class BeamSearchTransducer:
             beam_enc_out = enc_out_t.unsqueeze(0)
 
             list_b = []
+            duplication_check = [hyp.yseq for hyp in hyps]
+
             for n in range(self.nstep):
                 beam_dec_out = torch.stack([h.dec_out[-1] for h in hyps])
 
@@ -816,14 +818,15 @@ class BeamSearchTransducer:
                         if k == 0:
                             list_b.append(new_hyp)
                         else:
-                            new_hyp.yseq.append(int(k))
+                            if new_hyp.yseq + [int(k)] not in duplication_check:
+                                new_hyp.yseq.append(int(k))
 
-                            if self.use_lm:
-                                new_hyp.score += self.lm_weight * float(
-                                    hyp.lm_scores[k]
-                                )
+                                if self.use_lm:
+                                    new_hyp.score += self.lm_weight * float(
+                                        hyp.lm_scores[k]
+                                    )
 
-                            list_exp.append(new_hyp)
+                                list_exp.append(new_hyp)
 
                 if not list_exp:
                     kept_hyps = sorted(list_b, key=lambda x: x.score, reverse=True)[
