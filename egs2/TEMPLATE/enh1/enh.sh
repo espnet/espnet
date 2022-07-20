@@ -549,7 +549,7 @@ if ! "${skip_train}"; then
             _opts+="--config ${enh_config} "
         fi
 
-        if [ ${dynamic_mixing} ]; then
+        if ${dynamic_mixing}; then
             # In current version, if you want to enable dynamic mixing in speech separation,
             # you need to prepare the training set manually. Here we assume all speech sources 
             # are collected in "spk1.scp", and other scp files (wav.scp, spk{N}.scp) are not used. 
