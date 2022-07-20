@@ -773,8 +773,9 @@ class BeamSearchTransducer:
 
             beam_enc_out = enc_out_t.unsqueeze(0)
 
-            duplication_check = [hyp.yseq for hyp in hyps]
             list_b = []
+            duplication_check = [hyp.yseq for hyp in hyps]
+            
             for n in range(self.nstep):
                 beam_dec_out = torch.stack([h.dec_out[-1] for h in hyps])
 
