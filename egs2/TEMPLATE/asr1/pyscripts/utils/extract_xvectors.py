@@ -3,14 +3,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-import kaldiio
 import logging
-from pathlib import Path
-import sys
-import torch
 import os
-import numpy as np
+import sys
+from pathlib import Path
 
+import kaldiio
+import numpy as np
+import torch
 from tqdm.contrib import tqdm
 
 from espnet2.fileio.sound_scp import SoundScpReader

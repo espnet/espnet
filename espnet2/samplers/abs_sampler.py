@@ -1,7 +1,5 @@
-from abc import ABC
-from abc import abstractmethod
-from typing import Iterator
-from typing import Tuple
+from abc import ABC, abstractmethod
+from typing import Iterator, Tuple
 
 from torch.utils.data import Sampler
 

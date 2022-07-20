@@ -5,8 +5,8 @@
 
 import argparse
 import codecs
-import pandas as pd
 
+import pandas as pd
 
 parser = argparse.ArgumentParser(description="extract translation from tsv file")
 parser.add_argument("tsv_path", type=str, default=None, help="input tsv path")

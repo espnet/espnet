@@ -14,6 +14,8 @@ class CTC(torch.nn.Module):
         dropout_rate: dropout rate (0.0 ~ 1.0)
         ctc_type: builtin or warpctc
         reduce: reduce the CTC loss into a scalar
+        ignore_nan_grad: Same as zero_infinity (keeping for backward compatiblity)
+        zero_infinity:  Whether to zero infinite losses and the associated gradients.
     """
 
     def __init__(
@@ -23,7 +25,8 @@ class CTC(torch.nn.Module):
         dropout_rate: float = 0.0,
         ctc_type: str = "builtin",
         reduce: bool = True,
-        ignore_nan_grad: bool = True,
+        ignore_nan_grad: bool = None,
+        zero_infinity: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -31,15 +34,18 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
-        self.ignore_nan_grad = ignore_nan_grad
+        if ignore_nan_grad is not None:
+            zero_infinity = ignore_nan_grad
 
         if self.ctc_type == "builtin":
-            self.ctc_loss = torch.nn.CTCLoss(reduction="none")
+            self.ctc_loss = torch.nn.CTCLoss(
+                reduction="none", zero_infinity=zero_infinity
+            )
         elif self.ctc_type == "warpctc":
             import warpctc_pytorch as warp_ctc
 
-            if ignore_nan_grad:
-                logging.warning("ignore_nan_grad option is not supported for warp_ctc")
+            if zero_infinity:
+                logging.warning("zero_infinity option is not supported for warp_ctc")
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
 
         elif self.ctc_type == "gtnctc":
@@ -57,48 +63,7 @@ class CTC(torch.nn.Module):
         if self.ctc_type == "builtin":
             th_pred = th_pred.log_softmax(2)
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
-
-            if loss.requires_grad and self.ignore_nan_grad:
-                # ctc_grad: (L, B, O)
-                ctc_grad = loss.grad_fn(torch.ones_like(loss))
-                ctc_grad = ctc_grad.sum([0, 2])
-                indices = torch.isfinite(ctc_grad)
-                size = indices.long().sum()
-                if size == 0:
-                    # Return as is
-                    logging.warning(
-                        "All samples in this mini-batch got nan grad."
-                        " Returning nan value instead of CTC loss"
-                    )
-                elif size != th_pred.size(1):
-                    logging.warning(
-                        f"{th_pred.size(1) - size}/{th_pred.size(1)}"
-                        " samples got nan grad."
-                        " These were ignored for CTC loss."
-                    )
-
-                    # Create mask for target
-                    target_mask = torch.full(
-                        [th_target.size(0)],
-                        1,
-                        dtype=torch.bool,
-                        device=th_target.device,
-                    )
-                    s = 0
-                    for ind, le in enumerate(th_olen):
-                        if not indices[ind]:
-                            target_mask[s : s + le] = 0
-                        s += le
-
-                    # Calc loss again using maksed data
-                    loss = self.ctc_loss(
-                        th_pred[:, indices, :],
-                        th_target[target_mask],
-                        th_ilen[indices],
-                        th_olen[indices],
-                    )
-            else:
-                size = th_pred.size(1)
+            size = th_pred.size(1)
 
             if self.reduce:
                 # Batch-size average

@@ -8,9 +8,7 @@ import warnings
 
 import numpy as np
 import torch
-
-from numba import njit
-from numba import prange
+from numba import njit, prange
 
 try:
     from .core import maximum_path_c

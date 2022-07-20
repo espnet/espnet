@@ -1,15 +1,13 @@
-from collections import OrderedDict
 import math
-from typing import List
-from typing import Tuple
+from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from espnet2.enh.layers.dpmulcat import DPMulCat
-from espnet2.enh.layers.dprnn import merge_feature
-from espnet2.enh.layers.dprnn import split_feature
+from espnet2.enh.layers.dprnn import merge_feature, split_feature
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -145,13 +143,18 @@ class SVoiceSeparator(AbsSeparator):
         )
 
     def forward(
-        self, input: torch.Tensor, ilens: torch.Tensor
+        self,
+        input: torch.Tensor,
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
+            additional (Dict or None): other data included in model
+                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]

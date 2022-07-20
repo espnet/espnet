@@ -1,8 +1,5 @@
 from pathlib import Path
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Union
+from typing import Dict, Iterable, List, Union
 
 import numpy as np
 from typeguard import check_argument_types

@@ -2,8 +2,8 @@
 
 # Copyright 2021  Yuekai Zhang
 
-import json
 import argparse
+import json
 
 parser = argparse.ArgumentParser(description="Process snips dataset.")
 parser.add_argument("--wav_path", type=str, help="file path for audios")

@@ -151,7 +151,8 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
 
     if not isinstance(lengths, list):
-        lengths = lengths.tolist()
+        lengths = lengths.long().tolist()
+
     bs = int(len(lengths))
     if maxlen is None:
         if xs is None:
@@ -407,7 +408,7 @@ def get_subsample(train_args, mode, arch):
 
     elif mode == "mt" and arch == "rnn":
         # +1 means input (+1) and layers outputs (train_args.elayer)
-        subsample = np.ones(train_args.elayers + 1, dtype=np.int)
+        subsample = np.ones(train_args.elayers + 1, dtype=np.int64)
         logging.warning("Subsampling is not performed for machine translation.")
         logging.info("subsample: " + " ".join([str(x) for x in subsample]))
         return subsample
@@ -417,7 +418,7 @@ def get_subsample(train_args, mode, arch):
         or (mode == "mt" and arch == "rnn")
         or (mode == "st" and arch == "rnn")
     ):
-        subsample = np.ones(train_args.elayers + 1, dtype=np.int)
+        subsample = np.ones(train_args.elayers + 1, dtype=np.int64)
         if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
             ss = train_args.subsample.split("_")
             for j in range(min(train_args.elayers + 1, len(ss))):
@@ -432,7 +433,7 @@ def get_subsample(train_args, mode, arch):
 
     elif mode == "asr" and arch == "rnn_mix":
         subsample = np.ones(
-            train_args.elayers_sd + train_args.elayers + 1, dtype=np.int
+            train_args.elayers_sd + train_args.elayers + 1, dtype=np.int64
         )
         if train_args.etype.endswith("p") and not train_args.etype.startswith("vgg"):
             ss = train_args.subsample.split("_")
@@ -451,7 +452,7 @@ def get_subsample(train_args, mode, arch):
     elif mode == "asr" and arch == "rnn_mulenc":
         subsample_list = []
         for idx in range(train_args.num_encs):
-            subsample = np.ones(train_args.elayers[idx] + 1, dtype=np.int)
+            subsample = np.ones(train_args.elayers[idx] + 1, dtype=np.int64)
             if train_args.etype[idx].endswith("p") and not train_args.etype[
                 idx
             ].startswith("vgg"):

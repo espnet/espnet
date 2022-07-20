@@ -1,7 +1,6 @@
 """Error Calculator module for Transducer."""
 
-from typing import List
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 

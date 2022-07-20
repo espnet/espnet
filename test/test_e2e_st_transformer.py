@@ -3,6 +3,7 @@
 # Copyright 2019 Hirofumi Inaguma
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import argparse
+
 import pytest
 import torch
 

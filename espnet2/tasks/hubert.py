@@ -7,21 +7,15 @@
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 import argparse
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.hubert_encoder import (
-    FairseqHubertPretrainEncoder,  # noqa: H301
+from espnet2.asr.encoder.hubert_encoder import (  # noqa: H301
+    FairseqHubertPretrainEncoder,
 )
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -43,10 +37,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -175,56 +166,56 @@ class HubertTask(AbsTask):
             default=None,
             help="The model file of sentencepiece",
         )
-        parser.add_argument(
+        group.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
             help="non_linguistic_symbols file path",
         )
-        parser.add_argument(
+        group.add_argument(
             "--cleaner",
             type=str_or_none,
             choices=[None, "tacotron", "jaconv", "vietnamese"],
             default=None,
             help="Apply text cleaning",
         )
-        parser.add_argument(
+        group.add_argument(
             "--g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
-        parser.add_argument(
+        group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
             help="Scale the maximum amplitude to the given value.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_scp",
             type=str_or_none,
             default=None,
             help="The file path of rir scp file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_apply_prob",
             type=float,
             default=1.0,
             help="THe probability for applying RIR convolution.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_scp",
             type=str_or_none,
             default=None,
             help="The file path of noise scp file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_apply_prob",
             type=float,
             default=1.0,
             help="The probability applying Noise adding.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_db_range",
             type=str,
             default="13_15",
@@ -296,6 +287,9 @@ class HubertTask(AbsTask):
                 noise_db_range=args.noise_db_range
                 if hasattr(args, "noise_db_range")
                 else "13_15",
+                short_noise_thres=args.short_noise_thres
+                if hasattr(args, "short_noise_thres")
+                else 0.5,
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,

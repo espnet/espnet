@@ -6,16 +6,16 @@
 # This code is ported from the following implementation written in Torch.
 # https://github.com/chainer/chainer/blob/master/examples/ptb/train_ptb_custom_loop.py
 
-import chainer
-import h5py
 import logging
-import numpy as np
 import os
 import random
-import six
-from tqdm import tqdm
 
+import chainer
+import h5py
+import numpy as np
+import six
 from chainer.training import extension
+from tqdm import tqdm
 
 
 def load_dataset(path, label_dict, outdir=None):

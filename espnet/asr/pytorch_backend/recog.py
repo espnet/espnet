@@ -1,14 +1,12 @@
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
-from distutils.version import LooseVersion
 import json
 import logging
 
 import torch
+from packaging.version import parse as V
 
-from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import add_results_to_json, get_model_conf, torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch
@@ -54,7 +52,7 @@ def recog_v2(args):
 
         # See https://github.com/espnet/espnet/pull/3616 for more information.
         if (
-            torch.__version__ < LooseVersion("1.4.0")
+            V(torch.__version__) < V("1.4.0")
             and "lstm" in train_args.etype
             and torch.nn.LSTM in q_config
         ):
@@ -62,9 +60,7 @@ def recog_v2(args):
                 "Quantized LSTM in ESPnet is only supported with torch 1.4+."
             )
 
-        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-            "1.5.0"
-        ):
+        if args.quantize_dtype == "float16" and V(torch.__version__) < V("1.5.0"):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."
@@ -101,8 +97,7 @@ def recog_v2(args):
         lm = None
 
     if args.ngram_model:
-        from espnet.nets.scorers.ngram import NgramFullScorer
-        from espnet.nets.scorers.ngram import NgramPartScorer
+        from espnet.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
 
         if args.ngram_scorer == "full":
             ngram = NgramFullScorer(args.ngram_model, train_args.char_list)

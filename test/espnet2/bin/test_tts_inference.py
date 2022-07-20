@@ -1,12 +1,10 @@
+import string
 from argparse import ArgumentParser
 from pathlib import Path
-import string
 
 import pytest
 
-from espnet2.bin.tts_inference import get_parser
-from espnet2.bin.tts_inference import main
-from espnet2.bin.tts_inference import Text2Speech
+from espnet2.bin.tts_inference import Text2Speech, get_parser, main
 from espnet2.tasks.tts import TTSTask
 
 

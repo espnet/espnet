@@ -1,16 +1,29 @@
-from abc import ABC
 import logging
+import math
+from abc import ABC
 
 import ci_sdr
 import fast_bss_eval
 import torch
 
-
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
-    pass
+    """Base class for all time-domain Enhancement loss modules."""
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def only_for_test(self) -> bool:
+        return self._only_for_test
+
+    def __init__(self, name, only_for_test=False):
+        super().__init__()
+        self._name = name
+        self._only_for_test = only_for_test
 
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
@@ -33,13 +46,11 @@ class CISDRLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, filter_length=512):
-        super().__init__()
-        self.filter_length = filter_length
+    def __init__(self, filter_length=512, name=None, only_for_test=False):
+        _name = "ci_sdr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
 
-    @property
-    def name(self) -> str:
-        return "ci_sdr_loss"
+        self.filter_length = filter_length
 
     def forward(
         self,
@@ -55,19 +66,13 @@ class CISDRLoss(TimeDomainLoss):
 
 
 class SNRLoss(TimeDomainLoss):
-    def __init__(self, eps=EPS):
-        super().__init__()
+    def __init__(self, eps=EPS, name=None, only_for_test=False):
+        _name = "snr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
         self.eps = float(eps)
 
-    @property
-    def name(self) -> str:
-        return "snr_loss"
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
 
         noise = inf - ref
@@ -80,7 +85,7 @@ class SNRLoss(TimeDomainLoss):
 
 
 class SDRLoss(TimeDomainLoss):
-    """SDR loss
+    """SDR loss.
 
     filter_length: int
         The length of the distortion filter allowed (default: ``512``)
@@ -109,8 +114,11 @@ class SDRLoss(TimeDomainLoss):
         clamp_db=None,
         zero_mean=True,
         load_diag=None,
+        name=None,
+        only_for_test=False,
     ):
-        super().__init__()
+        _name = "sdr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -118,16 +126,8 @@ class SDRLoss(TimeDomainLoss):
         self.zero_mean = zero_mean
         self.load_diag = load_diag
 
-    @property
-    def name(self) -> str:
-        return "sdr_loss"
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        est: torch.Tensor,
-    ) -> torch.Tensor:
-        """The forward function
+    def forward(self, ref: torch.Tensor, est: torch.Tensor) -> torch.Tensor:
+        """SDR forward.
 
         Args:
             ref: Tensor, (..., n_samples)
@@ -165,26 +165,24 @@ class SISNRLoss(TimeDomainLoss):
         zero_mean: bool
             When set to True, the mean of all signals is subtracted prior.
         eps: float
-            Deprecated. Keeped for compatibility.
+            Deprecated. Kept for compatibility.
     """
 
-    def __init__(self, clamp_db=None, zero_mean=True, eps=None):
-        super().__init__()
+    def __init__(
+        self, clamp_db=None, zero_mean=True, eps=None, name=None, only_for_test=False
+    ):
+        _name = "si_snr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
         if eps is not None:
             logging.warning("Eps is deprecated in si_snr loss, set clamp_db instead.")
+            if self.clamp_db is None:
+                self.clamp_db = -math.log10(eps / (1 - eps)) * 10
 
-    @property
-    def name(self) -> str:
-        return "si_snr_loss"
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        est: torch.Tensor,
-    ) -> torch.Tensor:
-        """Forward function
+    def forward(self, ref: torch.Tensor, est: torch.Tensor) -> torch.Tensor:
+        """SI-SNR forward.
 
         Args:
 
@@ -207,3 +205,59 @@ class SISNRLoss(TimeDomainLoss):
         )
 
         return si_snr
+
+
+class TimeDomainMSE(TimeDomainLoss):
+    def __init__(self, name=None, only_for_test=False):
+        _name = "TD_MSE_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """Time-domain MSE loss forward.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        mseloss = (ref - inf).pow(2)
+        if ref.dim() == 3:
+            mseloss = mseloss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            mseloss = mseloss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return mseloss
+
+
+class TimeDomainL1(TimeDomainLoss):
+    def __init__(self, name=None, only_for_test=False):
+        _name = "TD_L1_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """Time-domain L1 loss forward.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        l1loss = abs(ref - inf)
+        if ref.dim() == 3:
+            l1loss = l1loss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            l1loss = l1loss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return l1loss

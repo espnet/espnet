@@ -1,13 +1,11 @@
-from abc import ABC
-from abc import abstractmethod
-from typing import Dict
-from typing import List
-from typing import Tuple
+from abc import ABC, abstractmethod
+from typing import Dict, List, Tuple
 
 import torch
 
 
 class AbsLossWrapper(torch.nn.Module, ABC):
+    """Base class for all Enhancement loss wrapper modules."""
 
     # The weight for the current loss in the multi-task learning.
     # The overall training target will be combined as:

@@ -1,10 +1,9 @@
 import argparse
 import logging
 
-from progress.bar import Bar
-
 from metrics import ErrorMetric
-from util import format_results, load_predictions, load_gold_data
+from progress.bar import Bar
+from util import format_results, load_gold_data, load_predictions
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s -   %(message)s",

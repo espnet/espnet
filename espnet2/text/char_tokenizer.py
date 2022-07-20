@@ -1,8 +1,6 @@
-from pathlib import Path
-from typing import Iterable
-from typing import List
-from typing import Union
 import warnings
+from pathlib import Path
+from typing import Iterable, List, Union
 
 from typeguard import check_argument_types
 
@@ -52,7 +50,7 @@ class CharTokenizer(AbsTokenizer):
             else:
                 t = line[0]
                 if t == " ":
-                    t = "<space>"
+                    t = self.space_symbol
                 tokens.append(t)
                 line = line[1:]
         return tokens
