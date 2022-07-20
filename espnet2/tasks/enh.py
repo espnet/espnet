@@ -1,4 +1,5 @@
 import argparse
+import copy
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -54,10 +55,12 @@ from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.preprocessor import DynamicMixingPreprocessor, EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -344,7 +347,7 @@ class EnhancementTask(AbsTask):
             "'dynamic_mixing' and 'use_preprocessor' should not both be 'True'"
         )
 
-        if dynamic_mixing:
+        if dynamic_mixing and train:
             retval = DynamicMixingPreprocessor(
                 train=train,
                 source_scp=args.train_data_path_and_name_and_type[0][0],
@@ -460,3 +463,19 @@ class EnhancementTask(AbsTask):
 
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
+        kwargs: dict = None,
+    ) -> AbsIterFactory:
+
+        dynamic_mixing = getattr(args, "dynamic_mixing", False)
+        if dynamic_mixing and mode == "train":
+            args = copy.deepcopy(args)
+            args.fold_length = args.fold_length[0:1]
+
+        return super().build_iter_factory(args, distributed_option, mode, kwargs)

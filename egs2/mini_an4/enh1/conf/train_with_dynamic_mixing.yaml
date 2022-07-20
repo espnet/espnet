@@ -1,0 +1,32 @@
+
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 2
+    nonlinear: relu
+    layer: 1
+    unit: 128
+    dropout: 0.2
+
+dynamic_mixing: True
+dynamic_mixing_gain_db: 2.0
+
+criterions: 
+  # The first criterion
+  - name: mse 
+    conf:
+      compute_on_mask: True
+      mask_type: PSM^2
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

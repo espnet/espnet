@@ -579,7 +579,6 @@ if ! "${skip_train}"; then
             for spk in $(seq "${spk_num}"); do
                 _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
-                _fold_length_param+="--fold_length ${_fold_length} "
             done
         
         else 
@@ -595,6 +594,7 @@ if ! "${skip_train}"; then
         for spk in $(seq "${spk_num}"); do
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
+            _fold_length_param+="--fold_length ${_fold_length} "
         done
 
         if $use_dereverb_ref; then
