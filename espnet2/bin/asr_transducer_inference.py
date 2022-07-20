@@ -177,13 +177,6 @@ class Speech2Text:
         self.left_context = max(left_context, 0)
         self.right_context = max(right_context, 0)
 
-        self.sub_chunk_size = self.asr_model.encoder.embed.get_size_before_subsampling(
-            self.chunk_size
-        )
-        self.window_size = self.asr_model.encoder.embed.get_size_before_subsampling(
-            self.chunk_size + self.right_context
-        )
-
         self.n_fft = asr_train_args.frontend_conf.get("n_fft", 512)
         self.hop_length = asr_train_args.frontend_conf.get("hop_length", 128)
 
@@ -192,6 +185,7 @@ class Speech2Text:
         else:
             self.frontend_window_size = self.n_fft
 
+        self.window_size = self.chunk_size + self.right_context
         self._raw_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
             self.window_size, self.hop_length
         )
