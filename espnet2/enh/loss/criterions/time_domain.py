@@ -287,8 +287,17 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             weight for time domain loss.
     """
 
-    def __init__(self, window_sz=[512], hop_sz=None, eps=1e-8, time_domain_weight=0.5):
-        super(MultiResL1SpecLoss, self).__init__()
+    def __init__(
+        self,
+        window_sz=[512],
+        hop_sz=None,
+        eps=1e-8,
+        time_domain_weight=0.5,
+        name=None,
+        only_for_test=False,
+    ):
+        _name = "TD_L1_loss" if name is None else name
+        super(MultiResL1SpecLoss, self).__init__(_name, only_for_test=only_for_test)
 
         assert [x % 2 == 0 for x in window_sz]
         self.window_sz = window_sz
@@ -318,7 +327,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         return "l1_timedomain+magspec_loss"
 
     def get_magnitude(self, stft):
-        if is_torch_1_9_plus and self.use_builtin_complex:
+        if is_torch_1_9_plus:
             stft = torch.complex(stft[..., 0], stft[..., 1])
         else:
             stft = ComplexTensor(stft[..., 0], stft[..., 1])
@@ -338,21 +347,23 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         Returns:
             loss: (Batch,)
         """
+        assert target.shape == estimate.shape, (target.shape, estimate.shape)
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps
         )
-        time_domain_loss = torch.sum((estimate * scaling_factor - target).abs())
+        time_domain_loss = torch.sum((estimate * scaling_factor - target).abs(), dim=-1)
 
         if len(self.stft_encoders) == 0:
             return time_domain_loss
         else:
             spectral_loss = torch.zeros_like(time_domain_loss)
             for stft_enc in self.stft_encoders:
-                target_mag = stft_enc(target).abs()
-
-                estimate_mag = stft_enc(estimate * scaling_factor).abs()
-                c_loss = torch.sum((estimate_mag - target_mag).abs())
+                target_mag = self.get_magnitude(stft_enc(target)[0])
+                estimate_mag = self.get_magnitude(
+                    stft_enc(estimate * scaling_factor)[0]
+                )
+                c_loss = torch.sum((estimate_mag - target_mag).abs(), dim=(1, 2))
                 spectral_loss += c_loss
 
             return time_domain_loss * self.time_domain_weight + (
