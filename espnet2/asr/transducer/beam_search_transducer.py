@@ -817,7 +817,7 @@ class BeamSearchTransducer:
                         if k == 0:
                             list_b.append(new_hyp)
                         else:
-                            if new_hyp.yseq + int[(k)] not in duplication_check:
+                            if new_hyp.yseq + [int(k)] not in duplication_check:
                                 new_hyp.yseq.append(int(k))
 
                                 if self.use_lm:
