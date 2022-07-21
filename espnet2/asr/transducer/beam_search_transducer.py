@@ -232,7 +232,6 @@ class BeamSearchTransducer:
 
         hyp = Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)
         cache = {}
-        cache_lm = {}
 
         dec_out, state, _ = self.decoder.score(hyp, cache)
 
