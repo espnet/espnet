@@ -51,11 +51,7 @@ class SGDFactory(OptimizerFactoryInterface):
             args (argparse.Namespace): parsed command-line args
 
         """
-        return torch.optim.SGD(
-            target,
-            lr=args.lr,
-            weight_decay=args.weight_decay,
-        )
+        return torch.optim.SGD(target, lr=args.lr, weight_decay=args.weight_decay,)
 
 
 class AdadeltaFactory(OptimizerFactoryInterface):
@@ -77,10 +73,7 @@ class AdadeltaFactory(OptimizerFactoryInterface):
 
         """
         return torch.optim.Adadelta(
-            target,
-            rho=args.rho,
-            eps=args.eps,
-            weight_decay=args.weight_decay,
+            target, rho=args.rho, eps=args.eps, weight_decay=args.weight_decay,
         )
 
 

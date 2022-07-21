@@ -263,10 +263,7 @@ class MaskCTCInference(torch.nn.Module):
     """Mask-CTC-based non-autoregressive inference"""
 
     def __init__(
-        self,
-        asr_model: MaskCTCModel,
-        n_iterations: int,
-        threshold_probability: float,
+        self, asr_model: MaskCTCModel, n_iterations: int, threshold_probability: float,
     ):
         """Initialize Mask-CTC inference"""
         super().__init__()

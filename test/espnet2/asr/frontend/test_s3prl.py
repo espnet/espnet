@@ -10,10 +10,7 @@ def test_frontend_init():
     if not is_torch_1_7_plus:
         return
 
-    frontend = S3prlFrontend(
-        fs=16000,
-        frontend_conf=dict(upstream="mel"),
-    )
+    frontend = S3prlFrontend(fs=16000, frontend_conf=dict(upstream="mel"),)
     assert frontend.frontend_type == "s3prl"
     assert frontend.output_dim > 0
 
@@ -24,9 +21,7 @@ def test_frontend_output_size():
         return
 
     frontend = S3prlFrontend(
-        fs=16000,
-        frontend_conf=dict(upstream="mel"),
-        download_dir="./hub",
+        fs=16000, frontend_conf=dict(upstream="mel"), download_dir="./hub",
     )
 
     wavs = torch.randn(2, 1600)
@@ -40,9 +35,7 @@ def test_frontend_backward():
         return
 
     frontend = S3prlFrontend(
-        fs=16000,
-        frontend_conf=dict(upstream="mel"),
-        download_dir="./hub",
+        fs=16000, frontend_conf=dict(upstream="mel"), download_dir="./hub",
     )
     wavs = torch.randn(2, 1600, requires_grad=True)
     lengths = torch.LongTensor([1600, 1600])

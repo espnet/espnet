@@ -765,11 +765,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
 
         # inference
         _, outs, _ = self._forward(
-            xs,
-            ilens,
-            spembs=spembs,
-            is_inference=True,
-            alpha=alpha,
+            xs, ilens, spembs=spembs, is_inference=True, alpha=alpha,
         )  # (1, L, odim)
 
         return outs[0], None, None

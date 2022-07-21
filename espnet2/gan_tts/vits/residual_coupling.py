@@ -146,11 +146,7 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
         self.use_only_mean = use_only_mean
 
         # define modules
-        self.input_conv = torch.nn.Conv1d(
-            self.half_channels,
-            hidden_channels,
-            1,
-        )
+        self.input_conv = torch.nn.Conv1d(self.half_channels, hidden_channels, 1,)
         self.encoder = WaveNet(
             in_channels=-1,
             out_channels=-1,
@@ -172,17 +168,9 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
             scale_skip_connect=True,
         )
         if use_only_mean:
-            self.proj = torch.nn.Conv1d(
-                hidden_channels,
-                self.half_channels,
-                1,
-            )
+            self.proj = torch.nn.Conv1d(hidden_channels, self.half_channels, 1,)
         else:
-            self.proj = torch.nn.Conv1d(
-                hidden_channels,
-                self.half_channels * 2,
-                1,
-            )
+            self.proj = torch.nn.Conv1d(hidden_channels, self.half_channels * 2, 1,)
         self.proj.weight.data.zero_()
         self.proj.bias.data.zero_()
 

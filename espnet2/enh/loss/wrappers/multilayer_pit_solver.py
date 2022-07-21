@@ -7,10 +7,7 @@ from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 
 class MultiLayerPITSolver(AbsLossWrapper):
     def __init__(
-        self,
-        criterion: AbsEnhLoss,
-        weight=1.0,
-        independent_perm=True,
+        self, criterion: AbsEnhLoss, weight=1.0, independent_perm=True,
     ):
         """Multi-Layer Permutation Invariant Training Solver.
 

@@ -36,10 +36,7 @@ class RnnAttractor(AbsAttractor):
         self.attractor_grad = attractor_grad
 
     def forward(
-        self,
-        enc_input: torch.Tensor,
-        ilens: torch.Tensor,
-        dec_input: torch.Tensor,
+        self, enc_input: torch.Tensor, ilens: torch.Tensor, dec_input: torch.Tensor,
     ):
         """Forward.
 

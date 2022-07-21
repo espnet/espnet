@@ -158,10 +158,7 @@ class ConvInUpsampleNetwork(torch.nn.Module):
         # NOTE(kan-bayashi): Use pad here, which is not used in parallel_wavegan
         self.pad = torch.nn.ReplicationPad1d(aux_context_window)
         self.conv_in = Conv1d(
-            aux_channels,
-            aux_channels,
-            kernel_size=kernel_size,
-            bias=False,
+            aux_channels, aux_channels, kernel_size=kernel_size, bias=False,
         )
         self.upsample = UpsampleNetwork(
             upsample_scales=upsample_scales,

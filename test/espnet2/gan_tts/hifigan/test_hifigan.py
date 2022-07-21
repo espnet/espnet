@@ -43,11 +43,7 @@ def make_hifigan_multi_scale_multi_period_discriminator_args(**kwargs):
     defaults = dict(
         scales=2,
         scale_downsample_pooling="AvgPool1d",
-        scale_downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
+        scale_downsample_pooling_params={"kernel_size": 4, "stride": 2, "padding": 2,},
         scale_discriminator_params={
             "in_channels": 1,
             "out_channels": 1,
@@ -142,12 +138,8 @@ def test_hifigan_generator_and_discriminator_and_loss(
         average_by_discriminators=average,
         include_final_outputs=include,
     )
-    gen_adv_criterion = GeneratorAdversarialLoss(
-        average_by_discriminators=average,
-    )
-    dis_adv_criterion = DiscriminatorAdversarialLoss(
-        average_by_discriminators=average,
-    )
+    gen_adv_criterion = GeneratorAdversarialLoss(average_by_discriminators=average,)
+    dis_adv_criterion = DiscriminatorAdversarialLoss(average_by_discriminators=average,)
     optimizer_g = torch.optim.AdamW(model_g.parameters())
     optimizer_d = torch.optim.AdamW(model_d.parameters())
 
@@ -199,6 +191,5 @@ def test_parallel_wavegan_compatibility():
         out_pwg = model_pwg.inference(c)
         out_espnet2 = model_espnet2.inference(c)
         np.testing.assert_array_equal(
-            out_pwg.cpu().numpy(),
-            out_espnet2.cpu().numpy(),
+            out_pwg.cpu().numpy(), out_espnet2.cpu().numpy(),
         )

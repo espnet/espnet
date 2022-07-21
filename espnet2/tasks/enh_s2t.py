@@ -76,11 +76,7 @@ st_extra_mt_decoder_choices.name = "st_extra_mt_decoder"
 
 MAX_REFERENCE_NUM = 100
 
-name2task = dict(
-    enh=EnhancementTask,
-    asr=ASRTask,
-    st=STTask,
-)
+name2task = dict(enh=EnhancementTask, asr=ASRTask, st=STTask,)
 
 # More can be added to the following attributes
 enh_attributes = [

@@ -23,7 +23,7 @@ def add_gradient_noise(
         scale_factor: {0.55}: The scale of `sigma`.
     """
     interval = (iteration // duration) + 1
-    sigma = eta / interval**scale_factor
+    sigma = eta / interval ** scale_factor
     for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()

@@ -72,10 +72,7 @@ def main():
                 for s, e in zip(changes[::2], changes[1::2]):
                     print(
                         fmt.format(
-                            key,
-                            s * factor,
-                            (e - s) * factor,
-                            key + "_" + str(spkid),
+                            key, s * factor, (e - s) * factor, key + "_" + str(spkid),
                         ),
                         file=wf,
                     )

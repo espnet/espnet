@@ -123,11 +123,7 @@ def main():
         alpha = f["/mlsa/alpha"][()]
 
     # define MLSA filter for noise shaping
-    mlsa_filter = TimeInvariantMLSAFilter(
-        coef=coef,
-        alpha=alpha,
-        n_shift=args.n_shift,
-    )
+    mlsa_filter = TimeInvariantMLSAFilter(coef=coef, alpha=alpha, n_shift=args.n_shift,)
 
     # define model and laod parameters
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")

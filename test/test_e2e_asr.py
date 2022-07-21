@@ -320,7 +320,7 @@ def test_gradient_noise_injection(module):
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batchset = make_batchset(dummy_json, 2, 2**10, 2**10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(10, 5, args)
     model_org = m.E2E(10, 5, args_org)
     for batch in batchset:
@@ -343,7 +343,7 @@ def test_sortagrad_trainable(module):
         import espnet.nets.pytorch_backend.e2e_asr as m
     else:
         import espnet.nets.chainer_backend.e2e_asr as m
-    batchset = make_batchset(dummy_json, 2, 2**10, 2**10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
     model = m.E2E(idim, odim, args)
     for batch in batchset:
         loss = model(*convert_batch(batch, module, idim=idim, odim=odim))

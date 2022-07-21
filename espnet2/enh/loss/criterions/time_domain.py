@@ -52,11 +52,7 @@ class CISDRLoss(TimeDomainLoss):
 
         self.filter_length = filter_length
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 

@@ -251,10 +251,7 @@ class DCCRNSeparator(AbsSeparator):
         masks = self.create_masks(out)
         masked = self.apply_masks(masks, real, imag)
         others = OrderedDict(
-            zip(
-                ["mask_spk{}".format(i + 1) for i in range(self.num_spk)],
-                masks,
-            )
+            zip(["mask_spk{}".format(i + 1) for i in range(self.num_spk)], masks,)
         )
 
         if self.use_noise_mask:
@@ -326,10 +323,10 @@ class DCCRNSeparator(AbsSeparator):
             mask_imag = masks[i].imag.permute(0, 2, 1)
             if self.masking_mode == "E":
                 # shape (B, F, T)
-                spec_mags = torch.sqrt(real**2 + imag**2 + 1e-8)
+                spec_mags = torch.sqrt(real ** 2 + imag ** 2 + 1e-8)
                 # shape (B, F, T)
                 spec_phase = torch.atan2(imag, real)
-                mask_mags = (mask_real**2 + mask_imag**2) ** 0.5
+                mask_mags = (mask_real ** 2 + mask_imag ** 2) ** 0.5
                 # mask_mags = (mask_real ** 2 + mask_imag ** 2 + EPS) ** 0.5
                 real_phase = mask_real / (mask_mags + EPS)
                 imag_phase = mask_imag / (mask_mags + EPS)

@@ -7,9 +7,7 @@ class LinearDecoder(AbsDecoder):
     """Linear decoder for speaker diarization"""
 
     def __init__(
-        self,
-        encoder_output_size: int,
-        num_spk: int = 2,
+        self, encoder_output_size: int, num_spk: int = 2,
     ):
         super().__init__()
         self._num_spk = num_spk

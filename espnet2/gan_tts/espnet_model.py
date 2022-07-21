@@ -104,10 +104,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             # Extract features
             feats = None
             if self.feats_extract is not None:
-                feats, feats_lengths = self.feats_extract(
-                    speech,
-                    speech_lengths,
-                )
+                feats, feats_lengths = self.feats_extract(speech, speech_lengths,)
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
                     speech,
@@ -135,9 +132,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
 
         # Make batch for tts inputs
         batch = dict(
-            text=text,
-            text_lengths=text_lengths,
-            forward_generator=forward_generator,
+            text=text, text_lengths=text_lengths, forward_generator=forward_generator,
         )
 
         # Update batch for additional auxiliary inputs
@@ -200,10 +195,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         """
         feats = None
         if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(
-                speech,
-                speech_lengths,
-            )
+            feats, feats_lengths = self.feats_extract(speech, speech_lengths,)
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,

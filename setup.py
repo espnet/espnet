@@ -74,10 +74,7 @@ requirements = {
         "transformers",
         "gtn==0.0.0",
     ],
-    "setup": [
-        "numpy",
-        "pytest-runner",
-    ],
+    "setup": ["numpy", "pytest-runner",],
     "test": [
         "pytest>=3.3.0",
         "pytest-timeouts>=1.2.1",

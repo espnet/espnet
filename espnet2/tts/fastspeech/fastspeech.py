@@ -546,20 +546,13 @@ class FastSpeech(AbsTTS):
         )
         loss = l1_loss + duration_loss
 
-        stats = dict(
-            l1_loss=l1_loss.item(),
-            duration_loss=duration_loss.item(),
-        )
+        stats = dict(l1_loss=l1_loss.item(), duration_loss=duration_loss.item(),)
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-            )
+            stats.update(encoder_alpha=self.encoder.embed[-1].alpha.data.item(),)
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
+            stats.update(decoder_alpha=self.decoder.embed[-1].alpha.data.item(),)
 
         if not joint_training:
             stats.update(loss=loss.item())
@@ -618,13 +611,7 @@ class FastSpeech(AbsTTS):
             # use groundtruth of duration
             ds = d.unsqueeze(0)
             _, outs, d_outs = self._forward(
-                xs,
-                ilens,
-                ys,
-                ds=ds,
-                spembs=spembs,
-                sids=sids,
-                lids=lids,
+                xs, ilens, ys, ds=ds, spembs=spembs, sids=sids, lids=lids,
             )  # (1, T_feats, odim)
         else:
             # inference

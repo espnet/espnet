@@ -20,10 +20,6 @@ class AbsEnhLoss(torch.nn.Module, ABC):
         return False
 
     @abstractmethod
-    def forward(
-        self,
-        ref,
-        inf,
-    ) -> torch.Tensor:
+    def forward(self, ref, inf,) -> torch.Tensor:
         # the return tensor should be shape of (batch)
         raise NotImplementedError

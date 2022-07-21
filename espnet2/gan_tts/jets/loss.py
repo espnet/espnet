@@ -124,7 +124,7 @@ class ForwardSumLoss(torch.nn.Module):
         log_p_attn: torch.Tensor,
         ilens: torch.Tensor,
         olens: torch.Tensor,
-        blank_prob: float = np.e**-1,
+        blank_prob: float = np.e ** -1,
     ) -> torch.Tensor:
         """Calculate forward propagation.
 

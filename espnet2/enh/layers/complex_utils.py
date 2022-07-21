@@ -70,10 +70,10 @@ def complex_norm(
         return torch.norm(c, dim=dim, keepdim=keepdim)
     else:
         if dim is None:
-            return torch.sqrt((c.real**2 + c.imag**2).sum() + EPS)
+            return torch.sqrt((c.real ** 2 + c.imag ** 2).sum() + EPS)
         else:
             return torch.sqrt(
-                (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
+                (c.real ** 2 + c.imag ** 2).sum(dim=dim, keepdim=keepdim) + EPS
             )
 
 

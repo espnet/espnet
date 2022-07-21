@@ -190,16 +190,14 @@ class BeamSearchTransducer:
                     and (curr_id - pref_id) <= self.prefix_alpha
                 ):
                     logp = torch.log_softmax(
-                        self.joint_network(enc_out_t, hyp_i.dec_out[-1]),
-                        dim=-1,
+                        self.joint_network(enc_out_t, hyp_i.dec_out[-1]), dim=-1,
                     )
 
                     curr_score = hyp_i.score + float(logp[hyp_j.yseq[pref_id]])
 
                     for k in range(pref_id, (curr_id - 1)):
                         logp = torch.log_softmax(
-                            self.joint_network(enc_out_t, hyp_j.dec_out[k]),
-                            dim=-1,
+                            self.joint_network(enc_out_t, hyp_j.dec_out[k]), dim=-1,
                         )
 
                         curr_score += float(logp[hyp_j.yseq[k + 1]])
@@ -226,10 +224,7 @@ class BeamSearchTransducer:
         dec_out, state, _ = self.decoder.score(hyp, cache)
 
         for enc_out_t in enc_out:
-            logp = torch.log_softmax(
-                self.joint_network(enc_out_t, dec_out),
-                dim=-1,
-            )
+            logp = torch.log_softmax(self.joint_network(enc_out_t, dec_out), dim=-1,)
             top_logp, pred = torch.max(logp, dim=-1)
 
             if pred != self.blank_id:
@@ -286,8 +281,7 @@ class BeamSearchTransducer:
                 dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
 
                 logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, dec_out),
-                    dim=-1,
+                    self.joint_network(enc_out_t, dec_out), dim=-1,
                 )
                 top_k = logp[1:].topk(beam_k, dim=-1)
 
@@ -380,15 +374,11 @@ class BeamSearchTransducer:
                 D = []
 
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    C,
-                    beam_state,
-                    cache,
-                    self.use_lm,
+                    C, beam_state, cache, self.use_lm,
                 )
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, beam_dec_out),
-                    dim=-1,
+                    self.joint_network(enc_out_t, beam_dec_out), dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
@@ -487,25 +477,19 @@ class BeamSearchTransducer:
 
             if B_:
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    B_,
-                    beam_state,
-                    cache,
-                    self.use_lm,
+                    B_, beam_state, cache, self.use_lm,
                 )
 
                 beam_enc_out = torch.stack([x[1] for x in B_enc_out])
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(beam_enc_out, beam_dec_out),
-                    dim=-1,
+                    self.joint_network(beam_enc_out, beam_dec_out), dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam, dim=-1)
 
                 if self.use_lm:
                     beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                        beam_lm_tokens,
-                        [b.lm_state for b in B_],
-                        None,
+                        beam_lm_tokens, [b.lm_state for b in B_], None,
                     )
 
                 for i, hyp in enumerate(B_):
@@ -573,19 +557,14 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens,
-            beam_state,
-            cache,
-            self.use_lm,
+            init_tokens, beam_state, cache, self.use_lm,
         )
 
         state = self.decoder.select_state(beam_state, 0)
 
         if self.use_lm:
             beam_lm_scores, beam_lm_states = self.lm.batch_score(
-                beam_lm_tokens,
-                [i.lm_state for i in init_tokens],
-                None,
+                beam_lm_tokens, [i.lm_state for i in init_tokens], None,
             )
             lm_state = beam_lm_states[0]
             lm_scores = beam_lm_scores[0]
@@ -606,8 +585,7 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
-                enc_out_t,
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True), enc_out_t,
             )
             kept_hyps = []
 
@@ -619,8 +597,7 @@ class BeamSearchTransducer:
                 beam_dec_out = torch.stack([hyp.dec_out[-1] for hyp in hyps])
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(beam_enc_out, beam_dec_out),
-                    dim=-1,
+                    self.joint_network(beam_enc_out, beam_dec_out), dim=-1,
                 )
                 beam_topk = beam_logp[:, 1:].topk(beam_k, dim=-1)
 
@@ -657,15 +634,10 @@ class BeamSearchTransducer:
                 V = subtract(V, hyps)[:beam]
 
                 beam_state = self.decoder.create_batch_states(
-                    beam_state,
-                    [v.dec_state for v in V],
-                    [v.yseq for v in V],
+                    beam_state, [v.dec_state for v in V], [v.yseq for v in V],
                 )
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    V,
-                    beam_state,
-                    cache,
-                    self.use_lm,
+                    V, beam_state, cache, self.use_lm,
                 )
 
                 if self.use_lm:
@@ -686,8 +658,7 @@ class BeamSearchTransducer:
                     hyps = V[:]
                 else:
                     beam_logp = torch.log_softmax(
-                        self.joint_network(beam_enc_out, beam_dec_out),
-                        dim=-1,
+                        self.joint_network(beam_enc_out, beam_dec_out), dim=-1,
                     )
 
                     for i, v in enumerate(V):
@@ -734,10 +705,7 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens,
-            beam_state,
-            cache,
-            self.use_lm,
+            init_tokens, beam_state, cache, self.use_lm,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -766,8 +734,7 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
-                enc_out_t,
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True), enc_out_t,
             )
             kept_hyps = []
 
@@ -778,8 +745,7 @@ class BeamSearchTransducer:
                 beam_dec_out = torch.stack([h.dec_out[-1] for h in hyps])
 
                 beam_logp = torch.log_softmax(
-                    self.joint_network(beam_enc_out, beam_dec_out),
-                    dim=-1,
+                    self.joint_network(beam_enc_out, beam_dec_out), dim=-1,
                 )
                 k_expansions = select_k_expansions(
                     hyps, beam_logp, beam, self.expansion_gamma, self.expansion_beta
@@ -823,10 +789,7 @@ class BeamSearchTransducer:
                     )
 
                     beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                        list_exp,
-                        beam_state,
-                        cache,
-                        self.use_lm,
+                        list_exp, beam_state, cache, self.use_lm,
                     )
 
                     if self.use_lm:
@@ -846,8 +809,7 @@ class BeamSearchTransducer:
                         hyps = list_exp[:]
                     else:
                         beam_logp = torch.log_softmax(
-                            self.joint_network(beam_enc_out, beam_dec_out),
-                            dim=-1,
+                            self.joint_network(beam_enc_out, beam_dec_out), dim=-1,
                         )
 
                         for i, hyp in enumerate(list_exp):

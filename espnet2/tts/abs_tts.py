@@ -25,11 +25,7 @@ class AbsTTS(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def inference(
-        self,
-        text: torch.Tensor,
-        **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    def inference(self, text: torch.Tensor, **kwargs,) -> Dict[str, torch.Tensor]:
         """Return predicted output as a dict."""
         raise NotImplementedError
 

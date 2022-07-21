@@ -510,9 +510,7 @@ class Encoder(torch.nn.Module):
         current_states = []
         for rnn_module, prev_state in zip(self.enc, prev_states):
             _enc_out, _enc_out_len, states = rnn_module(
-                _enc_out,
-                _enc_out_len,
-                prev_states=prev_state,
+                _enc_out, _enc_out_len, prev_states=prev_state,
             )
             current_states.append(states)
 
@@ -543,10 +541,7 @@ class Encoder(torch.nn.Module):
 
 
 def encoder_for(
-    args: Namespace,
-    idim: int,
-    subsample: np.ndarray,
-    aux_enc_output_layers: List = [],
+    args: Namespace, idim: int, subsample: np.ndarray, aux_enc_output_layers: List = [],
 ) -> torch.nn.Module:
     """Instantiate a RNN encoder with specified arguments.
 

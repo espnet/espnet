@@ -84,18 +84,14 @@ class TransducerTasks(torch.nn.Module):
             from warprnnt_pytorch import RNNTLoss
 
             self.transducer_loss = RNNTLoss(
-                blank=blank_id,
-                reduction="sum",
-                fastemit_lambda=fastemit_lambda,
+                blank=blank_id, reduction="sum", fastemit_lambda=fastemit_lambda,
             )
 
         if ctc_loss:
             self.ctc_lin = torch.nn.Linear(encoder_dim, output_dim)
 
             self.ctc_loss = torch.nn.CTCLoss(
-                blank=blank_id,
-                reduction="none",
-                zero_infinity=True,
+                blank=blank_id, reduction="none", zero_infinity=True,
             )
 
         if aux_transducer_loss:
@@ -236,19 +232,12 @@ class TransducerTasks(torch.nn.Module):
             aux_mlp = self.mlp(aux_enc_out_i)
 
             aux_joint_out = self.joint_network(
-                aux_mlp.unsqueeze(2),
-                dec_out.unsqueeze(1),
-                is_aux=True,
+                aux_mlp.unsqueeze(2), dec_out.unsqueeze(1), is_aux=True,
             )
 
             if self.use_aux_transducer_loss:
                 aux_trans_loss += (
-                    self.transducer_loss(
-                        aux_joint_out,
-                        target,
-                        aux_t_len[i],
-                        u_len,
-                    )
+                    self.transducer_loss(aux_joint_out, target, aux_t_len[i], u_len,)
                     / B
                 )
 
@@ -284,9 +273,7 @@ class TransducerTasks(torch.nn.Module):
         return aux_trans_loss, symm_kl_div_loss
 
     def compute_lm_loss(
-        self,
-        dec_out: torch.Tensor,
-        target: torch.Tensor,
+        self, dec_out: torch.Tensor, target: torch.Tensor,
     ) -> torch.Tensor:
         """Forward LM loss.
 
@@ -429,9 +416,7 @@ class TransducerTasks(torch.nn.Module):
         )
 
         target, lm_loss_target, t_len, aux_t_len, u_len = self.get_transducer_tasks_io(
-            labels,
-            enc_out_len,
-            aux_enc_out_len,
+            labels, enc_out_len, aux_enc_out_len,
         )
 
         joint_out, trans_loss = self.compute_transducer_loss(
@@ -446,12 +431,7 @@ class TransducerTasks(torch.nn.Module):
                 aux_trans_loss,
                 symm_kl_div_loss,
             ) = self.compute_aux_transducer_and_symm_kl_div_losses(
-                aux_enc_out,
-                dec_out,
-                joint_out,
-                target,
-                aux_t_len,
-                u_len,
+                aux_enc_out, dec_out, joint_out, target, aux_t_len, u_len,
             )
 
         if self.use_lm_loss:

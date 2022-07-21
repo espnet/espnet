@@ -120,16 +120,10 @@ def get_parser():
 
     group = parser.add_argument_group("Input data related")
     group.add_argument(
-        "--ref_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--ref_scp", type=str, required=True, action="append",
     )
     group.add_argument(
-        "--inf_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--inf_scp", type=str, required=True, action="append",
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)

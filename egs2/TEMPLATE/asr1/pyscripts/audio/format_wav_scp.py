@@ -92,11 +92,7 @@ def main():
             fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
             fscp = out_wavscp.open("w")
         else:
-            writer = SoundScpWriter(
-                args.outdir,
-                out_wavscp,
-                format=args.audio_format,
-            )
+            writer = SoundScpWriter(args.outdir, out_wavscp, format=args.audio_format,)
 
         with out_num_samples.open("w") as fnum_samples:
             for uttid, (rate, wave) in tqdm(loader):

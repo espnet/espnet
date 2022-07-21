@@ -73,13 +73,11 @@ def test_dc_crn_separator_forward_backward_complex(
 )
 @pytest.mark.parametrize("enc_last_stride", [(1, 2)])
 @pytest.mark.parametrize(
-    "enc_last_kernel_size, enc_last_padding",
-    [((1, 4), (0, 1)), ((1, 5), (0, 2))],
+    "enc_last_kernel_size, enc_last_padding", [((1, 4), (0, 1)), ((1, 5), (0, 2))],
 )
 @pytest.mark.parametrize("skip_last_stride", [(1, 1)])
 @pytest.mark.parametrize(
-    "skip_last_kernel_size, skip_last_padding",
-    [((1, 3), (0, 1)), ((1, 5), (0, 2))],
+    "skip_last_kernel_size, skip_last_padding", [((1, 3), (0, 1)), ((1, 5), (0, 2))],
 )
 def test_dc_crn_separator_multich_input(
     num_spk,
@@ -126,18 +124,14 @@ def test_dc_crn_separator_multich_input(
 def test_dc_crn_separator_invalid_enc_layer():
     with pytest.raises(AssertionError):
         DC_CRNSeparator(
-            input_dim=17,
-            input_channels=[2, 2, 4],
-            enc_layers=1,
+            input_dim=17, input_channels=[2, 2, 4], enc_layers=1,
         )
 
 
 def test_dc_crn_separator_invalid_type():
     with pytest.raises(ValueError):
         DC_CRNSeparator(
-            input_dim=17,
-            input_channels=[2, 2, 4],
-            mode="xxx",
+            input_dim=17, input_channels=[2, 2, 4], mode="xxx",
         )
 
 
@@ -149,9 +143,7 @@ def test_dc_crn_separator_output():
 
     for num_spk in range(1, 3):
         model = DC_CRNSeparator(
-            input_dim=17,
-            num_spk=num_spk,
-            input_channels=[2, 2, 4],
+            input_dim=17, num_spk=num_spk, input_channels=[2, 2, 4],
         )
         model.eval()
         specs, _, others = model(x, x_lens)

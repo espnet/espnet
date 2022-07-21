@@ -19,9 +19,7 @@ def test_rnn_attractor(encoder_output_size, layer, unit, dropout):
     ilens = torch.tensor([100, 100, 100, 100, 100])
     dec_input = torch.zeros(5, 3, encoder_output_size)
     attractor, att_prob = eda.forward(
-        enc_input=enc_input,
-        ilens=ilens,
-        dec_input=dec_input,
+        enc_input=enc_input, ilens=ilens, dec_input=dec_input,
     )
     assert attractor.shape == (5, 3, encoder_output_size)
     assert att_prob.shape == (5, 3, 1)

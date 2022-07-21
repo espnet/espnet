@@ -142,11 +142,11 @@ class E2E(MTInterface, torch.nn.Module):
         """Initialize parameters."""
         initialize(self, args.transformer_init)
         torch.nn.init.normal_(
-            self.encoder.embed[0].weight, mean=0, std=args.adim**-0.5
+            self.encoder.embed[0].weight, mean=0, std=args.adim ** -0.5
         )
         torch.nn.init.constant_(self.encoder.embed[0].weight[self.pad], 0)
         torch.nn.init.normal_(
-            self.decoder.embed[0].weight, mean=0, std=args.adim**-0.5
+            self.decoder.embed[0].weight, mean=0, std=args.adim ** -0.5
         )
         torch.nn.init.constant_(self.decoder.embed[0].weight[self.pad], 0)
 

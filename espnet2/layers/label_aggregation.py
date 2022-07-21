@@ -8,10 +8,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 class LabelAggregate(torch.nn.Module):
     def __init__(
-        self,
-        win_length: int = 512,
-        hop_length: int = 128,
-        center: bool = True,
+        self, win_length: int = 512, hop_length: int = 128, center: bool = True,
     ):
         assert check_argument_types()
         super().__init__()

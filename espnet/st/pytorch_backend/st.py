@@ -80,8 +80,7 @@ class CustomConverter(ASRCustomConverter):
         )
 
         ys_pad = pad_list(
-            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys],
-            self.ignore_id,
+            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys], self.ignore_id,
         ).to(device)
 
         if self.use_source_text:
@@ -628,11 +627,7 @@ def trans(args):
                 logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(
-                    feat,
-                    args,
-                    train_args.char_list,
-                )
+                nbest_hyps = model.translate(feat, args, train_args.char_list,)
                 new_js[name] = add_results_to_json(
                     js[name], nbest_hyps, train_args.char_list
                 )
@@ -655,11 +650,7 @@ def trans(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.translate_batch(
-                    feats,
-                    args,
-                    train_args.char_list,
-                )
+                nbest_hyps = model.translate_batch(feats, args, train_args.char_list,)
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]

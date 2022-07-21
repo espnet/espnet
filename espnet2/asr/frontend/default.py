@@ -66,12 +66,7 @@ class DefaultFrontend(AbsFrontend):
             self.frontend = None
 
         self.logmel = LogMel(
-            fs=fs,
-            n_fft=n_fft,
-            n_mels=n_mels,
-            fmin=fmin,
-            fmax=fmax,
-            htk=htk,
+            fs=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax, htk=htk,
         )
         self.n_mels = n_mels
         self.frontend_type = "default"
@@ -107,7 +102,7 @@ class DefaultFrontend(AbsFrontend):
 
         # 4. STFT -> Power spectrum
         # h: ComplexTensor(B, T, F) -> torch.Tensor(B, T, F)
-        input_power = input_stft.real**2 + input_stft.imag**2
+        input_power = input_stft.real ** 2 + input_stft.imag ** 2
 
         # 5. Feature transform e.g. Stft -> Log-Mel-Fbank
         # input_power: (Batch, [Channel,] Length, Freq)

@@ -40,9 +40,7 @@ class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
 
     @abstractmethod
     def forward(
-        self,
-        forward_generator: bool = True,
-        **batch: torch.Tensor,
+        self, forward_generator: bool = True, **batch: torch.Tensor,
     ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], int]]:
         """Return the generator loss or the discrimiantor loss.
 

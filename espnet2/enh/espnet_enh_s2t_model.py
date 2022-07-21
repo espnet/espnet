@@ -195,11 +195,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
     ) -> Dict[str, torch.Tensor]:
         if self.extract_feats_in_collect_stats:
             ret = self.s2t_model.collect_feats(
-                speech,
-                speech_lengths,
-                text,
-                text_lengths,
-                **kwargs,
+                speech, speech_lengths, text, text_lengths, **kwargs,
             )
             feats, feats_lengths = ret["feats"], ret["feats_lengths"]
         else:
@@ -247,19 +243,12 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             ys_pad: (Batch, Length)
             ys_pad_lens: (Batch,)
         """
-        return self.s2t_model.nll(
-            encoder_out,
-            encoder_out_lens,
-            ys_pad,
-            ys_pad_lens,
-        )
+        return self.s2t_model.nll(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens,)
 
     batchify_nll = ESPnetASRModel.batchify_nll
 
     def inherite_attributes(
-        self,
-        inherite_enh_attrs: List[str] = [],
-        inherite_s2t_attrs: List[str] = [],
+        self, inherite_enh_attrs: List[str] = [], inherite_s2t_attrs: List[str] = [],
     ):
         assert check_argument_types()
 

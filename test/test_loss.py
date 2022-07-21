@@ -104,10 +104,7 @@ def test_attn_loss():
     th_pred = torch.from_numpy(y_all.data)
     th_target = pad_list([torch.from_numpy(t.data).long() for t in ys_out], th_ignore)
     th_loss = torch.nn.functional.cross_entropy(
-        th_pred,
-        th_target.view(-1),
-        ignore_index=th_ignore,
-        reduction="mean",
+        th_pred, th_target.view(-1), ignore_index=th_ignore, reduction="mean",
     )
     print(ch_loss)
     print(th_loss)

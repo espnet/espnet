@@ -85,9 +85,7 @@ if __name__ == "__main__":
 
     if args.mode == "same_size_group":
         split_train_dev(
-            all_data,
-            args.num_dev,
-            args.outfile,
+            all_data, args.num_dev, args.outfile,
         )
     elif args.mode == "similar_size_group":
         split_train_dev_v2(

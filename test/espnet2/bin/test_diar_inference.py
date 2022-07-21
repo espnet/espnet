@@ -21,14 +21,7 @@ def test_main():
 def config_file(tmp_path: Path):
     # Write default configuration file
     DiarizationTask.main(
-        cmd=[
-            "--dry_run",
-            "true",
-            "--output_dir",
-            str(tmp_path),
-            "--num_spk",
-            "2",
-        ]
+        cmd=["--dry_run", "true", "--output_dir", str(tmp_path), "--num_spk", "2",]
     )
     return tmp_path / "config.yaml"
 

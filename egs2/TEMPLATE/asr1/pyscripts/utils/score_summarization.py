@@ -25,11 +25,7 @@ labels = [ref_dict[k] for k, _ in hyp_dict.items()]
 decoded_preds = [v for k, v in hyp_dict.items()]
 
 metric = load_metric("bertscore")
-result_bert = metric.compute(
-    predictions=decoded_preds,
-    references=labels,
-    lang="en",
-)
+result_bert = metric.compute(predictions=decoded_preds, references=labels, lang="en",)
 
 
 nlg = NLGEval()  # loads the models

@@ -613,9 +613,7 @@ class JETSGenerator(torch.nn.Module):
 
         # get random segments
         z_segments, z_start_idxs = get_random_segments(
-            zs.transpose(1, 2),
-            feats_lengths,
-            self.segment_size,
+            zs.transpose(1, 2), feats_lengths, self.segment_size,
         )
         # forward generator
         wav = self.generator(z_segments)

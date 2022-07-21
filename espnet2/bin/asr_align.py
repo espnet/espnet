@@ -664,10 +664,7 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument(
         "--dtype",
@@ -784,11 +781,7 @@ def get_parser():
         help="Include the confidence score in the segments output.",
     )
     group.add_argument(
-        "-a",
-        "--audio",
-        type=Path,
-        required=True,
-        help="Input audio file.",
+        "-a", "--audio", type=Path, required=True, help="Input audio file.",
     )
     group.add_argument(
         "-t",
