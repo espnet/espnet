@@ -71,12 +71,6 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
-
-
-def strtobool(s: str) -> bool:
-    return bool(stb(s))
-
-
 from pathlib import Path
 
 # Overwriting build_sequence_iter_factory
@@ -85,6 +79,11 @@ from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.tasks.abs_task import IteratorOptions
 from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset, MMESPnetDataset
+
+
+def strtobool(s: str) -> bool:
+    return bool(stb(s))
+
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -398,7 +397,8 @@ class AVSRTask(AbsTask):
             "--align_option",
             type=str,
             default="duplicate",
-            help="Option to use for aligning multi-modal features Options: truncate, avg_pool, duplicate",
+            help="Option to use for aligning multi-modal features \
+                    Options: truncate, avg_pool, duplicate",
         )
         group.add_argument(
             "--fusion_stage",

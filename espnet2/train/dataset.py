@@ -294,6 +294,7 @@ class AbsDataset(Dataset, ABC):
 
 class ESPnetDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
+
     Examples:
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
@@ -352,6 +353,7 @@ class ESPnetDataset(AbsDataset):
         self, path: str, loader_type: str
     ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
         """Helper function to instantiate Loader.
+        
         Args:
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc

@@ -1,7 +1,5 @@
 import collections.abc
 import logging
-import math
-
 import numpy as np
 from typeguard import check_argument_types
 
@@ -17,13 +15,15 @@ except ImportError:
 
 class VisionFileReader(collections.abc.Mapping):
     """Reader class for 'vision'.
+
     Examples:
         key1 /some/path/a.mp4
         key2 /some/path/b.mp4
         key3 /some/path/c.mp4
         key4 /some/path/d.mp4
         ...
-        >>> reader = VisionFileReader('vision')
+
+        >>> reader = VisionFileReader('vision.txt')
         >>> rate, array = reader['key1']
     """
 
@@ -33,7 +33,8 @@ class VisionFileReader(collections.abc.Mapping):
     ):
         if not is_cv2_avail:
             raise ImportError(
-                "'cv2' is not available. Please install it via 'pip install opencv-python'"
+                "'cv2' is not available. Please install it via "
+                "'pip install opencv-python'"
                 " or 'cd path/'to/espnet/tools && . ./activate_python.sh"
                 " && ./installers/install_vision.sh ."
             )
@@ -128,8 +129,10 @@ class VisionDataset(collections.abc.Mapping):
     def capture_video(self, vidcap):
         """
         Captures video frames based on specified sample step
+
         Args:
             vidcap: cv2 video capture instance
+            
         Output:
             data: numpy array of (T, H, W, C) containing image capture of video
         """

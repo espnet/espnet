@@ -1,5 +1,3 @@
-import math
-
 import torch
 from typeguard import check_argument_types
 
@@ -11,8 +9,14 @@ def truncate_align(
     vision: torch.Tensor,
     vision_lengths: torch.Tensor,
 ) -> torch.Tensor:
-    """
-    Truncate the high sample ratio source to match the low sample ratio source
+    """Truncate the high sample ratio source to match the low sample ratio source
+
+    Args:
+        rate_ratio: sample rate ratio between two modalities (speech sr / vision sr)
+        speech: speech input data
+        speech_lengths: speech input lengths
+        vision: vision input data
+        vision_lengths: vision input lengths
     """
     assert check_argument_types()
     assert speech.size(0) == vision.size(0), (speech.shape, vision.shape)
@@ -60,6 +64,13 @@ def avg_pool_align(
 ) -> torch.Tensor:
     """
     Average Pool the high sample ratio source to match the low sample ratio source
+    
+    Args:
+        rate_ratio: sample rate ratio between two modalities (speech sr / vision sr)
+        speech: speech input data
+        speech_lengths: speech input lengths
+        vision: vision input data
+        vision_lengths: vision input lengths
     """
     assert check_argument_types()
     assert speech.size(0) == vision.size(0), (speech.shape, vision.shape)
@@ -112,6 +123,13 @@ def duplicate_align(
 ) -> torch.Tensor:
     """
     Duplicate the low sample ratio source to match the high sample ratio source
+
+    Args:
+        rate_ratio: sample rate ratio between two modalities (speech sr / vision sr)
+        speech: speech input data
+        speech_lengths: speech input lengths
+        vision: vision input data
+        vision_lengths: vision input lengths
     """
     assert check_argument_types()
     assert speech.size(0) == vision.size(0), (speech.shape, vision.shape)

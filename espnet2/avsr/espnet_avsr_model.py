@@ -186,6 +186,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
+
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
@@ -355,6 +356,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         vision_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_inference.py
+
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
@@ -508,7 +510,9 @@ class ESPnetAVSRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
         """Compute negative log likelihood(nll) from transformer-decoder
+        
         Normally, this function is called in batchify_nll.
+
         Args:
             encoder_out: (Batch, Length, Dim)
             encoder_out_lens: (Batch,)
@@ -545,6 +549,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         batch_size: int = 100,
     ):
         """Compute negative log likelihood(nll) from transformer-decoder
+
         To avoid OOM, this fuction seperate the input into batches.
         Then call nll for each batch and combine and return results.
         Args:
@@ -638,6 +643,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         labels: torch.Tensor,
     ):
         """Compute Transducer loss.
+
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)
             encoder_out_lens: Encoder output sequences lengths. (B,)

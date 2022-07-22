@@ -2,20 +2,12 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
-import contextlib
-import copy
 import logging
-import os
 from typing import Optional, Tuple
-
 import torch
 import torch.nn as nn
-from filelock import FileLock
 from typeguard import check_argument_types
-
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 try:
     from torchvision import models, transforms
@@ -27,6 +19,7 @@ except ImportError:
 
 class ResNet(AbsEncoder):
     """ResNet vision encoder module.
+
     Args:
         input_size: input dim
         output_size: dimension
@@ -68,7 +61,7 @@ class ResNet(AbsEncoder):
             else nn.Identity()
         )
         self._output_size = output_size
-        self.MAX_BATCH_SIZE = 32
+        self.MAX_BATCH_SIZE = 1024
 
     def output_size(self) -> int:
         return self._output_size
@@ -80,6 +73,7 @@ class ResNet(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward ResNET Encoder.
+
         Args:
             x: input tensor (B, T, H, W, C)
             ilens: input length (B)
@@ -97,38 +91,45 @@ class ResNet(AbsEncoder):
         h = x.size(3)
         w = x.size(4)
         x = x.reshape(B * T, c, h, w)
-        # num_splits = B * T // self.MAX_BATCH_SIZE + 1
-        # result = []
-        # for i in range(num_splits):
-        #     x_seg = x[i*self.MAX_BATCH_SIZE:min(len(x), (i+1)*self.MAX_BATCH_SIZE)]
-        #     if self.fine_tune:
-        #         x_seg = self.transform(x_seg)
-        #         x_seg = self.encoders(x_seg)
-        #         x_seg = x_seg.squeeze()
-        #     else:
-        #         with torch.no_grad():
-        #             x_seg = self.transform(x_seg)
-        #             x_seg = self.encoders(x_seg)
-        #             x_seg = x_seg.squeeze()
-        #     x_seg = self.projection_layer(x_seg)
-        #     assert(x_seg.size(-1) == self._output_size)
-        #     if x_seg.dim() == 1: x_seg = x_seg.unsqueeze(0)
-        #     result.append(x_seg)
-        # x = torch.cat(result)
-        # x = x.reshape(B, T, self._output_size)
-        if self.fine_tune:
-            x = self.transform(x)
-            x = self.encoders(x)
-            x = x.squeeze()
+
+        if B > self.MAX_BATCH_SIZE:
+            x = self.small_batch_forward(x, B, T)
         else:
-            with torch.no_grad():
+            if self.fine_tune:
                 x = self.transform(x)
                 x = self.encoders(x)
                 x = x.squeeze()
+            else:
+                with torch.no_grad():
+                    x = self.transform(x)
+                    x = self.encoders(x)
+                    x = x.squeeze()
 
-        x = self.projection_layer(x)
-        x = x.reshape(B, T, self._output_size)
+            x = self.projection_layer(x)
+            x = x.reshape(B, T, self._output_size)
         return x, ilens, None
+
+    def small_batch_forward(self, x, B, T):
+        num_splits = B * T // self.MAX_BATCH_SIZE + 1
+        result = []
+        for i in range(num_splits):
+            x_seg = x[i*self.MAX_BATCH_SIZE:min(len(x), (i+1)*self.MAX_BATCH_SIZE)]
+            if self.fine_tune:
+                x_seg = self.transform(x_seg)
+                x_seg = self.encoders(x_seg)
+                x_seg = x_seg.squeeze()
+            else:
+                with torch.no_grad():
+                    x_seg = self.transform(x_seg)
+                    x_seg = self.encoders(x_seg)
+                    x_seg = x_seg.squeeze()
+            x_seg = self.projection_layer(x_seg)
+            assert(x_seg.size(-1) == self._output_size)
+            if x_seg.dim() == 1: x_seg = x_seg.unsqueeze(0)
+            result.append(x_seg)
+        x = torch.cat(result)
+        x = x.reshape(B, T, self._output_size)
+        return x
 
     def reload_pretrained_parameters(self):
         model = models.resnet18(pretrained=True)
@@ -139,6 +140,7 @@ class ResNet(AbsEncoder):
 
 class VisionTransformer(AbsEncoder):
     """TODO: Vision Transformer feature extraction.
+
     Args:
         input_size: input dim
         output_size: dimension of attention
@@ -172,6 +174,7 @@ class VisionTransformer(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairSeqWav2Vec2 Encoder.
+
         Args:
             x: input tensor (B, L, D)
             ilens: input length (B)

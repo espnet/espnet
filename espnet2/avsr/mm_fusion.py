@@ -7,6 +7,11 @@ def concat_fusion(
 ):
     """
     Concatenates vision features and speech features
+    
+    Args:
+        speech_feats: speech input features
+        vision_feats: vision input features
+        feat_lengths: input lengths
     """
     B, T, F1 = speech_feats.size()
     _, _, F2 = vision_feats.size()
@@ -31,7 +36,10 @@ class MM_Fuser:
         self, speech: torch.Tensor, vision: torch.Tensor, feat_lengths: torch.Tensor
     ):
         """
-        @requires: speech and vision features must be aligned
+        Fuses multimodal data corresponding to given fusion type
+
+        @requires:
+            speech and vision features must be aligned
         """
         assert check_argument_types()
         assert speech.size(0) == vision.size(0), (speech.shape, vision.shape)
