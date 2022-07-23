@@ -101,6 +101,7 @@ requirements = {
         "recommonmark>=0.4.0",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
+        "markdown<3.4",
     ],
 }
 requirements["all"].extend(requirements["train"] + requirements["recipe"])
