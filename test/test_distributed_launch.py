@@ -91,7 +91,7 @@ def test_simple_function_ok_with_right_envvar(nprocs):
         (2, 2),
     ],
 )
-@pytest.mark.execution_timeout(4.0)
+@pytest.mark.execution_timeout(10.0)
 def test_worker_exits_nonzero_code_ng(nprocs, exitcode):
     for combination in itertools.product(range(2), repeat=nprocs):
         n_activated = sum(combination)
@@ -121,7 +121,7 @@ def test_worker_exits_nonzero_code_ng(nprocs, exitcode):
 
 
 @pytest.mark.parametrize("nprocs", [1, 2])
-@pytest.mark.execution_timeout(4.0)
+@pytest.mark.execution_timeout(10.0)
 def test_worker_raises_exception_ng(nprocs):
     for combination in itertools.product(range(2), repeat=nprocs):
         n_activated = sum(combination)
