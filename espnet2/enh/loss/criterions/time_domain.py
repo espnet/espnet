@@ -299,7 +299,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         _name = "TD_L1_loss" if name is None else name
         super(MultiResL1SpecLoss, self).__init__(_name, only_for_test=only_for_test)
 
-        assert [x % 2 == 0 for x in window_sz]
+        assert all([x % 2 == 0 for x in window_sz])
         self.window_sz = window_sz
 
         if hop_sz is None:

@@ -112,4 +112,4 @@ def test_tf_dpcl_loss_criterion_forward(loss_type):
     ref = [abs(r) for r in ref_spec]
 
     loss = criterion(ref, inf)
-    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
+    assert loss.shape == (batch,), "Invalid loss shape with " + criterion.name
