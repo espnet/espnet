@@ -190,6 +190,10 @@ class Speech2Text:
             self.window_size, self.hop_length
         )
 
+        self.last_chunk_length = (
+            self.asr_model.encoder.embed.min_frame_length + self.right_context + 1
+        ) * self.hop_length
+
         self.reset_inference_cache()
 
     def reset_inference_cache(self) -> None:
@@ -221,8 +225,8 @@ class Speech2Text:
             speech = torch.cat([self.frontend_cache["waveform_buffer"], speech], dim=0)
 
         if is_final:
-            if self.streaming and speech.size(0) < self._raw_ctx:
-                pad = torch.zeros(self._raw_ctx - speech.size(0), dtype=speech.dtype)
+            if self.streaming and speech.size(0) < self.last_chunk_length:
+                pad = torch.zeros(self.last_chunk_length - speech.size(0), dtype=speech.dtype)
                 speech = torch.cat([speech, pad], dim=0)
 
             speech_to_process = speech

@@ -36,7 +36,7 @@ def check_short_utt(sub_factor: int, size: int) -> Tuple[bool, int]:
 
     """
     if sub_factor == 2 and size < 3:
-        return True, 3
+        return True, 7
     elif sub_factor == 4 and size < 7:
         return True, 7
     elif sub_factor == 6 and size < 11:

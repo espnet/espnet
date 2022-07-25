@@ -73,6 +73,7 @@ class ConvInput(torch.nn.Module):
             self.create_new_mask = self.create_new_conv2d_mask
 
         self.vgg_like = vgg_like
+        self.min_frame_length = 7 if subsampling_factor < 6 else 11
 
         if output_size is not None:
             self.output = torch.nn.Linear(output_proj, output_size)
