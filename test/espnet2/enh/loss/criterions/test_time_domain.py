@@ -3,6 +3,7 @@ import torch
 
 from espnet2.enh.loss.criterions.time_domain import (
     CISDRLoss,
+    MultiResL1SpecLoss,
     SDRLoss,
     SISNRLoss,
     SNRLoss,
@@ -11,7 +12,9 @@ from espnet2.enh.loss.criterions.time_domain import (
 )
 
 
-@pytest.mark.parametrize("criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss])
+@pytest.mark.parametrize(
+    "criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss, MultiResL1SpecLoss]
+)
 def test_tf_domain_criterion_forward(criterion_class):
 
     criterion = criterion_class()

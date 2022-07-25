@@ -26,6 +26,7 @@ from espnet2.enh.loss.criterions.tf_domain import (
 )
 from espnet2.enh.loss.criterions.time_domain import (
     CISDRLoss,
+    MultiResL1SpecLoss,
     SDRLoss,
     SISNRLoss,
     SNRLoss,
@@ -48,6 +49,7 @@ from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
@@ -91,6 +93,7 @@ separator_choices = ClassChoices(
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         tcn_nomask=TCNSeparatorNomask,
+        ineube=iNeuBe,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -137,6 +140,7 @@ criterion_choices = ClassChoices(
         mse=FrequencyDomainMSE,
         mse_fd=FrequencyDomainMSE,
         mse_td=TimeDomainMSE,
+        mr_l1_tfd=MultiResL1SpecLoss,
     ),
     type_check=AbsEnhLoss,
     default=None,

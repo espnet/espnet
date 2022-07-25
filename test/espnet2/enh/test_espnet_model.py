@@ -18,6 +18,7 @@ from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
@@ -170,6 +171,45 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
+@pytest.mark.parametrize("output_from", ["dnn1", "dnn2", "mfmcwf"])
+def test_ineube(n_mics, training, loss_wrappers, output_from):
+    if not is_torch_1_9_plus:
+        return
+    inputs = torch.randn(1, 300, n_mics)
+    ilens = torch.LongTensor([300])
+    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
+    from espnet2.enh.decoder.null_decoder import NullDecoder
+    from espnet2.enh.encoder.null_encoder import NullEncoder
+
+    encoder = NullEncoder()
+    decoder = NullDecoder()
+    separator = iNeuBe(
+        2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
+    )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
         separator=separator,
