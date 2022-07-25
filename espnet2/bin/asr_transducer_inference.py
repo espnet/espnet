@@ -226,7 +226,9 @@ class Speech2Text:
 
         if is_final:
             if self.streaming and speech.size(0) < self.last_chunk_length:
-                pad = torch.zeros(self.last_chunk_length - speech.size(0), dtype=speech.dtype)
+                pad = torch.zeros(
+                    self.last_chunk_length - speech.size(0), dtype=speech.dtype
+                )
                 speech = torch.cat([speech, pad], dim=0)
 
             speech_to_process = speech
