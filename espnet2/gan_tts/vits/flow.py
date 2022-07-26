@@ -152,7 +152,7 @@ class DilatedDepthSeparableConv(torch.nn.Module):
 
         self.convs = torch.nn.ModuleList()
         for i in range(layers):
-            dilation = kernel_size ** i
+            dilation = kernel_size**i
             padding = (kernel_size * dilation - dilation) // 2
             self.convs += [
                 torch.nn.Sequential(
@@ -165,12 +165,24 @@ class DilatedDepthSeparableConv(torch.nn.Module):
                         padding=padding,
                     ),
                     Transpose(1, 2),
-                    torch.nn.LayerNorm(channels, eps=eps, elementwise_affine=True,),
+                    torch.nn.LayerNorm(
+                        channels,
+                        eps=eps,
+                        elementwise_affine=True,
+                    ),
                     Transpose(1, 2),
                     torch.nn.GELU(),
-                    torch.nn.Conv1d(channels, channels, 1,),
+                    torch.nn.Conv1d(
+                        channels,
+                        channels,
+                        1,
+                    ),
                     Transpose(1, 2),
-                    torch.nn.LayerNorm(channels, eps=eps, elementwise_affine=True,),
+                    torch.nn.LayerNorm(
+                        channels,
+                        eps=eps,
+                        elementwise_affine=True,
+                    ),
                     Transpose(1, 2),
                     torch.nn.GELU(),
                     torch.nn.Dropout(dropout_rate),
@@ -228,12 +240,21 @@ class ConvFlow(torch.nn.Module):
         self.bins = bins
         self.tail_bound = tail_bound
 
-        self.input_conv = torch.nn.Conv1d(self.half_channels, hidden_channels, 1,)
+        self.input_conv = torch.nn.Conv1d(
+            self.half_channels,
+            hidden_channels,
+            1,
+        )
         self.dds_conv = DilatedDepthSeparableConv(
-            hidden_channels, kernel_size, layers, dropout_rate=0.0,
+            hidden_channels,
+            kernel_size,
+            layers,
+            dropout_rate=0.0,
         )
         self.proj = torch.nn.Conv1d(
-            hidden_channels, self.half_channels * (bins * 3 - 1), 1,
+            hidden_channels,
+            self.half_channels * (bins * 3 - 1),
+            1,
         )
         self.proj.weight.data.zero_()
         self.proj.bias.data.zero_()

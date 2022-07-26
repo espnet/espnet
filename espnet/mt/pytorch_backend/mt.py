@@ -573,7 +573,11 @@ def trans(args):
                     )
                     for name in names
                 ]
-                nbest_hyps = model.translate_batch(feats, args, train_args.char_list,)
+                nbest_hyps = model.translate_batch(
+                    feats,
+                    args,
+                    train_args.char_list,
+                )
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]

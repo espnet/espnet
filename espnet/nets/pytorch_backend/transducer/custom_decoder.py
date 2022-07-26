@@ -83,7 +83,8 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         self.device = device
 
     def init_state(
-        self, batch_size: Optional[int] = None,
+        self,
+        batch_size: Optional[int] = None,
     ) -> List[Optional[torch.Tensor]]:
         """Initialize decoder states.
 
@@ -198,7 +199,9 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             labels = torch.LongTensor(labels, device=self.device)
 
             p_dec_states = self.create_batch_states(
-                self.init_state(), [p[2] for p in process], labels,
+                self.init_state(),
+                [p[2] for p in process],
+                labels,
             )
 
             dec_out = self.embed(labels)

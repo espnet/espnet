@@ -72,7 +72,7 @@ def prepare_beamformer_stats(
         or beamformer_type == "wmwf"
     ):
         if powers is None:
-            power_input = signal.real ** 2 + signal.imag ** 2
+            power_input = signal.real**2 + signal.imag**2
             # Averaging along the channel axis: (..., C, T) -> (..., T)
             powers = [(power_input * m).mean(dim=-2) for m in masks_speech]
         else:
@@ -124,7 +124,11 @@ def prepare_beamformer_stats(
         psd_n = einsum("...ct,...et->...ce", signal, signal.conj())
     elif beamformer_type in ("wmpdr", "wmpdr_souden", "wlcmp", "wmwf"):
         psd_n = [
-            einsum("...ct,...et->...ce", signal * inv_p[..., None, :], signal.conj(),)
+            einsum(
+                "...ct,...et->...ce",
+                signal * inv_p[..., None, :],
+                signal.conj(),
+            )
             for inv_p in inverse_powers
         ]
     elif beamformer_type in ("wpd", "wpd_souden"):

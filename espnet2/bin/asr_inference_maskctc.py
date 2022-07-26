@@ -146,7 +146,8 @@ class Speech2Text:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build Speech2Text instance from the pretrained model.
 
@@ -225,7 +226,8 @@ def inference(
         maskctc_threshold_probability=maskctc_threshold_probability,
     )
     speech2text = Speech2Text.from_pretrained(
-        model_tag=model_tag, **speech2text_kwargs,
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -291,7 +293,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -329,7 +334,10 @@ def get_parser():
 
     group = parser.add_argument_group("Decoding related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--maskctc_n_iterations", type=int, default=10)
     group.add_argument("--maskctc_threshold_probability", type=float, default=0.99)

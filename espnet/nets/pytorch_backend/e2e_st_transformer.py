@@ -186,7 +186,7 @@ class E2E(STInterface, torch.nn.Module):
         initialize(self, args.transformer_init)
         if self.mt_weight > 0:
             torch.nn.init.normal_(
-                self.encoder_mt.embed[0].weight, mean=0, std=args.adim ** -0.5
+                self.encoder_mt.embed[0].weight, mean=0, std=args.adim**-0.5
             )
             torch.nn.init.constant_(self.encoder_mt.embed[0].weight[self.pad], 0)
 
@@ -390,7 +390,10 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def translate(
-        self, x, trans_args, char_list=None,
+        self,
+        x,
+        trans_args,
+        char_list=None,
     ):
         """Translate input speech.
 

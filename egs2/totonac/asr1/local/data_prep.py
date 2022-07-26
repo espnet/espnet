@@ -104,7 +104,10 @@ def ELANProcess(afile, spk_info):
 
 
 def TraverseData(
-    sound_dir, annotation_dir, target_dir, speaker_info,
+    sound_dir,
+    annotation_dir,
+    target_dir,
+    speaker_info,
 ):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -158,7 +161,11 @@ def TraverseData(
         segment_number = 0
         for segment in channel_segments:
             # segments: start end text
-            segment_id = "%s_%s_%s" % (spk_info, afile, PackZero(segment_number),)
+            segment_id = "%s_%s_%s" % (
+                spk_info,
+                afile,
+                PackZero(segment_number),
+            )
             if float(segment[1]) > max_length:
                 continue
             print(
@@ -185,10 +192,18 @@ def TraverseData(
 if __name__ == "__main__":
     parser = ArgumentParser(description="Process Raw data")
     parser.add_argument(
-        "-w", dest="wav_path", type=str, help="wav path", default="",
+        "-w",
+        dest="wav_path",
+        type=str,
+        help="wav path",
+        default="",
     )
     parser.add_argument(
-        "-a", dest="ann_path", type=str, help="annotation path", default="",
+        "-a",
+        dest="ann_path",
+        type=str,
+        help="annotation path",
+        default="",
     )
     parser.add_argument(
         "-t", dest="target_dir", type=str, help="target_dir", default="data/mixtec"
@@ -202,5 +217,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     TraverseData(
-        args.wav_path, args.ann_path, args.target_dir, speaker_info=args.speaker_info,
+        args.wav_path,
+        args.ann_path,
+        args.target_dir,
+        speaker_info=args.speaker_info,
     )

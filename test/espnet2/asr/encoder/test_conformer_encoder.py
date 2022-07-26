@@ -20,7 +20,11 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 )
 @pytest.mark.parametrize(
     "interctc_layer_idx, interctc_use_conditioning",
-    [([], False), ([1], False), ([1], True),],
+    [
+        ([], False),
+        ([1], False),
+        ([1], True),
+    ],
 )
 @pytest.mark.parametrize("stochastic_depth_rate", [0.0, 0.1, [0.1, 0.1]])
 def test_encoder_forward_backward(
@@ -107,11 +111,15 @@ def test_encoder_invalid_rel_pos_combination():
 def test_encoder_invalid_interctc_layer_idx():
     with pytest.raises(AssertionError):
         ConformerEncoder(
-            20, num_blocks=2, interctc_layer_idx=[0, 1],
+            20,
+            num_blocks=2,
+            interctc_layer_idx=[0, 1],
         )
     with pytest.raises(AssertionError):
         ConformerEncoder(
-            20, num_blocks=2, interctc_layer_idx=[1, 2],
+            20,
+            num_blocks=2,
+            interctc_layer_idx=[1, 2],
         )
 
 
@@ -128,9 +136,13 @@ def test_encoder_invalid_type():
 def test_encoder_invalid_stochastic_depth_rate():
     with pytest.raises(ValueError):
         ConformerEncoder(
-            20, num_blocks=2, stochastic_depth_rate=[0.1],
+            20,
+            num_blocks=2,
+            stochastic_depth_rate=[0.1],
         )
     with pytest.raises(ValueError):
         ConformerEncoder(
-            20, num_blocks=2, stochastic_depth_rate=[0.1, 0.1, 0.1],
+            20,
+            num_blocks=2,
+            stochastic_depth_rate=[0.1, 0.1, 0.1],
         )

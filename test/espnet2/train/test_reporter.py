@@ -116,7 +116,9 @@ def test_sort_values():
             sub.next()
     sort_values = reporter.sort_values(key1, "aa", mode)
 
-    desired = sorted([stats_list[e]["aa"] for e in range(len(stats_list))],)
+    desired = sorted(
+        [stats_list[e]["aa"] for e in range(len(stats_list))],
+    )
 
     for e in range(len(stats_list)):
         assert sort_values[e] == desired[e]

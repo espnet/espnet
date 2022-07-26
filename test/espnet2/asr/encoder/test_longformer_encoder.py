@@ -12,7 +12,9 @@ pytest.importorskip("longformer")
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
     "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
-    [("legacy", "abs_pos", "lf_selfattn"),],
+    [
+        ("legacy", "abs_pos", "lf_selfattn"),
+    ],
 )
 def test_encoder_forward_backward(
     input_layer,

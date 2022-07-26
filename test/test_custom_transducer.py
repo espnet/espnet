@@ -200,7 +200,12 @@ def prepare(args):
                 "custom_enc_input_layer": "linear",
                 "custom_enc_positional_encoding_type": "abs_pos",
                 "enc_block_arch": [
-                    {"type": "transformer", "d_hidden": 32, "d_ff": 4, "heads": 1,},
+                    {
+                        "type": "transformer",
+                        "d_hidden": 32,
+                        "d_ff": 4,
+                        "heads": 1,
+                    },
                     {
                         "type": "conv1d",
                         "idim": 32,
@@ -422,7 +427,10 @@ def test_auxiliary_task(train_dic):
     with open(tmpdir + "/model.json", "wb") as f:
         f.write(
             json.dumps(
-                (12, 5, vars(train_args)), indent=4, ensure_ascii=False, sort_keys=True,
+                (12, 5, vars(train_args)),
+                indent=4,
+                ensure_ascii=False,
+                sort_keys=True,
             ).encode("utf_8")
         )
 
@@ -449,7 +457,12 @@ def test_no_block_arch():
 
 def test_invalid_input_layer_type():
     architecture = [
-        {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1,},
+        {
+            "type": "transformer",
+            "d_hidden": 2,
+            "d_ff": 2,
+            "heads": 1,
+        },
     ]
 
     with pytest.raises(NotImplementedError):
@@ -505,7 +518,14 @@ def test_invalid_block_arguments():
             "encoder",
             4,
             "embed",
-            [{"type": "transformer", "d_hidden": 2, "d_ff": 8, "heads": 1,},],
+            [
+                {
+                    "type": "transformer",
+                    "d_hidden": 2,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
+            ],
             positional_encoding_type="rel_pos",
             self_attn_type="self_attn",
         )
@@ -518,8 +538,18 @@ def test_invalid_block_io():
             4,
             "linear",
             [
-                {"type": "transformer", "d_hidden": 2, "d_ff": 8, "heads": 1,},
-                {"type": "transformer", "d_hidden": 4, "d_ff": 8, "heads": 1,},
+                {
+                    "type": "transformer",
+                    "d_hidden": 2,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
+                {
+                    "type": "transformer",
+                    "d_hidden": 4,
+                    "d_ff": 8,
+                    "heads": 1,
+                },
             ],
         )
 
@@ -612,12 +642,16 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
         # AssertionError is originaly raised by torch.
         with pytest.raises(AssertionError):
             model = torch.quantization.quantize_dynamic(
-                model, quantize_dic["mod"], dtype=quantize_dic["dtype"],
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
             )
         pytest.skip("Skip rest of the test after checking AssertionError")
     else:
         model = torch.quantization.quantize_dynamic(
-            model, quantize_dic["mod"], dtype=quantize_dic["dtype"],
+            model,
+            quantize_dic["mod"],
+            dtype=quantize_dic["dtype"],
         )
 
     beam_search = BeamSearchTransducer(

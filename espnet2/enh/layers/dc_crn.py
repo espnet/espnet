@@ -261,7 +261,10 @@ class DenselyConnectedBlock(nn.Module):
             in_channel = in_channel + hid_channels
             # make sure the last two dimensions will not be changed after this layer
             tdim, hdim = conv2d_output_shape(
-                (T, D), kernel_size=kernel_size, stride=(1, 1), pad=padding,
+                (T, D),
+                kernel_size=kernel_size,
+                stride=(1, 1),
+                pad=padding,
             )
             hidden_sizes.append(hdim)
             assert tdim == T and hdim == D, (tdim, hdim, T, D)

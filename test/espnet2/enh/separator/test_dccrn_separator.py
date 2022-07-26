@@ -42,7 +42,11 @@ def test_dccrn_separator_forward_backward_complex(
         bidirectional=bidirectional,
         use_cbn=use_cbn,
         kernel_size=kernel_size,
-        kernel_num=[32, 64, 128,],
+        kernel_num=[
+            32,
+            64,
+            128,
+        ],
         use_builtin_complex=use_builtin_complex,
         use_noise_mask=use_noise_mask,
     )
@@ -67,7 +71,8 @@ def test_dccrn_separator_forward_backward_complex(
 def test_dccrn_separator_invalid_type():
     with pytest.raises(ValueError):
         DCCRNSeparator(
-            input_dim=10, masking_mode="fff",
+            input_dim=10,
+            masking_mode="fff",
         )
 
 
@@ -78,7 +83,15 @@ def test_rnn_separator_output():
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
-        model = DCCRNSeparator(input_dim=9, num_spk=num_spk, kernel_num=[32, 64, 128,],)
+        model = DCCRNSeparator(
+            input_dim=9,
+            num_spk=num_spk,
+            kernel_num=[
+                32,
+                64,
+                128,
+            ],
+        )
         model.eval()
         specs, _, others = model(x, x_lens)
         assert isinstance(specs, list)

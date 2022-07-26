@@ -163,9 +163,9 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
         diff = ref - inf
         if is_complex(diff):
-            mseloss = diff.real ** 2 + diff.imag ** 2
+            mseloss = diff.real**2 + diff.imag**2
         else:
-            mseloss = diff ** 2
+            mseloss = diff**2
         if ref.dim() == 3:
             mseloss = mseloss.mean(dim=[1, 2])
         elif ref.dim() == 4:

@@ -157,7 +157,10 @@ def compute_am_scores_and_lm_scores(
 
 
 def nbest_am_lm_scores(
-    lats: k2.Fsa, num_paths: int, device: str = "cuda", batch_size: int = 500,
+    lats: k2.Fsa,
+    num_paths: int,
+    device: str = "cuda",
+    batch_size: int = 500,
 ):
     """Compute am scores with word_seqs
 

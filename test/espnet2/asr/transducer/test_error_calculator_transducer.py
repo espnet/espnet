@@ -20,13 +20,21 @@ def test_error_calculator(report_opts):
     encoder_output_size = 4
     decoder_output_size = 4
 
-    decoder = TransducerDecoder(vocab_size, hidden_size=decoder_output_size,)
+    decoder = TransducerDecoder(
+        vocab_size,
+        hidden_size=decoder_output_size,
+    )
     joint_net = JointNetwork(
         vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
     )
 
     error_calc = ErrorCalculatorTransducer(
-        decoder, joint_net, token_list, "<space>", "<blank>", **report_opts,
+        decoder,
+        joint_net,
+        token_list,
+        "<space>",
+        "<blank>",
+        **report_opts,
     )
 
     enc_out = torch.randn(4, 30, encoder_output_size)

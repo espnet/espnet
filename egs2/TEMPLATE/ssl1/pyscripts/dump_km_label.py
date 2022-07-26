@@ -37,13 +37,13 @@ class ApplyKmeans(object):
     def __init__(self, km_path):
         self.km_model = joblib.load(km_path)
         self.nc = self.km_model.cluster_centers_.transpose()
-        self.nc_norm = (self.nc ** 2).sum(0, keepdims=True)
+        self.nc_norm = (self.nc**2).sum(0, keepdims=True)
 
     def __call__(self, x):
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
         probs = (
-            (x ** 2).sum(1, keepdims=True) - 2 * np.matmul(x, self.nc) + self.nc_norm
+            (x**2).sum(1, keepdims=True) - 2 * np.matmul(x, self.nc) + self.nc_norm
         )
         return np.argmin(probs, axis=1)
 
@@ -97,12 +97,20 @@ def dump_label(km_path, label_path, recog_set, feature, nj, sample_rate, hurl, h
             logger.info("Dumping pseudo labeling for: %s", task)
             if feature == "mfcc":
                 utt_ids, p_labs = dump_pseudo_label_mfcc(
-                    f"{km_path}", task, sample_rate, nj,
+                    f"{km_path}",
+                    task,
+                    sample_rate,
+                    nj,
                 )
             elif "hubert" in feature:
                 hlayer = int(feature.replace("hubert", ""))
                 utt_ids, p_labs = dump_pseudo_label_hubert(
-                    f"{km_path}", task, sample_rate, hurl, hdir, hlayer,
+                    f"{km_path}",
+                    task,
+                    sample_rate,
+                    hurl,
+                    hdir,
+                    hlayer,
                 )
 
             with open(label_path, "w") as f:

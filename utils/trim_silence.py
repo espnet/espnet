@@ -20,7 +20,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def _time_to_str(time_idx):
-    time_idx = time_idx * 10 ** 4
+    time_idx = time_idx * 10**4
     return "%06d" % time_idx
 
 
@@ -32,16 +32,27 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--fs", type=int, help="Sampling frequency.",
+        "--fs",
+        type=int,
+        help="Sampling frequency.",
     )
     parser.add_argument(
-        "--threshold", type=float, default=60, help="Threshold in decibels.",
+        "--threshold",
+        type=float,
+        default=60,
+        help="Threshold in decibels.",
     )
     parser.add_argument(
-        "--win_length", type=int, default=1200, help="Analysis window length in point.",
+        "--win_length",
+        type=int,
+        default=1200,
+        help="Analysis window length in point.",
     )
     parser.add_argument(
-        "--shift_length", type=int, default=300, help="Shift length in point.",
+        "--shift_length",
+        type=int,
+        default=300,
+        help="Shift length in point.",
     )
     parser.add_argument(
         "--min_silence",
@@ -50,10 +61,16 @@ def get_parser():
         help="Minimum silence length in sec.",
     )
     parser.add_argument(
-        "--figdir", type=str, default=None, help="Directory to save figures.",
+        "--figdir",
+        type=str,
+        default=None,
+        help="Directory to save figures.",
     )
     parser.add_argument(
-        "--verbose", default=0, type=int, help="Verbosity level.",
+        "--verbose",
+        default=0,
+        type=int,
+        help="Verbosity level.",
     )
     parser.add_argument(
         "--normalize",
@@ -64,10 +81,14 @@ def get_parser():
         "then normalizes data to scale in [-1,1].",
     )
     parser.add_argument(
-        "rspecifier", type=str, help="WAV scp file.",
+        "rspecifier",
+        type=str,
+        help="WAV scp file.",
     )
     parser.add_argument(
-        "wspecifier", type=str, help="Segments file.",
+        "wspecifier",
+        type=str,
+        help="Segments file.",
     )
     return parser
 

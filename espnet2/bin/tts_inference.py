@@ -125,7 +125,9 @@ class Text2Speech:
         decode_conf.update(use_teacher_forcing=use_teacher_forcing)
         if isinstance(self.tts, (Tacotron2, Transformer)):
             decode_conf.update(
-                threshold=threshold, maxlenratio=maxlenratio, minlenratio=minlenratio,
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
             )
         if isinstance(self.tts, Tacotron2):
             decode_conf.update(
@@ -137,7 +139,8 @@ class Text2Speech:
             decode_conf.update(alpha=speed_control_alpha)
         if isinstance(self.tts, VITS):
             decode_conf.update(
-                noise_scale=noise_scale, noise_scale_dur=noise_scale_dur,
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
             )
         self.decode_conf = decode_conf
 
@@ -373,7 +376,9 @@ def inference(
         always_fix_seed=always_fix_seed,
     )
     text2speech = Text2Speech.from_pretrained(
-        model_tag=model_tag, vocoder_tag=vocoder_tag, **text2speech_kwargs,
+        model_tag=model_tag,
+        vocoder_tag=vocoder_tag,
+        **text2speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -412,7 +417,8 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm", output_dir / "norm/feats.scp",
+        output_dir / "norm",
+        output_dir / "norm/feats.scp",
     ) as norm_writer, NpyScpWriter(
         output_dir / "denorm", output_dir / "denorm/feats.scp"
     ) as denorm_writer, open(
@@ -571,13 +577,22 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--output_dir", type=str, required=True, help="The path of output directory",
+        "--output_dir",
+        type=str,
+        required=True,
+        help="The path of output directory",
     )
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument(
-        "--seed", type=int, default=0, help="Random seed",
+        "--seed",
+        type=int,
+        default=0,
+        help="Random seed",
     )
     parser.add_argument(
         "--dtype",
@@ -592,7 +607,10 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -603,18 +621,25 @@ def get_parser():
         action="append",
     )
     group.add_argument(
-        "--key_file", type=str_or_none,
+        "--key_file",
+        type=str_or_none,
     )
     group.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False,
+        "--allow_variable_data_keys",
+        type=str2bool,
+        default=False,
     )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config", type=str, help="Training configuration file",
+        "--train_config",
+        type=str,
+        help="Training configuration file",
     )
     group.add_argument(
-        "--model_file", type=str, help="Model parameter file",
+        "--model_file",
+        type=str,
+        help="Model parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -637,7 +662,10 @@ def get_parser():
         help="Minimum length ratio in decoding",
     )
     group.add_argument(
-        "--threshold", type=float, default=0.5, help="Threshold value in decoding",
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Threshold value in decoding",
     )
     group.add_argument(
         "--use_att_constraint",
@@ -690,10 +718,14 @@ def get_parser():
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(
-        "--vocoder_config", type=str_or_none, help="Vocoder configuration file",
+        "--vocoder_config",
+        type=str_or_none,
+        help="Vocoder configuration file",
     )
     group.add_argument(
-        "--vocoder_file", type=str_or_none, help="Vocoder parameter file",
+        "--vocoder_file",
+        type=str_or_none,
+        help="Vocoder parameter file",
     )
     group.add_argument(
         "--vocoder_tag",

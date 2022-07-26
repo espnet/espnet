@@ -152,7 +152,7 @@ class E2E(ChainerASRInterface):
         self.char_list = args.char_list
         self.space = args.sym_space
         self.blank = args.sym_blank
-        self.scale_emb = args.adim ** 0.5
+        self.scale_emb = args.adim**0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = get_subsample(args, mode="asr", arch="transformer")

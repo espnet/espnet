@@ -70,8 +70,15 @@ def load_wav(wav_rxfilename, start=0, end=None):
     """
     if wav_rxfilename.endswith("|"):
         # input piped command
-        p = subprocess.Popen(wav_rxfilename[:-1], shell=True, stdout=subprocess.PIPE,)
-        data, samplerate = sf.read(io.BytesIO(p.stdout.read()), dtype="float32",)
+        p = subprocess.Popen(
+            wav_rxfilename[:-1],
+            shell=True,
+            stdout=subprocess.PIPE,
+        )
+        data, samplerate = sf.read(
+            io.BytesIO(p.stdout.read()),
+            dtype="float32",
+        )
         # cannot seek
         data = data[start:end]
     elif wav_rxfilename == "-":

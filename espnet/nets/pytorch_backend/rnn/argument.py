@@ -31,10 +31,17 @@ def add_arguments_rnn_encoder_common(group):
         help="Type of encoder network architecture",
     )
     group.add_argument(
-        "--elayers", default=4, type=int, help="Number of encoder layers",
+        "--elayers",
+        default=4,
+        type=int,
+        help="Number of encoder layers",
     )
     group.add_argument(
-        "--eunits", "-u", default=300, type=int, help="Number of encoder hidden units",
+        "--eunits",
+        "-u",
+        default=300,
+        type=int,
+        help="Number of encoder hidden units",
     )
     group.add_argument(
         "--eprojs", default=320, type=int, help="Number of encoder projection units"
@@ -141,6 +148,9 @@ def add_arguments_rnn_attention_common(group):
                        (negative value indicates no location-aware attention)",
     )
     group.add_argument(
-        "--dropout-rate", default=0.0, type=float, help="Dropout rate for the encoder",
+        "--dropout-rate",
+        default=0.0,
+        type=float,
+        help="Dropout rate for the encoder",
     )
     return group

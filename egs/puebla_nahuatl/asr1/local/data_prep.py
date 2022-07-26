@@ -492,10 +492,18 @@ def TraverseData(
 if __name__ == "__main__":
     parser = ArgumentParser(description="Process Raw data")
     parser.add_argument(
-        "-w", dest="wav_path", type=str, help="wav path", default="",
+        "-w",
+        dest="wav_path",
+        type=str,
+        help="wav path",
+        default="",
     )
     parser.add_argument(
-        "-a", dest="ann_path", type=str, help="annotation path", default="",
+        "-a",
+        dest="ann_path",
+        type=str,
+        help="annotation path",
+        default="",
     )
     parser.add_argument(
         "-t", dest="target_dir", type=str, help="target_dir", default="data/mixtec"

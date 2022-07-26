@@ -27,7 +27,12 @@ def test_main():
 def config_file(tmp_path: Path):
     # Write default configuration file
     EnhancementTask.main(
-        cmd=["--dry_run", "true", "--output_dir", str(tmp_path / "enh"),]
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "enh"),
+        ]
     )
 
     with open(tmp_path / "enh" / "config.yaml", "r") as f:

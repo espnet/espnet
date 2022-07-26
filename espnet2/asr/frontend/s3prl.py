@@ -52,7 +52,9 @@ class S3prlFrontend(AbsFrontend):
 
     def _get_upstream(self, frontend_conf):
         """Get S3PRL upstream model."""
-        s3prl_args = base_s3prl_setup(Namespace(**frontend_conf, device="cpu"),)
+        s3prl_args = base_s3prl_setup(
+            Namespace(**frontend_conf, device="cpu"),
+        )
         self.args = s3prl_args
 
         s3prl_path = None

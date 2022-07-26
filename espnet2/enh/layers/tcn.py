@@ -47,7 +47,7 @@ class TemporalConvNet(nn.Module):
         for r in range(R):
             blocks = []
             for x in range(X):
-                dilation = 2 ** x
+                dilation = 2**x
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(

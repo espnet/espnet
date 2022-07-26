@@ -340,7 +340,8 @@ class SeparateSpeech:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build SeparateSpeech instance from the pretrained model.
 
@@ -433,7 +434,8 @@ def inference(
         enh_s2t_task=enh_s2t_task,
     )
     separate_speech = SeparateSpeech.from_pretrained(
-        model_tag=model_tag, **separate_speech_kwargs,
+        model_tag=model_tag,
+        **separate_speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -496,7 +498,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -535,10 +540,14 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config", type=str, help="Training configuration file",
+        "--train_config",
+        type=str,
+        help="Training configuration file",
     )
     group.add_argument(
-        "--model_file", type=str, help="Model parameter file",
+        "--model_file",
+        type=str,
+        help="Model parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -562,7 +571,10 @@ def get_parser():
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group = parser.add_argument_group("SeparateSpeech related")
     group.add_argument(

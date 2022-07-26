@@ -186,7 +186,9 @@ def get_parser() -> argparse.Namespace:
         help="Path of directory or wav.scp for ground truth waveforms.",
     )
     parser.add_argument(
-        "--outdir", type=str, help="Path of directory to write the results.",
+        "--outdir",
+        type=str,
+        help="Path of directory to write the results.",
     )
 
     # analysis related
@@ -209,13 +211,22 @@ def get_parser() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--n_fft", default=1024, type=int, help="The number of FFT points.",
+        "--n_fft",
+        default=1024,
+        type=int,
+        help="The number of FFT points.",
     )
     parser.add_argument(
-        "--n_shift", default=256, type=int, help="The number of shift points.",
+        "--n_shift",
+        default=256,
+        type=int,
+        help="The number of shift points.",
     )
     parser.add_argument(
-        "--nj", default=16, type=int, help="Number of parallel jobs.",
+        "--nj",
+        default=16,
+        type=int,
+        help="Number of parallel jobs.",
     )
     parser.add_argument(
         "--verbose",

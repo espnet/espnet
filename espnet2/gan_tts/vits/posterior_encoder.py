@@ -102,7 +102,10 @@ class PosteriorEncoder(torch.nn.Module):
         x_mask = (
             make_non_pad_mask(x_lengths)
             .unsqueeze(1)
-            .to(dtype=x.dtype, device=x.device,)
+            .to(
+                dtype=x.dtype,
+                device=x.device,
+            )
         )
         x = self.input_conv(x) * x_mask
         x = self.encoder(x, x_mask, g=g)

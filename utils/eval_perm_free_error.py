@@ -178,7 +178,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    if len(args.results) != args.num_spkrs ** 2:
+    if len(args.results) != args.num_spkrs**2:
         parser.print_help()
         sys.exit(1)
 

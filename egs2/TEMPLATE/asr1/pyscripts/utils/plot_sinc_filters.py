@@ -23,7 +23,8 @@ import torch
 def get_parser():
     """Construct the parser."""
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--sample_rate", type=int, default=16000, help="Sampling rate.")
     parser.add_argument(

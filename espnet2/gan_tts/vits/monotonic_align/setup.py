@@ -17,7 +17,12 @@ class build_ext(_build_ext):
         self.include_dirs.append(numpy.get_include())
 
 
-exts = [Extension(name="core", sources=["core.pyx"],)]
+exts = [
+    Extension(
+        name="core",
+        sources=["core.pyx"],
+    )
+]
 setup(
     name="monotonic_align",
     ext_modules=cythonize(exts, language_level=3),

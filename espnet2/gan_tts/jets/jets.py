@@ -246,15 +246,25 @@ class JETS(AbsGANTTS):
         # define modules
         generator_class = AVAILABLE_GENERATERS[generator_type]
         generator_params.update(idim=idim, odim=odim)
-        self.generator = generator_class(**generator_params,)
+        self.generator = generator_class(
+            **generator_params,
+        )
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
-        self.discriminator = discriminator_class(**discriminator_params,)
-        self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params,)
+        self.discriminator = discriminator_class(
+            **discriminator_params,
+        )
+        self.generator_adv_loss = GeneratorAdversarialLoss(
+            **generator_adv_loss_params,
+        )
         self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
             **discriminator_adv_loss_params,
         )
-        self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params,)
-        self.mel_loss = MelSpectrogramLoss(**mel_loss_params,)
+        self.feat_match_loss = FeatureMatchLoss(
+            **feat_match_loss_params,
+        )
+        self.mel_loss = MelSpectrogramLoss(
+            **mel_loss_params,
+        )
         self.var_loss = VarianceLoss()
         self.forwardsum_loss = ForwardSumLoss()
 
@@ -601,7 +611,9 @@ class JETS(AbsGANTTS):
         # setup
         text = text[None]
         text_lengths = torch.tensor(
-            [text.size(1)], dtype=torch.long, device=text.device,
+            [text.size(1)],
+            dtype=torch.long,
+            device=text.device,
         )
         if "spembs" in kwargs:
             kwargs["spembs"] = kwargs["spembs"][None]
@@ -611,7 +623,9 @@ class JETS(AbsGANTTS):
             assert feats is not None
             feats = feats[None]
             feats_lengths = torch.tensor(
-                [feats.size(1)], dtype=torch.long, device=feats.device,
+                [feats.size(1)],
+                dtype=torch.long,
+                device=feats.device,
             )
             assert pitch is not None
             pitch = pitch[None]
@@ -630,6 +644,8 @@ class JETS(AbsGANTTS):
             )
         else:
             wav, dur = self.generator.inference(
-                text=text, text_lengths=text_lengths, **kwargs,
+                text=text,
+                text_lengths=text_lengths,
+                **kwargs,
             )
         return dict(wav=wav.view(-1), duration=dur[0])

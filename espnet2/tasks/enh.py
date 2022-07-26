@@ -259,7 +259,10 @@ class EnhancementTask(AbsTask):
             help="Number of speakers in the input signal.",
         )
         group.add_argument(
-            "--num_noise_type", type=int, default=1, help="Number of noise types.",
+            "--num_noise_type",
+            type=int,
+            default=1,
+            help="Number of noise types.",
         )
         group.add_argument(
             "--sample_rate",

@@ -1,10 +1,10 @@
 import glob
-
+import os
 
 def main(cmd=None):
     # get transcriptions
     transcriptions = {}
-    transcripts = open("downloads/tedx_spanish_corpus/files/TEDx_Spanish.transcription")
+    transcripts = open(os.environ["TEDX_SPANISH_CORPUS"] + "/tedx_spanish_corpus/files/TEDx_Spanish.transcription")
 
     for row in transcripts:
         txt = " ".join(row.split(" ")[:-1])
@@ -14,7 +14,7 @@ def main(cmd=None):
     splits = ["train", "dev", "test"]
 
     for split in splits:
-        spkrs = open("local/" + split + ".txt").read().splitlines()
+        spkrs = open("local/split/" + split + ".txt").read().splitlines()
 
         utt2spk = open("data/" + split + "/utt2spk", "w")
         wavscp = open("data/" + split + "/wav.scp", "w")
@@ -22,7 +22,7 @@ def main(cmd=None):
 
         for spkr in spkrs:
             for f in glob.glob(
-                "downloads/tedx_spanish_corpus/speech/" + spkr + "*.wav"
+                os.environ["TEDX_SPANISH_CORPUS"] + "/tedx_spanish_corpus/speech/" + spkr + "*.wav"
             ):
                 id = f.split("/")[-1][:-4]
                 full_id = f[:-4]

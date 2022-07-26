@@ -19,7 +19,8 @@ from espnet2.fileio.sound_scp import SoundScpReader
 def get_parser():
     """Construct the parser."""
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        description=__doc__,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
     parser.add_argument(
@@ -34,7 +35,9 @@ def get_parser():
         "in_folder", type=Path, help="Path to the input kaldi data directory."
     )
     parser.add_argument(
-        "out_folder", type=Path, help="Output folder to save the xvectors.",
+        "out_folder",
+        type=Path,
+        help="Output folder to save the xvectors.",
     )
     return parser
 

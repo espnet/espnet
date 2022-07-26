@@ -587,9 +587,13 @@ class FastSpeech2(AbsTTS):
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(encoder_alpha=self.encoder.embed[-1].alpha.data.item(),)
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(decoder_alpha=self.decoder.embed[-1].alpha.data.item(),)
+            stats.update(
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
 
         if not joint_training:
             stats.update(loss=loss.item())
@@ -741,7 +745,15 @@ class FastSpeech2(AbsTTS):
             # use groundtruth of duration, pitch, and energy
             ds, ps, es = d.unsqueeze(0), p.unsqueeze(0), e.unsqueeze(0)
             _, outs, d_outs, p_outs, e_outs = self._forward(
-                xs, ilens, ys, ds=ds, ps=ps, es=es, spembs=spembs, sids=sids, lids=lids,
+                xs,
+                ilens,
+                ys,
+                ds=ds,
+                ps=ps,
+                es=es,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
             )  # (1, T_feats, odim)
         else:
             _, outs, d_outs, p_outs, e_outs = self._forward(
@@ -756,7 +768,10 @@ class FastSpeech2(AbsTTS):
             )  # (1, T_feats, odim)
 
         return dict(
-            feat_gen=outs[0], duration=d_outs[0], pitch=p_outs[0], energy=e_outs[0],
+            feat_gen=outs[0],
+            duration=d_outs[0],
+            pitch=p_outs[0],
+            energy=e_outs[0],
         )
 
     def _integrate_with_spk_embed(

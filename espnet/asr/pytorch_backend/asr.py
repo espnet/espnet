@@ -760,19 +760,30 @@ def train(args):
         )
 
         aux_trans_keys = (
-            ["main/loss_aux_trans", "validation/main/loss_aux_trans",]
+            [
+                "main/loss_aux_trans",
+                "validation/main/loss_aux_trans",
+            ]
             if args.use_aux_transducer_loss
             else []
         )
 
         symm_kl_div_keys = (
-            ["main/loss_symm_kl_div", "validation/main/loss_symm_kl_div",]
+            [
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
+            ]
             if args.use_symm_kl_div_loss
             else []
         )
 
         lm_keys = (
-            ["main/loss_lm", "validation/main/loss_lm",] if args.use_lm_loss else []
+            [
+                "main/loss_lm",
+                "validation/main/loss_lm",
+            ]
+            if args.use_lm_loss
+            else []
         )
 
         transducer_keys = (
@@ -780,7 +791,11 @@ def train(args):
         )
 
         trainer.extend(
-            extensions.PlotReport(transducer_keys, "epoch", file_name="loss.png",)
+            extensions.PlotReport(
+                transducer_keys,
+                "epoch",
+                file_name="loss.png",
+            )
         )
     else:
         trainer.extend(
@@ -889,7 +904,14 @@ def train(args):
     )
 
     if hasattr(model, "is_transducer"):
-        report_keys = ["epoch", "iteration",] + transducer_keys + ["elapsed_time"]
+        report_keys = (
+            [
+                "epoch",
+                "iteration",
+            ]
+            + transducer_keys
+            + ["elapsed_time"]
+        )
     else:
         report_keys = [
             "epoch",

@@ -42,7 +42,9 @@ class MfccFeatureReader(object):
             x = torch.from_numpy(x).view(1, -1).float()
 
             mfcc = torchaudio.compliance.kaldi.mfcc(
-                waveform=x, sample_frequency=self.fs, use_energy=False,
+                waveform=x,
+                sample_frequency=self.fs,
+                use_energy=False,
             ).transpose(
                 0, 1
             )  # (freq, time)

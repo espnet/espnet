@@ -51,7 +51,9 @@ class E2E(E2ETransformer):
         group = parser.add_argument_group("maskctc specific setting")
 
         group.add_argument(
-            "--maskctc-use-conformer-encoder", default=False, type=strtobool,
+            "--maskctc-use-conformer-encoder",
+            default=False,
+            type=strtobool,
         )
         group = add_arguments_conformer_common(group)
 

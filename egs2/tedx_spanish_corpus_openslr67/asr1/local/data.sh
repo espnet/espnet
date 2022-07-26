@@ -38,6 +38,7 @@ else
     wget "https://www.openslr.org/resources/67/tedx_spanish_corpus.tgz"
     tar -xvf tedx_spanish_corpus.tgz
     rm tedx_spanish_corpus.tgz
+    git clone https://github.com/jessicah25/tedx_spanish_corpus_split.git ../local/split
 fi
 
 cd ..
@@ -45,6 +46,8 @@ cd ..
 mkdir -p data/train
 mkdir -p data/dev
 mkdir -p data/test
+
+export TEDX_SPANISH_CORPUS
 
 # create train, dev, test split 90/5/5
 # python local/split_data.py

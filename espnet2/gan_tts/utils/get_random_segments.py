@@ -9,7 +9,9 @@ import torch
 
 
 def get_random_segments(
-    x: torch.Tensor, x_lengths: torch.Tensor, segment_size: int,
+    x: torch.Tensor,
+    x_lengths: torch.Tensor,
+    segment_size: int,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Get random segments.
 
@@ -25,13 +27,17 @@ def get_random_segments(
     """
     b, c, t = x.size()
     max_start_idx = x_lengths - segment_size
-    start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(dtype=torch.long,)
+    start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(
+        dtype=torch.long,
+    )
     segments = get_segments(x, start_idxs, segment_size)
     return segments, start_idxs
 
 
 def get_segments(
-    x: torch.Tensor, start_idxs: torch.Tensor, segment_size: int,
+    x: torch.Tensor,
+    start_idxs: torch.Tensor,
+    segment_size: int,
 ) -> torch.Tensor:
     """Get segments.
 

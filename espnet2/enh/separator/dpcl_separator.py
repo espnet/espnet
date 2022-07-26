@@ -127,7 +127,9 @@ class DPCLSeparator(AbsSeparator):
             for i in range(self._num_spk):
                 masked.append(input * (label == i))
 
-        others = OrderedDict({"tf_embedding": tf_embedding},)
+        others = OrderedDict(
+            {"tf_embedding": tf_embedding},
+        )
 
         return masked, ilens, others
 

@@ -15,7 +15,10 @@ from dateutil import parser
 def get_parser():
     parser = argparse.ArgumentParser(description="calculate real time factor (RTF)")
     parser.add_argument(
-        "--log-dir", type=str, default=None, help="path to logging directory",
+        "--log-dir",
+        type=str,
+        default=None,
+        help="path to logging directory",
     )
     return parser
 

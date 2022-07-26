@@ -116,7 +116,10 @@ def add_arguments_transformer_common(group):
         help="use bias term in lightweight/dynamic convolution",
     )
     group.add_argument(
-        "--dropout-rate", default=0.0, type=float, help="Dropout rate for the encoder",
+        "--dropout-rate",
+        default=0.0,
+        type=float,
+        help="Dropout rate for the encoder",
     )
     group.add_argument(
         "--intermediate-ctc-weight",
@@ -145,7 +148,11 @@ def add_arguments_transformer_common(group):
         "in multi-speaker asr mode)",
     )
     group.add_argument(
-        "--eunits", "-u", default=300, type=int, help="Number of encoder hidden units",
+        "--eunits",
+        "-u",
+        default=300,
+        type=int,
+        help="Number of encoder hidden units",
     )
     # Attention
     group.add_argument(

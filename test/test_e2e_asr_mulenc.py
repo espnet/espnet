@@ -337,7 +337,7 @@ def test_gradient_noise_injection(module, num_encs):
     )
     import espnet.nets.pytorch_backend.e2e_asr_mulenc as m
 
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2**10, 2**10, shortest_first=True)
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
     model_org = m.E2E([2 for _ in range(num_encs)], 2, args_org)
     for batch in batchset:
@@ -358,7 +358,7 @@ def test_sortagrad_trainable(module, num_encs):
     dummy_json = make_dummy_json(6, [2, 3], [2, 3], idim=2, odim=2, num_inputs=num_encs)
     import espnet.nets.pytorch_backend.e2e_asr_mulenc as m
 
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2**10, 2**10, shortest_first=True)
     model = m.E2E([2 for _ in range(num_encs)], 2, args)
     num_utts = 0
     for batch in batchset:
@@ -552,7 +552,9 @@ def test_multi_gpu_trainable(module, num_encs):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     "module, num_encs, model_dict",
-    [("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {}),],
+    [
+        ("espnet.nets.pytorch_backend.e2e_asr_mulenc", 2, {}),
+    ],
 )
 def test_calculate_plot_attention_ctc(module, num_encs, model_dict):
     args = make_arg(num_encs=num_encs, **model_dict)
@@ -563,7 +565,7 @@ def test_calculate_plot_attention_ctc(module, num_encs, model_dict):
     dummy_json = make_dummy_json(
         num_encs, [2, 3], [2, 3], idim=2, odim=2, num_inputs=num_encs
     )
-    batchset = make_batchset(dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True)
+    batchset = make_batchset(dummy_json, 2, 2**10, 2**10, shortest_first=True)
     att_ws = model.calculate_all_attentions(
         *convert_batch(batchset[0], "pytorch", idim=2, odim=2, num_inputs=num_encs)
     )

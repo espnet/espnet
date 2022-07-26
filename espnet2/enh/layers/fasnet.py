@@ -90,7 +90,10 @@ class BF_module(nn.Module):
             batch_size, ch, -1, enc_segments.shape[2], enc_segments.shape[3]
         )  # B, ch, N, L, K
         output = self.dprnn_model(enc_segments, num_mic).view(
-            batch_size * ch * self.num_spk, self.feature_dim, self.segment_size, -1,
+            batch_size * ch * self.num_spk,
+            self.feature_dim,
+            self.segment_size,
+            -1,
         )  # B*ch*nspk, N, L, K
         # overlap-and-add of the outputs
         output = dprnn.merge_feature(output, enc_rest)  # B*ch*nspk, N, T
@@ -416,7 +419,11 @@ class FaSNet_TAC(FaSNet_base):
 def test_model(model):
     x = torch.rand(2, 4, 32000)  # (batch, num_mic, length)
     num_mic = (
-        torch.from_numpy(np.array([3, 2])).view(-1,).type(x.type())
+        torch.from_numpy(np.array([3, 2]))
+        .view(
+            -1,
+        )
+        .type(x.type())
     )  # ad-hoc array
     none_mic = torch.zeros(1).type(x.type())  # fixed-array
     y1 = model(x, num_mic.long())

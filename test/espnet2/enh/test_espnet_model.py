@@ -26,23 +26,43 @@ from espnet2.enh.separator.transformer_separator import TransformerSeparator
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
-stft_encoder = STFTEncoder(n_fft=32, hop_length=16,)
-
-stft_encoder_bultin_complex = STFTEncoder(
-    n_fft=32, hop_length=16, use_builtin_complex=True,
+stft_encoder = STFTEncoder(
+    n_fft=32,
+    hop_length=16,
 )
 
-stft_decoder = STFTDecoder(n_fft=32, hop_length=16,)
+stft_encoder_bultin_complex = STFTEncoder(
+    n_fft=32,
+    hop_length=16,
+    use_builtin_complex=True,
+)
 
-conv_encoder = ConvEncoder(channel=17, kernel_size=36, stride=18,)
+stft_decoder = STFTDecoder(
+    n_fft=32,
+    hop_length=16,
+)
 
-conv_decoder = ConvDecoder(channel=17, kernel_size=36, stride=18,)
+conv_encoder = ConvEncoder(
+    channel=17,
+    kernel_size=36,
+    stride=18,
+)
+
+conv_decoder = ConvDecoder(
+    channel=17,
+    kernel_size=36,
+    stride=18,
+)
 
 null_encoder = NullEncoder()
 
 null_decoder = NullDecoder()
 
-rnn_separator = RNNSeparator(input_dim=17, layer=1, unit=10,)
+rnn_separator = RNNSeparator(
+    input_dim=17,
+    layer=1,
+    unit=10,
+)
 
 dc_crn_separator = DC_CRNSeparator(input_dim=17, input_channels=[2, 2, 4])
 
@@ -63,11 +83,20 @@ svoice_separator = SVoiceSeparator(
 )
 
 tcn_separator = TCNSeparator(
-    input_dim=17, layer=2, stack=1, bottleneck_dim=10, hidden_dim=10, kernel=3,
+    input_dim=17,
+    layer=2,
+    stack=1,
+    bottleneck_dim=10,
+    hidden_dim=10,
+    kernel=3,
 )
 
 transformer_separator = TransformerSeparator(
-    input_dim=17, adim=8, aheads=2, layers=2, linear_units=10,
+    input_dim=17,
+    adim=8,
+    aheads=2,
+    layers=2,
+    linear_units=10,
 )
 
 si_snr_loss = SISNRLoss()
@@ -164,10 +193,16 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
 
 
 @pytest.mark.parametrize(
-    "encoder, decoder", [(null_encoder, null_decoder),],
+    "encoder, decoder",
+    [
+        (null_encoder, null_decoder),
+    ],
 )
 @pytest.mark.parametrize(
-    "separator", [svoice_separator,],
+    "separator",
+    [
+        svoice_separator,
+    ],
 )
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("loss_wrappers", [[multilayer_pit_solver]])

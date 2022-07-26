@@ -122,7 +122,7 @@ class E2E(E2EASR, ASRInterface, torch.nn.Module):
                     hs_len[i // self.num_spkrs],
                     ys_pad[i % self.num_spkrs],
                 )
-                for i in range(self.num_spkrs ** 2)
+                for i in range(self.num_spkrs**2)
             ],
             dim=1,
         )  # (B, num_spkrs^2)

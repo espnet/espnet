@@ -14,35 +14,57 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 
-enh_stft_encoder = STFTEncoder(n_fft=32, hop_length=16,)
+enh_stft_encoder = STFTEncoder(
+    n_fft=32,
+    hop_length=16,
+)
 
-enh_stft_decoder = STFTDecoder(n_fft=32, hop_length=16,)
+enh_stft_decoder = STFTDecoder(
+    n_fft=32,
+    hop_length=16,
+)
 
-enh_rnn_separator = RNNSeparator(input_dim=17, layer=1, unit=10, num_spk=1,)
+enh_rnn_separator = RNNSeparator(
+    input_dim=17,
+    layer=1,
+    unit=10,
+    num_spk=1,
+)
 
 si_snr_loss = SISNRLoss()
 
 fix_order_solver = FixedOrderSolver(criterion=si_snr_loss)
 
 default_frontend = DefaultFrontend(
-    fs=300, n_fft=32, win_length=32, hop_length=24, n_mels=32,
+    fs=300,
+    n_fft=32,
+    win_length=32,
+    hop_length=24,
+    n_mels=32,
 )
 
 token_list = ["<blank>", "<space>", "a", "e", "i", "o", "u", "<sos/eos>"]
 
 asr_transformer_encoder = TransformerEncoder(
-    32, output_size=16, linear_units=16, num_blocks=2,
+    32,
+    output_size=16,
+    linear_units=16,
+    num_blocks=2,
 )
 
 asr_transformer_decoder = TransformerDecoder(
-    len(token_list), 16, linear_units=16, num_blocks=2,
+    len(token_list),
+    16,
+    linear_units=16,
+    num_blocks=2,
 )
 
 asr_ctc = CTC(odim=len(token_list), encoder_output_size=16)
 
 
 @pytest.mark.parametrize(
-    "enh_encoder, enh_decoder", [(enh_stft_encoder, enh_stft_decoder)],
+    "enh_encoder, enh_decoder",
+    [(enh_stft_encoder, enh_stft_decoder)],
 )
 @pytest.mark.parametrize("enh_separator", [enh_rnn_separator])
 @pytest.mark.parametrize("training", [True, False])
@@ -86,7 +108,10 @@ def test_enh_asr_model(
         postencoder=None,
         joint_network=None,
     )
-    enh_s2t_model = ESPnetEnhS2TModel(enh_model=enh_model, s2t_model=s2t_model,)
+    enh_s2t_model = ESPnetEnhS2TModel(
+        enh_model=enh_model,
+        s2t_model=s2t_model,
+    )
 
     if training:
         enh_s2t_model.train()

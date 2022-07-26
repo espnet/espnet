@@ -12,7 +12,8 @@ from espnet2.tts.fastspeech import FastSpeech
 @pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize(
-    "spks, langs, use_gst", [(-1, -1, False), (5, 2, True)],
+    "spks, langs, use_gst",
+    [(-1, -1, False), (5, 2, True)],
 )
 def test_fastspeech(
     reduction_factor,
@@ -77,7 +78,9 @@ def test_fastspeech(
     with torch.no_grad():
         model.eval()
 
-        inputs = dict(text=torch.randint(0, 10, (2,)),)
+        inputs = dict(
+            text=torch.randint(0, 10, (2,)),
+        )
         if use_gst:
             inputs.update(feats=torch.randn(5, 5))
         if spk_embed_dim is not None:

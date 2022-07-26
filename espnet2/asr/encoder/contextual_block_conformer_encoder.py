@@ -131,7 +131,8 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             self.subsample = 1
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer, pos_enc_class(output_size, positional_dropout_rate),
+                input_layer,
+                pos_enc_class(output_size, positional_dropout_rate),
             )
             self.subsample = 1
         elif input_layer is None:

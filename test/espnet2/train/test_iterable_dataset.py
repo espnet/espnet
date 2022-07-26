@@ -34,7 +34,8 @@ def sound_scp(tmp_path):
 
 def test_ESPnetDataset_sound_scp(sound_scp):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(sound_scp, "data1", "sound")], preprocess=preprocess,
+        path_name_type_list=[(sound_scp, "data1", "sound")],
+        preprocess=preprocess,
     )
     print(dataset)
     print(dataset.names())
@@ -57,16 +58,25 @@ def feats_scp(tmp_path):
     return str(p)
 
 
-def test_ESPnetDataset_feats_scp(feats_scp,):
+def test_ESPnetDataset_feats_scp(
+    feats_scp,
+):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(feats_scp, "data2", "kaldi_ark")], preprocess=preprocess,
+        path_name_type_list=[(feats_scp, "data2", "kaldi_ark")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
         if key == "a":
-            assert data["data2"].shape == (100, 80,)
+            assert data["data2"].shape == (
+                100,
+                80,
+            )
         if key == "b":
-            assert data["data2"].shape == (150, 80,)
+            assert data["data2"].shape == (
+                150,
+                80,
+            )
 
 
 @pytest.fixture
@@ -80,14 +90,21 @@ def npy_scp(tmp_path):
 
 def test_ESPnetDataset_npy_scp(npy_scp):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(npy_scp, "data3", "npy")], preprocess=preprocess,
+        path_name_type_list=[(npy_scp, "data3", "npy")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
         if key == "a":
-            assert data["data3"].shape == (100, 80,)
+            assert data["data3"].shape == (
+                100,
+                80,
+            )
         if key == "b":
-            assert data["data3"].shape == (150, 80,)
+            assert data["data3"].shape == (
+                150,
+                80,
+            )
 
 
 @pytest.fixture
@@ -101,14 +118,21 @@ def h5file_1(tmp_path):
 
 def test_ESPnetDataset_h5file_1(h5file_1):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(h5file_1, "data4", "hdf5")], preprocess=preprocess,
+        path_name_type_list=[(h5file_1, "data4", "hdf5")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
         if key == "a":
-            assert data["data4"].shape == (100, 80,)
+            assert data["data4"].shape == (
+                100,
+                80,
+            )
         if key == "b":
-            assert data["data4"].shape == (150, 80,)
+            assert data["data4"].shape == (
+                150,
+                80,
+            )
 
 
 @pytest.fixture
@@ -128,9 +152,15 @@ def test_ESPnetDataset_rand_float(shape_file):
 
     for key, data in dataset:
         if key == "a":
-            assert data["data5"].shape == (100, 80,)
+            assert data["data5"].shape == (
+                100,
+                80,
+            )
         if key == "b":
-            assert data["data5"].shape == (150, 80,)
+            assert data["data5"].shape == (
+                150,
+                80,
+            )
 
 
 def test_ESPnetDataset_rand_int(shape_file):
@@ -141,9 +171,15 @@ def test_ESPnetDataset_rand_int(shape_file):
 
     for key, data in dataset:
         if key == "a":
-            assert data["data6"].shape == (100, 80,)
+            assert data["data6"].shape == (
+                100,
+                80,
+            )
         if key == "b":
-            assert data["data6"].shape == (150, 80,)
+            assert data["data6"].shape == (
+                150,
+                80,
+            )
 
 
 @pytest.fixture
@@ -157,7 +193,8 @@ def text(tmp_path):
 
 def test_ESPnetDataset_text(text):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(text, "data7", "text")], preprocess=preprocess,
+        path_name_type_list=[(text, "data7", "text")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
@@ -200,7 +237,8 @@ def text_int(tmp_path):
 
 def test_ESPnetDataset_text_int(text_int):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(text_int, "data8", "text_int")], preprocess=preprocess,
+        path_name_type_list=[(text_int, "data8", "text_int")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
@@ -221,7 +259,8 @@ def csv_float(tmp_path):
 
 def test_ESPnetDataset_csv_float(csv_float):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(csv_float, "data8", "csv_float")], preprocess=preprocess,
+        path_name_type_list=[(csv_float, "data8", "csv_float")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:
@@ -242,7 +281,8 @@ def csv_int(tmp_path):
 
 def test_ESPnetDataset_csv_int(csv_int):
     dataset = IterableESPnetDataset(
-        path_name_type_list=[(csv_int, "data8", "csv_int")], preprocess=preprocess,
+        path_name_type_list=[(csv_int, "data8", "csv_int")],
+        preprocess=preprocess,
     )
 
     for key, data in dataset:

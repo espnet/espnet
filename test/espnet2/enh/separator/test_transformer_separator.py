@@ -129,7 +129,8 @@ def test_transformer_separator_forward_backward_real(
 def test_transformer_separator_invalid_type():
     with pytest.raises(ValueError):
         TransformerSeparator(
-            input_dim=10, nonlinear="fff",
+            input_dim=10,
+            nonlinear="fff",
         )
 
 

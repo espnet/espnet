@@ -179,7 +179,9 @@ def get_dict_from_cache(meta: Union[Path, str]) -> Optional[Dict[str, str]]:
 
 
 def unpack(
-    input_archive: Union[Path, str], outpath: Union[Path, str], use_cache: bool = True,
+    input_archive: Union[Path, str],
+    outpath: Union[Path, str],
+    use_cache: bool = True,
 ) -> Dict[str, str]:
     """Scan all files in the archive file and return as a dict of files.
 

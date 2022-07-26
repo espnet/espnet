@@ -182,7 +182,11 @@ def create_transducer_compatible_state_dict(
             if "nbrnn" in key:
                 layer_name = rnn_key_name + re.search("_l([0-9]+)", key).group(1)
 
-                key = re.sub("_l([0-9]+)", "_l0", key.replace("nbrnn", layer_name),)
+                key = re.sub(
+                    "_l([0-9]+)",
+                    "_l0",
+                    key.replace("nbrnn", layer_name),
+                )
 
             if (encoder_units * 2) == value.size(-1):
                 value = value[:, :encoder_units] + value[:, encoder_units:]
@@ -268,7 +272,9 @@ def get_trained_model_state_dict(model_path, new_is_transducer):
 
     if new_is_transducer and "transducer" not in args.model_module:
         return create_transducer_compatible_state_dict(
-            model.state_dict(), args.etype, args.eunits,
+            model.state_dict(),
+            args.etype,
+            args.eunits,
         )
 
     return model.state_dict()

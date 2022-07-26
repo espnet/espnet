@@ -191,7 +191,11 @@ def test_model(model):
 
     x = torch.rand(3, 4, 32000)  # (batch, num_mic, length)
     num_mic = (
-        torch.from_numpy(np.array([3, 3, 2])).view(-1,).type(x.type())
+        torch.from_numpy(np.array([3, 3, 2]))
+        .view(
+            -1,
+        )
+        .type(x.type())
     )  # ad-hoc array
     none_mic = torch.zeros(1).type(x.type())  # fixed-array
     y1 = model(x, num_mic.long())

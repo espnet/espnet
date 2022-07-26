@@ -47,14 +47,21 @@ feats_extractor_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
 )
 tts_choices = ClassChoices(
     "tts",
-    classes=dict(vits=VITS, joint_text2wav=JointText2Wav, jets=JETS,),
+    classes=dict(
+        vits=VITS,
+        joint_text2wav=JointText2Wav,
+        jets=JETS,
+    ),
     type_check=AbsGANTTS,
     default="vits",
 )
@@ -74,14 +81,20 @@ energy_extractor_choices = ClassChoices(
 )
 pitch_normalize_choices = ClassChoices(
     "pitch_normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
 )
 energy_normalize_choices = ClassChoices(
     "energy_normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
@@ -309,23 +322,33 @@ class GANTTSTask(AbsTask):
         pitch_normalize = None
         energy_normalize = None
         if getattr(args, "pitch_extract", None) is not None:
-            pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract,)
-            pitch_extract = pitch_extract_class(**args.pitch_extract_conf,)
+            pitch_extract_class = pitch_extractor_choices.get_class(
+                args.pitch_extract,
+            )
+            pitch_extract = pitch_extract_class(
+                **args.pitch_extract_conf,
+            )
         if getattr(args, "energy_extract", None) is not None:
             energy_extract_class = energy_extractor_choices.get_class(
                 args.energy_extract,
             )
-            energy_extract = energy_extract_class(**args.energy_extract_conf,)
+            energy_extract = energy_extract_class(
+                **args.energy_extract_conf,
+            )
         if getattr(args, "pitch_normalize", None) is not None:
             pitch_normalize_class = pitch_normalize_choices.get_class(
                 args.pitch_normalize,
             )
-            pitch_normalize = pitch_normalize_class(**args.pitch_normalize_conf,)
+            pitch_normalize = pitch_normalize_class(
+                **args.pitch_normalize_conf,
+            )
         if getattr(args, "energy_normalize", None) is not None:
             energy_normalize_class = energy_normalize_choices.get_class(
                 args.energy_normalize,
             )
-            energy_normalize = energy_normalize_class(**args.energy_normalize_conf,)
+            energy_normalize = energy_normalize_class(
+                **args.energy_normalize_conf,
+            )
 
         # 5. Build model
         model = ESPnetGANTTSModel(
@@ -343,7 +366,9 @@ class GANTTSTask(AbsTask):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: ESPnetGANTTSModel,
+        cls,
+        args: argparse.Namespace,
+        model: ESPnetGANTTSModel,
     ) -> List[torch.optim.Optimizer]:
         # check
         assert hasattr(model.tts, "generator")
@@ -365,7 +390,8 @@ class GANTTSTask(AbsTask):
             )
         else:
             optim_g = optim_g_class(
-                model.tts.generator.parameters(), **args.optim_conf,
+                model.tts.generator.parameters(),
+                **args.optim_conf,
             )
         optimizers = [optim_g]
 
@@ -385,7 +411,8 @@ class GANTTSTask(AbsTask):
             )
         else:
             optim_d = optim_d_class(
-                model.tts.discriminator.parameters(), **args.optim2_conf,
+                model.tts.discriminator.parameters(),
+                **args.optim2_conf,
             )
         optimizers += [optim_d]
 

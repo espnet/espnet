@@ -69,7 +69,8 @@ class Text2Text:
         decoder = mt_model.decoder
         token_list = mt_model.token_list
         scorers.update(
-            decoder=decoder, length_bonus=LengthBonus(len(token_list)),
+            decoder=decoder,
+            length_bonus=LengthBonus(len(token_list)),
         )
 
         # 2. Build Language model
@@ -95,7 +96,10 @@ class Text2Text:
 
         # 4. Build BeamSearch object
         weights = dict(
-            decoder=1.0, lm=lm_weight, ngram=ngram_weight, length_bonus=penalty,
+            decoder=1.0,
+            lm=lm_weight,
+            ngram=ngram_weight,
+            length_bonus=penalty,
         )
         beam_search = BeamSearch(
             beam_size=beam_size,
@@ -223,7 +227,8 @@ class Text2Text:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build Text2Text instance from the pretrained model.
 
@@ -319,7 +324,10 @@ def inference(
         penalty=penalty,
         nbest=nbest,
     )
-    text2text = Text2Text.from_pretrained(model_tag=model_tag, **text2text_kwargs,)
+    text2text = Text2Text.from_pretrained(
+        model_tag=model_tag,
+        **text2text_kwargs,
+    )
 
     # 3. Build data-iterator
     loader = MTTask.build_streaming_iterator(
@@ -385,7 +393,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -413,25 +424,39 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--mt_train_config", type=str, help="ST training configuration",
+        "--mt_train_config",
+        type=str,
+        help="ST training configuration",
     )
     group.add_argument(
-        "--mt_model_file", type=str, help="MT model parameter file",
+        "--mt_model_file",
+        type=str,
+        help="MT model parameter file",
     )
     group.add_argument(
-        "--lm_train_config", type=str, help="LM training configuration",
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
     )
     group.add_argument(
-        "--lm_file", type=str, help="LM parameter file",
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
     )
     group.add_argument(
-        "--word_lm_train_config", type=str, help="Word LM training configuration",
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
     )
     group.add_argument(
-        "--word_lm_file", type=str, help="Word LM parameter file",
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
     )
     group.add_argument(
-        "--ngram_file", type=str, help="N-gram parameter file",
+        "--ngram_file",
+        type=str,
+        help="N-gram parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -442,7 +467,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")

@@ -124,7 +124,10 @@ def get_parser():
         choices=["acc", "bleu", "cer", "cer_ctc", "loss", "perplexity"],
     )
     parser.add_argument(
-        "--max-epoch", default=10000000, type=int, nargs="?",
+        "--max-epoch",
+        default=10000000,
+        type=int,
+        nargs="?",
     )
     return parser
 

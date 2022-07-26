@@ -9,7 +9,10 @@ from espnet2.layers.mask_along_axis import MaskAlongAxis
 @pytest.mark.parametrize("dim", ["freq", "time"])
 def test_MaskAlongAxis(dim, replace_with_zero, requires_grad):
     freq_mask = MaskAlongAxis(
-        dim=dim, mask_width_range=30, num_mask=2, replace_with_zero=replace_with_zero,
+        dim=dim,
+        mask_width_range=30,
+        num_mask=2,
+        replace_with_zero=replace_with_zero,
     )
     x = torch.randn(2, 100, 80, requires_grad=requires_grad)
     x_lens = torch.tensor([80, 78])
@@ -23,6 +26,9 @@ def test_MaskAlongAxis(dim, replace_with_zero, requires_grad):
 @pytest.mark.parametrize("dim", ["freq", "time"])
 def test_MaskAlongAxis_repr(dim, replace_with_zero):
     freq_mask = MaskAlongAxis(
-        dim=dim, mask_width_range=30, num_mask=2, replace_with_zero=replace_with_zero,
+        dim=dim,
+        mask_width_range=30,
+        num_mask=2,
+        replace_with_zero=replace_with_zero,
     )
     print(freq_mask)

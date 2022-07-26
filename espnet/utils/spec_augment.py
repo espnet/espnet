@@ -205,7 +205,11 @@ def create_dense_flows(flattened_flows, batch_size, image_height, image_width):
 
 
 def interpolate_spline(
-    train_points, train_values, query_points, order, regularization_weight=0.0,
+    train_points,
+    train_values,
+    query_points,
+    order,
+    regularization_weight=0.0,
 ):
     # First, fit the spline to the observed data.
     w, v = solve_interpolation(train_points, train_values, order, regularization_weight)

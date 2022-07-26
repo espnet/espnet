@@ -12,6 +12,7 @@ class IterFactory(AbsIterFactory):
 @pytest.mark.parametrize("shuffle", [True, False])
 def test_MultpleIterFactory(shuffle):
     iter_factory = MultipleIterFactory(
-        build_funcs=[lambda: IterFactory(), lambda: IterFactory()], shuffle=shuffle,
+        build_funcs=[lambda: IterFactory(), lambda: IterFactory()],
+        shuffle=shuffle,
     )
     assert [i for i in iter_factory.build_iter(0)] == [0, 1, 2, 0, 1, 2]
