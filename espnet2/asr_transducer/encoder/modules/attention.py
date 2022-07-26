@@ -17,7 +17,11 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
     """
 
     def __init__(
-        self, num_heads: int, embed_size: int, dropout_rate: float = 0.0
+        self,
+        num_heads: int,
+        embed_size: int,
+        dropout_rate: float = 0.0,
+        simplified_attention_score: bool = False,
     ) -> None:
         """Construct an MultiHeadedAttention object."""
         super().__init__()
@@ -33,14 +37,22 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         self.linear_q = torch.nn.Linear(embed_size, embed_size)
         self.linear_k = torch.nn.Linear(embed_size, embed_size)
         self.linear_v = torch.nn.Linear(embed_size, embed_size)
+
         self.linear_out = torch.nn.Linear(embed_size, embed_size)
 
-        self.linear_pos = torch.nn.Linear(embed_size, embed_size, bias=False)
+        if simplified_attention_score:
+            self.linear_pos = torch.nn.Linear(embed_size, num_heads)
 
-        self.pos_bias_u = torch.nn.Parameter(torch.Tensor(num_heads, self.d_k))
-        self.pos_bias_v = torch.nn.Parameter(torch.Tensor(num_heads, self.d_k))
-        torch.nn.init.xavier_uniform_(self.pos_bias_u)
-        torch.nn.init.xavier_uniform_(self.pos_bias_v)
+            self.compute_att_score = self.compute_simplified_attention_score
+        else:
+            self.linear_pos = torch.nn.Linear(embed_size, embed_size, bias=False)
+
+            self.pos_bias_u = torch.nn.Parameter(torch.Tensor(num_heads, self.d_k))
+            self.pos_bias_v = torch.nn.Parameter(torch.Tensor(num_heads, self.d_k))
+            torch.nn.init.xavier_uniform_(self.pos_bias_u)
+            torch.nn.init.xavier_uniform_(self.pos_bias_v)
+
+            self.compute_att_score = self.compute_attention_score
 
         self.dropout = torch.nn.Dropout(p=dropout_rate)
         self.attn = None
@@ -66,6 +78,70 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             (batch_stride, n_heads_stride, time1_stride - n_stride, n_stride),
             storage_offset=(n_stride * (time1 - 1)),
         )
+
+    def compute_simplified_attention_score(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        pos_enc: torch.Tensor,
+        left_context: int = 0,
+    ) -> torch.Tensor:
+        """Simplified attention score computation.
+
+        Reference: https://github.com/k2-fsa/icefall/pull/458
+
+        Args:
+            query: Transformed query tensor. (B, H, T_1, d_k)
+            key: Transformed key tensor. (B, H, T_2, d_k)
+            pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
+            left_context: Number of frames in left context.
+
+        Returns:
+            : Attention score. (B, H, T_1, T_2)
+
+        """
+        pos_enc = self.linear_pos(pos_enc)
+
+        matrix_ac = torch.matmul(query, key.transpose(2, 3))
+
+        matrix_bd = self.rel_shift(
+            pos_enc.transpose(1, 2).unsqueeze(2).repeat(1, 1, query.size(2), 1),
+            left_context=left_context,
+        )
+
+        return (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
+
+    def compute_attention_score(
+        self,
+        query: torch.Tensor,
+        key: torch.Tensor,
+        pos_enc: torch.Tensor,
+        left_context: int = 0,
+    ) -> torch.Tensor:
+        """Attention score computation.
+
+        Args:
+            query: Transformed query tensor. (B, H, T_1, d_k)
+            key: Transformed key tensor. (B, H, T_2, d_k)
+            pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
+            left_context: Number of frames in left context.
+
+        Returns:
+            : Attention score. (B, H, T_1, T_2)
+
+        """
+        p = self.linear_pos(pos_enc).view(pos_enc.size(0), -1, self.num_heads, self.d_k)
+
+        query = query.transpose(1, 2)
+        q_with_bias_u = (query + self.pos_bias_u).transpose(1, 2)
+        q_with_bias_v = (query + self.pos_bias_v).transpose(1, 2)
+
+        matrix_ac = torch.matmul(q_with_bias_u, key.transpose(-2, -1))
+
+        matrix_bd = torch.matmul(q_with_bias_v, p.permute(0, 2, 3, 1))
+        matrix_bd = self.rel_shift(matrix_bd, left_context=left_context)
+
+        return (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
 
     def forward_qkv(
         self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor
@@ -169,17 +245,6 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         """
         q, k, v = self.forward_qkv(query, key, value)
 
-        p = self.linear_pos(pos_enc).view(pos_enc.size(0), -1, self.num_heads, self.d_k)
-
-        q = q.transpose(1, 2)
-        q_with_bias_u = (q + self.pos_bias_u).transpose(1, 2)
-        q_with_bias_v = (q + self.pos_bias_v).transpose(1, 2)
-
-        matrix_ac = torch.matmul(q_with_bias_u, k.transpose(-2, -1))
-
-        matrix_bd = torch.matmul(q_with_bias_v, p.permute(0, 2, 3, 1))
-        matrix_bd = self.rel_shift(matrix_bd, left_context=left_context)
-
-        scores = (matrix_ac + matrix_bd) / math.sqrt(self.d_k)
+        scores = self.compute_att_score(q, k, pos_enc, left_context=left_context)
 
         return self.forward_attention(v, scores, mask, chunk_mask=chunk_mask)
