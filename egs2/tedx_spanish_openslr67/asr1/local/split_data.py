@@ -9,7 +9,7 @@ import os
 m_speakers = []
 f_speakers = []
 
-for f in glob.glob(os.environ["TEDX_SPANISH_CORPUS"] + "/tedx_spanish_corpus/speech/*.wav"):
+for f in glob.glob(os.environ["TEDX_SPANISH"] + "/tedx_spanish_corpus/speech/*.wav"):
     spkr = "_".join(f.split("/")[-1].split("_")[0:3])
     if "M" in spkr and spkr not in m_speakers:
         m_speakers.append(spkr)

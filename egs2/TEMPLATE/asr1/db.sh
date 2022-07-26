@@ -144,7 +144,7 @@ MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
-TEDX_SPANISH_CORPUS=downloads
+TEDX_SPANISH=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

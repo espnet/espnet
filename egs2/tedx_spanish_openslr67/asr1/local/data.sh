@@ -18,17 +18,17 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-if [ -z "${TEDX_SPANISH_CORPUS}" ]; then
-  log "Error: \$TEDX_SPANISH_CORPUS is not set in db.sh."
+if [ -z "${TEDX_SPANISH}" ]; then
+  log "Error: \$TEDX_SPANISH is not set in db.sh."
   exit 2
 fi
 
-log "Download data to ${TEDX_SPANISH_CORPUS}"
-if [ ! -d "${TEDX_SPANISH_CORPUS}" ]; then
-    mkdir -p "${TEDX_SPANISH_CORPUS}"
+log "Download data to ${TEDX_SPANISH}"
+if [ ! -d "${TEDX_SPANISH}" ]; then
+    mkdir -p "${TEDX_SPANISH}"
 fi
 
-cd ${TEDX_SPANISH_CORPUS}
+cd ${TEDX_SPANISH}
 
 # download dataset
 if [[ -d tedx_spanish_corpus ]]
@@ -47,7 +47,7 @@ mkdir -p data/train
 mkdir -p data/dev
 mkdir -p data/test
 
-export TEDX_SPANISH_CORPUS
+export TEDX_SPANISH
 
 # create train, dev, test split 90/5/5
 # python local/split_data.py
