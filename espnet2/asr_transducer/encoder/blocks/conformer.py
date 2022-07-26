@@ -14,8 +14,8 @@ class Conformer(torch.nn.Module):
         feed_forward: Feed-forward module instance.
         feed_forward_macaron: Feed-forward module instance for macaron network.
         conv_mod: Convolution module instance.
-        layer_norm: Layer normalization instance.
-        layer_norm_eps: Epsilon value for normalization layer.
+        norm_class: Normalization class.
+        norm_eps: Initial epsilon value for the normalization class.
         dropout_rate: Dropout rate.
 
     """
@@ -27,8 +27,8 @@ class Conformer(torch.nn.Module):
         feed_forward: torch.nn.Module,
         feed_forward_macaron: torch.nn.Module,
         conv_mod: torch.nn.Module,
-        layer_norm: torch.nn.Module = torch.nn.LayerNorm,
-        layer_norm_eps: float = 0.25,
+        norm_class: torch.nn.Module = torch.nn.LayerNorm,
+        norm_eps: float = 0.25,
         dropout_rate: float = 0.0,
     ) -> None:
         """Construct a Conformer object."""
@@ -43,12 +43,12 @@ class Conformer(torch.nn.Module):
 
         self.conv_mod = conv_mod
 
-        self.norm_feed_forward = layer_norm(block_size, layer_norm_eps)
-        self.norm_self_att = layer_norm(block_size, layer_norm_eps)
+        self.norm_feed_forward = norm_class(block_size, eps=norm_eps)
+        self.norm_self_att = norm_class(block_size, eps=norm_eps)
 
-        self.norm_macaron = layer_norm(block_size, layer_norm_eps)
-        self.norm_conv = layer_norm(block_size, layer_norm_eps)
-        self.norm_final = layer_norm(block_size, layer_norm_eps)
+        self.norm_macaron = norm_class(block_size, eps=norm_eps)
+        self.norm_conv = norm_class(block_size, eps=norm_eps)
+        self.norm_final = norm_class(block_size, eps=norm_eps)
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 

@@ -12,6 +12,8 @@ class ConformerConvolution(torch.nn.Module):
         channels: The number of channels of conv layers.
         kernel_size: Kernerl size of conv layers.
         activation: Type of activation function.
+        norm_class: Normalization class.
+        norm_eps: Initial epsilon value for the normalization class.
         causal: Whether to use causal convolution (set to True if streaming).
 
     """
@@ -21,6 +23,8 @@ class ConformerConvolution(torch.nn.Module):
         channels: int,
         kernel_size: int,
         activation: torch.nn.Module = torch.nn.ReLU(),
+        norm_class: torch.nn.Module = torch.nn.BatchNorm1d,
+        norm_eps: float = 1e-05,
         causal: bool = False,
     ) -> None:
         """Construct an ConformerConvolution object."""
@@ -53,7 +57,7 @@ class ConformerConvolution(torch.nn.Module):
             padding=padding,
             groups=channels,
         )
-        self.norm = torch.nn.BatchNorm1d(channels)
+        self.norm = norm_class(channels, eps=norm_eps)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             channels,

@@ -19,12 +19,13 @@ class MultiBlocks(torch.nn.Module):
         self,
         block_list: List[torch.nn.Module],
         output_size: int,
-        layer_norm: torch.nn.Module = torch.nn.LayerNorm,
+        norm_class: torch.nn.Module = torch.nn.LayerNorm,
+        norm_eps: int = 1e-12,
     ):
         super().__init__()
 
         self.blocks = torch.nn.ModuleList(block_list)
-        self.norm_blocks = layer_norm(output_size)
+        self.norm_blocks = norm_class(output_size, eps=norm_eps)
 
         self.num_blocks = len(block_list)
 
