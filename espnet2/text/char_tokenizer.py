@@ -50,7 +50,7 @@ class CharTokenizer(AbsTokenizer):
             else:
                 t = line[0]
                 if t == " ":
-                    t = "<space>"
+                    t = self.space_symbol
                 tokens.append(t)
                 line = line[1:]
         return tokens

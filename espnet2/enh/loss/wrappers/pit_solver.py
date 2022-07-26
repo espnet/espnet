@@ -8,7 +8,13 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
 
 class PITSolver(AbsLossWrapper):
-    def __init__(self, criterion: AbsEnhLoss, weight=1.0, independent_perm=True):
+    def __init__(
+        self,
+        criterion: AbsEnhLoss,
+        weight=1.0,
+        independent_perm=True,
+        flexible_numspk=False,
+    ):
         """Permutation Invariant Training Solver.
 
         Args:
@@ -21,11 +27,15 @@ class PITSolver(AbsLossWrapper):
                 inherited.
                 NOTE (wangyou): You should be careful about the ordering of loss
                     wrappers defined in the yaml config, if this argument is False.
+            flexible_numspk (bool):
+                If True, num_spk will be taken from inf to handle flexible numbers of
+                speakers. This is because ref may include dummy data in this case.
         """
         super().__init__()
         self.criterion = criterion
         self.weight = weight
         self.independent_perm = independent_perm
+        self.flexible_numspk = flexible_numspk
 
     def forward(self, ref, inf, others={}):
         """PITSolver forward.
@@ -41,8 +51,11 @@ class PITSolver(AbsLossWrapper):
         """
         perm = others["perm"] if "perm" in others else None
 
-        assert len(ref) == len(inf), (len(ref), len(inf))
-        num_spk = len(ref)
+        if not self.flexible_numspk:
+            assert len(ref) == len(inf), (len(ref), len(inf))
+            num_spk = len(ref)
+        else:
+            num_spk = len(inf)
 
         stats = defaultdict(list)
 

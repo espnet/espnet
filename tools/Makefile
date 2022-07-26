@@ -90,8 +90,12 @@ packaging.done: activate_python.sh
 
 pytorch.done: activate_python.sh packaging.done
 ifeq ($(strip $(USE_CONDA)),)
+	# NOTE(kamo): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.4"
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
+	# NOTE(kamo): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.4"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
