@@ -3,8 +3,8 @@
 # 126 (94M, 32F), 8 (4M, 4F), 8 (4M, 4F)
 
 import glob
-import random
 import os
+import random
 
 m_speakers = []
 f_speakers = []

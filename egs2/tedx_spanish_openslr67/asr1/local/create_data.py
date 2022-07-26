@@ -1,10 +1,14 @@
 import glob
 import os
 
+
 def main(cmd=None):
     # get transcriptions
     transcriptions = {}
-    transcripts = open(os.environ["TEDX_SPANISH_CORPUS"] + "/tedx_spanish_corpus/files/TEDx_Spanish.transcription")
+    transcripts = open(
+        os.environ["TEDX_SPANISH_CORPUS"]
+        + "/tedx_spanish_corpus/files/TEDx_Spanish.transcription"
+    )
 
     for row in transcripts:
         txt = " ".join(row.split(" ")[:-1])
@@ -22,7 +26,10 @@ def main(cmd=None):
 
         for spkr in spkrs:
             for f in glob.glob(
-                os.environ["TEDX_SPANISH_CORPUS"] + "/tedx_spanish_corpus/speech/" + spkr + "*.wav"
+                os.environ["TEDX_SPANISH_CORPUS"]
+                + "/tedx_spanish_corpus/speech/"
+                + spkr
+                + "*.wav"
             ):
                 id = f.split("/")[-1][:-4]
                 full_id = f[:-4]
