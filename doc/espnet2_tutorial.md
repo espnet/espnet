@@ -389,11 +389,13 @@ For the encoder, we propose a unique encoder type encapsulating the following bl
 The first and second configurations are optional. If needed, fhe following parameters can be modified in each configuration:
 
     main_conf:
-      pos_wise_layer_type: Position-wise layer type. (str, default = "linear")
-      pos_enc_layer_type: Positional encoding layer type. (str, default = "abs_pos")
-      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
       conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
+      pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
+      simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
+      after_norm_type: Final normalization type. (str, default = "layer_norm")
+      after_norm_eps: Epsilon value for the final normalization. (float, default = 1e-12)
       dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
       short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
       short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
@@ -425,8 +427,8 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
       groups (optional): Number of blocked connections from input channels to output channels. (int, default = 1)
       bias (optional): Whether to add a learnable bias to the output. (bool, default = True)
-      use_relu (optional): Whether to use a ReLU activation after convolution. (bool, default = True)
-      use_batchnorm: Whether to use batch normalization after convolution. (bool, default = False)
+      relu (optional): Whether to use a ReLU activation after convolution. (bool, default = True)
+      batch_norm: Whether to use batch normalization after convolution. (bool, default = False)
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
     # Conformer
@@ -436,6 +438,10 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       macaron_style (optional): Whether to use macaron style. (bool, default = False)
       conv_mod_kernel_size (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
+      basic_norm: Whether to use BasicNorm in place of LayerNorm in Conformer. (bool, default = False)
+      conv_mod_basic_norm: Whether to use BasicNorm in place of BatchNorm1d in convolutional module. (bool, default = False)
+      norm_eps: Epsilon value for Conformer normalization. (float, default = 1e-12 or 0.25 if `basic_norm=True`)
+      conv_mod_norm_eps: Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 if `conv_mod_basic_norm=True`)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional: Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
