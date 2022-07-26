@@ -23,25 +23,22 @@ if [ -z "${TEDX_SPANISH}" ]; then
   exit 2
 fi
 
+# download dataset
 log "Download data to ${TEDX_SPANISH}"
 if [ ! -d "${TEDX_SPANISH}" ]; then
     mkdir -p "${TEDX_SPANISH}"
-fi
-
-cd ${TEDX_SPANISH}
-
-# download dataset
-if [[ -d tedx_spanish_corpus ]]
-then
-    echo "data is already downloaded."
-else
+    (
+    cd ${TEDX_SPANISH}
     wget "https://www.openslr.org/resources/67/tedx_spanish_corpus.tgz"
     tar -xvf tedx_spanish_corpus.tgz
     rm tedx_spanish_corpus.tgz
     git clone https://github.com/jessicah25/tedx_spanish_corpus_split.git ../local/split
+    cd ..
+    )
+else
+    echo "data is already downloaded."
 fi
 
-cd ..
 
 mkdir -p data/train
 mkdir -p data/dev

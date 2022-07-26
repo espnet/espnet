@@ -6,7 +6,7 @@ def main(cmd=None):
     # get transcriptions
     transcriptions = {}
     transcripts = open(
-        os.environ["TEDX_SPANISH_CORPUS"]
+        os.environ["TEDX_SPANISH"]
         + "/tedx_spanish_corpus/files/TEDx_Spanish.transcription"
     )
 
@@ -26,7 +26,7 @@ def main(cmd=None):
 
         for spkr in spkrs:
             for f in glob.glob(
-                os.environ["TEDX_SPANISH_CORPUS"]
+                os.environ["TEDX_SPANISH"]
                 + "/tedx_spanish_corpus/speech/"
                 + spkr
                 + "*.wav"

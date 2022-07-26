@@ -1,4 +1,5 @@
-# create train, dev, test split 90/5/5, no speakers in the train set, 4M4F in test/dev sets
+# create train, dev, test split 90/5/5
+# no speakers in the train set, 4M4F in test/dev sets
 
 # 126 (94M, 32F), 8 (4M, 4F), 8 (4M, 4F)
 
