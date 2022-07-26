@@ -79,7 +79,7 @@ def asr_stream_config_file(tmp_path: Path, token_list, right_context):
         "{'body_conf': [{'block_type': 'conformer', 'hidden_size': 4, "
         "'linear_size': 4, 'conv_mod_kernel_size': 3},"
         "{'block_type': 'conv1d', 'kernel_size': 2, 'output_size': 2, "
-        "'use_batchnorm': True, 'use_relu': True}], "
+        "'batch_norm': True, 'relu': True}], "
         "'main_conf': {'dynamic_chunk_training': True',"
         "'short_chunk_size': 1, 'left_chunk_size': 1}}"
     )
@@ -160,16 +160,21 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
 
 @pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize(
-    "use_lm, token_type, right_context",
+    "use_lm, token_type, left_context, right_context",
     [
-        (False, "char", 0),
-        (True, "char", 1),
-        (False, "bpe", 0),
-        (False, None, 1),
+        (False, "char", 0, 0),
+        (True, "char", 1, 1),
+        (False, "bpe", 0, 0),
+        (False, None, 1, 1),
     ],
 )
 def test_streaming_Speech2Text(
-    use_lm, token_type, right_context, asr_stream_config_file, lm_config_file
+    use_lm,
+    token_type,
+    left_context,
+    right_context,
+    asr_stream_config_file,
+    lm_config_file,
 ):
     speech2text = Speech2Text(
         asr_train_config=asr_stream_config_file,
@@ -178,7 +183,7 @@ def test_streaming_Speech2Text(
         token_type=token_type,
         streaming=True,
         chunk_size=1,
-        left_context=1,
+        left_context=left_context,
         right_context=right_context,
     )
 
