@@ -4,8 +4,7 @@ from typing import NamedTuple
 import pytest
 import torch
 
-from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.device_funcs import force_gatherable, to_device
 
 x = torch.tensor(10)
 

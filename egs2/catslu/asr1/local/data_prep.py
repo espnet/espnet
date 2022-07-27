@@ -4,11 +4,11 @@
 #           2021  Carnegie Mellon University
 # Apache 2.0
 
+import json
 import os
+import string as string_lib
 import sys
 from pathlib import Path
-import json
-import string as string_lib
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [catslu_root]")

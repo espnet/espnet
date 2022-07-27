@@ -9,8 +9,8 @@
 import json
 import logging
 import sys
-
 from itertools import groupby
+
 import numpy as np
 import six
 

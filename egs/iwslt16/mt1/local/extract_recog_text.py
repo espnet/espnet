@@ -4,9 +4,9 @@ extract recognized texts from data.<num>.json files
 """
 import argparse
 import glob
-from itertools import takewhile
 import json
 import os
+from itertools import takewhile
 
 
 def get_args():

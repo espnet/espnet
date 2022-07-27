@@ -1,0 +1,1 @@
+../../asr1/local/make_stft.sh

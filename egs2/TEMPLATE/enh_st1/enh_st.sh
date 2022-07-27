@@ -134,6 +134,8 @@ dereverb_ref_num=1
 enh_inference_args="--normalize_output_wav true"
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
+inference_enh_tag=      # Prefix to the result dir for ENH inference.
+inference_enh_config=   # Config for enhancement.
 
 # Enh Training data related
 use_dereverb_ref=false
@@ -152,8 +154,6 @@ nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
-score_opts=                # The options given to sclite scoring
-local_score_opts=          # The options given to local/score.sh.
 enh_st_speech_fold_length=800 # fold_length for speech data during ST training.
 enh_st_text_fold_length=150   # fold_length for text data during ST training.
 lm_fold_length=150         # fold_length for LM training.
@@ -513,6 +513,14 @@ if [ -z "${inference_tag}" ]; then
     fi
 fi
 
+if [ -z "${inference_enh_tag}" ]; then
+    if [ -n "${inference_enh_config}" ]; then
+        inference_enh_tag="$(basename "${inference_enh_config}" .yaml)"
+    else
+        inference_enh_tag=enhanced
+    fi
+fi
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -543,7 +551,7 @@ if ! "${skip_data_prep}"; then
             done
             utils/combine_data.sh --extra_files "${utt_extra_files} ${_scp_list}" "data/${train_set}_sp" ${_dirs}
             for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
                 mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
             done
         else
@@ -579,10 +587,13 @@ if ! "${skip_data_prep}"; then
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
                     # with regex to suuport multi-references
-                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                    for single_file in "data/${dset}/${extra_file}"*; do
+                        if [ ! -f "${single_file}" ]; then
+                            continue
+                        fi
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
@@ -716,9 +727,9 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
-                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-            done 
+            done
         done
 
         # shellcheck disable=SC2002
@@ -731,7 +742,7 @@ if ! "${skip_data_prep}"; then
             log "Merge src and target data if joint BPE"
 
             cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ -n "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
             # Set the new text as the target text
             tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
         fi
@@ -923,7 +934,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -939,7 +950,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -1067,7 +1078,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1137,7 +1148,7 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
         # TODO(jiatong): fix different bpe model
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_s2t_train \
                 --collect_stats true \
@@ -1162,7 +1173,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${enh_st_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -1425,9 +1436,10 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/st_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
+                    --enh_s2t_task true \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
@@ -1435,7 +1447,7 @@ if ! "${skip_eval}"; then
                     --st_train_config "${enh_st_exp}"/config.yaml \
                     --st_model_file "${enh_st_exp}"/"${inference_enh_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${st_inference_args} || { cat $(grep -l -i error "${_logdir}"/st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1460,12 +1472,12 @@ if ! "${skip_eval}"; then
         _opts=
 
         # 2. Generate run.sh
-        log "Generate '${enh_st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 13 using this script"
-        mkdir -p "${enh_st_exp}/${inference_tag}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_st_exp}/${inference_tag}/run.sh"; chmod +x "${enh_st_exp}/${inference_tag}/run.sh"
+        log "Generate '${enh_st_exp}/run_enhance.sh'. You can resume the process from stage 13 using this script"
+        mkdir -p "${enh_st_exp}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_st_exp}/run_enhance.sh"; chmod +x "${enh_st_exp}/run_enhance.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${enh_st_exp}/${inference_tag}/${dset}"
+            _dir="${enh_st_exp}/${inference_enh_tag}_${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1497,6 +1509,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_st_exp}"/config.yaml \
+                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_st_exp}"/"${inference_enh_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${enh_inference_args}
@@ -1521,7 +1534,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${st_exp}/${inference_tag}/${dset}"
+            _dir="${enh_st_exp}/${inference_tag}/${dset}"
 
             # TODO(jiatong): add asr scoring and inference
 
@@ -1637,17 +1650,17 @@ if ! "${skip_eval}"; then
         # for score_obs in true false; do
         for score_obs in true false; do
             # Peform only at the first time for observation
-            if "${score_obs}" && [ -e "${data_feats}/RESULTS.md" ]; then
-                log "${data_feats}/RESULTS.md already exists. The scoring for observation will be skipped"
+            if "${score_obs}" && [ -e "${data_feats}/RESULTS_enh.md" ]; then
+                log "${data_feats}/RESULTS_enh.md already exists. The scoring for observation will be skipped"
                 continue
             fi
 
             for dset in ${test_sets}; do
                 _data="${data_feats}/${dset}"
                 if "${score_obs}"; then
-                    _dir="${data_feats}/${dset}/scoring_enh"
+                    _dir="${data_feats}/${dset}/scoring"
                 else
-                    _dir="${enh_st_exp}/${inference_tag}/${dset}/scoring_enh"
+                    _dir="${enh_st_exp}/${inference_enh_tag}_${dset}/scoring"
                 fi
 
                 _logdir="${_dir}/logdir"
@@ -1673,7 +1686,7 @@ if ! "${skip_eval}"; then
                         # To compute the score of observation, input original wav.scp
                         _inf_scp+="--inf_scp ${data_feats}/${dset}/wav.scp "
                     else
-                        _inf_scp+="--inf_scp ${enh_st_exp}/${inference_tag}/${dset}/spk${spk}.scp "
+                        _inf_scp+="--inf_scp ${enh_st_exp}/${inference_enh_tag}_${dset}/spk${spk}.scp "
                     fi
                 done
 
@@ -1709,7 +1722,7 @@ if ! "${skip_eval}"; then
             ./scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../RESULTS_enh.md"
         done
         log "Evaluation result for observation: ${data_feats}/RESULTS_enh.md"
-        log "Evaluation result for enhancement: ${enh_asr_exp}/enhanced/RESULTS_enh.md"
+        log "Evaluation result for enhancement: ${enh_st_exp}/RESULTS_enh.md"
 
     fi
 else
@@ -1760,11 +1773,11 @@ if ! "${skip_upload_hf}"; then
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
             log "ERROR: You need to install git-lfs first" && \
-            exit 1             
-  
+            exit 1
+
         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-  
+
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
             _checkout="git checkout $(git show -s --format=%H)"
@@ -1777,13 +1790,13 @@ if ! "${skip_upload_hf}"; then
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-  
+
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=speech-enhancement-translation
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=EnhS2T
         # shellcheck disable=SC2034
         task_exp=${enh_st_exp}

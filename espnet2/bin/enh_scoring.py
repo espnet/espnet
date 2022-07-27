@@ -2,21 +2,19 @@
 import argparse
 import logging
 import sys
-from typing import List
-from typing import Union
+from typing import List, Union
 
-from mir_eval.separation import bss_eval_sources
 import numpy as np
-from pystoi import stoi
 import torch
+from mir_eval.separation import bss_eval_sources
+from pystoi import stoi
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
-
+from espnet.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
 
@@ -29,6 +27,7 @@ def scoring(
     ref_scp: List[str],
     inf_scp: List[str],
     ref_channel: int,
+    flexible_numspk: bool,
 ):
     assert check_argument_types()
 
@@ -51,13 +50,26 @@ def scoring(
     sample_rate, _ = ref_readers[0][keys[0]]
 
     # check keys
-    for inf_reader, ref_reader in zip(inf_readers, ref_readers):
-        assert inf_reader.keys() == ref_reader.keys()
+    if not flexible_numspk:
+        for inf_reader, ref_reader in zip(inf_readers, ref_readers):
+            assert inf_reader.keys() == ref_reader.keys()
 
     with DatadirWriter(output_dir) as writer:
         for key in keys:
-            ref_audios = [ref_reader[key][1] for ref_reader in ref_readers]
-            inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
+            if not flexible_numspk:
+                ref_audios = [ref_reader[key][1] for ref_reader in ref_readers]
+                inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
+            else:
+                ref_audios = [
+                    ref_reader[key][1]
+                    for ref_reader in ref_readers
+                    if key in ref_reader.keys()
+                ]
+                inf_audios = [
+                    inf_reader[key][1]
+                    for inf_reader in inf_readers
+                    if key in inf_reader.keys()
+                ]
             ref = np.array(ref_audios)
             inf = np.array(inf_audios)
             if ref.ndim > inf.ndim:
@@ -70,25 +82,47 @@ def scoring(
                 # multi-channel reference and output
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
-            assert ref.shape == inf.shape, (ref.shape, inf.shape)
+            if not flexible_numspk:
+                assert ref.shape == inf.shape, (ref.shape, inf.shape)
+            else:
+                # epsilon value to avoid divergence
+                # caused by zero-value, e.g., log(0)
+                eps = 0.000001
+                # if num_spk of ref > num_spk of inf
+                if ref.shape[0] > inf.shape[0]:
+                    p = np.full((ref.shape[0] - inf.shape[0], inf.shape[1]), eps)
+                    inf = np.concatenate([inf, p])
+                    num_spk = ref.shape[0]
+                # if num_spk of ref < num_spk of inf
+                elif ref.shape[0] < inf.shape[0]:
+                    p = np.full((inf.shape[0] - ref.shape[0], ref.shape[1]), eps)
+                    ref = np.concatenate([ref, p])
+                    num_spk = inf.shape[0]
+                else:
+                    num_spk = ref.shape[0]
+
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
+                estoi_score = stoi(
+                    ref[i], inf[int(perm[i])], fs_sig=sample_rate, extended=True
+                )
                 si_snr_score = -float(
                     si_snr_loss(
                         torch.from_numpy(ref[i][None, ...]),
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )
                 )
-
-                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
+                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score * 100)  # in percentage
+                writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
                 # save permutation assigned script file
-                writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                if not flexible_numspk:
+                    writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
 
 
 def get_parser():
@@ -132,6 +166,7 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)
+    group.add_argument("--flexible_numspk", type=bool, default=False)
 
     return parser
 

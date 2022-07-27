@@ -7,15 +7,13 @@ import argparse
 import logging
 import os
 
-from distutils.version import LooseVersion
-
 import librosa
 import numpy as np
+from packaging.version import parse as V
 from scipy.io.wavfile import write
 
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import get_commandline_args
-
 
 EPS = 1e-10
 
@@ -66,7 +64,7 @@ def griffin_lim(spc, n_fft, n_shift, win_length, window="hann", n_iters=100):
     # assert the size of input linear spectrogram
     assert spc.shape[1] == n_fft // 2 + 1
 
-    if LooseVersion(librosa.__version__) >= LooseVersion("0.7.0"):
+    if V(librosa.__version__) >= V("0.7.0"):
         # use librosa's fast Grriffin-Lim algorithm
         spc = np.abs(spc.T)
         y = librosa.griffinlim(

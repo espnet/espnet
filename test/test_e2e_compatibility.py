@@ -8,20 +8,18 @@ from __future__ import print_function
 
 import importlib
 import os
-from os.path import join
 import re
 import shutil
 import subprocess
 import tempfile
+from os.path import join
 
 import chainer
 import numpy as np
 import pytest
 import torch
 
-from espnet.asr.asr_utils import chainer_load
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import chainer_load, get_model_conf, torch_load
 
 
 def download_zip_from_google_drive(download_dir, file_id):

@@ -1,6 +1,7 @@
+from typing import Tuple
+
 import librosa
 import torch
-from typing import Tuple
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 

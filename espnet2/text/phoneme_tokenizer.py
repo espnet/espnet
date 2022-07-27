@@ -1,18 +1,14 @@
 import logging
-from pathlib import Path
 import re
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Union
 import warnings
+from pathlib import Path
+from typing import Iterable, List, Optional, Union
 
 import g2p_en
 import jamo
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
-
 
 g2p_choices = [
     None,
@@ -40,6 +36,7 @@ g2p_choices = [
     "g2pk_no_space",
     "korean_jaso",
     "korean_jaso_no_space",
+    "g2p_is",
 ]
 
 
@@ -61,8 +58,9 @@ def pyopenjtalk_g2p(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent(text) -> List[str]:
-    import pyopenjtalk
     import re
+
+    import pyopenjtalk
 
     phones = []
     for labels in pyopenjtalk.run_frontend(text)[1]:
@@ -73,8 +71,9 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
-    import pyopenjtalk
     import re
+
+    import pyopenjtalk
 
     phones = []
     for labels in pyopenjtalk.run_frontend(text)[1]:
@@ -181,27 +180,29 @@ def _numeric_feature_by_regex(regex, s):
 
 
 def pypinyin_g2p(text) -> List[str]:
-    from pypinyin import pinyin
-    from pypinyin import Style
+    from pypinyin import Style, pinyin
 
     phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
     return phones
 
 
 def pypinyin_g2p_phone(text) -> List[str]:
-    from pypinyin import pinyin
-    from pypinyin import Style
-    from pypinyin.style._utils import get_finals
-    from pypinyin.style._utils import get_initials
+    from pypinyin import Style, pinyin
+    from pypinyin.style._utils import get_finals, get_initials
 
     phones = [
         p
         for phone in pinyin(text, style=Style.TONE3)
         for p in [
             get_initials(phone[0], strict=True),
-            get_finals(phone[0], strict=True),
+            get_finals(phone[0][:-1], strict=True) + phone[0][-1]
+            if phone[0][-1].isdigit()
+            else get_finals(phone[0], strict=True)
+            if phone[0][-1].isalnum()
+            else phone[0],
         ]
-        if len(p) != 0
+        # Remove the case of individual tones as a phoneme
+        if len(p) != 0 and not p.isdigit()
     ]
     return phones
 
@@ -357,6 +358,38 @@ class Phonemizer:
             return [c.replace(" ", "<space>") for c in tokens]
 
 
+class IsG2p:  # pylint: disable=too-few-public-methods
+    """Minimal wrapper for https://github.com/grammatek/ice-g2p
+
+    The g2p module uses a Bi-LSTM model along with
+    a pronunciation dictionary to generate phonemization
+    Unfortunately does not support multi-thread phonemization as of yet
+    """
+
+    def __init__(
+        self,
+        dialect: str = "standard",
+        syllabify: bool = True,
+        word_sep: str = ",",
+        use_dict: bool = True,
+    ):
+        self.dialect = dialect
+        self.syllabify = syllabify
+        self.use_dict = use_dict
+        from ice_g2p.transcriber import Transcriber
+
+        self.transcriber = Transcriber(
+            use_dict=self.use_dict,
+            syllab_symbol=".",
+            stress_label=True,
+            word_sep=word_sep,
+            lang_detect=True,
+        )
+
+    def __call__(self, text) -> List[str]:
+        return self.transcriber.transcribe(text).split()
+
+
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
         self,
@@ -477,6 +510,10 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = Jaso(space_symbol=space_symbol, no_space=False)
         elif g2p_type == "korean_jaso_no_space":
             self.g2p = Jaso(no_space=True)
+        elif g2p_type == "g2p_is":
+            self.g2p = IsG2p()
+        elif g2p_type == "g2p_is_north":
+            self.g2p = IsG2p(dialect="north")
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

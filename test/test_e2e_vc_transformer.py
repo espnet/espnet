@@ -4,15 +4,14 @@
 # Copyright 2020 Wen-Chin Huang
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+from argparse import Namespace
 from math import floor
+
 import numpy as np
 import pytest
 import torch
 
-from argparse import Namespace
-
-from espnet.nets.pytorch_backend.e2e_vc_transformer import subsequent_mask
-from espnet.nets.pytorch_backend.e2e_vc_transformer import Transformer
+from espnet.nets.pytorch_backend.e2e_vc_transformer import Transformer, subsequent_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 

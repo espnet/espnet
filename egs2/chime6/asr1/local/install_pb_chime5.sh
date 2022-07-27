@@ -1,0 +1,1 @@
+../../../../egs/chime6/asr1/local/install_pb_chime5.sh

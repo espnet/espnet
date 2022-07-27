@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -80,13 +78,18 @@ class SkiMSeparator(AbsSeparator):
         }[nonlinear]
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
+            additional (Dict or None): other data included in model
+                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]

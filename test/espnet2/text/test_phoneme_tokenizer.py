@@ -303,7 +303,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ei2",
             "uai4",
             "s",
-            "un1",
+            "uen1",
             "uan2",
             "h",
             "ua2",
@@ -483,6 +483,30 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᄃ",
             "ᅡ",
             ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "is_g2p":
+        input = "hlaupa í burtu í dag"
+        output = [
+            "l_0",
+            "9i:",
+            ".",
+            "p",
+            "a",
+            ",",
+            "i:",
+            ",",
+            "p",
+            "Y",
+            "r_0",
+            ".",
+            "t",
+            "Y",
+            ",",
+            "i:",
+            ",",
+            "t",
+            "a:",
+            "G",
         ]
     else:
         raise NotImplementedError
