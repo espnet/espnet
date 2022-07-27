@@ -159,11 +159,11 @@ def build_conformer_block(
     )
 
     if configuration.get("conv_mod_basic_norm", False):
-        conv_mod_norm_class = BatchNorm1d
-        conv_mod_norm_eps = configuration.get("conv_mod_norm_eps", 1e-05)
-    else:
         conv_mod_norm_class = BasicNorm
         conv_mod_norm_eps = configuration.get("conv_mod_norm_eps", 0.25)
+    else:
+        conv_mod_norm_class = BatchNorm1d
+        conv_mod_norm_eps = configuration.get("conv_mod_norm_eps", 1e-05)
 
     conv_args = (
         hidden_size,
@@ -182,11 +182,11 @@ def build_conformer_block(
     )
 
     if configuration.get("basic_norm", False):
-        norm_class = LayerNorm
-        norm_eps = configuration.get("norm_eps", 1e-12)
-    else:
         norm_class = BasicNorm
         norm_eps = configuration.get("norm_eps", 0.25)
+    else:
+        norm_class = LayerNorm
+        norm_eps = configuration.get("norm_eps", 1e-12)
 
     return lambda: Conformer(
         hidden_size,

@@ -87,13 +87,16 @@ def validate_input_block(
     if configuration.get("subsampling_factor") is None:
         configuration["subsampling_factor"] = 4
 
-    conv_size = configuration.get("conv_size")
-
     if vgg_like:
-        if conv_size is None:
-            conv_size = (64, 128)
-        elif isinstance(conv_size, int):
+        conv_size = configuration.get("conv_size", (64, 128))
+
+        if isinstance(conv_size, int):
             conv_size = (conv_size, conv_size)
+    else:
+        conv_size = configuration.get("conv_size", None)
+
+        if isinstance(conv_size, tuple):
+            conv_size = conv_size[0]
 
     if next_block_type == "conv1d":
         if vgg_like:
@@ -101,8 +104,6 @@ def validate_input_block(
         else:
             if conv_size is None:
                 conv_size = body_first_conf.get("output_size", 64)
-            elif isinstance(conv_size, tuple):
-                conv_size = conv_size[0]
 
             sub_factor = configuration["subsampling_factor"]
 
@@ -117,17 +118,15 @@ def validate_input_block(
             output_size = conv_osize * conv_size
 
         configuration["output_size"] = None
-        configuration["conv_size"] = conv_size
     else:
         output_size = body_first_conf.get("hidden_size")
 
+        if conv_size is None:
+            conv_size = output_size
+
         configuration["output_size"] = output_size
 
-        if vgg_like:
-            configuration["conv_size"] = conv_size
-        else:
-            configuration["conv_size"] = output_size
-
+    configuration["conv_size"] = conv_size
     configuration["vgg_like"] = vgg_like
 
     return output_size
