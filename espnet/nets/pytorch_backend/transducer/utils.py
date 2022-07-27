@@ -104,7 +104,7 @@ def is_prefix(x: List[int], pref: List[int]) -> bool:
     if len(pref) >= len(x):
         return False
 
-    for i in range(len(pref)):
+    for i in range(len(pref) - 1, -1, -1):
         if pref[i] != x[i]:
             return False
 
