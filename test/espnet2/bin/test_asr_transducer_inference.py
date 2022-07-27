@@ -160,17 +160,20 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
 
 @pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize(
-    "use_lm, token_type, left_context, right_context",
+    "use_lm, token_type, beam_search_config, left_context, right_context",
     [
-        (False, "char", 0, 0),
-        (True, "char", 1, 1),
-        (False, "bpe", 0, 0),
-        (False, None, 1, 1),
+        (False, "char", {"search_type": "default"}, 0, 0),
+        (True, "char", {"search_type": "default"}, 1, 1),
+        (False, "bpe", {"search_type": "default"}, 0, 0),
+        (False, None, {"search_type": "default"}, 1, 1),
+        (False, "char", {"search_type": "tsd"}, 1, 1),
+        (False, "char", {"search_type": "maes"}, 1, 1),
     ],
 )
 def test_streaming_Speech2Text(
     use_lm,
     token_type,
+    beam_search_config,
     left_context,
     right_context,
     asr_stream_config_file,
@@ -179,7 +182,8 @@ def test_streaming_Speech2Text(
     speech2text = Speech2Text(
         asr_train_config=asr_stream_config_file,
         lm_train_config=lm_config_file if use_lm else None,
-        beam_size=1,
+        beam_size=2,
+        beam_search_config=beam_search_config,
         token_type=token_type,
         streaming=True,
         chunk_size=1,

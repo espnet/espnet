@@ -9,7 +9,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
     "input_conf, body_conf, main_conf",
     [
         (
-            {"vgg_like": True},
+            {"vgg_like": True, "conv_size": 8},
             [
                 {
                     "block_type": "conformer",
@@ -56,12 +56,12 @@ from espnet2.asr_transducer.utils import TooShortUttError
             {},
         ),
         (
-            {"dim_conv": 8},
+            {"conv_size": (8, 4)},
             [{"block_type": "conv1d", "output_size": 4, "kernel_size": 1}],
             {},
         ),
         (
-            {"dim_conv": 4},
+            {"conv_size": 4},
             [
                 {
                     "block_type": "conformer",
@@ -73,7 +73,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
             {},
         ),
         (
-            {"dim_conv": 2},
+            {"conv_size": 2},
             [
                 {
                     "block_type": "conv1d",
@@ -94,7 +94,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
             {},
         ),
         (
-            {"dim_conv": 2},
+            {"conv_size": 2},
             [
                 {
                     "block_type": "conv1d",
@@ -111,7 +111,8 @@ from espnet2.asr_transducer.utils import TooShortUttError
             ],
             {
                 "dynamic_chunk_training": True,
-                "short_chunk_size": 1,
+                "short_chunk_size": 30,
+                "short_chunk_threshold": 0.01,
                 "left_chunk_size": 2,
             },
         ),
@@ -169,6 +170,8 @@ def test_block_type(input_conf, body_conf):
     [
         [{"block_type": "conformer", "hidden_size": 4}],
         [{"block_type": "conv1d"}],
+        [{"block_type": "conv1d", "output_size": 8}, {}],
+        [{"block_type": "conformer", "hidden_size": 4, "linear_size": 2}],
     ],
 )
 def test_wrong_block_arguments(body_conf):
@@ -219,11 +222,26 @@ def test_wrong_subsampling_factor():
     [
         [
             {"block_type": "conv1d", "output_size": 8, "kernel_size": 1},
-            {"block_type": "conformer", "hidden_size": 4, "linear_size": 2},
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
         ],
         [
-            {"block_type": "conformer", "hidden_size": 8, "linear_size": 2},
-            {"block_type": "conformer", "hidden_size": 4, "linear_size": 2},
+            {
+                "block_type": "conformer",
+                "hidden_size": 8,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
         ],
     ],
 )
