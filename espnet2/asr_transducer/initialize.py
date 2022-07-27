@@ -45,10 +45,6 @@ def initialize(model: torch.nn.Module, init: str):
                 mod.weight.data.normal_(0, 1)
             # 3. forget-bias = 1.0
             elif isinstance(mod, torch.nn.RNNBase):
-                # set decoder RNN forget bias only (ESPnet1 style)
-                if init == "chainer_espnet1" and "encoder" in name_mod:
-                    continue
-
                 for name, param in mod.named_parameters():
                     if "bias" in name:
                         n = param.size(0)
