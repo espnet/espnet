@@ -137,7 +137,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
                 "after_norm_eps": 0.5,
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 2,
+                "left_chunk_size": 0,
             },
         ),
     ],
@@ -211,7 +211,14 @@ def test_too_short_utterance(input_conf, inputs):
 
 def test_wrong_subsampling_factor():
     input_conf = {"block_type": "conv2d", "subsampling_factor": 8}
-    body_conf = [{"block_type": "conformer", "hidden_size": 4, "linear_size": 2}]
+    body_conf = [
+        {
+            "block_type": "conformer",
+            "hidden_size": 4,
+            "linear_size": 2,
+            "conv_mod_kernel_size": 1,
+        }
+    ]
 
     with pytest.raises(ValueError):
         _ = Encoder(8, body_conf, input_conf=input_conf)
