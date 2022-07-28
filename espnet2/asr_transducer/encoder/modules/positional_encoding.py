@@ -43,6 +43,8 @@ class RelPositionalEncoding(torch.nn.Module):
 
         if self.pe is not None:
             if self.pe.size(1) >= time1 * 2 - 1:
+                if self.pe.dtype != x.dtype or self.pe.device != x.device:
+                    self.pe = self.pe.to(device=x.device, dtype=x.dtype)
                 return
 
         pe_positive = torch.zeros(time1, self.size)
