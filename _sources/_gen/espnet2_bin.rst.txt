@@ -449,7 +449,7 @@ asr_train.py
                         [--model {espnet,maskctc}] [--model_conf MODEL_CONF]
                         [--preencoder {sinc,linear,None}]
                         [--preencoder_conf PREENCODER_CONF]
-                        [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}]
+                        [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
@@ -827,7 +827,7 @@ asr_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}
+      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
@@ -1572,7 +1572,7 @@ enh_s2t_train.py
                             [--normalize_conf NORMALIZE_CONF]
                             [--asr_preencoder {sinc,linear,None}]
                             [--asr_preencoder_conf ASR_PREENCODER_CONF]
-                            [--asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}]
+                            [--asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
                             [--asr_encoder_conf ASR_ENCODER_CONF]
                             [--asr_postencoder {hugging_face_transformers,None}]
                             [--asr_postencoder_conf ASR_POSTENCODER_CONF]
@@ -1997,7 +1997,7 @@ enh_s2t_train.py
                             The asr_preencoder type (default: None)
       --asr_preencoder_conf ASR_PREENCODER_CONF
                             The keyword arguments for asr_preencoder (default: {})
-      --asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}
+      --asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
                             The asr_encoder type (default: rnn)
       --asr_encoder_conf ASR_ENCODER_CONF
                             The keyword arguments for asr_encoder (default: {})
@@ -4212,7 +4212,7 @@ mt_train.py
                        [--frontend {embed}] [--frontend_conf FRONTEND_CONF]
                        [--preencoder {sinc,linear,None}]
                        [--preencoder_conf PREENCODER_CONF]
-                       [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn}]
+                       [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer}]
                        [--encoder_conf ENCODER_CONF]
                        [--postencoder {hugging_face_transformers,None}]
                        [--postencoder_conf POSTENCODER_CONF]
@@ -4569,7 +4569,7 @@ mt_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn}
+      --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})

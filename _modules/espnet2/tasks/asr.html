@@ -172,6 +172,7 @@
     <span class="n">TransformerDecoder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.branchformer_encoder</span> <span class="kn">import</span> <span class="n">BranchformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_conformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ContextualBlockConformerEncoder</span><span class="p">,</span>
@@ -283,6 +284,7 @@
         <span class="n">hubert</span><span class="o">=</span><span class="n">FairseqHubertEncoder</span><span class="p">,</span>
         <span class="n">hubert_pretrain</span><span class="o">=</span><span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
         <span class="n">longformer</span><span class="o">=</span><span class="n">LongformerEncoder</span><span class="p">,</span>
+        <span class="n">branchformer</span><span class="o">=</span><span class="n">BranchformerEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>

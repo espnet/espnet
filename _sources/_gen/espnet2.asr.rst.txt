@@ -213,6 +213,17 @@ espnet2.asr.encoder.vgg_rnn_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.branchformer_encoder:
+
+espnet2.asr.encoder.branchformer_encoder
+----------------------------------------
+
+.. automodule:: espnet2.asr.encoder.branchformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.rnn_encoder:
 
 espnet2.asr.encoder.rnn_encoder
@@ -362,6 +373,39 @@ espnet2.asr.decoder.transformer_decoder
 ---------------------------------------
 
 .. automodule:: espnet2.asr.decoder.transformer_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.layers.cgmlp:
+
+espnet2.asr.layers.cgmlp
+------------------------
+
+.. automodule:: espnet2.asr.layers.cgmlp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.layers.__init__:
+
+espnet2.asr.layers.__init__
+---------------------------
+
+.. automodule:: espnet2.asr.layers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.layers.fastformer:
+
+espnet2.asr.layers.fastformer
+-----------------------------
+
+.. automodule:: espnet2.asr.layers.fastformer
     :members:
     :undoc-members:
     :show-inheritance:

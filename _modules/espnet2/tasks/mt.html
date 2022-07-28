@@ -170,6 +170,7 @@
     <span class="n">TransformerDecoder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.branchformer_encoder</span> <span class="kn">import</span> <span class="n">BranchformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_transformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>
@@ -224,6 +225,7 @@
         <span class="n">contextual_block_transformer</span><span class="o">=</span><span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>
         <span class="n">vgg_rnn</span><span class="o">=</span><span class="n">VGGRNNEncoder</span><span class="p">,</span>
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNEncoder</span><span class="p">,</span>
+        <span class="n">branchformer</span><span class="o">=</span><span class="n">BranchformerEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
