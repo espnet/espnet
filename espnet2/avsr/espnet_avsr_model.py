@@ -510,7 +510,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
         """Compute negative log likelihood(nll) from transformer-decoder
-        
+
         Normally, this function is called in batchify_nll.
 
         Args:

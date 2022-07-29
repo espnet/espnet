@@ -113,7 +113,9 @@ class ResNet(AbsEncoder):
         num_splits = B * T // self.MAX_BATCH_SIZE + 1
         result = []
         for i in range(num_splits):
-            x_seg = x[i*self.MAX_BATCH_SIZE:min(len(x), (i+1)*self.MAX_BATCH_SIZE)]
+            x_seg = x[
+                i * self.MAX_BATCH_SIZE : min(len(x), (i + 1) * self.MAX_BATCH_SIZE)
+            ]
             if self.fine_tune:
                 x_seg = self.transform(x_seg)
                 x_seg = self.encoders(x_seg)
@@ -124,8 +126,9 @@ class ResNet(AbsEncoder):
                     x_seg = self.encoders(x_seg)
                     x_seg = x_seg.squeeze()
             x_seg = self.projection_layer(x_seg)
-            assert(x_seg.size(-1) == self._output_size)
-            if x_seg.dim() == 1: x_seg = x_seg.unsqueeze(0)
+            assert x_seg.size(-1) == self._output_size
+            if x_seg.dim() == 1:
+                x_seg = x_seg.unsqueeze(0)
             result.append(x_seg)
         x = torch.cat(result)
         x = x.reshape(B, T, self._output_size)

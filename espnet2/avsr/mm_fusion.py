@@ -7,7 +7,7 @@ def concat_fusion(
 ):
     """
     Concatenates vision features and speech features
-    
+
     Args:
         speech_feats: speech input features
         vision_feats: vision input features

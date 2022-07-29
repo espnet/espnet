@@ -132,7 +132,7 @@ class VisionDataset(collections.abc.Mapping):
 
         Args:
             vidcap: cv2 video capture instance
-            
+
         Output:
             data: numpy array of (T, H, W, C) containing image capture of video
         """

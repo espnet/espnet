@@ -64,7 +64,7 @@ def avg_pool_align(
 ) -> torch.Tensor:
     """
     Average Pool the high sample ratio source to match the low sample ratio source
-    
+
     Args:
         rate_ratio: sample rate ratio between two modalities (speech sr / vision sr)
         speech: speech input data
