@@ -179,10 +179,37 @@
     <span class="k">def</span> <span class="nf">only_for_test</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_only_for_test</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_noise_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_noise_loss</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">is_dereverb_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_dereverb_loss</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_only_for_test</span> <span class="o">=</span> <span class="n">only_for_test</span></div>
+        <span class="c1"># only used during validation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_only_for_test</span> <span class="o">=</span> <span class="n">only_for_test</span>
+        <span class="c1"># only used to calculate the noise-related loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_noise_loss</span> <span class="o">=</span> <span class="n">is_noise_loss</span>
+        <span class="c1"># only used to calculate the dereverberation-related loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_dereverb_loss</span> <span class="o">=</span> <span class="n">is_dereverb_loss</span>
+        <span class="k">if</span> <span class="n">is_noise_loss</span> <span class="ow">and</span> <span class="n">is_dereverb_loss</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;`is_noise_loss` and `is_dereverb_loss` cannot be True at the same time&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_noise_loss</span> <span class="ow">and</span> <span class="s2">&quot;noise&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_noise&quot;</span>
+        <span class="k">if</span> <span class="n">is_dereverb_loss</span> <span class="ow">and</span> <span class="s2">&quot;dereverb&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_dereverb&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span></div>
 
 
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
@@ -205,9 +232,21 @@
 <span class="sd">        loss: (Batch,)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filter_length</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filter_length</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;ci_sdr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">filter_length</span> <span class="o">=</span> <span class="n">filter_length</span>
 
@@ -225,9 +264,21 @@
 
 
 <div class="viewcode-block" id="SNRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SNRLoss">[docs]</a><span class="k">class</span> <span class="nc">SNRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">EPS</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">EPS</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;snr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
 
@@ -261,7 +312,7 @@
 <span class="sd">        When set to True, the mean of all signals is subtracted prior.</span>
 <span class="sd">    load_diag:</span>
 <span class="sd">        If provided, this small value is added to the diagonal coefficients of</span>
-<span class="sd">        the system metrics when solving for the filter coefficients.</span>
+<span class="sd">        the system metrices when solving for the filter coefficients.</span>
 <span class="sd">        This can help stabilize the metric in the case where some of the reference</span>
 <span class="sd">        signals may sometimes be zero</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -275,9 +326,16 @@
         <span class="n">load_diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;sdr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">filter_length</span> <span class="o">=</span> <span class="n">filter_length</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_cg_iter</span> <span class="o">=</span> <span class="n">use_cg_iter</span>
@@ -328,10 +386,22 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;si_snr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span> <span class="o">=</span> <span class="n">clamp_db</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span> <span class="o">=</span> <span class="n">zero_mean</span>
@@ -354,6 +424,7 @@
 <span class="sd">            loss: (...,)</span>
 <span class="sd">                the SI-SDR loss (negative si-sdr)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">est</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_tensor</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="n">est</span>
 
         <span class="n">si_snr</span> <span class="o">=</span> <span class="n">fast_bss_eval</span><span class="o">.</span><span class="n">si_sdr_loss</span><span class="p">(</span>
             <span class="n">est</span><span class="o">=</span><span class="n">est</span><span class="p">,</span>
@@ -367,9 +438,20 @@
 
 
 <div class="viewcode-block" id="TimeDomainMSE"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE">[docs]</a><span class="k">class</span> <span class="nc">TimeDomainMSE</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;TD_MSE_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="TimeDomainMSE.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Time-domain MSE loss forward.</span>
@@ -395,9 +477,20 @@
 
 
 <div class="viewcode-block" id="TimeDomainL1"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainL1">[docs]</a><span class="k">class</span> <span class="nc">TimeDomainL1</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">only_for_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_noise_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;TD_L1_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">_name</span><span class="p">,</span> <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">_name</span><span class="p">,</span>
+            <span class="n">only_for_test</span><span class="o">=</span><span class="n">only_for_test</span><span class="p">,</span>
+            <span class="n">is_noise_loss</span><span class="o">=</span><span class="n">is_noise_loss</span><span class="p">,</span>
+            <span class="n">is_dereverb_loss</span><span class="o">=</span><span class="n">is_dereverb_loss</span><span class="p">,</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="TimeDomainL1.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainL1.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Time-domain L1 loss forward.</span>

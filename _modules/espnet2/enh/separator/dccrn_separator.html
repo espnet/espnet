@@ -211,6 +211,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">use_builtin_complex</span> <span class="o">=</span> <span class="n">use_builtin_complex</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_noise_mask</span> <span class="o">=</span> <span class="n">use_noise_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span> <span class="o">=</span> <span class="n">use_noise_mask</span>
         <span class="k">if</span> <span class="n">masking_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;E&quot;</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported masking mode: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">masking_mode</span><span class="p">)</span>
         <span class="c1"># Network config</span>

@@ -178,6 +178,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">input_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_spk</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">predict_noise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">adim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
         <span class="n">aheads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
@@ -197,6 +198,7 @@
 <span class="sd">        Args:</span>
 <span class="sd">            input_dim: input feature dimension</span>
 <span class="sd">            num_spk: number of speakers</span>
+<span class="sd">            predict_noise: whether to output the estimated noise signal</span>
 <span class="sd">            adim (int): Dimension of attention.</span>
 <span class="sd">            aheads (int): The number of heads of multi head attention.</span>
 <span class="sd">            linear_units (int): The number of units of position-wise feed forward.</span>
@@ -220,6 +222,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span> <span class="o">=</span> <span class="n">predict_noise</span>
 
         <span class="n">pos_enc_class</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">ScaledPositionalEncoding</span> <span class="k">if</span> <span class="n">use_scaled_pos_enc</span> <span class="k">else</span> <span class="n">PositionalEncoding</span>
@@ -241,8 +244,9 @@
             <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="n">num_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">linear</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)]</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_outputs</span><span class="p">)]</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">nonlinear</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;sigmoid&quot;</span><span class="p">,</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span> <span class="s2">&quot;tanh&quot;</span><span class="p">):</span>
@@ -296,11 +300,16 @@
             <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonlinear</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
             <span class="n">masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span><span class="p">:</span>
+            <span class="o">*</span><span class="n">masks</span><span class="p">,</span> <span class="n">mask_noise</span> <span class="o">=</span> <span class="n">masks</span>
+
         <span class="n">masked</span> <span class="o">=</span> <span class="p">[</span><span class="nb">input</span> <span class="o">*</span> <span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
 
         <span class="n">others</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
             <span class="nb">zip</span><span class="p">([</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">))],</span> <span class="n">masks</span><span class="p">)</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_noise</span><span class="p">:</span>
+            <span class="n">others</span><span class="p">[</span><span class="s2">&quot;noise1&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">mask_noise</span>
 
         <span class="k">return</span> <span class="n">masked</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">others</span></div>
 
