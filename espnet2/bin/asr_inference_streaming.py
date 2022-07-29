@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet.nets.beam_search_transducer_online import BeamSearchTransducerOnline
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
 )
@@ -27,6 +28,10 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.transducer_decoder_interface import (
+    ExtendedHypothesis as ExtTransHypothesis,
+)
+from espnet.nets.transducer_decoder_interface import Hypothesis as TransHypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -53,6 +58,7 @@ class Speech2TextStreaming:
         self,
         asr_train_config: Union[Path, str],
         asr_model_file: Union[Path, str] = None,
+        transducer_conf: dict = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
@@ -118,36 +124,49 @@ class Speech2TextStreaming:
 
         assert batch_size == 1
 
-        beam_search = BatchBeamSearchOnline(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=asr_model.sos,
-            eos=asr_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-            disable_repetition_detection=disable_repetition_detection,
-            decoder_text_length_limit=decoder_text_length_limit,
-            encoded_feat_length_limit=encoded_feat_length_limit,
-        )
+        if asr_model.use_transducer_decoder:
+            beam_search_transducer = BeamSearchTransducerOnline(
+                decoder=asr_model.decoder,
+                joint_network=asr_model.joint_network,
+                beam_size=beam_size,
+                lm=scorers["lm"] if "lm" in scorers else None,
+                lm_weight=lm_weight,
+                token_list=token_list,
+                **transducer_conf,
+            )
+            beam_search = None
+        else:
+            beam_search_transducer = None
+            beam_search = BatchBeamSearchOnline(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=asr_model.sos,
+                eos=asr_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                disable_repetition_detection=disable_repetition_detection,
+                decoder_text_length_limit=decoder_text_length_limit,
+                encoded_feat_length_limit=encoded_feat_length_limit,
+            )
 
-        non_batch = [
-            k
-            for k, v in beam_search.full_scorers.items()
-            if not isinstance(v, BatchScorerInterface)
-        ]
-        assert len(non_batch) == 0
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            assert len(non_batch) == 0
 
-        # TODO(karita): make all scorers batchfied
-        logging.info("BatchBeamSearchOnline implementation is selected.")
+            # TODO(karita): make all scorers batchfied
+            logging.info("BatchBeamSearchOnline implementation is selected.")
 
-        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-        for scorer in scorers.values():
-            if isinstance(scorer, torch.nn.Module):
-                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-        logging.info(f"Beam_search: {beam_search}")
-        logging.info(f"Decoding device={device}, dtype={dtype}")
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -172,6 +191,7 @@ class Speech2TextStreaming:
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
+        self.beam_search_transducer = beam_search_transducer
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -198,7 +218,10 @@ class Speech2TextStreaming:
     def reset(self):
         self.frontend_states = None
         self.encoder_states = None
-        self.beam_search.reset()
+        if self.beam_search_transducer:
+            self.beam_search_transducer.reset()
+        else:
+            self.beam_search.reset()
 
     def apply_frontend(
         self, speech: torch.Tensor, prev_states=None, is_final: bool = False
@@ -292,7 +315,14 @@ class Speech2TextStreaming:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+    ) -> List[
+        Tuple[
+            Optional[str],
+            List[str],
+            List[int],
+            Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
+        ]
+    ]:
         """Inference
 
         Args:
@@ -319,12 +349,20 @@ class Speech2TextStreaming:
                 is_final=is_final,
                 infer_mode=True,
             )
-            nbest_hyps = self.beam_search(
-                x=enc[0],
-                maxlenratio=self.maxlenratio,
-                minlenratio=self.minlenratio,
-                is_final=is_final,
-            )
+            if self.beam_search_transducer:
+                nbest_hyps = self.beam_search_transducer.forward(
+                    x=enc[0],
+                    maxlenratio=self.maxlenratio,
+                    minlenratio=self.minlenratio,
+                    is_final=is_final,
+                )
+            else:
+                nbest_hyps = self.beam_search(
+                    x=enc[0],
+                    maxlenratio=self.maxlenratio,
+                    minlenratio=self.minlenratio,
+                    is_final=is_final,
+                )
             ret = self.assemble_hyps(nbest_hyps)
         else:
             ret = []
@@ -337,10 +375,15 @@ class Speech2TextStreaming:
         nbest_hyps = hyps[: self.nbest]
         results = []
         for hyp in nbest_hyps:
-            assert isinstance(hyp, Hypothesis), type(hyp)
+            assert isinstance(
+                hyp, (Hypothesis, ExtTransHypothesis, TransHypothesis)
+            ), type(hyp)
 
-            # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+            if self.beam_search_transducer:
+                token_int = hyp.yseq[:]
+            else:
+                # remove sos/eos and get results
+                token_int = hyp.yseq[1:-1].tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
@@ -377,6 +420,7 @@ def inference(
     key_file: Optional[str],
     asr_train_config: str,
     asr_model_file: str,
+    transducer_conf: Optional[dict],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -414,6 +458,7 @@ def inference(
     speech2text = Speech2TextStreaming(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
+        transducer_conf=transducer_conf,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         token_type=token_type,
@@ -549,6 +594,10 @@ def get_parser():
     group = parser.add_argument_group("The model configuration related")
     group.add_argument("--asr_train_config", type=str, required=True)
     group.add_argument("--asr_model_file", type=str, required=True)
+    group.add_argument(
+        "--transducer_conf",
+        default=None,
+    )
     group.add_argument("--lm_train_config", type=str)
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
