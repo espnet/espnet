@@ -48,8 +48,8 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-  - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, or conformer
-- Attention: Dot product, location-aware attention, variants of multihead
+  - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, Conformer or [Branchformer](https://proceedings.mlr.press/v162/peng22a.html)
+- Attention: Dot product, location-aware attention, variants of multi-head
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
 - Data augmentation
@@ -153,10 +153,11 @@ Demonstration
 - Transformer and Tacotron2 based parallel VC using melspectrogram (new!)
 - End-to-end VC based on cascaded ASR+TTS (Baseline system for Voice Conversion Challenge 2020!)
 
-### SLU: Speech Language Understanding
+### SLU: Spoken Language Understanding
 - Architecture
     - Transformer based Encoder
     - Conformer based Encoder
+    - [Branchformer](https://proceedings.mlr.press/v162/peng22a.html) based Encoder
     - RNN based Decoder
     - Transformer based Decoder
 - Support Multitasking with ASR
