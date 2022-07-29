@@ -5,7 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-src_lang=en
 tgt_lang=de
 
 train_set=train.en-${tgt_lang}
