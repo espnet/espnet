@@ -556,6 +556,10 @@
 <p><p>calculate real time factor (RTF)</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">calculate_rtf</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">name</span> <span class="p">{</span><span class="n">decode</span><span class="p">,</span><span class="n">asr_inference</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="n">INPUT_SHIFT</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">start</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="nb">input</span> <span class="n">lengths</span><span class="p">,</span><span class="n">speech</span> <span class="n">length</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">end</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="n">prediction</span><span class="p">,</span><span class="n">best</span> <span class="n">hypo</span><span class="p">}]</span>
 </pre></div>
 </div>
 <section id="Named Arguments">
@@ -563,6 +567,25 @@
 <dl class="option-list">
 <dt><kbd>--log-dir</kbd></dt>
 <dd><p>path to logging directory</p>
+</dd>
+<dt><kbd>--log-name</kbd></dt>
+<dd><p>Possible choices: decode, asr_inference</p>
+<p>name of logfile, e.g., ‘decode’ (espnet1) and ‘asr_inference’ (espnet2)</p>
+<p>Default: “decode”</p>
+</dd>
+<dt><kbd>--input-shift</kbd></dt>
+<dd><p>shift of inputs in milliseconds</p>
+<p>Default: 10.0</p>
+</dd>
+<dt><kbd>--start-times-marker</kbd></dt>
+<dd><p>Possible choices: input lengths, speech length</p>
+<p>String marking start of decoding in logfile, e.g., ‘input lengths’ (espnet1) and ‘speech length’ (espnet2)</p>
+<p>Default: “input lengths”</p>
+</dd>
+<dt><kbd>--end-times-marker</kbd></dt>
+<dd><p>Possible choices: prediction, best hypo</p>
+<p>String marking end of decoding in logfile, e.g., ‘prediction’ (espnet1) and ‘best hypo’ (espnet2)</p>
+<p>Default: “prediction”</p>
 </dd>
 </dl>
 </section>
@@ -1620,7 +1643,7 @@
 </dd>
 <dt><kbd>out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f11ceda4ca0&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f24e07bc280&gt;</p>
 </dd>
 </dl>
 </section>
@@ -1659,7 +1682,7 @@
 </dd>
 <dt><kbd>--out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f11ceda4ca0&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f24e07bc280&gt;</p>
 </dd>
 </dl>
 </section>
