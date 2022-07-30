@@ -226,7 +226,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         ret = None
         while True:
-            if  x.shape[0] <= self.process_idx:
+            if x.shape[0] <= self.process_idx:
                 break
             h = x[self.process_idx]
 
@@ -250,7 +250,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
             # N-best results
             return ret
 
-        #return ret
+        # return ret
 
     def process_one_block(self, enc_out_t):
         """Recognize one block."""

@@ -363,7 +363,9 @@ class Speech2TextStreaming:
                         f"normalized log probability: {best.score / len(best.yseq):.2f}"
                     )
                     logging.info(
-                        "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+                        "best hypo: "
+                        + "".join(self.converter.ids2tokens(best.yseq[1:]))
+                        + "\n"
                     )
                     ret = self.assemble_hyps(nbest_hyps)
                 elif not is_final:
@@ -534,7 +536,7 @@ def inference(
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
-            
+
             # Only supporting batch_size==1
             key = keys[0]
             for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
