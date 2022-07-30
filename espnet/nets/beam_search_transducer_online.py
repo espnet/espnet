@@ -10,8 +10,6 @@ import torch
 import numpy as np
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
-
-# from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.transducer.utils import (
     create_lm_batch_states,
     init_lm_state,
@@ -193,7 +191,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         return hyps
 
-    def forward(
+    def __call__(
         self,
         x: torch.Tensor,
         maxlenratio: float = 0.0,
@@ -228,24 +226,20 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         ret = None
         while True:
-            if self.process_idx < x.shape[0]:
-                h = x[self.process_idx]
-            else:
+            if  x.shape[0] <= self.process_idx:
                 break
+            h = x[self.process_idx]
 
             logging.debug("Start processing idx: %d", self.process_idx)
 
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
             ret = self.process_one_block(h)
-
             logging.debug("Finished processing idx: %d", self.process_idx)
 
             # increment number
             self.process_idx += 1
 
-            if is_final:
-                return ret
         if ret is None:
             if self.prev_output is None:
                 return []
@@ -255,6 +249,8 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
             self.prev_output = ret
             # N-best results
             return ret
+
+        #return ret
 
     def process_one_block(self, enc_out_t):
         """Recognize one block."""
@@ -382,7 +378,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
         self.running_hyps = kept_hyps
         self.beam_state = beam_state
 
-        return self.sort_nbest(self.running_hyps)
+        return self.sort_nbest(kept_hyps)
 
     def assemble_hyps(self, ended_hyps):
         """Assemble the hypotheses."""
@@ -402,7 +398,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
         logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
         if token_list is not None:
             logging.info(
-                "best hypo: " + "".join([token_list[x] for x in best.yseq[1:-1]]) + "\n"
+                "best hypo: " + "".join([token_list[x] for x in best.yseq[1:]]) + "\n"
             )
         return nbest_hyps
 

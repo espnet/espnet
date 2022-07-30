@@ -350,12 +350,24 @@ class Speech2TextStreaming:
                 infer_mode=True,
             )
             if self.beam_search_transducer:
-                nbest_hyps = self.beam_search_transducer.forward(
+                nbest_hyps = self.beam_search_transducer(
                     x=enc[0],
                     maxlenratio=self.maxlenratio,
                     minlenratio=self.minlenratio,
                     is_final=is_final,
                 )
+                if nbest_hyps:
+                    best = nbest_hyps[0]
+                    logging.info(f"total log probability: {best.score:.2f}")
+                    logging.info(
+                        f"normalized log probability: {best.score / len(best.yseq):.2f}"
+                    )
+                    logging.info(
+                        "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+                    )
+                    ret = self.assemble_hyps(nbest_hyps)
+                elif not is_final:
+                    ret = []
             else:
                 nbest_hyps = self.beam_search(
                     x=enc[0],
@@ -363,7 +375,8 @@ class Speech2TextStreaming:
                     minlenratio=self.minlenratio,
                     is_final=is_final,
                 )
-            ret = self.assemble_hyps(nbest_hyps)
+                ret = self.assemble_hyps(nbest_hyps)
+
         else:
             ret = []
 
@@ -380,7 +393,7 @@ class Speech2TextStreaming:
             ), type(hyp)
 
             if self.beam_search_transducer:
-                token_int = hyp.yseq[:]
+                token_int = hyp.yseq[1:]
             else:
                 # remove sos/eos and get results
                 token_int = hyp.yseq[1:-1].tolist()
@@ -521,7 +534,7 @@ def inference(
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
-
+            
             # Only supporting batch_size==1
             key = keys[0]
             for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
