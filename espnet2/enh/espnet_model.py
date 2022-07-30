@@ -43,9 +43,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.separator = separator
         self.decoder = decoder
         self.mask_module = mask_module
-        self.loss_wrappers = loss_wrappers
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
+
+        self.loss_wrappers = loss_wrappers
+        names = [w.criterion.name for w in self.loss_wrappers]
+        if len(set(names)) != len(names):
+            raise ValueError("Duplicated loss names are not allowed: {}".format(names))
 
         # get mask type for TF-domain models
         # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
@@ -54,8 +58,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # get loss type for model training (deprecated, keep for compatibility)
         self.loss_type = loss_type
 
-        # whether to compute the TF-domain loss
-        # while enforcing STFT consistency (deprecated, keep for compatibility)
+        # whether to compute the TF-domain loss while enforcing STFT consistency
+        # (deprecated, keep for compatibility)
+        # NOTE: STFT consistency is now always used for frequency-domain spectrum losses
         self.stft_consistency = stft_consistency
 
         # for multi-channel signal
@@ -131,8 +136,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # for data-parallel
-        speech_ref = speech_ref[..., : speech_lengths.max()]
-        speech_ref = speech_ref.unbind(dim=1)
+        speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
+        if noise_ref is not None:
+            noise_ref = noise_ref[..., : speech_lengths.max()].unbind(dim=1)
+        if dereverb_speech_ref is not None:
+            dereverb_speech_ref = dereverb_speech_ref[..., : speech_lengths.max()]
+            dereverb_speech_ref = dereverb_speech_ref.unbind(dim=1)
+
         additional = {}
         # Additional data is required in Deep Attractor Network
         if isinstance(self.separator, DANSeparator):
@@ -193,12 +203,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
             speech_pre = None
-        return (
-            speech_pre,
-            feature_mix,
-            feature_pre,
-            others,
-        )
+        return speech_pre, feature_mix, feature_pre, others
 
     def forward_loss(
         self,
@@ -211,47 +216,107 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         noise_ref: torch.Tensor = None,
         dereverb_speech_ref: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
+        # for calculating loss on estimated noise signals
+        if getattr(self.separator, "predict_noise", False):
+            assert "noise1" in others, others.keys()
+        if noise_ref is not None and "noise1" in others:
+            for n in range(self.num_noise_type):
+                key = "noise{}".format(n + 1)
+                others[key] = self.decoder(others[key], speech_lengths)[0]
+        # for calculating loss on dereverberated signals
+        if getattr(self.separator, "predict_dereverb", False):
+            assert "dereverb1" in others, others.keys()
+        if dereverb_speech_ref is not None and "dereverb1" in others:
+            for spk in range(self.num_spk):
+                key = "dereverb{}".format(spk + 1)
+                if key in others:
+                    others[key] = self.decoder(others[key], speech_lengths)[0]
+
         loss = 0.0
-        stats = dict()
+        stats = {}
         o = {}
         for loss_wrapper in self.loss_wrappers:
             criterion = loss_wrapper.criterion
-            if criterion.only_for_test and self.training:
+            if getattr(criterion, "only_for_test", False) and self.training:
                 continue
+            if getattr(criterion, "is_noise_loss", False):
+                if noise_ref is None:
+                    raise ValueError(
+                        "No noise reference for training!\n"
+                        'Please specify "--use_noise_ref true" in run.sh'
+                    )
+                signal_ref = noise_ref
+                signal_pre = [
+                    others["noise{}".format(n + 1)] for n in range(self.num_noise_type)
+                ]
+            elif getattr(criterion, "is_dereverb_loss", False):
+                if dereverb_speech_ref is None:
+                    raise ValueError(
+                        "No dereverberated reference for training!\n"
+                        'Please specify "--use_dereverb_ref true" in run.sh'
+                    )
+                signal_ref = dereverb_speech_ref
+                signal_pre = [
+                    others["dereverb{}".format(n + 1)]
+                    for n in range(self.num_noise_type)
+                    if "dereverb{}".format(n + 1) in others
+                ]
+                if len(signal_pre) == 0:
+                    signal_pre = None
+            else:
+                signal_ref = speech_ref
+                signal_pre = speech_pre
+
             if isinstance(criterion, TimeDomainLoss):
-                if speech_ref[0].dim() == 3:
-                    # For multi-channel reference,
-                    # only select one channel as the reference
-                    speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
+                assert signal_pre is not None
+                sref, spre = self._align_ref_pre_channels(
+                    signal_ref, signal_pre, ch_dim=2, force_1ch=True
+                )
                 # for the time domain criterions
-                l, s, o = loss_wrapper(speech_ref, speech_pre, others)
+                l, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
+                sref, spre = self._align_ref_pre_channels(
+                    signal_ref, signal_pre, ch_dim=2, force_1ch=False
+                )
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
                     # compute loss on masks
-                    if noise_ref is not None:
-                        noise_spec = self.encoder(noise_ref.sum(1), speech_lengths)[0]
+                    if getattr(criterion, "is_noise_loss", False):
+                        tf_ref, tf_pre = self._get_noise_masks(
+                            criterion,
+                            feature_mix,
+                            speech_ref,
+                            signal_ref,
+                            signal_pre,
+                            speech_lengths,
+                            others,
+                        )
+                    elif getattr(criterion, "is_dereverb_loss", False):
+                        tf_ref, tf_pre = self._get_dereverb_masks(
+                            criterion,
+                            feature_mix,
+                            noise_ref,
+                            signal_ref,
+                            signal_pre,
+                            speech_lengths,
+                            others,
+                        )
                     else:
-                        noise_spec = None
-                    tf_ref = criterion.create_mask_label(
-                        feature_mix,
-                        [self.encoder(sr, speech_lengths)[0] for sr in speech_ref],
-                        noise_spec=noise_spec,
-                    )
-                    tf_pre = [
-                        others["mask_spk{}".format(spk + 1)]
-                        for spk in range(self.num_spk)
-                    ]
+                        tf_ref, tf_pre = self._get_speech_masks(
+                            criterion,
+                            feature_mix,
+                            noise_ref,
+                            signal_ref,
+                            signal_pre,
+                            speech_lengths,
+                            others,
+                        )
                 else:
                     # compute on spectrum
-                    if speech_ref[0].dim() == 3:
-                        # For multi-channel reference,
-                        # only select one channel as the reference
-                        speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
-                    tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
-                    tf_pre = feature_pre
+                    tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in sref]
+                    tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, others)
+                l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
@@ -268,6 +333,119 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         batch_size = speech_ref[0].shape[0]
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+
+    def _align_ref_pre_channels(self, ref, pre, ch_dim=2, force_1ch=False):
+        if ref is None or pre is None:
+            return ref, pre
+        # NOTE: input must be a list of time-domain signals
+        index = ref[0].new_tensor(self.ref_channel, dtype=torch.long)
+
+        # for models like SVoice that output multiple lists of separated signals
+        pre_is_multi_list = isinstance(pre[0], (list, tuple))
+        pre_dim = pre[0][0].dim() if pre_is_multi_list else pre[0].dim()
+
+        if ref[0].dim() > pre_dim:
+            # multi-channel reference and single-channel output
+            ref = [r.index_select(ch_dim, index).squeeze(ch_dim) for r in ref]
+        elif ref[0].dim() < pre_dim:
+            # single-channel reference and multi-channel output
+            if pre_is_multi_list:
+                pre = [
+                    p.index_select(ch_dim, index).squeeze(ch_dim)
+                    for plist in pre
+                    for p in plist
+                ]
+            else:
+                pre = [p.index_select(ch_dim, index).squeeze(ch_dim) for p in pre]
+        elif ref[0].dim() == pre_dim == 3 and force_1ch:
+            # multi-channel reference and output
+            ref = [r.index_select(ch_dim, index).squeeze(ch_dim) for r in ref]
+            if pre_is_multi_list:
+                pre = [
+                    p.index_select(ch_dim, index).squeeze(ch_dim)
+                    for plist in pre
+                    for p in plist
+                ]
+            else:
+                pre = [p.index_select(ch_dim, index).squeeze(ch_dim) for p in pre]
+        return ref, pre
+
+    def _get_noise_masks(
+        self, criterion, feature_mix, speech_ref, noise_ref, noise_pre, ilens, others
+    ):
+        speech_spec = self.encoder(sum(speech_ref), ilens)[0]
+        masks_ref = criterion.create_mask_label(
+            feature_mix,
+            [self.encoder(nr, ilens)[0] for nr in noise_ref],
+            noise_spec=speech_spec,
+        )
+        if "mask_noise1" in others:
+            masks_pre = [
+                others["mask_noise{}".format(n + 1)] for n in range(self.num_noise_type)
+            ]
+        else:
+            assert len(noise_pre) == len(noise_ref), (len(noise_pre), len(noise_ref))
+            masks_pre = criterion.create_mask_label(
+                feature_mix,
+                [self.encoder(np, ilens)[0] for np in noise_pre],
+                noise_spec=speech_spec,
+            )
+        return masks_ref, masks_pre
+
+    def _get_dereverb_masks(
+        self, criterion, feat_mix, noise_ref, dereverb_ref, dereverb_pre, ilens, others
+    ):
+        if noise_ref is not None:
+            noise_spec = self.encoder(sum(noise_ref), ilens)[0]
+        else:
+            noise_spec = None
+        masks_ref = criterion.create_mask_label(
+            feat_mix,
+            [self.encoder(dr, ilens)[0] for dr in dereverb_ref],
+            noise_spec=noise_spec,
+        )
+        if "mask_dereverb1" in others:
+            masks_pre = [
+                others["mask_dereverb{}".format(spk + 1)]
+                for spk in range(self.num_spk)
+                if "mask_dereverb{}".format(spk + 1) in others
+            ]
+            assert len(masks_pre) == len(masks_ref), (len(masks_pre), len(masks_ref))
+        else:
+            assert len(dereverb_pre) == len(dereverb_ref), (
+                len(dereverb_pre),
+                len(dereverb_ref),
+            )
+            masks_pre = criterion.create_mask_label(
+                feat_mix,
+                [self.encoder(dp, ilens)[0] for dp in dereverb_pre],
+                noise_spec=noise_spec,
+            )
+        return masks_ref, masks_pre
+
+    def _get_speech_masks(
+        self, criterion, feature_mix, noise_ref, speech_ref, speech_pre, ilens, others
+    ):
+        if noise_ref is not None:
+            noise_spec = self.encoder(sum(noise_ref), ilens)[0]
+        else:
+            noise_spec = None
+        masks_ref = criterion.create_mask_label(
+            feature_mix,
+            [self.encoder(sr, ilens)[0] for sr in speech_ref],
+            noise_spec=noise_spec,
+        )
+        if "mask_spk1" in others:
+            masks_pre = [
+                others["mask_spk{}".format(spk + 1)] for spk in range(self.num_spk)
+            ]
+        else:
+            masks_pre = criterion.create_mask_label(
+                feature_mix,
+                [self.encoder(sp, ilens)[0] for sp in speech_pre],
+                noise_spec=noise_spec,
+            )
+        return masks_ref, masks_pre
 
     def collect_feats(
         self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs

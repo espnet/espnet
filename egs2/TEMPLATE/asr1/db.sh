@@ -44,7 +44,7 @@ HUI_ACG=downloads
 HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
-LIBRISPEECH=
+LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
@@ -149,6 +149,7 @@ MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
+DCASE=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
