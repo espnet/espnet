@@ -18,6 +18,7 @@ class ConformerSeparator(AbsSeparator):
         self,
         input_dim: int,
         num_spk: int = 2,
+        predict_noise: bool = False,
         adim: int = 384,
         aheads: int = 4,
         layers: int = 6,
@@ -44,6 +45,7 @@ class ConformerSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
+            predict_noise: whether to output the estimated noise signal
             adim (int): Dimension of attention.
             aheads (int): The number of heads of multi head attention.
             linear_units (int): The number of units of position-wise feed forward.
@@ -75,6 +77,7 @@ class ConformerSeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
+        self.predict_noise = predict_noise
 
         self.conformer = ConformerEncoder(
             idim=input_dim,
@@ -99,8 +102,9 @@ class ConformerSeparator(AbsSeparator):
             padding_idx=padding_idx,
         )
 
+        num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
         self.linear = torch.nn.ModuleList(
-            [torch.nn.Linear(adim, input_dim) for _ in range(self.num_spk)]
+            [torch.nn.Linear(adim, input_dim) for _ in range(num_outputs)]
         )
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):
@@ -154,11 +158,16 @@ class ConformerSeparator(AbsSeparator):
             y = self.nonlinear(y)
             masks.append(y)
 
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
         masked = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
+        if self.predict_noise:
+            others["noise1"] = input * mask_noise
 
         return masked, ilens, others
 
