@@ -10,13 +10,16 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet.nets.beam_search_transducer_online import BeamSearchTransducerOnline
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H301
     ContextualBlockConformerEncoder,
 )
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: H301
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.transducer.beam_search_transducer import (
+    ExtendedHypothesis as ExtTransHypothesis2,
+)
+from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis2
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
@@ -28,18 +31,15 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
 from espnet.nets.beam_search import Hypothesis
-from espnet.nets.transducer_decoder_interface import (
-    ExtendedHypothesis as ExtTransHypothesis,
-)
-from espnet.nets.transducer_decoder_interface import Hypothesis as TransHypothesis
-from espnet2.asr.transducer.beam_search_transducer import (
-    ExtendedHypothesis as ExtTransHypothesis2,
-)
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis2
+from espnet.nets.beam_search_transducer_online import BeamSearchTransducerOnline
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.transducer_decoder_interface import (
+    ExtendedHypothesis as ExtTransHypothesis,
+)
+from espnet.nets.transducer_decoder_interface import Hypothesis as TransHypothesis
 from espnet.utils.cli_utils import get_commandline_args
 
 

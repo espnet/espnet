@@ -6,8 +6,8 @@ from typing import Dict  # noqa: H301
 from typing import List  # noqa: H301
 from typing import Tuple  # noqa: H301
 
-import torch
 import numpy as np
+import torch
 
 from espnet2.asr.transducer.beam_search_transducer import (
     BeamSearchTransducer,
