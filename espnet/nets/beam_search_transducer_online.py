@@ -721,9 +721,11 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
         logging.info(f"total log probability: {best.score:.2f}")
         logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
         logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
-        if token_list is not None:
+        if self.token_list is not None:
             logging.info(
-                "best hypo: " + "".join([token_list[x] for x in best.yseq[1:]]) + "\n"
+                "best hypo: "
+                + "".join([self.token_list[x] for x in best.yseq[1:]])
+                + "\n"
             )
         return nbest_hyps
 
