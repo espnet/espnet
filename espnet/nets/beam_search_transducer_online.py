@@ -9,7 +9,11 @@ from typing import Tuple  # noqa: H301
 import torch
 import numpy as np
 
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer, ExtendedHypothesis, Hypothesis
+from espnet2.asr.transducer.beam_search_transducer import (
+    BeamSearchTransducer,
+    ExtendedHypothesis,
+    Hypothesis,
+)
 from espnet.nets.pytorch_backend.transducer.utils import (
     create_lm_batch_states,
     init_lm_state,
@@ -19,10 +23,11 @@ from espnet.nets.pytorch_backend.transducer.utils import (
     select_lm_state,
     subtract,
 )
-#from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
-#from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
-#from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
-#from espnet.nets.e2e_asr_common import end_detect
+
+# from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
+# from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
+# from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
+# from espnet.nets.e2e_asr_common import end_detect
 
 
 class BeamSearchTransducerOnline(BeamSearchTransducer):
@@ -176,10 +181,12 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         """
         if self.running_hyps is None:
-            #Init hyps
+            # Init hyps
             dec_state = self.decoder.init_state(1)
 
-            kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
+            kept_hyps = [
+                Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)
+            ]
         else:
             kept_hyps = self.running_hyps
 
@@ -280,7 +287,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         """
         if self.running_hyps is None:
-            #Init hyps
+            # Init hyps
             beam_state = self.decoder.init_state(self.beam)
 
             B = [
@@ -299,7 +306,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
             beam_state = self.beam_state
             B = self.running_hyps
             cache = {}
-        
+
         A = []
         C = B
 
@@ -361,9 +368,9 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
                         D.append(new_hyp)
 
-            C = sorted(D, key=lambda x: x.score, reverse=True)[:self.beam]
+            C = sorted(D, key=lambda x: x.score, reverse=True)[: self.beam]
 
-        B = sorted(A, key=lambda x: x.score, reverse=True)[:self.beam]
+        B = sorted(A, key=lambda x: x.score, reverse=True)[: self.beam]
         self.beam_state = beam_state
         self.running_hyps = B
 
@@ -384,7 +391,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
         """
         if self.running_hyps is None:
-            #Init hyps
+            # Init hyps
             beam_state = self.decoder.init_state(self.beam)
 
             init_tokens = [
@@ -484,7 +491,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
                     )
 
             V.sort(key=lambda x: x.score, reverse=True)
-            V = subtract(V, hyps)[:self.beam]
+            V = subtract(V, hyps)[: self.beam]
 
             beam_state = self.decoder.create_batch_states(
                 beam_state,
@@ -532,7 +539,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
                         v.lm_state = beam_lm_states[i]
                         v.lm_scores = beam_lm_scores[i]
 
-        kept_hyps = sorted((S + V), key=lambda x: x.score, reverse=True)[:self.beam]
+        kept_hyps = sorted((S + V), key=lambda x: x.score, reverse=True)[: self.beam]
 
         self.running_hyps = kept_hyps
         return self.sort_nbest(kept_hyps)
@@ -540,7 +547,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
     def modified_adaptive_expansion_search(self, enc_out_t):
         """Recognize one block."""
         if self.running_hyps is None:
-            #Init hyps
+            # Init hyps
             beam_state = self.decoder.init_state(self.beam)
 
             init_tokens = [
@@ -641,7 +648,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
             if not list_exp:
                 kept_hyps = sorted(list_b, key=lambda x: x.score, reverse=True)[
-                    :self.beam
+                    : self.beam
                 ]
 
                 break
@@ -692,7 +699,7 @@ class BeamSearchTransducerOnline(BeamSearchTransducer):
 
                     kept_hyps = sorted(
                         list_b + list_exp, key=lambda x: x.score, reverse=True
-                    )[:self.beam]
+                    )[: self.beam]
 
         self.running_hyps = kept_hyps
 
