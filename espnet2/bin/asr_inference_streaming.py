@@ -32,6 +32,8 @@ from espnet.nets.transducer_decoder_interface import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
 from espnet.nets.transducer_decoder_interface import Hypothesis as TransHypothesis
+from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis as ExtTransHypothesis2
+from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis2
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -391,7 +393,7 @@ class Speech2TextStreaming:
         results = []
         for hyp in nbest_hyps:
             assert isinstance(
-                hyp, (Hypothesis, ExtTransHypothesis, TransHypothesis)
+                hyp, (Hypothesis, ExtTransHypothesis, TransHypothesis, ExtTransHypothesis2, TransHypothesis2)
             ), type(hyp)
 
             if self.beam_search_transducer:
