@@ -142,6 +142,7 @@ class Prenet(torch.nn.Module):
 
         """
         for i in six.moves.range(len(self.prenet)):
+            # we make this part non deterministic. See the above note.
             x = F.dropout(self.prenet[i](x), self.dropout_rate)
         return x
 
