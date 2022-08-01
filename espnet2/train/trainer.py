@@ -81,6 +81,7 @@ class TrainerOptions:
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
     wandb_model_log_interval: int
+    create_graph_in_tensoarbord: bool
 
 
 class Trainer:
@@ -433,7 +434,7 @@ class Trainer:
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
                 logging.warning(
-                    f"The gradients at all steps are invalid in this epoch. "
+                    "The gradients at all steps are invalid in this epoch. "
                     f"Something seems wrong. This training was stopped at {iepoch}epoch"
                 )
                 break
@@ -482,6 +483,7 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         use_wandb = options.use_wandb
+        create_graph_in_tensoarbord = options.create_graph_in_tensoarbord
         distributed = distributed_option.distributed
 
         if log_interval is None:
@@ -514,7 +516,11 @@ class Trainer:
                 all_steps_are_invalid = False
                 continue
 
-            if iiter == 1 and summary_writer is not None:
+            if (
+                create_graph_in_tensoarbord
+                and iiter == 1
+                and summary_writer is not None
+            ):
                 if distributed:
                     _model = getattr(model, "module")
                 else:
