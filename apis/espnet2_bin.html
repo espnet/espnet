@@ -588,6 +588,7 @@ Text converter related:
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                     [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
+                    [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                     [--wandb_name WANDB_NAME]
@@ -747,6 +748,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -1157,6 +1160,7 @@ Enh + Diar related:
                      [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                      [--use_matplotlib USE_MATPLOTLIB]
                      [--use_tensorboard USE_TENSORBOARD]
+                     [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                      [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                      [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                      [--wandb_name WANDB_NAME]
@@ -1300,6 +1304,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -1688,6 +1694,7 @@ SeparateSpeech related:
                         [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                         [--use_matplotlib USE_MATPLOTLIB]
                         [--use_tensorboard USE_TENSORBOARD]
+                        [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                         [--use_wandb USE_WANDB]
                         [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
                         [--wandb_entity WANDB_ENTITY]
@@ -1886,6 +1893,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -2318,6 +2327,7 @@ Input data related:
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                     [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
+                    [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                     [--wandb_name WANDB_NAME]
@@ -2465,6 +2475,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -2779,6 +2791,7 @@ Optimizer related:
                         [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                         [--use_matplotlib USE_MATPLOTLIB]
                         [--use_tensorboard USE_TENSORBOARD]
+                        [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                         [--use_wandb USE_WANDB]
                         [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
                         [--wandb_entity WANDB_ENTITY]
@@ -2942,6 +2955,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -3254,6 +3269,7 @@ Optimizer related:
                        [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                        [--use_matplotlib USE_MATPLOTLIB]
                        [--use_tensorboard USE_TENSORBOARD]
+                       [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                        [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                        [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                        [--wandb_name WANDB_NAME]
@@ -3418,6 +3434,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -3826,9 +3844,11 @@ The model configuration related:
                    [--train_dtype {float16,float32,float64}]
                    [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                    [--use_matplotlib USE_MATPLOTLIB]
-                   [--use_tensorboard USE_TENSORBOARD] [--use_wandb USE_WANDB]
-                   [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
-                   [--wandb_entity WANDB_ENTITY] [--wandb_name WANDB_NAME]
+                   [--use_tensorboard USE_TENSORBOARD]
+                   [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
+                   [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
+                   [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
+                   [--wandb_name WANDB_NAME]
                    [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                    [--detect_anomaly DETECT_ANOMALY]
                    [--pretrain_path PRETRAIN_PATH]
@@ -3968,6 +3988,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -4335,9 +4357,11 @@ Text converter related:
                    [--train_dtype {float16,float32,float64}]
                    [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                    [--use_matplotlib USE_MATPLOTLIB]
-                   [--use_tensorboard USE_TENSORBOARD] [--use_wandb USE_WANDB]
-                   [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
-                   [--wandb_entity WANDB_ENTITY] [--wandb_name WANDB_NAME]
+                   [--use_tensorboard USE_TENSORBOARD]
+                   [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
+                   [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
+                   [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
+                   [--wandb_name WANDB_NAME]
                    [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                    [--detect_anomaly DETECT_ANOMALY]
                    [--pretrain_path PRETRAIN_PATH]
@@ -4488,6 +4512,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -4918,9 +4944,11 @@ Text converter related:
                    [--train_dtype {float16,float32,float64}]
                    [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                    [--use_matplotlib USE_MATPLOTLIB]
-                   [--use_tensorboard USE_TENSORBOARD] [--use_wandb USE_WANDB]
-                   [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
-                   [--wandb_entity WANDB_ENTITY] [--wandb_name WANDB_NAME]
+                   [--use_tensorboard USE_TENSORBOARD]
+                   [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
+                   [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
+                   [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
+                   [--wandb_name WANDB_NAME]
                    [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                    [--detect_anomaly DETECT_ANOMALY]
                    [--pretrain_path PRETRAIN_PATH]
@@ -5080,6 +5108,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
@@ -5578,6 +5608,7 @@ Vocoder related:
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
                     [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
+                    [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                     [--wandb_name WANDB_NAME]
@@ -5732,6 +5763,8 @@ Trainer related:
                         Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default: False)
   --use_wandb USE_WANDB
                         Enable wandb logging (default: False)
   --wandb_project WANDB_PROJECT
