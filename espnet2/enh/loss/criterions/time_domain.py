@@ -25,10 +25,37 @@ class TimeDomainLoss(AbsEnhLoss, ABC):
     def only_for_test(self) -> bool:
         return self._only_for_test
 
-    def __init__(self, name, only_for_test=False):
+    @property
+    def is_noise_loss(self) -> bool:
+        return self._is_noise_loss
+
+    @property
+    def is_dereverb_loss(self) -> bool:
+        return self._is_dereverb_loss
+
+    def __init__(
+        self,
+        name,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         super().__init__()
-        self._name = name
+        # only used during validation
         self._only_for_test = only_for_test
+        # only used to calculate the noise-related loss
+        self._is_noise_loss = is_noise_loss
+        # only used to calculate the dereverberation-related loss
+        self._is_dereverb_loss = is_dereverb_loss
+        if is_noise_loss and is_dereverb_loss:
+            raise ValueError(
+                "`is_noise_loss` and `is_dereverb_loss` cannot be True at the same time"
+            )
+        if is_noise_loss and "noise" not in name:
+            name = name + "_noise"
+        if is_dereverb_loss and "dereverb" not in name:
+            name = name + "_dereverb"
+        self._name = name
 
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
@@ -51,9 +78,21 @@ class CISDRLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, filter_length=512, name=None, only_for_test=False):
+    def __init__(
+        self,
+        filter_length=512,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         _name = "ci_sdr_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self.filter_length = filter_length
 
@@ -71,9 +110,21 @@ class CISDRLoss(TimeDomainLoss):
 
 
 class SNRLoss(TimeDomainLoss):
-    def __init__(self, eps=EPS, name=None, only_for_test=False):
+    def __init__(
+        self,
+        eps=EPS,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         _name = "snr_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self.eps = float(eps)
 
@@ -107,7 +158,7 @@ class SDRLoss(TimeDomainLoss):
         When set to True, the mean of all signals is subtracted prior.
     load_diag:
         If provided, this small value is added to the diagonal coefficients of
-        the system metrics when solving for the filter coefficients.
+        the system metrices when solving for the filter coefficients.
         This can help stabilize the metric in the case where some of the reference
         signals may sometimes be zero
     """
@@ -121,9 +172,16 @@ class SDRLoss(TimeDomainLoss):
         load_diag=None,
         name=None,
         only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "sdr_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -174,10 +232,22 @@ class SISNRLoss(TimeDomainLoss):
     """
 
     def __init__(
-        self, clamp_db=None, zero_mean=True, eps=None, name=None, only_for_test=False
+        self,
+        clamp_db=None,
+        zero_mean=True,
+        eps=None,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "si_snr_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
@@ -200,6 +270,7 @@ class SISNRLoss(TimeDomainLoss):
             loss: (...,)
                 the SI-SDR loss (negative si-sdr)
         """
+        assert torch.is_tensor(est) and torch.is_tensor(ref), est
 
         si_snr = fast_bss_eval.si_sdr_loss(
             est=est,
@@ -213,9 +284,20 @@ class SISNRLoss(TimeDomainLoss):
 
 
 class TimeDomainMSE(TimeDomainLoss):
-    def __init__(self, name=None, only_for_test=False):
+    def __init__(
+        self,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         _name = "TD_MSE_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain MSE loss forward.
@@ -241,9 +323,20 @@ class TimeDomainMSE(TimeDomainLoss):
 
 
 class TimeDomainL1(TimeDomainLoss):
-    def __init__(self, name=None, only_for_test=False):
+    def __init__(
+        self,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         _name = "TD_L1_loss" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain L1 loss forward.

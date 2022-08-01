@@ -1247,6 +1247,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            rm -f "${_logdir}/*.log"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
                 ${python} -m ${asr_inference_tool} \
@@ -1259,7 +1260,22 @@ if ! "${skip_eval}"; then
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
-            # 3. Concatenates the output files from each jobs
+            # 3. Calculate and report RTF based on decoding logs
+            if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
+                log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
+                rm -f "${_logdir}"/calculate_rtf.log
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
+                ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
+                    ../../../utils/calculate_rtf.py \
+                        --log-dir ${_logdir} \
+                        --log-name "asr_inference" \
+                        --input-shift ${_sample_shift} \
+                        --start-times-marker "speech length" \
+                        --end-times-marker "best hypo"
+            fi
+
+            # 4. Concatenates the output files from each jobs
             for f in token token_int score text; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
                   for i in $(seq "${_nj}"); do

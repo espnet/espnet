@@ -21,6 +21,7 @@ class DPTNetSeparator(AbsSeparator):
         rnn_type: str = "lstm",
         bidirectional: bool = True,
         num_spk: int = 2,
+        predict_noise: bool = False,
         unit: int = 256,
         att_heads: int = 4,
         dropout: float = 0.0,
@@ -37,6 +38,7 @@ class DPTNetSeparator(AbsSeparator):
             rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
             bidirectional: bool, whether the inter-chunk RNN layers are bidirectional.
             num_spk: number of speakers
+            predict_noise: whether to output the estimated noise signal
             unit: int, dimension of the hidden state.
             att_heads: number of attention heads.
             dropout: float, dropout ratio. Default is 0.
@@ -51,15 +53,17 @@ class DPTNetSeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
+        self.predict_noise = predict_noise
         self.segment_size = segment_size
 
         self.post_enc_relu = post_enc_relu
         self.enc_LN = choose_norm(norm_type, input_dim)
+        self.num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
         self.dptnet = DPTNet(
             rnn_type=rnn_type,
             input_size=input_dim,
             hidden_size=unit,
-            output_size=input_dim * num_spk,
+            output_size=input_dim * self.num_outputs,
             att_heads=att_heads,
             dropout=dropout,
             activation=activation,
@@ -125,7 +129,7 @@ class DPTNetSeparator(AbsSeparator):
 
         processed = self.dptnet(segmented)  # B, N*num_spk, L, K
         processed = processed.reshape(
-            B * self.num_spk, -1, processed.size(-2), processed.size(-1)
+            B * self.num_outputs, -1, processed.size(-2), processed.size(-1)
         )  # B*num_spk, N, L, K
 
         processed = self.merge_feature(processed, length=T)  # B*num_spk, N, T
@@ -133,16 +137,21 @@ class DPTNetSeparator(AbsSeparator):
         # gated output layer for filter generation (B*num_spk, N, T)
         processed = self.output(processed) * self.output_gate(processed)
 
-        masks = processed.reshape(B, self.num_spk, N, T)
+        masks = processed.reshape(B, self.num_outputs, N, T)
 
         # list[(B, T, N)]
         masks = self.nonlinear(masks.transpose(-1, -2)).unbind(dim=1)
+
+        if self.predict_noise:
+            *masks, mask_noise = masks
 
         masked = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
+        if self.predict_noise:
+            others["noise1"] = input * mask_noise
 
         return masked, ilens, others
 
