@@ -16,17 +16,15 @@ def crop_frame_roi(frame, roi_bound, roi_size=(96, 96)):
     bound_l = max(roi_bound[3] - roi_bound[1], roi_bound[2] - roi_bound[0])
     bound_h_extend = (bound_l - roi_bound[2] + roi_bound[0]) / 2
     bound_w_extend = (bound_l - roi_bound[3] + roi_bound[1]) / 2
-    x_start, x_end = (
-        int(roi_bound[1] - bound_w_extend),
-        int(roi_bound[3] + bound_w_extend),
+    x_start, x_end = int(roi_bound[1] - bound_w_extend), int(
+        roi_bound[3] + bound_w_extend
     )
     if x_start < 0:
         x_start = 0
     if x_end > frame.shape[0]:
         x_end = frame.shape[0]
-    y_start, y_end = (
-        int(roi_bound[0] - bound_h_extend),
-        int(roi_bound[2] + bound_h_extend),
+    y_start, y_end = int(roi_bound[0] - bound_h_extend), int(
+        roi_bound[2] + bound_h_extend
     )
     if y_start < 0:
         y_start = 0
