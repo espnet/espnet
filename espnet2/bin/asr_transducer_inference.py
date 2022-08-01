@@ -85,7 +85,7 @@ class Speech2Text:
         quantize_dtype: str = "qint8",
         nbest: int = 1,
         streaming: bool = False,
-        chunk_size: int = 8,
+        chunk_size: int = 16,
         left_context: int = 32,
         right_context: int = 0,
         display_partial_hypotheses: bool = False,

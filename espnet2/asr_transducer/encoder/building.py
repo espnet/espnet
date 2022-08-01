@@ -138,7 +138,7 @@ def build_conformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
 ) -> Conformer:
-    """Build conformer block.
+    """Build Conformer block.
 
     Args:
         configuration: Conformer block configuration.

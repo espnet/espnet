@@ -1,4 +1,4 @@
-"""Convolution for Conformer block."""
+"""Convolution for X-former block."""
 
 from typing import Optional, Tuple
 
@@ -10,7 +10,7 @@ class ConformerConvolution(torch.nn.Module):
 
     Args:
         channels: The number of channels of conv layers.
-        kernel_size: Kernerl size of conv layers.
+        kernel_size: Kernel size of conv layers.
         activation: Type of activation function.
         norm_class: Normalization class.
         norm_eps: Initial epsilon value for the normalization class.

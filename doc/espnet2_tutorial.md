@@ -376,11 +376,12 @@ For Transducer loss computation during training, we rely on a fork of `warp-tran
 
 ### Architecture
 
-The architecture is composed of three modules: encoder, decoder and joint network. Each one has a set of up to two parameters settable in order to configure the internal parts. The following sections describe the mandatory and optional parameters for each module.
+The architecture is composed of three modules: encoder, decoder and joint network. Each module has one (or three)  config(s) with various parameters in order to configure the internal parts. The following sections describe the mandatory and optional parameters for each module.
 
 #### Encoder
 
-For the encoder, we propose a unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
+For the encoder, we propose a unique encoder type encapsulating the following blocks: Conformer and Conv 1D (other X-former such as Branchformer or Enformer will be supported soon).
+It is similar to the custom encoder in ESPnet1, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three configurations passed to `encoder_conf`:
 
   1. `input_conf` (**Dict**): The configuration for the input block.
   2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
@@ -414,7 +415,7 @@ The first and second configurations are optional. If needed, fhe following param
 
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
-      conv_size (conv2d only): Convolution output size. (int, default = 256)
+      conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
       subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
@@ -435,15 +436,14 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
     - block_type: conformer
       hidden_size: Hidden (and output) dimension. (int)
       linear_size: Dimension of feed-forward module. (int)
+      conv_mod_kernel_size: Number of kernel in convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      macaron_style (optional): Whether to use macaron style. (bool, default = False)
-      conv_mod_kernel_size (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
-      basic_norm: Whether to use BasicNorm in place of LayerNorm in Conformer. (bool, default = False)
-      conv_mod_basic_norm: Whether to use BasicNorm in place of BatchNorm1d in convolutional module. (bool, default = False)
-      norm_eps: Epsilon value for Conformer normalization. (float, default = 1e-12 or 0.25 if `basic_norm=True`)
-      conv_mod_norm_eps: Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 if `conv_mod_basic_norm=True`)
+      basic_norm (optional): Whether to use BasicNorm in place of LayerNorm in Conformer. (bool, default = False)
+      conv_mod_basic_norm (optional): Whether to use BasicNorm in place of BatchNorm1d in convolutional module. (bool, default = False)
+      norm_eps (optional): Epsilon value for Conformer normalization. (float, default = 1e-12 or 0.25 if `basic_norm=True`)
+      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 if conv_mod_basic_norm=True)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
-      att_dropout_rate (optional: Dropout rate for the attention module. (float, default = 0.0)
+      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
@@ -453,9 +453,7 @@ In addition, each block has a parameter `num_blocks` to build **N** times the de
 ```yaml
 encoder_conf:
     main_conf:
-      pos_wise_layer_type: linear
       pos_wise_act_type: swish
-      pos_enc_layer_type: rel_pos
       pos_enc_dropout_rate: 0.1
       conv_mod_act_type: swish
     input_conf:
@@ -476,17 +474,19 @@ encoder_conf:
       dropout_rate: 0.1
       pos_wise_dropout_rate: 0.1
       att_dropout_rate: 0.1
-      macaron_style: true
       conv_mod_kernel_size: 31
       num_blocks: 14
 ```
 
 #### Decoder
 
-For the decoder, two types of blocks are available: RNN and stateless (only embedding). It is defined through two parameters: `decoder` and `decoder_conf`. The first one takes a string defining the type of block (either `rnn` or `stateless`) to use while the second takes a single configuration. The following parameters can be set but are all optional:
+The type can be defined through `decoder` parameter by passing a string (either `rnn` or `stateless`) and the internal parts can be configured
+
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared accross the blocks, meaning we only define define only one block here.
+The type of the stack of blocks is by passing a string (either `rnn` or `stateless`) to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following (optional) parameters:
 
     decoder_conf:
-      rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
+      rnn_type (RNN only, optional): Type of RNN cells (int, default = "lstm").
       hidden_size (RNN only): Size of the hidden layers (int, default = 256).
       embed_size: Size of the embedding layer (int, default = 256).
       dropout_rate: Dropout rate for the RNN output nodes (float, default = 0.0).
@@ -544,26 +544,31 @@ The algorithms share two parameters to control the beam size (`beam-size`) and t
     expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
     expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
 
-**Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+***Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+
+***Note 2:*** The algorithms in the standalone version are the same as the one in the other version.. However, due to design choices, some parts were reworked and minor optimizations were added in the same time.
 
 ### Streaming
 
-In this version, we also support streaming Transducer models with dynamic chunk training and chunk-by-chunk decoding as proposed in [[Zhang et al., 2021]](https://arxiv.org/pdf/2012.05481.pdf). Our implementation is based on the version proposed in [Icefall](https://github.com/k2-fsa/icefall/), based itself on the original [WeNet](https://github.com/wenet-e2e/wenet/) one.
+To enable streaming capabilities for Transducer models, we support dynamic chunk training and chunk-by-chunk decoding as proposed in [[Zhang et al., 2021]](https://arxiv.org/pdf/2012.05481.pdf). Our implementation is based on the version proposed in [Icefall](https://github.com/k2-fsa/icefall/), based itself on the original [WeNet](https://github.com/wenet-e2e/wenet/) one.
+
+For a complete explanation on the different procedure and parameters, we refer the reader to the corresponding paper.
 
 #### Training
 
-To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True`. From here, the user has access to threee parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and left-context of the chunk during training (`left_chunk_size`).
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`.
 
-All these parameters can be modified in the training config through the `main_conf` field. A short description of the parameters is given in the Encoder section.
+From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`). All these parameters can be configured through the `main_conf`. The Encoder section provides a short description of the parameters.
 
 #### Decoding
 
-To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration. In addition, the following parameters can be modified in order to modify the size of different elements of the approach:
+To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration(otherwise, offline decoding will be performed). Three parameters are available to control the decoding process:
 
-    chunk_size: Number of frames in chunk. (int, default = 8)
-    left_context: Number of frames in the left context of the chunk. (int, default = 32)
-    right_context: Number of frames in the right context of the chunk. (int, default = 2)
+    chunk_size: Number of frames in chunk. (int, default = 16)
+    left_context: Number of frames in the left context. (int, default = 32)
+    right_context: Number of frames in the right context. (int, default = 0)
 
-For each parameter, the number of frames is defined AFTER subsampling, meaning the original input chunk will be bigger than requested.
+For each parameter, the number of frames is defined AFTER subsampling, meaning the input chunk will be bigger than the one provided. The input size is determined by the frontend and the input block's subsampling, given `chunk_size + right_context` defining the decoding window.
 
-***Note:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
+***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
+***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
