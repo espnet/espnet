@@ -81,7 +81,7 @@ class TrainerOptions:
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
     wandb_model_log_interval: int
-    create_graph_in_tensoarbord: bool
+    create_graph_in_tensorboard: bool
 
 
 class Trainer:
@@ -483,7 +483,7 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         use_wandb = options.use_wandb
-        create_graph_in_tensoarbord = options.create_graph_in_tensoarbord
+        create_graph_in_tensorboard = options.create_graph_in_tensorboard
         distributed = distributed_option.distributed
 
         if log_interval is None:
@@ -517,7 +517,7 @@ class Trainer:
                 continue
 
             if (
-                create_graph_in_tensoarbord
+                create_graph_in_tensorboard
                 and iiter == 1
                 and summary_writer is not None
             ):

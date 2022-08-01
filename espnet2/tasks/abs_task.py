@@ -572,7 +572,7 @@ class AbsTask(ABC):
             help="Enable tensorboard logging",
         )
         group.add_argument(
-            "--create_graph_in_tensoarbord",
+            "--create_graph_in_tensorboard",
             type=str2bool,
             default=False,
             help="Whether to create graph in tensorboard",
