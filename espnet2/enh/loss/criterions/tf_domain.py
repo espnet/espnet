@@ -42,6 +42,9 @@ def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     if ref_spec[0].ndim < mix_spec.ndim:
         # (B, T, F) -> (B, T, 1, F)
         ref_spec = [r.unsqueeze(2).expand_as(mix_spec.real) for r in ref_spec]
+    if noise_spec is not None and noise_spec.ndim < mix_spec.ndim:
+        # (B, T, F) -> (B, T, 1, F)
+        noise_spec = noise_spec.unsqueeze(2).expand_as(mix_spec.real)
     for idx, r in enumerate(ref_spec):
         mask = None
         if mask_type == "IBM":
@@ -113,10 +116,29 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
     def only_for_test(self) -> bool:
         return self._only_for_test
 
-    def __init__(self, name, only_for_test=False):
+    @property
+    def is_noise_loss(self) -> bool:
+        return self._is_noise_loss
+
+    @property
+    def is_dereverb_loss(self) -> bool:
+        return self._is_dereverb_loss
+
+    def __init__(
+        self, name, only_for_test=False, is_noise_loss=False, is_dereverb_loss=False
+    ):
         super().__init__()
         self._name = name
+        # only used during validation
         self._only_for_test = only_for_test
+        # only used to calculate the noise-related loss
+        self._is_noise_loss = is_noise_loss
+        # only used to calculate the dereverberation-related loss
+        self._is_dereverb_loss = is_dereverb_loss
+        if is_noise_loss and is_dereverb_loss:
+            raise ValueError(
+                "`is_noise_loss` and `is_dereverb_loss` cannot be True at the same time"
+            )
 
     def create_mask_label(self, mix_spec, ref_spec, noise_spec=None):
         return _create_mask_label(
@@ -129,7 +151,13 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
     def __init__(
-        self, compute_on_mask=False, mask_type="IBM", name=None, only_for_test=False
+        self,
+        compute_on_mask=False,
+        mask_type="IBM",
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         if name is not None:
             _name = name
@@ -137,7 +165,12 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
             _name = f"MSE_on_{mask_type}"
         else:
             _name = "MSE_on_Spec"
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
@@ -179,7 +212,13 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
 class FrequencyDomainL1(FrequencyDomainLoss):
     def __init__(
-        self, compute_on_mask=False, mask_type="IBM", name=None, only_for_test=False
+        self,
+        compute_on_mask=False,
+        mask_type="IBM",
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         if name is not None:
             _name = name
@@ -187,7 +226,12 @@ class FrequencyDomainL1(FrequencyDomainLoss):
             _name = f"L1_on_{mask_type}"
         else:
             _name = "L1_on_Spec"
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
@@ -238,9 +282,16 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
         loss_type="dpcl",
         name=None,
         only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "dpcl" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
         self._loss_type = loss_type
@@ -331,10 +382,21 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
 
 class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
     def __init__(
-        self, compute_on_mask=False, mask_type=None, name=None, only_for_test=False
+        self,
+        compute_on_mask=False,
+        mask_type=None,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "Coherence_on_Spec" if name is None else name
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self._compute_on_mask = False
         self._mask_type = None
@@ -389,6 +451,8 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
         ignore_id=-100,
         name=None,
         only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         if name is not None:
             _name = name
@@ -396,7 +460,12 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
             _name = f"CE_on_{mask_type}"
         else:
             _name = "CE_on_Spec"
-        super().__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type

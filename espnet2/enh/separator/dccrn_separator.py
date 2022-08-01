@@ -57,6 +57,7 @@ class DCCRNSeparator(AbsSeparator):
         self.use_builtin_complex = use_builtin_complex
         self._num_spk = num_spk
         self.use_noise_mask = use_noise_mask
+        self.predict_noise = use_noise_mask
         if masking_mode not in ["C", "E", "R"]:
             raise ValueError("Unsupported masking mode: %s" % masking_mode)
         # Network config
