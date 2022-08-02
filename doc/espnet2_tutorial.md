@@ -362,7 +362,7 @@ For the user, it means two things. First, some features or modules may not be su
 To enable Transducer model training or decoding in your experiments, the following option should be supplied to `asr.sh` in your `run.sh`:
 
 ```sh
-asr.sh --asr-transducer true [...]
+asr.sh --asr_task asr_transducer [...]
 ```
 
 For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
@@ -577,12 +577,12 @@ For each parameter, the number of frames is defined AFTER subsampling, meaning t
 
 #### How to add a new block type to the custom encoder?
 
-~~Provided paths are relative to the directory: `espnet2/asr_transducer/encoder/`~~
+***Provided paths are relative to the directory: `espnet2/asr_transducer/encoder/`***
 
 Adding support to a new block type can be achieved in three main steps:
 
-1) Write your need block class in `encoder/blocks/. The class should have the following methods: __init__(...), forward(...) (training + offline), chunk_forward(...) (online decoding), reset_streaming_cache(...) (online cache definition). For more details on implementing internal parts, we refer the user to the existing block definition and the Streaming section.
-2) In `building.py`, write a block constructor method and add a new condition in build_body_blocks(...) for your block type, calling the constructor method. If you need additional parameters shared across blocks, you can add them in `build_main_parameters(...)` and use `main_conf` in your constructor.
-3) In `validation.py`, add new conditions in `validate_block_arguments(...) to set the the mandatory block parameters (if not already covered).
+1) Write your need block class in `encoder/blocks/`. The class should have the following methods: `__init__(...)`, `forward(...)` (training + offline), `chunk_forward(...)` (online decoding), `reset_streaming_cache(...)` (online cache definition). For more details on implementing internal parts, we refer the user to the existing block definition and the Streaming section.
+2) In `building.py`, write a block constructor method and add a new condition in `build_body_blocks(...)` for your block type, calling the constructor method. If you need additional parameters to share  across blocks, you can add them in `build_main_parameters(...)` and pass `main_conf` to your constructor.
+3) In `validation.py`, add new conditions to `validate_block_arguments(...) in order to set and validate the mandatory block parameters before building (if not already covered).
 
-For additional information or examples, please refer to the named files. If there are additional classes related to the block, they should be added in the block class or in `modules/`.
+For additional information or examples, please refer to the named files. If you need to add other classes related to the new block, they should be added within the block class or in `modules/`.
