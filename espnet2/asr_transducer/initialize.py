@@ -1,5 +1,7 @@
 """Initialize ESPnet2 Transducer model modules."""
 
+# Note (b-flo): This file is currently not used. Initialization will soon be reworked.
+
 import math
 
 import torch

@@ -18,7 +18,6 @@ from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
-from espnet2.asr_transducer.initialize import initialize
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -424,7 +423,10 @@ class ASRTransducerTask(AbsTask):
 
         # 8. Initialize
         if args.init is not None:
-            initialize(model, args.init)
+            raise NotImplementedError(
+                "Currently not supported.",
+                "Initialization will be reworked in a short future.",
+            )
 
         assert check_return_type(model)
 
