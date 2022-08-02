@@ -572,3 +572,17 @@ For each parameter, the number of frames is defined AFTER subsampling, meaning t
 
 ***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
 ***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
+
+### FAQ
+
+#### How to add a new block type to the custom encoder?
+
+~~Provided paths are relative to the directory: `espnet2/asr_transducer/encoder/`~~
+
+Adding support to a new block type can be achieved in three main steps:
+
+1) Write your need block class in `encoder/blocks/. The class should have the following methods: __init__(...), forward(...) (training + offline), chunk_forward(...) (online decoding), reset_streaming_cache(...) (online cache definition). For more details on implementing internal parts, we refer the user to the existing block definition and the Streaming section.
+2) In `building.py`, write a block constructor method and add a new condition in build_body_blocks(...) for your block type, calling the constructor method. If you need additional parameters shared across blocks, you can add them in `build_main_parameters(...)` and use `main_conf` in your constructor.
+3) In `validation.py`, add new conditions in `validate_block_arguments(...) to set the the mandatory block parameters (if not already covered).
+
+For additional information or examples, please refer to the named files. If there are additional classes related to the block, they should be added in the block class or in `modules/`.
