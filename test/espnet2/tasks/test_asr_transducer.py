@@ -63,7 +63,7 @@ def get_dummy_namespace():
         decoder_conf={"embed_size": 8},
         joint_network_conf={"joint_space_size": 8},
         model_conf={"transducer_weight": 1.0},
-        init="chainer_espnet1",
+        init=None,
     )
 
 

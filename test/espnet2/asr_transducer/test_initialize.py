@@ -1,3 +1,5 @@
+# Note (b-flo): To rework alongside initialization.
+
 import pytest
 
 from espnet2.asr.frontend.default import DefaultFrontend
