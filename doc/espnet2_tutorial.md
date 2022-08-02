@@ -369,7 +369,7 @@ For Transducer loss computation during training, we rely on a fork of `warp-tran
 
 **Note:** If you encounter any error related to this tool, please open an issue in ESPnet instead of the [original repository](https://github.com/HawkAaron/warp-transducer/issues).
 
-**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit-lambda` need to be set in `model_conf`:
+**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
 
     model_conf:
       fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
