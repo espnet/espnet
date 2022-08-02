@@ -263,7 +263,7 @@ class BeamSearchTransducer:
         """Make batch of inputs with left padding for LM scoring.
 
         Args:
-            hyps_seqs: Hypothesis sequences.
+            hyps_seq: Hypothesis sequences.
 
         Returns:
             : Padded batch of sequences.
