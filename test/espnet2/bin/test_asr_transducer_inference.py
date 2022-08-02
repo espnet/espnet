@@ -201,8 +201,10 @@ def test_streaming_Speech2Text(
     for i in range(_steps):
         _end = (i + 1) * speech2text._raw_ctx
 
-        speech2text(speech[i * speech2text._raw_ctx : _end], is_final=False)
-    hyps = speech2text(speech[_end : len(speech)], is_final=True)
+        speech2text.streaming_decode(
+            speech[i * speech2text._raw_ctx : _end], is_final=False
+        )
+    hyps = speech2text.streaming_decode(speech[_end : len(speech)], is_final=True)
     results = speech2text.hypotheses_to_results(hyps)
 
     for text, token, token_int, hyp in results:

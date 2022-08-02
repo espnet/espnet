@@ -177,6 +177,10 @@ class Speech2Text:
         self.left_context = max(left_context, 0)
         self.right_context = max(right_context, 0)
 
+        if not streaming or chunk_size == 0:
+            self.streaming = False
+            self.asr_model.encoder.dynamic_chunk_training = False
+
         self.n_fft = asr_train_args.frontend_conf.get("n_fft", 512)
         self.hop_length = asr_train_args.frontend_conf.get("hop_length", 128)
 
@@ -317,16 +321,49 @@ class Speech2Text:
         return feats, feats_lengths
 
     @torch.no_grad()
-    def __call__(
+    def streaming_decode(
         self,
         speech: Union[torch.Tensor, np.ndarray],
         is_final: bool = True,
     ) -> List[Hypothesis]:
+        """Speech2Text streaming call.
+
+        Args:
+            speech: Chunk of speech data. (S)
+            is_final: Whether speech corresponds to the final chunk of data.
+
+        Returns:
+            nbest_hypothesis: N-best hypothesis.
+
+        """
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
+
+        feats, feats_length = self.apply_frontend(speech, is_final=is_final)
+
+        enc_out = self.asr_model.encoder.chunk_forward(
+            feats,
+            feats_length,
+            self.num_processed_frames,
+            left_context=self.left_context,
+            right_context=self.right_context,
+        )
+
+        nbest_hyps = self.beam_search(enc_out[0], is_final=is_final)
+
+        self.num_processed_frames += self.chunk_size
+
+        if is_final:
+            self.reset_inference_cache()
+
+        return nbest_hyps
+
+    @torch.no_grad()
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> List[Hypothesis]:
         """Speech2Text call.
 
         Args:
             speech: Speech data. (S)
-            is_final: Whether speech corresponds to the final (or only) chunk of data.
 
         Returns:
             nbest_hypothesis: N-best hypothesis.
@@ -337,29 +374,10 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        feats, feats_length = self.apply_frontend(speech, is_final=is_final)
+        feats, feats_length = self.apply_frontend(speech)
+        enc_out, _ = self.asr_model.encoder(feats, feats_length)
 
-        if self.streaming and self.chunk_size > 0:
-            enc_out = self.asr_model.encoder.chunk_forward(
-                feats,
-                feats_length,
-                self.num_processed_frames,
-                left_context=self.left_context,
-                right_context=self.right_context,
-            )
-
-            nbest_hyps = self.beam_search(enc_out[0], is_final=is_final)
-
-            self.num_processed_frames += self.chunk_size
-        else:
-            self.asr_model.encoder.dynamic_chunk_training = False
-
-            enc_out, _ = self.asr_model.encoder(feats, feats_length)
-
-            nbest_hyps = self.beam_search(enc_out[0])
-
-        if is_final:
-            self.reset_inference_cache()
+        nbest_hyps = self.beam_search(enc_out[0])
 
         return nbest_hyps
 
@@ -561,7 +579,7 @@ def inference(
             assert len(batch.keys()) == 1
 
             try:
-                if streaming and chunk_size > 0:
+                if speech2text.streaming:
                     speech = batch["speech"]
 
                     _steps = len(speech) // speech2text._raw_ctx
@@ -570,11 +588,13 @@ def inference(
                     for i in range(_steps):
                         _end = (i + 1) * speech2text._raw_ctx
 
-                        speech2text(
+                        speech2text.streaming_decode(
                             speech[i * speech2text._raw_ctx : _end], is_final=False
                         )
 
-                    final_hyps = speech2text(speech[_end : len(speech)], is_final=True)
+                    final_hyps = speech2text.streaming_decode(
+                        speech[_end : len(speech)], is_final=True
+                    )
                 else:
                     final_hyps = speech2text(**batch)
 
