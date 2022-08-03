@@ -1,5 +1,6 @@
 import collections.abc
 import logging
+
 import numpy as np
 from typeguard import check_argument_types
 

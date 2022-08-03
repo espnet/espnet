@@ -4,9 +4,11 @@
 """Encoder definition."""
 import logging
 from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 from typeguard import check_argument_types
+
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 try:
@@ -46,7 +48,9 @@ class ResNet(AbsEncoder):
         RESNET_EMBEDDING_DIM = 512  # ResNET-18 output embedding is dimension 512
 
         self.fine_tune = fine_tune
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
         self.encoders = model.to(self.device)
         # self.pretrained_params = copy.deepcopy(model.state_dict())
         self.transform = transforms.Compose(

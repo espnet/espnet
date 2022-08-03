@@ -1,6 +1,7 @@
 import argparse
 import logging
 from distutils.util import strtobool as stb
+from pathlib import Path
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -57,28 +58,26 @@ from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 # Adding Multimodal Model Definitions
 from espnet2.avsr.encoder.vision_encoder import ResNet, VisionTransformer
 from espnet2.avsr.espnet_avsr_model import ESPnetAVSRModel
+
+# Overwriting build_sequence_iter_factory
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.tasks.abs_task import AbsTask
+from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
+from espnet2.tasks.abs_task import AbsTask, IteratorOptions
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset, MMESPnetDataset
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
-from pathlib import Path
-
-# Overwriting build_sequence_iter_factory
-from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
-from espnet2.tasks.abs_task import IteratorOptions
-from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset, MMESPnetDataset
 
 
 def strtobool(s: str) -> bool:

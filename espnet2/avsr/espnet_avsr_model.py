@@ -106,6 +106,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         self.fusion_stage = fusion_stage
         self.aligner = MM_Aligner(align_option)
         self.fuser = MM_Fuser(fusion_type)
+        self.unimodal = self.is_unimodal([audio_input, vision_input])
 
         if not hasattr(self.encoder, "interctc_use_conditioning"):
             self.encoder.interctc_use_conditioning = False
@@ -174,6 +175,16 @@ class ESPnetAVSRModel(AbsESPnetModel):
             self.ctc = ctc
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
+
+    def is_unimodal(
+        self,
+        input_modalities: List[bool],
+    ) -> bool:
+        if not any(input_modalities):
+            raise ValueError("At least one modality input must be true!")
+        else:
+            res = [i for i, val in enumerate(input_modalities) if val]
+            return len(res) == 1
 
     def forward(
         self,
@@ -366,42 +377,46 @@ class ESPnetAVSRModel(AbsESPnetModel):
         with autocast(False):
             # 1. Extract feats
             if self.audio_input:
-                feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+                audio_feats, audio_lengths = self._extract_feats(speech, speech_lengths)
                 # 2. Data augmentation
                 if self.specaug is not None and self.training:
-                    feats, feats_lengths = self.specaug(feats, feats_lengths)
+                    audio_feats, audio_lengths = self.specaug(
+                        audio_feats, audio_lengths
+                    )
                 # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
                 if self.normalize is not None:
-                    feats, feats_lengths = self.normalize(feats, feats_lengths)
+                    audio_feats, audio_lengths = self.normalize(
+                        audio_feats, audio_lengths
+                    )
                 # 4. Performr Stacking / Pooling for audio features
-                feats, feats_lengths = self.reduce_audio_seq(feats, feats_lengths)
+                audio_feats, audio_lengths = self.reduce_audio_seq(
+                    audio_feats, audio_lengths
+                )
 
             if self.vision_input:
                 vision_feats, vision_lengths = self._extract_vision_feats(
                     vision, vision_lengths
                 )
 
-        # Align audio, vision features
-        if self.audio_input and self.vision_input:
-            feats, vision_feats, feats_lengths = self.aligner.align(
-                feats, feats_lengths, vision_feats, vision_lengths
-            )
+        # feats: (B, T, self.frontend.output_size() * self.stack_order)
+        # vision_feats: (B, T, self.vision_encoder.output_size())
 
-        if not self.audio_input:
-            B, T, F = vision_feats.size()
-            feats = torch.zeros(
-                (B, T, self.frontend.output_size() * self.stack_order)
-            ).detach()
-            feats = feats.to(vision_feats.device)
-        if not self.vision_input:
-            B, T, F = feats.size()
-            vision_feats = torch.zeros(
-                (B, T, self.vision_encoder.output_size())
-            ).detach()
-            vision_feats = vision_feats.to(feats.device)
+        if self.unimodal:
+            # Unimodal case
+            if self.audio_input:
+                feats, feats_lengths = feats, feats_lengths
+            if self.vision_input:
+                feats, feats_lengths = vision_feats, vision_lengths
+
+        else:
+            # Multimodal case: Align audio, vision features
+            if self.audio_input and self.vision_input:
+                audio_feats, vision_feats, feats_lengths = self.aligner.align(
+                    audio_feats, audio_lengths, vision_feats, vision_lengths
+                )
 
         # Multimodal Fusion Step
-        if self.fusion_stage == "frontend":
+        if not self.unimodal and self.fusion_stage == "frontend":
             feats, feats_lenghts = self.fuser.fuse(feats, vision_feats, feats_lengths)
 
         # 3-2. Pre-encoder, e.g. used for raw input data
