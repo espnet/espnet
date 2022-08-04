@@ -111,6 +111,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
             ],
             {
                 "dynamic_chunk_training": True,
+                "norm_type": "scale_norm",
                 "short_chunk_size": 30,
                 "short_chunk_threshold": 0.01,
                 "left_chunk_size": 2,
@@ -124,21 +125,32 @@ from espnet2.asr_transducer.utils import TooShortUttError
                     "hidden_size": 8,
                     "linear_size": 2,
                     "conv_mod_kernel_size": 1,
-                    "basic_norm": True,
-                    "norm_eps": 1e-13,
-                    "conv_mod_basic_norm": True,
+                    "norm_eps": 1e-5,
+                    "norm_partial": 0.8,
                     "conv_mod_norm_eps": 0.4,
                     "num_blocks": 2,
                 },
             ],
             {
                 "simplified_att_score": True,
-                "after_norm_type": "basic_norm",
-                "after_norm_eps": 0.5,
+                "norm_type": "rms_norm",
+                "conv_mod_norm_type": "basic_norm",
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
                 "left_chunk_size": 0,
             },
+        ),
+        (
+            {},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                }
+            ],
+            {"norm_type": "rms_norm"},
         ),
     ],
 )
