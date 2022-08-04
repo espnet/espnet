@@ -25,7 +25,7 @@ fs = 22050
 hop_length = 256
 
 
-def main():
+def get_parser():
     parser = argparse.ArgumentParser(
         description='Utilities to format from MFA to ESPnet.\n'
                     'Usage: python scripts/utils/mfa_format.py ACTION [dataset] [options]\n'
@@ -43,20 +43,7 @@ def main():
     parser.add_argument('--durations_path', default=DURATIONS_PATH,
                         help='Path to output durations file')
 
-    args = parser.parse_args()
-    try:
-        if args.type == 'labs':
-            func = globals()[f'make_labs_{args.dataset}']
-            func(args)
-        elif args.type == 'validate':
-            validate(args)
-        elif args.type == 'durations':
-            make_durations(args)
-        else:
-            raise NotImplementedError
-    except:
-        traceback.print_exc()
-        sys.exit(1)
+    return parser
 
 
 def make_labs_ljspeech(args):
@@ -209,4 +196,17 @@ def make_durations(args):
 
 
 if __name__ == '__main__':
-    main()
+    args = get_parser().parse_args()
+    try:
+        if args.type == 'labs':
+            func = globals()[f'make_labs_{args.dataset}']
+            func(args)
+        elif args.type == 'validate':
+            validate(args)
+        elif args.type == 'durations':
+            make_durations(args)
+        else:
+            raise NotImplementedError
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
