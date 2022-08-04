@@ -39,6 +39,7 @@ egs*/*/*/fbank
 egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
+egs*/*/*/textgrids
 egs*/*/*/wav*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
