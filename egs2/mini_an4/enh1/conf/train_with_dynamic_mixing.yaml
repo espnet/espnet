@@ -16,6 +16,11 @@ separator_conf:
     unit: 128
     dropout: 0.2
 
+# dynamic_mixing related
+# dynamic_mixing_gain_db:
+# The maximum random gain (in dB) for each source before the mixing.
+# The gain (in dB) of each source is unifromly sampled in
+# [-dynamic_mixing_gain_db, dynamic_mixing_gain_db]
 dynamic_mixing: True
 dynamic_mixing_gain_db: 2.0
 

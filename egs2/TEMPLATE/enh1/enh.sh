@@ -553,6 +553,7 @@ if ! "${skip_train}"; then
             # In current version, if you want to enable dynamic mixing in speech separation,
             # you need to prepare the training set manually. Here we assume all speech sources 
             # are collected in "spk1.scp", and other scp files (wav.scp, spk{N}.scp) are not used. 
+            log "Dynamic mixing is enabled, use spk1.scp as the source file list."
             _scp=spk1.scp
         else
             _scp=wav.scp
