@@ -1,6 +1,6 @@
 """MultiBlocks for encoder architecture."""
 
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import torch
 
@@ -11,7 +11,8 @@ class MultiBlocks(torch.nn.Module):
     Args:
         block_list: Individual blocks of the encoder architecture.
         output_size: Architecture output size.
-        layer_norm: Normalization layer.
+        norm_class: Normalization module class.
+        norm_args: Normalization module arguments.
 
     """
 
@@ -20,12 +21,12 @@ class MultiBlocks(torch.nn.Module):
         block_list: List[torch.nn.Module],
         output_size: int,
         norm_class: torch.nn.Module = torch.nn.LayerNorm,
-        norm_eps: int = 1e-12,
-    ):
+        norm_args: Optional[Dict] = None,
+    ) -> None:
         super().__init__()
 
         self.blocks = torch.nn.ModuleList(block_list)
-        self.norm_blocks = norm_class(output_size, eps=norm_eps)
+        self.norm_blocks = norm_class(output_size, **norm_args)
 
         self.num_blocks = len(block_list)
 

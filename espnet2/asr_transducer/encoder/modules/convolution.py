@@ -1,6 +1,6 @@
 """Convolution for X-former block."""
 
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -12,8 +12,8 @@ class ConformerConvolution(torch.nn.Module):
         channels: The number of channels of conv layers.
         kernel_size: Kernel size of conv layers.
         activation: Type of activation function.
-        norm_class: Normalization class.
-        norm_eps: Initial epsilon value for the normalization class.
+        norm_class: Normalization module class.
+        norm_args: Normalization module arguments.
         causal: Whether to use causal convolution (set to True if streaming).
 
     """
@@ -24,7 +24,7 @@ class ConformerConvolution(torch.nn.Module):
         kernel_size: int,
         activation: torch.nn.Module = torch.nn.ReLU(),
         norm_class: torch.nn.Module = torch.nn.BatchNorm1d,
-        norm_eps: float = 1e-05,
+        norm_args: Dict = {},
         causal: bool = False,
     ) -> None:
         """Construct an ConformerConvolution object."""
@@ -57,7 +57,7 @@ class ConformerConvolution(torch.nn.Module):
             padding=padding,
             groups=channels,
         )
-        self.norm = norm_class(channels, eps=norm_eps)
+        self.norm = norm_class(channels, **norm_args)
         self.pointwise_conv2 = torch.nn.Conv1d(
             channels,
             channels,

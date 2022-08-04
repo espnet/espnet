@@ -1,8 +1,6 @@
 """Set of methods to build Transducer encoder architecture."""
 
-from typing import Any, Dict, List, Union
-
-from torch.nn import BatchNorm1d, LayerNorm
+from typing import Any, Dict, List, Optional, Union
 
 from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
@@ -15,7 +13,7 @@ from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
     ConformerConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
-from espnet2.asr_transducer.encoder.modules.norm import BasicNorm
+from espnet2.asr_transducer.encoder.modules.normalization import get_normalization
 from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa: H301
     RelPositionalEncoding,
 )
@@ -30,8 +28,10 @@ def build_main_parameters(
     pos_enc_dropout_rate: float = 0.0,
     pos_enc_max_len: int = 5000,
     simplified_att_score: bool = False,
-    after_norm_type: str = "layer_norm",
-    after_norm_eps: float = 1e-12,
+    norm_type: str = "layer_norm",
+    conv_mod_norm_type: str = "batch_norm",
+    after_norm_eps: Optional[float] = None,
+    after_norm_partial: Optional[float] = None,
     dynamic_chunk_training: bool = False,
     short_chunk_threshold: float = 0.75,
     short_chunk_size: int = 25,
@@ -46,8 +46,10 @@ def build_main_parameters(
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
         simplified_att_score: Whether to use simplified attention score computation.
-        after_norm_type: Final normalization type.
+        norm_type: Normalization module type for X-former.
+        conv_mod_norm_type: Normalization module type for convolution modules.
         after_norm_eps: Epsilon value for the final normalization.
+        after_norm_partial: Value for the final normalization with RMSNorm.
         dynamic_chunk_training: Whether to use dynamic chunk training.
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
@@ -74,14 +76,13 @@ def build_main_parameters(
 
     main_params["simplified_att_score"] = simplified_att_score
 
-    if after_norm_type == "basic_norm":
-        main_params["after_norm_class"] = BasicNorm
-        main_params["after_norm_eps"] = (
-            0.25 if after_norm_eps == 1e-12 else after_norm_eps
-        )
-    else:
-        main_params["after_norm_class"] = LayerNorm
-        main_params["after_norm_eps"] = after_norm_eps
+    main_params["norm_type"] = norm_type
+    main_params["conv_mod_norm_type"] = conv_mod_norm_type
+
+    (
+        main_params["after_norm_class"],
+        main_params["after_norm_args"],
+    ) = get_normalization(norm_type, eps=after_norm_eps, partial=after_norm_partial)
 
     main_params["dynamic_chunk_training"] = dynamic_chunk_training
     main_params["short_chunk_threshold"] = max(0, short_chunk_threshold)
@@ -158,19 +159,19 @@ def build_conformer_block(
         main_params["pos_wise_act"],
     )
 
-    if configuration.get("conv_mod_basic_norm", False):
-        conv_mod_norm_class = BasicNorm
-        conv_mod_norm_eps = configuration.get("conv_mod_norm_eps", 0.25)
-    else:
-        conv_mod_norm_class = BatchNorm1d
-        conv_mod_norm_eps = configuration.get("conv_mod_norm_eps", 1e-05)
+    conv_mod_norm_class, conv_mod_norm_args = get_normalization(
+        main_params["conv_mod_norm_type"],
+        eps=configuration.get("conv_mod_norm_eps"),
+        momentum=configuration.get("conv_mod_norm_momentum"),
+        partial=configuration.get("conv_mod_norm_partial"),
+    )
 
-    conv_args = (
+    conv_mod_args = (
         hidden_size,
         configuration["conv_mod_kernel_size"],
         main_params["conv_mod_act"],
         conv_mod_norm_class,
-        conv_mod_norm_eps,
+        conv_mod_norm_args,
         main_params["dynamic_chunk_training"],
     )
 
@@ -181,21 +182,20 @@ def build_conformer_block(
         main_params["simplified_att_score"],
     )
 
-    if configuration.get("basic_norm", False):
-        norm_class = BasicNorm
-        norm_eps = configuration.get("norm_eps", 0.25)
-    else:
-        norm_class = LayerNorm
-        norm_eps = configuration.get("norm_eps", 1e-12)
+    norm_class, norm_args = get_normalization(
+        main_params["norm_type"],
+        eps=configuration.get("norm_eps"),
+        partial=configuration.get("norm_partial"),
+    )
 
     return lambda: Conformer(
         hidden_size,
         RelPositionMultiHeadedAttention(*mult_att_args),
         PositionwiseFeedForward(*pos_wise_args),
         PositionwiseFeedForward(*pos_wise_args),
-        ConformerConvolution(*conv_args),
+        ConformerConvolution(*conv_mod_args),
         norm_class=norm_class,
-        norm_eps=norm_eps,
+        norm_args=norm_args,
         dropout_rate=configuration.get("dropout_rate", 0.0),
     )
 
@@ -271,5 +271,5 @@ def build_body_blocks(
         [fn() for fn in fn_modules],
         output_size,
         norm_class=main_params["after_norm_class"],
-        norm_eps=main_params["after_norm_eps"],
+        norm_args=main_params["after_norm_args"],
     )
