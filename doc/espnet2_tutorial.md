@@ -396,7 +396,8 @@ The first and second configurations are optional. If needed, fhe following param
       pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
       simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
       after_norm_type: Final normalization type. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization. (float, default = 1e-12)
+      after_norm_eps: Epsilon value for the final normalization. (float, default = None)
+      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = None)
       dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
       short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
       short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
@@ -438,10 +439,9 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       linear_size: Dimension of feed-forward module. (int)
       conv_mod_kernel_size: Number of kernel in convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      basic_norm (optional): Whether to use BasicNorm in place of LayerNorm in Conformer. (bool, default = False)
-      conv_mod_basic_norm (optional): Whether to use BasicNorm in place of BatchNorm1d in convolutional module. (bool, default = False)
-      norm_eps (optional): Epsilon value for Conformer normalization. (float, default = 1e-12 or 0.25 if `basic_norm=True`)
-      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 if conv_mod_basic_norm=True)
+      norm_eps (optional): Epsilon value for Conformer normalization. (float, default = None)
+      norm_partial (optional): Value for the Conformer normalization with RMSNorm. (float, default = None)
+      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = None)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
@@ -521,20 +521,20 @@ where the losses (L_*) are respectively, in order: The Transducer loss, the CTC 
 
 ### Inference
 
-Various decoding algorithms are also available for Transducer by setting `search-type` parameter in your decode config:
+Various decoding algorithms are also available for Transducer by setting `search_type` parameter in your decode config:
 
-  - Beam search algorithm without prefix search [[Graves, 2012]](https://arxiv.org/pdf/1211.3711.pdf). (`search-type: default`)
-  - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search-type: tsd`)
-  - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search-type: alsd`)
-  - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and [[Boyer et al., 2021]](https://arxiv.org/pdf/2201.05420.pdf). (`search-type: maes`)
+  - Beam search algorithm without prefix search [[Graves, 2012]](https://arxiv.org/pdf/1211.3711.pdf). (`search_type: default`)
+  - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search_type: tsd`)
+  - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search_type: alsd`)
+  - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and [[Boyer et al., 2021]](https://arxiv.org/pdf/2201.05420.pdf). (`search_type: maes`)
 
-The algorithms share two parameters to control the beam size (`beam-size`) and the final hypotheses normalization (`score-norm`). In addition, three algorithms have specific parameters:
+The algorithms share two parameters to control the beam size (`beam_size`) and the final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
 
     # Time-synchronous decoding
     search_type: tsd
     max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
 
-    # Alignement-length decoding
+    # Alignement-Length Synchronous decoding
     search_type: alsd
     u_max: Maximum expected target sequence length. (int, default = 50)
 
