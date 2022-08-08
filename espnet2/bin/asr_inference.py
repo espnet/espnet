@@ -282,6 +282,7 @@ class Speech2Text:
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         if transcript is None:
             batch = {"speech": speech, "speech_lengths": lengths}
+            logging.info("speech length: " + str(speech.size(1)))
         else:
             transcript = transcript.unsqueeze(0).to(getattr(torch, self.dtype))
             # lengths: (1,)
