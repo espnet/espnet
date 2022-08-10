@@ -59,6 +59,7 @@ enh_config= # Config for enhancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2   # Number of speakers
+dynamic_mixing=false # Flag for dynamic mixing in speech separation task. 
 noise_type_num=1
 dereverb_ref_num=1
 
@@ -142,6 +143,7 @@ Options:
     --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
+    --dynamic_mixing   # Flag for dynamic mixing in speech separation task (default="${dynamic_mixing}").
     --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
     --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
 
@@ -264,6 +266,8 @@ if [ -z "${inference_tag}" ]; then
         inference_tag=enhanced
     fi
 fi
+
+
 
 # ========================== Main stages start from here. ==========================
 
@@ -545,7 +549,15 @@ if ! "${skip_train}"; then
             _opts+="--config ${enh_config} "
         fi
 
-        _scp=wav.scp
+        if ${dynamic_mixing}; then
+            # In current version, if you want to enable dynamic mixing in speech separation,
+            # you need to prepare the training set manually. Here we assume all speech sources 
+            # are collected in "spk1.scp", and other scp files (wav.scp, spk{N}.scp) are not used. 
+            log "Dynamic mixing is enabled, use spk1.scp as the source file list."
+            _scp=spk1.scp
+        else
+            _scp=wav.scp
+        fi
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -555,15 +567,32 @@ if ! "${skip_train}"; then
         fi
         _fold_length="$((enh_speech_fold_length * 100))"
 
-        # prepare train and valid data parameters
-        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,${_type} "
-        _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
-        _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
-        _fold_length_param="--fold_length ${_fold_length} "
+        
+        if ! ${dynamic_mixing} ; then
+
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_mix,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+
+            for spk in $(seq "${spk_num}"); do
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+            done
+        
+        else 
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_ref1,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_ref1_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+            _opts+="--utt2spk ${_enh_train_dir}/utt2spk "
+        fi
+
         for spk in $(seq "${spk_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
-            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
