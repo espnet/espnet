@@ -48,7 +48,7 @@ eval_set=${spk}_eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
-    if [ ${spk} == "all" ] ; then
+    if [ ${spk} = "all" ] ; then
         local/data_download_all.sh "${db_root}"
     else
         local/data_download.sh "${db_root}" "${spk}"
@@ -60,7 +60,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Preparation"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
-    if [ ${spk} == "all" ] ; then
+    if [ ${spk} = "all" ] ; then
         local/data_prep_all.sh \
             --train_set "${train_set}" \
             --dev_set "${dev_set}" \
