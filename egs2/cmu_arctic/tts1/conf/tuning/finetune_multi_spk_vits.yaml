@@ -7,7 +7,7 @@
 # memory. It takes around 2 days to finish the training
 # but 100k iters model should generate reasonable results.
 
-# The main difference for finetune is lower learning rate and less number of epochs.
+# Config change for finetune is lower learning rate and less number of epochs.
 ##########################################################
 #                  TTS MODEL SETTING                     #
 ##########################################################
