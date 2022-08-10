@@ -1,4 +1,4 @@
-# This configuration is for ESPnet2 to train multi-speaker
+# This configuration is for ESPnet2 to pretrain multi-speaker
 # VITS, which is truely end-to-end text-to-waveform model.
 # To run this config, you need to specify "--tts_task gan_tts"
 # and "--use_sid true" options for tts.sh at least and use
@@ -6,7 +6,7 @@
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
 # memory. It takes around 2 weeks to finish the training
 # but 100k iters model should generate reasonable results.
-
+# The main difference for finetune is lower learning rate and less number of epochs.
 ##########################################################
 #                  TTS MODEL SETTING                     #
 ##########################################################
