@@ -60,7 +60,7 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
+bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 
 # Ngram model related
@@ -186,7 +186,7 @@ Options:
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
+    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
 
     # Language model related
@@ -643,7 +643,12 @@ if ! "${skip_data_prep}"; then
             cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
             if [ -n "${bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                if test -f "${bpe_nlsyms}"; then
+                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                else
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                fi
             else
                 _opts_spm=""
             fi
@@ -1242,6 +1247,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            rm -f "${_logdir}/*.log"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
                 ${python} -m ${asr_inference_tool} \
@@ -1254,7 +1260,22 @@ if ! "${skip_eval}"; then
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
-            # 3. Concatenates the output files from each jobs
+            # 3. Calculate and report RTF based on decoding logs
+            if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
+                log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
+                rm -f "${_logdir}"/calculate_rtf.log
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
+                ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
+                    ../../../utils/calculate_rtf.py \
+                        --log-dir ${_logdir} \
+                        --log-name "asr_inference" \
+                        --input-shift ${_sample_shift} \
+                        --start-times-marker "speech length" \
+                        --end-times-marker "best hypo"
+            fi
+
+            # 4. Concatenates the output files from each jobs
             for f in token token_int score text; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
                   for i in $(seq "${_nj}"); do

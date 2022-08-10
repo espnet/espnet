@@ -44,7 +44,7 @@ HUI_ACG=downloads
 HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
-LIBRISPEECH=
+LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
@@ -59,6 +59,7 @@ LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 MUSAN=
+MUST_C=downloads
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -76,6 +77,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+FLEURS=downloads
 MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
@@ -148,6 +150,8 @@ MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
+DCASE=
+TEDX_SPANISH=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -183,6 +187,9 @@ if [[ "$(hostname)" == tir* ]]; then
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
     MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
+    AISHELL=/projects/tir5/data/speech_corpora/Aishell
+    LIBRISPEECH=/projects/tir5/data/speech_corpora/LibriSpeech
+    SLURP=/projects/tir5/data/speech_corpora/SLURP
 fi
 
 # For only JHU environment

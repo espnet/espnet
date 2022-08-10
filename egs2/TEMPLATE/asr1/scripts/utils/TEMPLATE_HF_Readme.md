@@ -17,6 +17,9 @@ This model was trained by ${_creator_name} using ${_task} recipe in [espnet](htt
 
 ### Demo: How to use in ESPnet2
 
+Follow the [ESPnet installation instructions](https://espnet.github.io/espnet/installation.html)
+if you haven't done that already.
+
 \`\`\`bash
 cd espnet
 ${_checkout}

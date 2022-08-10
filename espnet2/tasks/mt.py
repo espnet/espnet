@@ -16,6 +16,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     TransformerDecoder,
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
@@ -70,6 +71,7 @@ encoder_choices = ClassChoices(
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",

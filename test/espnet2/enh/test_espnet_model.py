@@ -14,9 +14,12 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
+from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
@@ -26,49 +29,43 @@ from espnet2.enh.separator.transformer_separator import TransformerSeparator
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
-stft_encoder = STFTEncoder(
-    n_fft=32,
-    hop_length=16,
-)
+stft_encoder = STFTEncoder(n_fft=32, hop_length=16)
 
 stft_encoder_bultin_complex = STFTEncoder(
-    n_fft=32,
-    hop_length=16,
-    use_builtin_complex=True,
+    n_fft=32, hop_length=16, use_builtin_complex=True
 )
 
-stft_decoder = STFTDecoder(
-    n_fft=32,
-    hop_length=16,
-)
+stft_decoder = STFTDecoder(n_fft=32, hop_length=16)
 
-conv_encoder = ConvEncoder(
-    channel=17,
-    kernel_size=36,
-    stride=18,
-)
+conv_encoder = ConvEncoder(channel=17, kernel_size=36, stride=18)
 
-conv_decoder = ConvDecoder(
-    channel=17,
-    kernel_size=36,
-    stride=18,
-)
+conv_decoder = ConvDecoder(channel=17, kernel_size=36, stride=18)
 
 null_encoder = NullEncoder()
 
 null_decoder = NullDecoder()
 
-rnn_separator = RNNSeparator(
-    input_dim=17,
-    layer=1,
-    unit=10,
+conformer_separator = ConformerSeparator(
+    input_dim=17, predict_noise=True, adim=8, aheads=2, layers=2, linear_units=10
 )
 
-dc_crn_separator = DC_CRNSeparator(input_dim=17, input_channels=[2, 2, 4])
+dc_crn_separator = DC_CRNSeparator(
+    input_dim=17, predict_noise=True, input_channels=[2, 2, 4]
+)
 
-dccrn_separator = DCCRNSeparator(input_dim=17, num_spk=1, kernel_num=[32, 64, 128])
+dccrn_separator = DCCRNSeparator(
+    input_dim=17, num_spk=1, kernel_num=[32, 64, 128], use_noise_mask=True
+)
 
-dprnn_separator = DPRNNSeparator(input_dim=17, layer=1, unit=10, segment_size=4)
+dprnn_separator = DPRNNSeparator(
+    input_dim=17, predict_noise=True, layer=1, unit=10, segment_size=4
+)
+
+dptnet_separator = DPTNetSeparator(
+    input_dim=16, predict_noise=True, layer=1, unit=10, segment_size=4
+)
+
+rnn_separator = RNNSeparator(input_dim=17, predict_noise=True, layer=1, unit=10)
 
 svoice_separator = SVoiceSeparator(
     input_dim=17,
@@ -84,6 +81,7 @@ svoice_separator = SVoiceSeparator(
 
 tcn_separator = TCNSeparator(
     input_dim=17,
+    predict_noise=True,
     layer=2,
     stack=1,
     bottleneck_dim=10,
@@ -92,11 +90,7 @@ tcn_separator = TCNSeparator(
 )
 
 transformer_separator = TransformerSeparator(
-    input_dim=17,
-    adim=8,
-    aheads=2,
-    layers=2,
-    linear_units=10,
+    input_dim=17, predict_noise=True, adim=8, aheads=2, layers=2, linear_units=10
 )
 
 si_snr_loss = SISNRLoss()
@@ -108,18 +102,15 @@ multilayer_pit_solver = MultiLayerPITSolver(criterion=si_snr_loss)
 fix_order_solver = FixedOrderSolver(criterion=tf_mse_loss)
 
 
-@pytest.mark.parametrize(
-    "encoder, decoder, separator", [(stft_encoder, stft_decoder, rnn_separator)]
-)
 @pytest.mark.parametrize("training", [True, False])
-def test_criterion_behavior(encoder, decoder, separator, training):
+def test_criterion_behavior_validation(training):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
     enh_model = ESPnetEnhancementModel(
-        encoder=encoder,
-        separator=separator,
-        decoder=decoder,
+        encoder=stft_encoder,
+        separator=rnn_separator,
+        decoder=stft_decoder,
         mask_module=None,
         loss_wrappers=[PITSolver(criterion=SISNRLoss(only_for_test=True))],
     )
@@ -153,10 +144,113 @@ def test_criterion_behavior(encoder, decoder, separator, training):
 @pytest.mark.parametrize(
     "separator",
     [
-        rnn_separator,
-        dprnn_separator,
+        conformer_separator,
         dc_crn_separator,
         dccrn_separator,
+        dprnn_separator,
+        rnn_separator,
+        tcn_separator,
+        transformer_separator,
+    ],
+)
+def test_criterion_behavior_noise(encoder, decoder, separator):
+    if not isinstance(encoder, STFTEncoder) and isinstance(
+        separator, (DCCRNSeparator, DC_CRNSeparator)
+    ):
+        # skip because DCCRNSeparator and DC_CRNSeparator only work
+        # for complex spectrum features
+        return
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    noise_ref = torch.randn(2, 300)
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=[PITSolver(criterion=SISNRLoss(is_noise_loss=True))],
+    )
+
+    enh_model.train()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+        "noise_ref1": noise_ref,
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("loss_type", ["mask_mse", "spectrum"])
+@pytest.mark.parametrize("num_spk", [1, 2])
+def test_criterion_behavior_dereverb(loss_type, num_spk):
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float() for _ in range(num_spk)]
+    dereverb_ref = [torch.randn(2, 300).float() for _ in range(num_spk)]
+    beamformer = NeuralBeamformer(
+        input_dim=17,
+        loss_type=loss_type,
+        num_spk=num_spk,
+        use_wpe=True,
+        wlayers=2,
+        wunits=2,
+        wprojs=2,
+        use_dnn_mask_for_wpe=True,
+        multi_source_wpe=True,
+        use_beamformer=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        ref_channel=0,
+        use_noise_mask=False,
+    )
+    if loss_type == "mask_mse":
+        loss_wrapper = PITSolver(
+            criterion=FrequencyDomainMSE(
+                compute_on_mask=True, mask_type="PSM", is_dereverb_loss=True
+            )
+        )
+    else:
+        loss_wrapper = PITSolver(criterion=SISNRLoss(is_dereverb_loss=True))
+    enh_model = ESPnetEnhancementModel(
+        encoder=stft_encoder,
+        separator=beamformer,
+        decoder=stft_decoder,
+        mask_module=None,
+        loss_wrappers=[loss_wrapper],
+    )
+
+    enh_model.train()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
+        "dereverb_ref1": dereverb_ref[0],
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "encoder, decoder",
+    [
+        (stft_encoder, stft_decoder),
+        (stft_encoder_bultin_complex, stft_decoder),
+        (conv_encoder, conv_decoder),
+    ],
+)
+@pytest.mark.parametrize(
+    "separator",
+    [
+        conformer_separator,
+        dc_crn_separator,
+        dccrn_separator,
+        dprnn_separator,
+        rnn_separator,
         tcn_separator,
         transformer_separator,
     ],
@@ -194,24 +288,83 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
     loss, stats, weight = enh_model(**kwargs)
 
 
-@pytest.mark.parametrize(
-    "encoder, decoder",
-    [
-        (null_encoder, null_decoder),
-    ],
-)
-@pytest.mark.parametrize(
-    "separator",
-    [
-        svoice_separator,
-    ],
-)
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper, fix_order_solver]])
+def test_dptnet(training, loss_wrappers):
+    encoder = ConvEncoder(channel=16, kernel_size=36, stride=18)
+    decoder = ConvDecoder(channel=16, kernel_size=36, stride=18)
+
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=dptnet_separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("encoder, decoder", [(null_encoder, null_decoder)])
+@pytest.mark.parametrize("separator", [svoice_separator])
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("loss_wrappers", [[multilayer_pit_solver]])
 def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
+@pytest.mark.parametrize("output_from", ["dnn1", "dnn2", "mfmcwf"])
+def test_ineube(n_mics, training, loss_wrappers, output_from):
+    if not is_torch_1_9_plus:
+        return
+    inputs = torch.randn(1, 300, n_mics)
+    ilens = torch.LongTensor([300])
+    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
+    from espnet2.enh.decoder.null_decoder import NullDecoder
+    from espnet2.enh.encoder.null_encoder import NullEncoder
+
+    encoder = NullEncoder()
+    decoder = NullDecoder()
+    separator = iNeuBe(
+        2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
+    )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
         separator=separator,
