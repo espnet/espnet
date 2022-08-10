@@ -1,0 +1,39 @@
+optim: adadelta
+init: none
+max_epoch: 1
+batch_type: folded
+batch_size: 5
+patience: 0
+num_att_plot: 0
+
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+
+model_conf:
+    extract_feats_in_collect_stats: False
+
+encoder: contextual_block_conformer
+encoder_conf:
+    output_size: 8
+    attention_heads: 1
+    linear_units: 8
+    num_blocks: 1
+    input_layer: conv2d
+    normalize_before: true
+    activation_type: swish
+    macaron_style: false
+    use_cnn_module: false
+    block_size: 40
+    hop_size: 16
+    look_ahead: 16
+decoder: transformer
+decoder_conf:
+    attention_heads: 1
+    linear_units: 8
+    num_blocks: 1
