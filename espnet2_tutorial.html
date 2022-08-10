@@ -86,6 +86,13 @@
 <li class="toctree-l3"><a class="reference internal" href="#faq">FAQ</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#real-time-factor-and-latency">Real-Time-Factor and Latency</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
@@ -551,6 +558,76 @@ encoder_conf:
 <li><p>Issue about <code class="docutils literal notranslate"><span class="pre">'NoneType'</span> <span class="pre">object</span> <span class="pre">has</span> <span class="pre">no</span> <span class="pre">attribute</span> <span class="pre">'max'</span></code> during training: Please make sure you employ <code class="docutils literal notranslate"><span class="pre">forward_train</span></code> function during traininig, check more details <a class="reference external" href="https://github.com/espnet/espnet/issues/3803">here</a>.</p></li>
 <li><p>I successfully trained the model, but encountered the above issue during decoding: You may forget to specify <code class="docutils literal notranslate"><span class="pre">--use_streaming</span> <span class="pre">true</span></code> to select streaming inference.</p></li>
 </ol>
+</section>
+</section>
+<section id="real-time-factor-and-latency">
+<h2>Real-Time-Factor and Latency<a class="headerlink" href="#real-time-factor-and-latency" title="Permalink to this headline">¶</a></h2>
+<p>In order to calculate real-time-factor and (non-streaming) latency the script <code class="docutils literal notranslate"><span class="pre">utils/calculate_rtf.py</span></code> has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see <a class="reference external" href="#limitations">Limitations</a> section below) after the decoding stage has finished but can also be run as a stand-alone script:</p>
+<section id="id1">
+<h3>Usage<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">calculate_rtf</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">name</span> <span class="p">{</span><span class="n">decode</span><span class="p">,</span><span class="n">asr_inference</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="n">INPUT_SHIFT</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">start</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="nb">input</span> <span class="n">lengths</span><span class="p">,</span><span class="n">speech</span> <span class="n">length</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">end</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="n">prediction</span><span class="p">,</span><span class="n">best</span> <span class="n">hypo</span><span class="p">}]</span>
+
+<span class="n">calculate</span> <span class="n">real</span> <span class="n">time</span> <span class="n">factor</span> <span class="p">(</span><span class="n">RTF</span><span class="p">)</span>
+
+<span class="n">optional</span> <span class="n">arguments</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span>     <span class="n">path</span> <span class="n">to</span> <span class="n">logging</span> <span class="n">directory</span>
+  <span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">name</span> <span class="p">{</span><span class="n">decode</span><span class="p">,</span><span class="n">asr_inference</span><span class="p">}</span>
+                        <span class="n">name</span> <span class="n">of</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="p">,</span> <span class="s1">&#39;decode&#39;</span> <span class="p">(</span><span class="n">espnet1</span><span class="p">)</span> <span class="ow">and</span>
+                        <span class="s1">&#39;asr_inference&#39;</span> <span class="p">(</span><span class="n">espnet2</span><span class="p">)</span>
+  <span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="n">INPUT_SHIFT</span>
+                        <span class="n">shift</span> <span class="n">of</span> <span class="n">inputs</span> <span class="ow">in</span> <span class="n">milliseconds</span>
+  <span class="o">--</span><span class="n">start</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="nb">input</span> <span class="n">lengths</span><span class="p">,</span><span class="n">speech</span> <span class="n">length</span><span class="p">}</span>
+                        <span class="n">String</span> <span class="n">marking</span> <span class="n">start</span> <span class="n">of</span> <span class="n">decoding</span> <span class="ow">in</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="p">,</span>
+                        <span class="s1">&#39;input lengths&#39;</span> <span class="p">(</span><span class="n">espnet1</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;speech length&#39;</span>
+                        <span class="p">(</span><span class="n">espnet2</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">end</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="n">prediction</span><span class="p">,</span><span class="n">best</span> <span class="n">hypo</span><span class="p">}</span>
+                        <span class="n">String</span> <span class="n">marking</span> <span class="n">end</span> <span class="n">of</span> <span class="n">decoding</span> <span class="ow">in</span> <span class="n">logfile</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="p">,</span>
+                        <span class="s1">&#39;prediction&#39;</span> <span class="p">(</span><span class="n">espnet1</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;best hypo&#39;</span> <span class="p">(</span><span class="n">espnet2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="notes">
+<h3>Notes<a class="headerlink" href="#notes" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Default settings still target ESPnet1 usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">name</span> <span class="s1">&#39;decode&#39;</span>
+<span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="mf">10.0</span>
+<span class="o">--</span><span class="n">start</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="s1">&#39;input lengths&#39;</span>
+<span class="o">--</span><span class="n">end</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="s1">&#39;prediction&#39;</span>
+</pre></div>
+</div>
+</li>
+<li><p>For ESPnet2, other frame shifts than 10ms are possible via different front-end/feature configurations. So different to ESPnet1, which logs the input feature frames at a fixed 10ms frame shift, in ESPnet2 the number of speech samples is logged instead and the audio sample shift in milliseconds (1/sampleRate x 1000) needs to be specified for <code class="docutils literal notranslate"><span class="pre">--input-shift</span></code> parameter (see <code class="docutils literal notranslate"><span class="pre">--input-shift</span> <span class="pre">0.0625</span></code> in example below for 16000 Hz sample rate).</p></li>
+</ul>
+</section>
+<section id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h3>
+<p>From <code class="docutils literal notranslate"><span class="pre">espnet/egs2/librispeech/asr1</span></code> the following call runs the decoding stage with pretrained ESPnet2 model:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --stage <span class="m">12</span>  --use_streaming <span class="nb">false</span> --skip_data_prep <span class="nb">true</span> --skip_train <span class="nb">true</span> --download_model byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
+</pre></div>
+</div>
+<p>Results for latency and rtf calculation on Librispeech test_clean subset can then be found in <code class="docutils literal notranslate"><span class="pre">espnet/egs2/librispeech/asr1/exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir/calculate_rtf.log</span></code> file:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># ../../../utils/calculate_rtf.py --log-dir exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_as</span>
+r_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir --log-name asr_inference --input-shift <span class="m">0</span>.0625 --start-times-
+marker <span class="s2">&quot;speech length&quot;</span> --end-times-marker <span class="s2">&quot;best hypo&quot;</span>
+Total audio duration: <span class="m">19452</span>.481 <span class="o">[</span>sec<span class="o">]</span>
+Total decoding time: <span class="m">137762</span>.231 <span class="o">[</span>sec<span class="o">]</span>
+RTF: <span class="m">7</span>.082
+Latency: <span class="m">52581</span>.004 <span class="o">[</span>ms/sentence<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="limitations">
+<h3>Limitations<a class="headerlink" href="#limitations" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Only non-streaming inference mode is supported currently</p></li>
+<li><p>The decoding stage 12 in <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code> automatically runs the rtf &amp; latency calculation if <code class="docutils literal notranslate"><span class="pre">&quot;asr_inference_tool</span> <span class="pre">==</span> <span class="pre">&quot;espnet2.bin.asr_inference&quot;</span></code>; other inference tools like k2 &amp; maskctc are still left to do</p></li>
+</ul>
 </section>
 </section>
 </section>
