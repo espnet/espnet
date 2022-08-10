@@ -94,6 +94,7 @@ pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
+compute_rtf=true	# Whether to compute RTF after ASR decoding.
 
 # Upload model related
 hf_repo=
@@ -106,7 +107,7 @@ use_nbest_rescoring=true # use transformer-decoder
 num_paths=1000 # The 3rd argument of k2.random_paths.
 nll_batch_size=100 # Affect GPU memory usage when computing nll
                    # during nbest rescoring
-k2_config=./conf/decode_asr_transformer_with_k2.yaml
+k2_config=	# K2 configuration
 
 use_streaming=false # Whether to use streaming decoding
 
@@ -1195,6 +1196,8 @@ if ! "${skip_eval}"; then
           # Now only _nj=1 is verified if using k2
           asr_inference_tool="espnet2.bin.asr_inference_k2"
 
+	  [ -z "${k2_config}" ] && echo "If use_k2=true, a k2 config should be specified." && exit 1
+
           _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
           _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
           _opts+="--num_paths ${num_paths} "
@@ -1261,7 +1264,7 @@ if ! "${skip_eval}"; then
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
             # 3. Calculate and report RTF based on decoding logs
-            if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
+            if [ "$compute_rtf" = "true" ] && [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
                 log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
                 rm -f "${_logdir}"/calculate_rtf.log
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
