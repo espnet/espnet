@@ -11,48 +11,58 @@ cwd=$(pwd)
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 
+# default config paths (for each task).
+train_conf=conf/train.yaml
+decode_conf=conf/decode.yaml
+lm_conf=conf/lm.yaml
+
 # [ESPnet2] test asr recipe
-cd ./egs2/mini_an4/asr1
 echo "==== [ESPnet2] ASR ==="
-./run.sh --stage 1 --stop-stage 1
+cd ./egs2/mini_an4/asr1
+
 feats_types="raw fbank_pitch"
 token_types="bpe char"
+asr_add_args="--nbpe 22 --ngram-num 1 --word-vocab-size 5 --compute_rtf false"
+
+./run.sh --stage 1 --stop-stage 1
+
 for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
 done
 for t in ${token_types}; do
-    ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
+    ./run.sh --ngpu 0 --stage 5 --stop-stage 8 --token-type "${t}" --lm-config ${lm_conf} --python "${python}" ${asr_add_args}
 done
+
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
-        echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
+        echo "=== feats_type=${t}, token_types=${t2}, compute_rtf=False ==="
+        ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" --python "${python}" \
+		 --asr-config ${train_conf} --inference-config ${decode_conf} --lm-config ${lm_conf} ${asr_add_args}
     done
 done
-echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
 
-echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
-                --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
+echo "=== feats_type=raw, token_types=char, compute_rtf=True, normalize=utt_mvn, use_lm=False ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload true --feats-type "raw" --token-type "char" \
+	 --feats_normalize "utterance_mvn" --use_lm false --python "${python}" ${asr_add_args} --compute_rtf true \
+	 --asr_tag "normalized" --asr-config ${train_conf} --inference-config ${decode_conf}
+
+echo "=== use_streaming, feats_type=raw, token_types=char, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+train_stream_conf=conf/train_streaming.yaml
+
+./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload true --feats-type "raw" --token-type "char" \
+	 --asr_tag "streaming" --feats_normalize "utterance_mvn" --python "${python}" \
+	 --asr-config ${train_stream_conf} --inference-config ${decode_conf} --lm-config ${lm_conf} ${asr_add_args}
 
 if python3 -c "import k2" &> /dev/null; then
-    echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --num_paths 500 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-        --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
+    decode_k2_conf=conf/decode_k2.yaml
+    asr_add_args+=" --use_k2 true --num_paths 5 --nll_batch_size 2 --use_nbest_rescoring false"
 
-    echo "==== use_k2, num_paths == nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --num_paths 20 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-       --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-       --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
+    echo "=== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=char, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+    ./run.sh --ngpu 0 --stage 12 --stop-stage 13 --skip-upload true --feats-type "raw" --token-type "char" \
+	     --feats_normalize "utterance_mvn" --python "${python}" \
+	     --asr-config ${train_conf} --inference-config ${decode_conf} --lm-config ${lm_conf} --k2-config ${decode_k2_conf} ${asr_add_args}
 fi
-
+exit 1
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
