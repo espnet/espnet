@@ -986,6 +986,32 @@ If your model is defined as following,</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.tasks.enh.EnhancementTask.build_iter_factory">
+<em class="property">classmethod </em><code class="sig-name descname">build_iter_factory</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">distributed_option: espnet2.train.distributed_utils.DistributedOption</em>, <em class="sig-param">mode: str</em>, <em class="sig-param">kwargs: dict = None</em><span class="sig-paren">)</span> &#x2192; espnet2.iterators.abs_iter_factory.AbsIterFactory<a class="reference internal" href="../_modules/espnet2/tasks/enh.html#EnhancementTask.build_iter_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh.EnhancementTask.build_iter_factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a factory object of mini-batch iterator.</p>
+<p>This object is invoked at every epochs to build the iterator for each epoch
+as following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">iter_factory</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_iter_factory</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_epoch</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iter_fatory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">epoch</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The mini-batches for each epochs are fully controlled by this class.
+Note that the random seed used for shuffling is decided as “seed + epoch” and
+the generated mini-batches can be reproduces when resuming.</p>
+<p>Note that the definition of “epoch” doesn’t always indicate
+to run out of the whole training corpus.
+“–num_iters_per_epoch” option restricts the number of iterations for each epoch
+and the rest of samples for the originally epoch are left for the next epoch.
+e.g. If The number of mini-batches equals to 4, the following two are same:</p>
+<ul class="simple">
+<li><p>1 epoch without “–num_iters_per_epoch”</p></li>
+<li><p>4 epoch with “–num_iters_per_epoch” == 4</p></li>
+</ul>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet2.tasks.enh.EnhancementTask.build_model">
 <em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.enh.espnet_model.ESPnetEnhancementModel<a class="reference internal" href="../_modules/espnet2/tasks/enh.html#EnhancementTask.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh.EnhancementTask.build_model" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

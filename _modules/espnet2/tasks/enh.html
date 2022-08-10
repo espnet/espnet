@@ -153,6 +153,7 @@
              
   <h1>Source code for espnet2.tasks.enh</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -210,11 +211,13 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.svoice_separator</span> <span class="kn">import</span> <span class="n">SVoiceSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.tcn_separator</span> <span class="kn">import</span> <span class="n">TCNSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.transformer_separator</span> <span class="kn">import</span> <span class="n">TransformerSeparator</span>
+<span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">EnhPreprocessor</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.distributed_utils</span> <span class="kn">import</span> <span class="n">DistributedOption</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">DynamicMixingPreprocessor</span><span class="p">,</span> <span class="n">EnhPreprocessor</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
@@ -450,6 +453,27 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to force all data to be single-channel.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dynamic_mixing&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply dynamic mixing&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--utt2spk&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of utt2spk file. Only used in dynamic_mixing mode.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--dynamic_mixing_gain_db&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Random gain (in dB) for dynamic mixing sources&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="k">for</span> <span class="n">class_choices</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">class_choices_list</span><span class="p">:</span>
             <span class="c1"># Append --&lt;name&gt; and --&lt;name&gt;_conf.</span>
             <span class="c1"># e.g. --encoder and --encoder_conf</span>
@@ -471,7 +495,25 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
+
+        <span class="n">dynamic_mixing</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dynamic_mixing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">use_preprocessor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_preprocessor&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">dynamic_mixing</span> <span class="ow">and</span> <span class="n">use_preprocessor</span>
+        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;&#39;dynamic_mixing&#39; and &#39;use_preprocessor&#39; should not both be &#39;True&#39;&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dynamic_mixing</span> <span class="ow">and</span> <span class="n">train</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">DynamicMixingPreprocessor</span><span class="p">(</span>
+                <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                <span class="n">source_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">train_data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">num_spk</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">separator_conf</span><span class="p">[</span><span class="s2">&quot;num_spk&quot;</span><span class="p">],</span>
+                <span class="n">dynamic_mixing_gain_db</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dynamic_mixing_gain_db&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="n">utt2spk</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;utt2spk&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">use_preprocessor</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="n">EnhPreprocessor</span><span class="p">(</span>
                 <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
                 <span class="c1"># NOTE(kamo): Check attribute existence for backward compatibility</span>
@@ -514,7 +556,7 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
-            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech_mix&quot;</span><span class="p">,</span> <span class="s2">&quot;speech_ref1&quot;</span><span class="p">)</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech_ref1&quot;</span><span class="p">,)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Recognition mode</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech_mix&quot;</span><span class="p">,)</span>
@@ -524,7 +566,8 @@
     <span class="k">def</span> <span class="nf">optional_data_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;speech_mix&quot;</span><span class="p">]</span>
+        <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;speech_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;noise_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
@@ -577,7 +620,23 @@
             <span class="n">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">model</span></div></div>
+        <span class="k">return</span> <span class="n">model</span></div>
+
+<div class="viewcode-block" id="EnhancementTask.build_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.build_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_iter_factory</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span>
+        <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
+        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
+
+        <span class="n">dynamic_mixing</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dynamic_mixing&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dynamic_mixing</span> <span class="ow">and</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">fold_length</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">fold_length</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build_iter_factory</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">distributed_option</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

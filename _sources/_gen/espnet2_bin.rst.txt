@@ -2191,6 +2191,8 @@ enh_train.py
                         [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
                         [--sample_rate SAMPLE_RATE]
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
+                        [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
+                        [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
                         [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube}]
                         [--separator_conf SEPARATOR_CONF]
@@ -2549,6 +2551,11 @@ enh_train.py
                             Sampling rate of the data (in Hz). (default: 8000)
       --force_single_channel FORCE_SINGLE_CHANNEL
                             Whether to force all data to be single-channel. (default: False)
+      --dynamic_mixing DYNAMIC_MIXING
+                            Apply dynamic mixing (default: False)
+      --utt2spk UTT2SPK     The file path of utt2spk file. Only used in dynamic_mixing mode. (default: None)
+      --dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB
+                            Random gain (in dB) for dynamic mixing sources (default: 0.0)
       --encoder {stft,conv,same}
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
