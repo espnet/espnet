@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+
+# This script provides a way to pretrain and finetune using cmu-arctic only data.  
+# With pretrain_stage and finetune_stage flags data processing for both pretrain and finetune model can be performed.
+
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -26,7 +30,7 @@ if [[ ${pretrain_stage} == "true" ]]; then
     train_set=${spk}_train_no_dev
     valid_set=${spk}_dev
     test_sets=${spk}_eval
-    train_config=conf/tuning/train_transformer_pre.yaml
+    train_config=conf/tuning/pretrain_transformer_sid.yaml
     opts="--audio_format wav --local_data_opts ${spk} "
 
     ./tts.sh \
@@ -45,6 +49,7 @@ if [[ ${pretrain_stage} == "true" ]]; then
         --valid_set "${valid_set}" \
         --test_sets "${test_sets}" \
         --srctexts "data/${train_set}/text" \
+        --tts_stats_dir "exp/tts_stats_all_raw" \
         ${opts} "$@"
 fi
 
@@ -68,11 +73,12 @@ if [[ ${adapt_stage} == "true" ]]; then
         --cleaner tacotron \
         --g2p "${g2p}" \
         --train_config "${train_config}" \
-        --train_args "--init_param exp/tts_train_transformer_pre_raw_phn_tacotron_g2p_en_no_space/train.loss.best.pth" \
+        --train_args "--init_param exp/tts_pretrain_transformer_sid_raw_phn_tacotron_g2p_en_no_space/train.loss.best.pth" \
         --inference_config "${inference_config}" \
         --train_set "${train_set}" \
         --valid_set "${valid_set}" \
         --test_sets "${test_sets}" \
         --srctexts "data/${train_set}/text" \
+        --tts_stats_dir "exp/tts_stats_${spk}_raw" \
         ${opts} "$@"
 fi
