@@ -71,9 +71,10 @@ fcaw-cen8-b fcaw-cen8-b_org 0.0 2.9
 mmxg-cen8-b mmxg-cen8-b_org 0.0 2.3
 EOF
 
-    # for enh task
+    # for enh and separation task
     for x in test ${train_set} ${train_dev}; do
         cp data/${x}/wav.scp data/${x}/spk1.scp
+        cp data/${x}/wav.scp data/${x}/spk2.scp
     done
 
     find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/${train_set}/noises.scp

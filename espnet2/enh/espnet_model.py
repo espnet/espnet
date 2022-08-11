@@ -84,6 +84,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             espnet2/iterators/chunk_iter_factory.py
             kwargs: "utt_id" is among the input.
         """
+
         # clean speech signal of each speaker
         speech_ref = [
             kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)

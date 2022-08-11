@@ -59,6 +59,7 @@ LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 MUSAN=
+MUST_C=downloads
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -150,6 +151,7 @@ MARATHI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
 DCASE=
+TEDX_SPANISH=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

@@ -1,4 +1,5 @@
 import logging
+import random
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
@@ -495,6 +496,142 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 tokens = self.tokenizer[i].text2tokens(text)
                 text_ints = self.token_id_converter[i].tokens2ids(tokens)
                 data[text_name] = np.array(text_ints, dtype=np.int64)
+        assert check_return_type(data)
+        return data
+
+
+class DynamicMixingPreprocessor(AbsPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        source_scp: str = None,
+        num_spk: int = 2,
+        dynamic_mixing_gain_db: float = 0.0,
+        speech_name: str = "speech_mix",
+        speech_ref_name_prefix: str = "speech_ref",
+        utt2spk: str = None,
+    ):
+
+        super().__init__(train)
+        self.source_scp = source_scp
+        self.num_spk = num_spk
+        self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
+        self.speech_name = speech_name
+        self.speech_ref_name_prefix = speech_ref_name_prefix
+
+        self.sources = {}
+        assert (
+            source_scp is not None
+        ), f"Please pass `source_scp` to {type(self).__name__}"
+        with open(source_scp, "r", encoding="utf-8") as f:
+            for line in f:
+                sps = line.strip().split(None, 1)
+                assert len(sps) == 2
+                self.sources[sps[0]] = sps[1]
+
+        self.utt2spk = {}
+        if utt2spk is None:
+            # if utt2spk is not provided, create a dummy utt2spk with uid.
+            for key in self.sources.keys():
+                self.utt2spk[key] = key
+        else:
+            with open(utt2spk, "r", encoding="utf-8") as f:
+                for line in f:
+                    sps = line.strip().split(None, 1)
+                    assert len(sps) == 2
+                    self.utt2spk[sps[0]] = sps[1]
+
+            for key in self.sources.keys():
+                assert key in self.utt2spk
+
+        self.source_keys = list(self.sources.keys())
+
+    def _pick_source_utterances_(self, uid):
+        # return (num_spk - 1) uid of reference sources.
+
+        source_keys = [uid]
+
+        spk_ids = [self.utt2spk[uid]]
+
+        retry_cnt = 0
+        while len(source_keys) < self.num_spk:
+            picked = random.choice(self.source_keys)
+            spk_id = self.utt2spk[picked]
+
+            # make one utterance or one speaker only appears once in mixing.
+            if (picked not in source_keys) and (spk_id not in spk_ids):
+                source_keys.append(picked)
+            else:
+                retry_cnt += 1
+                if retry_cnt > 10:
+                    source_keys.append(picked)
+                    logging.warning(
+                        "Can not find speech source from different speaker "
+                        f"for {retry_cnt} times."
+                        "There may be problems with training data. "
+                        "Please check the utt2spk file."
+                    )
+
+        return source_keys[1:]
+
+    def _read_source_(self, key, speech_length):
+
+        source, _ = soundfile.read(
+            self.sources[key],
+            dtype=np.float32,
+            always_2d=False,
+        )
+
+        if speech_length > source.shape[0]:
+            pad = speech_length - source.shape[0]
+            source = np.pad(source, (0, pad), "reflect")
+        else:
+            source = source[0:speech_length]
+
+        assert speech_length == source.shape[0]
+
+        return source
+
+    def _mix_speech_(self, uid, data):
+
+        # pick sources
+        source_keys = self._pick_source_utterances_(uid)
+
+        # load audios
+        speech_length = data[f"{self.speech_ref_name_prefix}1"].shape[0]
+        ref_audios = [self._read_source_(key, speech_length) for key in source_keys]
+        ref_audios = [data[f"{self.speech_ref_name_prefix}1"]] + ref_audios
+
+        # apply random gain to speech sources
+
+        gain_in_db = [
+            random.uniform(-self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db)
+            for i in range(len(ref_audios))
+        ]
+        gain = [10 ** (g_db / 20.0) for g_db in gain_in_db]
+
+        ref_audios = [ref * g for ref, g in zip(ref_audios, gain)]
+
+        speech_mix = np.sum(np.array(ref_audios), axis=0)
+
+        for i, ref in enumerate(ref_audios):
+            data[f"{self.speech_ref_name_prefix}{i+1}"] = ref
+        data[self.speech_name] = speech_mix
+
+        return data
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        # TODO(Chenda): need to test for multi-channel data.
+        assert (
+            len(data[f"{self.speech_ref_name_prefix}1"].shape) == 1
+        ), "Multi-channel input has not been tested"
+
+        if self.train:
+            data = self._mix_speech_(uid, data)
+
         assert check_return_type(data)
         return data
 
