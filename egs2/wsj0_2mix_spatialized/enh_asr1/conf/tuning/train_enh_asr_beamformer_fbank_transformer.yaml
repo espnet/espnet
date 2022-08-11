@@ -1,0 +1,131 @@
+# minibatch related
+batch_type: folded
+batch_size: 16  # A6000 x 1
+accum_grad: 2
+grad_clip: 5
+max_epoch: 50
+patience: 10
+# The initialization method for model parameters
+init: xavier_uniform
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - train
+    - loss
+    - min
+keep_nbest_models: 10
+num_att_plot: 0
+
+# network architecture
+enh_encoder: stft
+enh_encoder_conf:
+    n_fft: 512
+    hop_length: 128
+    use_builtin_complex: False
+enh_decoder: stft
+enh_decoder_conf:
+    n_fft: 512
+    hop_length: 128
+enh_separator: wpe_beamformer
+enh_separator_conf:
+    num_spk: 2
+    loss_type: spectrum
+    use_wpe: False
+    wnet_type: blstmp
+    wlayers: 3
+    wunits: 300
+    wprojs: 320
+    wdropout_rate: 0.0
+    taps: 5
+    delay: 3
+    use_dnn_mask_for_wpe: True
+    use_beamformer: True
+    bnet_type: blstmp
+    blayers: 3
+    bunits: 512
+    bprojs: 512
+    badim: 320
+    ref_channel: 0
+    use_noise_mask: False
+    beamformer_type: mvdr
+    bdropout_rate: 0.0
+    shared_power: False
+enh_criterions:
+  # The first criterion
+  - name: si_snr
+    conf:
+        eps: 1.0e-7
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+        weight: 1.0
+
+frontend: default
+frontend_conf:
+    fs: 16000
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+    frontend_conf: null
+    apply_stft: True
+
+# encoder related
+asr_encoder: transformer
+asr_encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d
+    normalize_before: true
+
+# decoder related
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+model_conf:
+    bypass_enh_prob: 0.0
+
+optim: adam
+optim_conf:
+    lr: 0.002
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
