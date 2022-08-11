@@ -347,6 +347,72 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
 3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
 
+## Real-Time-Factor and Latency
+
+In order to calculate real-time-factor and (non-streaming) latency the script `utils/calculate_rtf.py` has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see [Limitations](#limitations) section below) after the decoding stage has finished but can also be run as a stand-alone script:
+
+### Usage
+
+```
+usage: calculate_rtf.py [-h] [--log-dir LOG_DIR]
+                        [--log-name {decode,asr_inference}]
+                        [--input-shift INPUT_SHIFT]
+                        [--start-times-marker {input lengths,speech length}]
+                        [--end-times-marker {prediction,best hypo}]
+
+calculate real time factor (RTF)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log-dir LOG_DIR     path to logging directory
+  --log-name {decode,asr_inference}
+                        name of logfile, e.g., 'decode' (espnet1) and
+                        'asr_inference' (espnet2)
+  --input-shift INPUT_SHIFT
+                        shift of inputs in milliseconds
+  --start-times-marker {input lengths,speech length}
+                        String marking start of decoding in logfile, e.g.,
+                        'input lengths' (espnet1) and 'speech length'
+                        (espnet2)
+  --end-times-marker {prediction,best hypo}
+                        String marking end of decoding in logfile, e.g.,
+                        'prediction' (espnet1) and 'best hypo' (espnet2)
+```
+
+### Notes
+
+- Default settings still target ESPnet1 usage:
+  ```
+  --log-name 'decode'
+  --input-shift 10.0
+  --start-times-marker 'input lengths'
+  --end-times-marker 'prediction'
+  ```
+- For ESPnet2, other frame shifts than 10ms are possible via different front-end/feature configurations. So different to ESPnet1, which logs the input feature frames at a fixed 10ms frame shift, in ESPnet2 the number of speech samples is logged instead and the audio sample shift in milliseconds (1/sampleRate x 1000) needs to be specified for `--input-shift` parameter (see `--input-shift 0.0625` in example below for 16000 Hz sample rate).
+
+### Example
+
+From ```espnet/egs2/librispeech/asr1``` the following call runs the decoding stage with pretrained ESPnet2 model:
+
+```sh
+./run.sh --stage 12  --use_streaming false --skip_data_prep true --skip_train true --download_model byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
+```
+Results for latency and rtf calculation on Librispeech test_clean subset can then be found in ```espnet/egs2/librispeech/asr1/exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir/calculate_rtf.log``` file:
+```sh
+# ../../../utils/calculate_rtf.py --log-dir exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_as
+r_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir --log-name asr_inference --input-shift 0.0625 --start-times-
+marker "speech length" --end-times-marker "best hypo"
+Total audio duration: 19452.481 [sec]
+Total decoding time: 137762.231 [sec]
+RTF: 7.082
+Latency: 52581.004 [ms/sentence]
+```
+
+### Limitations
+
+- Only non-streaming inference mode is supported currently
+- The decoding stage 12 in `asr.sh` automatically runs the rtf & latency calculation if `"asr_inference_tool == "espnet2.bin.asr_inference"`; other inference tools like k2 & maskctc are still left to do
+
 ## Transducer ASR
 
 > ***Important***: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).
