@@ -4,7 +4,8 @@ import os
 import numpy as np
 
 # This file creates train-dev-eval utterance list for all arctic voices.
-# dev split includes arctic_b0340 - arctic_b439, eval split includes arctic_b0440 - larger
+# dev split includes arctic_b0340 - arctic_b439
+# eval split includes arctic_b0440 - larger
 utt_train_list = "data/all/utt_train_list.txt"
 utt_dev_list = "data/all/utt_dev_list.txt"
 utt_eval_list = "data/all/utt_eval_list.txt"
