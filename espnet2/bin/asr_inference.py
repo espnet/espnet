@@ -309,7 +309,7 @@ class Speech2Text:
             nbest_hyps = self.beam_search(
                 x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )
-        
+
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
