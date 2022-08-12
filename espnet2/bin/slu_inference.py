@@ -17,8 +17,7 @@ from espnet2.asr.transducer.beam_search_transducer import (
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.enh_s2t import EnhS2TTask
+from espnet2.tasks.slu import SLUTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -71,7 +70,6 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
-        enh_s2t_task: bool = False,
         quantize_asr_model: bool = False,
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
@@ -79,7 +77,7 @@ class Speech2Text:
     ):
         assert check_argument_types()
 
-        task = ASRTask if not enh_s2t_task else EnhS2TTask
+        task = SLUTask
 
         if quantize_asr_model or quantize_lm:
             if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
@@ -98,18 +96,6 @@ class Speech2Text:
         asr_model, asr_train_args = task.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
-        if enh_s2t_task:
-            asr_model.inherite_attributes(
-                inherite_s2t_attrs=[
-                    "ctc",
-                    "decoder",
-                    "eos",
-                    "joint_network",
-                    "sos",
-                    "token_list",
-                    "use_transducer_decoder",
-                ]
-            )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         if quantize_asr_model:
@@ -414,7 +400,6 @@ def inference(
     allow_variable_data_keys: bool,
     transducer_conf: Optional[dict],
     streaming: bool,
-    enh_s2t_task: bool,
     quantize_asr_model: bool,
     quantize_lm: bool,
     quantize_modules: List[str],
@@ -462,7 +447,6 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
-        enh_s2t_task=enh_s2t_task,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
@@ -607,12 +591,6 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
-    )
-    group.add_argument(
-        "--enh_s2t_task",
-        type=str2bool,
-        default=False,
-        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Quantization related")

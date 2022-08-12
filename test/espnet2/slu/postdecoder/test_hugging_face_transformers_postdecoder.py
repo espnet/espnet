@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
+from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
 

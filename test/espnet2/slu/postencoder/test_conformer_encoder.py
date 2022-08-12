@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.postencoder.conformer_postencoder import ConformerPostEncoder
+from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 
 
 @pytest.mark.parametrize("input_layer", ["linear"])

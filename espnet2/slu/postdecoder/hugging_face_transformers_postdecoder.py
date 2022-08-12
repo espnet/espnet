@@ -4,7 +4,7 @@
 
 """Hugging Face Transformers PostDecoder."""
 
-from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
+from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
 
 try:
     from transformers import AutoModel, AutoTokenizer

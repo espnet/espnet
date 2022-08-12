@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.bin.asr_inference import Speech2Text, get_parser, main
-from espnet2.tasks.asr import ASRTask
+from espnet2.bin.slu_inference import Speech2Text, get_parser, main
+from espnet2.tasks.slu import SLUTask
 from espnet.nets.beam_search import Hypothesis
 
 
@@ -34,7 +34,7 @@ def token_list(tmp_path: Path):
 @pytest.fixture()
 def asr_config_file(tmp_path: Path, token_list):
     # Write default configuration file
-    ASRTask.main(
+    SLUTask.main(
         cmd=[
             "--dry_run",
             "true",

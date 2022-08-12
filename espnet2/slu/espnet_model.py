@@ -35,7 +35,7 @@ else:
         yield
 
 
-class ESPnetASRModel(AbsESPnetModel):
+class ESPnetSLUModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     def __init__(

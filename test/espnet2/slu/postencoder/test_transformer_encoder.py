@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.postencoder.transformer_postencoder import TransformerPostEncoder
+from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 
 
 @pytest.mark.parametrize("input_layer", ["linear", "None"])

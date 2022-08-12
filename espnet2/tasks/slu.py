@@ -35,23 +35,22 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
-from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.slu.espnet_model import ESPnetSLUModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.maskctc_model import MaskCTCModel
-from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
-from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
+from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
+from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.conformer_postencoder import ConformerPostEncoder
+from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
-from espnet2.asr.postencoder.transformer_postencoder import TransformerPostEncoder
+from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -105,8 +104,7 @@ normalize_choices = ClassChoices(
 model_choices = ClassChoices(
     "model",
     classes=dict(
-        espnet=ESPnetASRModel,
-        maskctc=MaskCTCModel,
+        espnet=ESPnetSLUModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -200,7 +198,7 @@ postdecoder_choices = ClassChoices(
 )
 
 
-class ASRTask(AbsTask):
+class SLUTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -461,7 +459,7 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetSLUModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:

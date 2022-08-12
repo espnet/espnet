@@ -5,12 +5,12 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
+from espnet2.slu.espnet_model import ESPnetSLUModel
+from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
-from espnet2.asr.postencoder.conformer_postencoder import ConformerPostEncoder
-from espnet2.asr.postencoder.transformer_postencoder import TransformerPostEncoder
+from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
+from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
@@ -51,7 +51,7 @@ def test_asr_training(encoder_arch, encoder_del, decoder_post):
         post_decoder = None
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
 
-    model = ESPnetASRModel(
+    model = ESPnetSLUModel(
         vocab_size,
         token_list=["<blank>", "<unk>", "a", "i", "<eos>"],
         transcript_token_list=["<blank>", "<unk>", "a", "i", "<eos>"],
