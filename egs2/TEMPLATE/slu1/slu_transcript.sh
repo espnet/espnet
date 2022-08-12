@@ -987,7 +987,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         if "${use_transcript}"; then
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-                ${python} -m espnet2.bin.asr_train \
+                ${python} -m espnet2.bin.slu_train \
                     --collect_stats true \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
@@ -1011,7 +1011,7 @@ if ! "${skip_train}"; then
                     ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }    
         else
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-                ${python} -m espnet2.bin.asr_train \
+                ${python} -m espnet2.bin.slu_train \
                     --collect_stats true \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
@@ -1156,7 +1156,7 @@ if ! "${skip_train}"; then
                 --num_nodes "${num_nodes}" \
                 --init_file_prefix "${asr_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
-                ${python} -m espnet2.bin.asr_train \
+                ${python} -m espnet2.bin.slu_train \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
                     --token_type "${token_type}" \
@@ -1190,7 +1190,7 @@ if ! "${skip_train}"; then
                 --num_nodes "${num_nodes}" \
                 --init_file_prefix "${asr_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
-                ${python} -m espnet2.bin.asr_train \
+                ${python} -m espnet2.bin.slu_train \
                     --use_preprocessor true \
                     --bpemodel "${bpemodel}" \
                     --token_type "${token_type}" \
@@ -1304,14 +1304,9 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified
-              _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
-            fi
+            
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            asr_inference_tool="espnet2.bin.slu_inference"
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"

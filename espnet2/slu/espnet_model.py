@@ -84,9 +84,7 @@ class ESPnetSLUModel(AbsESPnetModel):
         self.token_list = token_list.copy()
         if transcript_token_list is not None:
             self.transcript_token_list = transcript_token_list.copy()
-        # print(self.transcript_token_list)
         self.two_pass = two_pass
-        print(self.two_pass)
         self.pre_postencoder_norm = pre_postencoder_norm
         self.frontend = frontend
         self.specaug = specaug
@@ -96,8 +94,6 @@ class ESPnetSLUModel(AbsESPnetModel):
         self.postdecoder = postdecoder
         self.encoder = encoder
         if self.postdecoder is not None:
-            print(self.encoder._output_size)
-            print(self.postdecoder.output_size_dim)
             if self.encoder._output_size != self.postdecoder.output_size_dim:
                 self.uniform_linear = torch.nn.Linear(
                     self.encoder._output_size, self.postdecoder.output_size_dim
@@ -375,8 +371,6 @@ class ESPnetSLUModel(AbsESPnetModel):
             encoder_out = encoder_out[0]
 
         # Post-encoder, e.g. NLU
-        # print(encoder_out.shape)
-        # print(encoder_out_lens.shape)
         if self.postencoder is not None:
             encoder_out, encoder_out_lens = self.postencoder(
                 encoder_out, encoder_out_lens

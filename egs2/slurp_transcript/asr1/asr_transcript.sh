@@ -1,1 +1,0 @@
-../../TEMPLATE/asr1/asr_transcript.sh
