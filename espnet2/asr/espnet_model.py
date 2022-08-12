@@ -576,7 +576,6 @@ class ESPnetASRModel(AbsESPnetModel):
             == text.shape[0]
             == text_lengths.shape[0]
         ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
-        batch_size = speech.shape[0]
 
         # for data-parallel
         text = text[:, : text_lengths.max()]

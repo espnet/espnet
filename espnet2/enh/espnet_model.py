@@ -455,6 +455,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     @staticmethod
     def sort_by_perm(nn_output, perm):
         """Sort the input list of tensors by the specified permutation.
+
         Args:
             nn_output: List[torch.Tensor(Batch, ...)], len(nn_output) == num_spk
             perm: (Batch, num_spk) or List[torch.Tensor(num_spk)]

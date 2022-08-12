@@ -4,10 +4,10 @@ from contextlib import contextmanager
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
-from packaging.version import parse as V
-from scipy.optimize import linear_sum_assignment
 import torch
 import torch.nn.functional as F
+from packaging.version import parse as V
+from scipy.optimize import linear_sum_assignment
 from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -76,7 +76,8 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 ...
             For other tasks:
                 text: (Batch, Length) default None just to keep the argument order
-                text_lengths: (Batch,) default None for the same reason as speech_lengths
+                text_lengths: (Batch,)
+                    default None for the same reason as speech_lengths
         """
         if "text" in kwargs:
             text = kwargs["text"]
@@ -168,7 +169,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         # This is to handle flexible number of speakers.
         # Used only in "enh + diar" task for now.
         num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
-        assert num_spk == self.enh_model.num_spk, (num_spk, self.enh_model.num_spk)
+        if self.enh_model.num_spk is not None:
+            # for compatibility with TCNSeparatorNomask in enh_diar
+            assert num_spk == self.enh_model.num_spk, (num_spk, self.enh_model.num_spk)
 
         # clean speech signal of each speaker
         speech_ref = None
@@ -434,6 +437,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
     def _permutation_loss(self, ref, inf, criterion, perm=None):
         """The basic permutation loss function.
+
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]
@@ -458,6 +462,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
     def permutation_invariant_training(self, losses: torch.Tensor):
         """Compute  PIT loss.
+
         Args:
             losses (torch.Tensor): (batch, nref, nhyp)
         Returns:
