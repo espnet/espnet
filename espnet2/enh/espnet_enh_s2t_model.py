@@ -260,8 +260,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
     def encode(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        device="cuda",
+        speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_inference.py
 

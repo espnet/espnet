@@ -253,7 +253,7 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, speech: Union[torch.Tensor, np.ndarray], transcript: torch.Tensor = None
     ) -> List[
         Tuple[
             Optional[str],
@@ -280,8 +280,23 @@ class Speech2Text:
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths}
-        logging.info("speech length: " + str(speech.size(1)))
+        if transcript is None:
+            batch = {"speech": speech, "speech_lengths": lengths}
+            logging.info("speech length: " + str(speech.size(1)))
+        else:
+            transcript = transcript.unsqueeze(0).to(getattr(torch, self.dtype))
+            # lengths: (1,)
+            transcript_lengths = transcript.new_full(
+                [1], dtype=torch.long, fill_value=transcript.size(1)
+            )
+            # print(text)
+            # print(text_lengths)
+            batch = {
+                "speech": speech,
+                "speech_lengths": lengths,
+                "transcript_pad": transcript,
+                "transcript_pad_lens": transcript_lengths,
+            }
 
         # a. To device
         batch = to_device(batch, device=self.device)
@@ -309,7 +324,6 @@ class Speech2Text:
             nbest_hyps = self.beam_search(
                 x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )
-        
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []

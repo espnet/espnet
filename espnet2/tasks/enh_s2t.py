@@ -17,9 +17,6 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
 from espnet2.tasks.asr import encoder_choices as asr_encoder_choices_
 from espnet2.tasks.asr import frontend_choices, normalize_choices
-from espnet2.tasks.asr import postdecoder_choices as asr_decoder2_choices_
-from espnet2.tasks.asr import postdecoder_choices as asr_deliberationencoder_choices_
-from espnet2.tasks.asr import postdecoder_choices as asr_postdecoder_choices_
 from espnet2.tasks.asr import postencoder_choices as asr_postencoder_choices_
 from espnet2.tasks.asr import preencoder_choices as asr_preencoder_choices_
 from espnet2.tasks.asr import specaug_choices
@@ -73,14 +70,8 @@ asr_encoder_choices = copy.deepcopy(asr_encoder_choices_)
 asr_encoder_choices.name = "asr_encoder"
 asr_postencoder_choices = copy.deepcopy(asr_postencoder_choices_)
 asr_postencoder_choices.name = "asr_postencoder"
-asr_postdecoder_choices = copy.deepcopy(asr_postdecoder_choices_)
-asr_postdecoder_choices.name = "asr_postdecoder"
-asr_deliberationencoder_choices = copy.deepcopy(asr_deliberationencoder_choices_)
-asr_deliberationencoder_choices.name = "asr_deliberationencoder"
 asr_decoder_choices = copy.deepcopy(asr_decoder_choices_)
 asr_decoder_choices.name = "asr_decoder"
-asr_decoder2_choices = copy.deepcopy(asr_decoder2_choices_)
-asr_decoder2_choices.name = "asr_decoder2"
 
 # ST
 st_preencoder_choices = copy.deepcopy(st_preencoder_choices_)
@@ -148,14 +139,8 @@ asr_attributes = [
     "encoder_conf",
     "postencoder",
     "postencoder_conf",
-    "postdecoder",
-    "postdecoder_conf",
-    "deliberationencoder",
-    "deliberationencoder_conf",
     "decoder",
     "decoder_conf",
-    "decoder2",
-    "decoder2_conf",
     "ctc_conf",
 ]
 
@@ -230,14 +215,8 @@ class EnhS2TTask(AbsTask):
         asr_encoder_choices,
         # --asr_postencoder and --asr_postencoder_conf
         asr_postencoder_choices,
-        # --asr_postdecoder and --asr_postdecoder_conf
-        asr_postdecoder_choices,
-        # --asr_deliberationencoder and --asr_deliberationencoder_conf
-        asr_deliberationencoder_choices,
         # --asr_decoder and --asr_decoder_conf
         asr_decoder_choices,
-        # --asr_decoder2 and --asr_decoder2_conf
-        asr_decoder2_choices,
         # --st_preencoder and --st_preencoder_conf
         st_preencoder_choices,
         # --st_encoder and --st_encoder_conf
@@ -539,11 +518,9 @@ class EnhS2TTask(AbsTask):
         # Build submodels in the order of subtask_series
         model_conf = args.model_conf.copy()
         for _, subtask in enumerate(args.subtask_series):
-            dict1 = eval(f"args.{subtask}_model_conf")
-            for attr in eval(f"{subtask}_attributes"):
-                if attr in dict1:
-                    del dict1[attr]
-            subtask_conf = dict(init=None, model_conf=dict1)
+            subtask_conf = dict(
+                init=None, model_conf=eval(f"args.{subtask}_model_conf")
+            )
 
             for attr in eval(f"{subtask}_attributes"):
                 subtask_conf[attr] = (
