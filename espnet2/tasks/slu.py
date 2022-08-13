@@ -35,22 +35,15 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
-from espnet2.slu.espnet_model import ESPnetSLUModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
-from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
-    HuggingFaceTransformersPostDecoder,
-)
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
-from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -61,6 +54,13 @@ from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.slu.espnet_model import ESPnetSLUModel
+from espnet2.slu.postdecoder.abs_postdecoder import AbsPostDecoder
+from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
+    HuggingFaceTransformersPostDecoder,
+)
+from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
+from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
