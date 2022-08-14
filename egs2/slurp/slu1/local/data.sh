@@ -20,7 +20,7 @@ log "$0 $*"
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-SLURP="/ocean/projects/cis210027p/siddhana/slurp"
+
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2

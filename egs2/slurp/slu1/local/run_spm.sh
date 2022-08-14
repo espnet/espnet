@@ -5,6 +5,8 @@
 nbpe=500 #try 100, 500, 1000
 bpemode=bpe #try unigram, bpe
 
+. utils/parse_options.sh
+
 new_data=data_${bpemode}_${nbpe}
 dict=${new_data}/en_token_list/word/tokens.txt
 bpemodel=${new_data}/spm_train_${bpemode}${nbpe}

@@ -46,7 +46,6 @@ for subset in ["train", "devel", "test"]:
                 text = text + " " + sub_word.replace("▁", "")
             else:
                 text = text + sub_word
-        print(wav_name)
         transcript_dict[wav_name] = text
     with open(os.path.join(idir, "dataset", "slurp", subset + ".jsonl")) as meta, open(
         os.path.join(odir, "text"), "w", encoding="utf-8"
