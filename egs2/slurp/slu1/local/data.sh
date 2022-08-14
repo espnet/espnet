@@ -53,7 +53,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/run_spm.sh
     mv data data_old
     mv data_bpe_500 data
-    cp local/copy_data_dir.sh utils/.
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

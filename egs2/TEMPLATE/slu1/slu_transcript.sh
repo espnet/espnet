@@ -270,6 +270,8 @@ else
     exit 2
 fi
 
+utt_extra_files="transcript"
+
 # Use the same text as ASR for bpe training if not specified.
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
 # Use the same text as ASR for lm training if not specified.
@@ -452,14 +454,19 @@ if ! "${skip_data_prep}"; then
            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
            for factor in ${speed_perturb_factors}; do
                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                   scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
+                        "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
                    # If speed factor is 1, same as the original
                    _dirs+="data/${train_set} "
                fi
            done
-           utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
+           utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
+           for extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
+                mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
+           done
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -488,6 +495,22 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
+                for extra_file in ${utt_extra_files}; do
+                    # with regex to support multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done
+                done
+                echo "${expand_utt_extra_files}"
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
+                done
+
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -581,7 +604,10 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-
+            
+            for utt_extra_file in ${utt_extra_files}; do
+                cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
+            done
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
@@ -626,9 +652,18 @@ if ! "${skip_data_prep}"; then
             # Remove empty text
             <"${data_feats}/org/${dset}/text" \
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+            for utt_extra_file in ${utt_extra_files}; do
+                <"${data_feats}/org/${dset}/${utt_extra_file}" \
+                    awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/${utt_extra_file}"
+            done
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+            for utt_extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
+                mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
+            done
         done
 
         # shellcheck disable=SC2002
