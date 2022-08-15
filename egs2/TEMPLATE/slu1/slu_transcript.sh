@@ -1494,7 +1494,8 @@ if ! "${skip_eval}"; then
             done
         done
 
-        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
+        test_sets_arr=(${test_sets})
+        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"  "${inference_tag}/${valid_set}/" "${inference_tag}/${test_sets_arr[0]}/"
 
         # Show results in Markdown syntax
         scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md

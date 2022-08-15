@@ -18,13 +18,8 @@ fi
 
 asr_expdir=$1
 
-if [ $# -gt 1 ]; then
-	valid_inference_folder=$2
-	test_inference_folder=$3
-	python local/score.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder}
-else
-	python local/score.py --exp_root ${asr_expdir}
-fi
+valid_inference_folder=$2
+test_inference_folder=$3
+python local/score.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder}
 
 exit 0
-

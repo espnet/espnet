@@ -174,19 +174,6 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
-decoder2_choices = ClassChoices(
-    "decoder2",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-    ),
-    type_check=AbsDecoder,
-    default="rnn",
-)
 postdecoder_choices = ClassChoices(
     name="postdecoder",
     classes=dict(
@@ -222,8 +209,6 @@ class SLUTask(AbsTask):
         deliberationencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
-        # --decoder2 and --decoder2_conf
-        decoder2_choices,
         # --postdecoder and --postdecoder_conf
         postdecoder_choices,
     ]
@@ -581,16 +566,6 @@ class SLUTask(AbsTask):
 
             joint_network = None
 
-        if getattr(args, "decoder2", None) is not None:
-            decoder2_class = decoder2_choices.get_class(args.decoder2)
-            decoder2 = decoder2_class(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.decoder2_conf,
-            )
-        else:
-            decoder2 = None
-
         # 6. CTC
         ctc = CTC(
             odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
@@ -616,7 +591,6 @@ class SLUTask(AbsTask):
             postencoder=postencoder,
             deliberationencoder=deliberationencoder,
             decoder=decoder,
-            decoder2=decoder2,
             postdecoder=postdecoder,
             ctc=ctc,
             joint_network=joint_network,
