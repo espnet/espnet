@@ -18,7 +18,7 @@ from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncod
     "encoder_del", [None, TransformerPostEncoder, ConformerPostEncoder]
 )
 @pytest.mark.parametrize("decoder_post", [None, HuggingFaceTransformersPostDecoder])
-@pytest.mark.execution_timeout(100)
+@pytest.mark.execution_timeout(50)
 def test_slu_training(encoder_arch, encoder_del, decoder_post):
     vocab_size = 5
     enc_out = 20
