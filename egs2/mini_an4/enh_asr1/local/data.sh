@@ -83,7 +83,9 @@ EOF
             fi
             rm data/${x}/${f}.old
         done
-        ln -s text data/${x}/text_spk1
+        if [ ! -e "text data/${x}/text_spk1" ]; then
+            ln -s text data/${x}/text_spk1
+        fi
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
 
         cp data/${x}/wav.scp data/${x}/spk1.scp

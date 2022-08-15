@@ -61,9 +61,10 @@ enh_criterions:
         eps: 1.0e-7
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
-    wrapper: fixed_order
+    wrapper: pit
     wrapper_conf:
-        weight: 1.0
+      weight: 1.0
+      independent_perm: False
 
 frontend: default
 frontend_conf:

@@ -18,6 +18,7 @@ from espnet2.enh.espnet_enh_s2t_model import ESPnetEnhS2TModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.layers.label_aggregation import LabelAggregate
@@ -43,6 +44,7 @@ enh_rnn_separator = RNNSeparator(
 si_snr_loss = SISNRLoss()
 
 fix_order_solver = FixedOrderSolver(criterion=si_snr_loss)
+pit_solver = PITSolver(criterion=si_snr_loss)
 
 default_frontend = DefaultFrontend(
     fs=300,
@@ -166,7 +168,7 @@ def test_enh_asr_model_2spk(training, calc_enh_loss):
         separator=enh_beamformer_separator,
         decoder=enh_stft_decoder,
         mask_module=None,
-        loss_wrappers=[fix_order_solver],
+        loss_wrappers=[pit_solver],
     )
     s2t_model = ESPnetASRModel(
         vocab_size=len(token_list),

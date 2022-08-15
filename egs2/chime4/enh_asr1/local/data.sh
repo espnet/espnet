@@ -88,7 +88,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     local/chime4_asr_data.sh --stage 2 --stop-stage 2
 
     for dset in data/*; do
-        if [ -e "${dset}/text" ]; then
+        if [ -e "${dset}/text" ] && [ ! -e "${dset}/text_spk1" ]; then
             ln -s text ${dset}/text_spk1
         fi
     done

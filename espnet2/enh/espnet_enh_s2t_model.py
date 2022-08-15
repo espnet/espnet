@@ -258,9 +258,17 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         # 2. ASR or ST
         if isinstance(self.s2t_model, ESPnetASRModel):  # ASR
-            loss_s2t, stats, weight = self.asr_pit_loss(
-                speech_pre, speech_lengths, text.unbind(2), text_ref_lengths
-            )
+            if perm is None:
+                loss_s2t, stats, weight = self.asr_pit_loss(
+                    speech_pre, speech_lengths, text.unbind(2), text_ref_lengths
+                )
+            else:
+                loss_s2t, stats, weight = self.s2t_model(
+                    torch.cat(speech_pre, dim=0),
+                    speech_lengths.repeat(len(speech_pre)),
+                    torch.cat(text.unbind(2), dim=0),
+                    torch.cat(text_ref_lengths, dim=0),
+                )
             stats["loss_asr"] = loss_s2t.detach()
         elif isinstance(self.s2t_model, ESPnetSTModel):  # ST
             loss_s2t, stats, weight = self.s2t_model(
