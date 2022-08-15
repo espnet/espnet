@@ -52,6 +52,10 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 self.s2t_model.extract_feats_in_collect_stats
             )
 
+        if self.enh_model.num_spk > 1 and isinstance(self.s2t_model, ESPnetASRModel):
+            if not self.calc_enh_loss:
+                logging.warning("The permutation issue will be handled by the CTC loss")
+
     def forward(
         self,
         speech: torch.Tensor,

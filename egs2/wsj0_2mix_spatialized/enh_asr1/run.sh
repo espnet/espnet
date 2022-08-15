@@ -7,15 +7,12 @@ set -o pipefail
 
 
 sample_rate=16k     # 8k or 16k
+mode="anechoic"     # anechoic or reverb
 
 
-train_set=tr_spatialized_anechoic_multich
-valid_set=cv_spatialized_anechoic_multich
-test_sets="tt_spatialized_anechoic_multich"
-
-# train_set=tr_spatialized_reverb_multich
-# valid_set=cv_spatialized_reverb_multich
-# test_sets="tt_spatialized_reverb_multich"
+train_set=tr_spatialized_${mode}_multich
+valid_set=cv_spatialized_${mode}_multich
+test_sets="tt_spatialized_${mode}_multich"
 
 enh_asr_config=conf/train.yaml
 inference_config=conf/decode_asr_transformer.yaml

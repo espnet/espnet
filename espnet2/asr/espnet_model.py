@@ -566,7 +566,6 @@ class ESPnetASRModel(AbsESPnetModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ):
-        print("_calc_batch_ctc_loss", flush=True)
         if self.ctc is None:
             return
         assert text_lengths.dim() == 1, text_lengths.shape
