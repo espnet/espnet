@@ -2,6 +2,7 @@
 
 """Initialize modules for espnet2 neural networks."""
 
+import logging
 import math
 
 import torch
@@ -24,11 +25,12 @@ def initialize(model: torch.nn.Module, init: str):
 
     if init == "chainer":
         # 1. lecun_normal_init_parameters
-        for p in model.parameters():
+        for name, p in model.named_parameters():
             data = p.data
-            if data.dim() == 1:
+            if ".bias" in name and data.dim() == 1:
                 # bias
                 data.zero_()
+                logging.info(f"Initialize {name} to zeros")
             elif data.dim() == 2:
                 # linear weight
                 n = data.size(1)
@@ -75,9 +77,10 @@ def initialize(model: torch.nn.Module, init: str):
                 else:
                     raise ValueError("Unknown initialization: " + init)
         # bias init
-        for p in model.parameters():
-            if p.dim() == 1:
+        for name, p in model.named_parameters():
+            if ".bias" in name and p.dim() == 1:
                 p.data.zero_()
+                logging.info(f"Initialize {name} to zeros")
 
         # reset some modules with default init
         for m in model.modules():
