@@ -10,9 +10,9 @@ sample_rate=16k     # 8k or 16k
 mode="anechoic"     # anechoic or reverb
 
 
-train_set=tr_spatialized_${mode}_multich
-valid_set=cv_spatialized_${mode}_multich
-test_sets="tt_spatialized_${mode}_multich"
+train_set=tr_spatialized_${mode}_multich_max_${sample_rate}
+valid_set=cv_spatialized_${mode}_multich_max_${sample_rate}
+test_sets="tt_spatialized_${mode}_multich_max_${sample_rate}"
 
 enh_asr_config=conf/train.yaml
 inference_config=conf/decode_asr_transformer.yaml
@@ -24,6 +24,7 @@ word_vocab_size=65000
 
 ./enh_asr.sh \
     --lang en \
+    --audio_format wav \
     --spk_num 2 \
     --ref_channel 3 \
     --ngpu 1 \
