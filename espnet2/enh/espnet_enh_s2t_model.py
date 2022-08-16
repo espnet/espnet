@@ -360,8 +360,11 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             feature_pre,
             others,
         ) = self.enh_model.forward_enhance(speech, speech_lengths)
-        encoder_out, encoder_out_lens = self.s2t_model.encode(
-            speech_pre[0], speech_lengths
+        num_spk = len(speech_pre)
+        assert num_spk == self.enh_model.num_spk, (num_spk, self.enh_model.num_spk)
+
+        encoder_out, encoder_out_lens = zip(
+            *[self.s2t_model.encode(sp, speech_lengths) for sp in speech_pre]
         )
 
         return encoder_out, encoder_out_lens

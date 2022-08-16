@@ -27,7 +27,6 @@ word_vocab_size=65000
     --audio_format wav \
     --spk_num 2 \
     --ref_channel 3 \
-    --ngpu 1 \
     --local_data_opts "--sample_rate ${sample_rate}" \
     --use_speech_ref true \
     --nlsyms_txt data/nlsyms.txt \
