@@ -689,11 +689,19 @@ if ! "${skip_data_prep}"; then
 
         if [ "$lm_train_text" = "${data_feats}/${train_set}/text" ]; then
             for n in $(seq ${spk_num}); do
-                cat "${data_feats}/${train_set}/text_spk${spk}"
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${train_set}/text_spk${n}"
             done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
         else
-            # shellcheck disable=SC2002
-            cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+            # in case that text_spk1, text_spk2 files are manully specified
+            read -ra train_texts <<<"${lm_train_text}"
+            for f in "${train_texts[@]}"; do
+                fname="$(basename ${f})"
+                if [[ "$fname" =~ text_spk[[:digit:]]+ ]]; then
+                    awk -v spk=${fname#text_spk} '{$1=$1 "_spk" spk; print $0}' ${f}
+                else
+                    cat ${f}
+                fi
+            done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
         fi
     fi
 
@@ -797,8 +805,8 @@ if ! "${skip_train}"; then
 
             if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
                 for n in $(seq ${spk_num}); do
-                    cat "${data_feats}/${valid_set}/text_spk${n}"
-                done | cut -f 2- -d" "  > "${data_feats}/lm_dev.txt"
+                    awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
+                done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
                 lm_dev_text="${data_feats}/lm_dev.txt"
             fi
 
