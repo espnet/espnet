@@ -117,6 +117,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
 </ul>
@@ -193,6 +194,8 @@
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.abs_decoder.AbsDecoder">AbsDecoder (class in espnet2.asr.decoder.abs_decoder)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder">(class in espnet2.asr_transducer.decoder.abs_decoder)</a>
+</li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.decoder.abs_decoder.AbsDecoder">(class in espnet2.diar.decoder.abs_decoder)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.decoder.abs_decoder.AbsDecoder">(class in espnet2.enh.decoder.abs_decoder)</a>
@@ -420,18 +423,20 @@
         <li><a href="_gen/espnet.mt.html#espnet.mt.mt_utils.add_results_to_json">(in module espnet.mt.mt_utils)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">add_rnn_decoder_arguments() (in module espnet.nets.pytorch_backend.transducer.arguments)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_encoder_arguments">add_rnn_encoder_arguments() (in module espnet.nets.pytorch_backend.transducer.arguments)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.add_sos_eos.add_sos_eos">add_sos_eos() (in module espnet.nets.pytorch_backend.transformer.add_sos_eos)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.add_task_arguments">add_task_arguments() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.add_task_arguments">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.add_task_arguments">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.add_task_arguments">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -477,6 +482,8 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.align_length_sync_decoding">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.align_length_sync_decoding">(espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.alignments.AlignmentModule">AlignmentModule (class in espnet2.gan_tts.jets.alignments)</a>
 </li>
@@ -495,6 +502,8 @@
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_inference_streaming.Speech2TextStreaming.apply_frontend">apply_frontend() (espnet2.bin.asr_inference_streaming.Speech2TextStreaming method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.apply_frontend">(espnet2.bin.asr_transducer_inference.Speech2Text method)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.st_inference_streaming.Speech2TextStreaming.apply_frontend">(espnet2.bin.st_inference_streaming.Speech2TextStreaming method)</a>
 </li>
       </ul></li>
@@ -565,6 +574,8 @@
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.pack.ASRPackedContents">ASRPackedContents (class in espnet2.bin.pack)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask">ASRTask (class in espnet2.tasks.asr)</a>
+</li>
+      <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask">ASRTransducerTask (class in espnet2.tasks.asr_transducer)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.assemble_hyps">assemble_hyps() (espnet.nets.batch_beam_search_online.BatchBeamSearchOnline method)</a>
 
@@ -716,6 +727,8 @@
 </li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.cli_writers.BaseWriter">BaseWriter (class in espnet.utils.cli_writers)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm">BasicNorm (class in espnet2.asr_transducer.encoder.modules.normalization)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.batch_beam">batch_beam() (espnet.nets.batch_beam_search.BatchBeamSearch method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface.batch_init_state">batch_init_state() (espnet.nets.scorer_interface.BatchScorerInterface method)</a>
@@ -741,9 +754,15 @@
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.TransducerDecoderInterface.batch_score">(espnet.nets.transducer_decoder_interface.TransducerDecoderInterface method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.batch_score">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score">(espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.batch_score">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.batch_score">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.batch_score">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.batch_score">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
         <li><a href="_gen/espnet2.lm.html#espnet2.lm.seq_rnn_lm.SequentialRNNLM.batch_score">(espnet2.lm.seq_rnn_lm.SequentialRNNLM method)</a>
 </li>
@@ -799,6 +818,8 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer">(class in espnet2.asr.transducer.beam_search_transducer)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer">(class in espnet2.asr_transducer.beam_search_transducer)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.BF_module">BF_module (class in espnet2.enh.layers.fasnet)</a>
 </li>
@@ -836,12 +857,16 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_blocks">build_blocks() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_body_blocks">build_body_blocks() (in module espnet2.asr_transducer.encoder.building)</a>
+</li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_chunk_iter_factory">build_chunk_iter_factory() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_collate_fn">build_collate_fn() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_collate_fn">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_collate_fn">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_collate_fn">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -863,10 +888,20 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_conformer_block">build_conformer_block() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_conformer_block">(in module espnet2.asr_transducer.encoder.building)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_conv1d_block">build_conv1d_block() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_conv1d_block">(in module espnet2.asr_transducer.encoder.building)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.build_dataclass.build_dataclass">build_dataclass() (in module espnet2.utils.build_dataclass)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_input_block">build_input_block() (in module espnet2.asr_transducer.encoder.building)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_input_layer">build_input_layer() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
 </li>
@@ -888,10 +923,14 @@
       </ul></li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_iter_options">build_iter_options() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_main_parameters">build_main_parameters() (in module espnet2.asr_transducer.encoder.building)</a>
+</li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_model">build_model() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_model">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_model">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_model">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -930,10 +969,14 @@
         <li><a href="_gen/espnet2.train.html#espnet2.train.trainer.Trainer.build_options">(espnet2.train.trainer.Trainer class method)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_positional_encoding">build_positional_encoding() (in module espnet2.asr_transducer.encoder.building)</a>
+</li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_preprocess_fn">build_preprocess_fn() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_preprocess_fn">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_preprocess_fn">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_preprocess_fn">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -1053,6 +1096,8 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer.calculate_cer">(espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator.calculate_cer">(espnet2.asr_transducer.error_calculator.ErrorCalculator method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator.calculate_cer_ctc">calculate_cer_ctc() (espnet.nets.e2e_asr_common.ErrorCalculator method)</a>
 </li>
@@ -1064,6 +1109,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_wer">(espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer.calculate_wer">(espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator.calculate_wer">(espnet2.asr_transducer.error_calculator.ErrorCalculator method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.FairseqHubertPretrainEncoder.cast_mask_emb">cast_mask_emb() (espnet2.asr.encoder.hubert_encoder.FairseqHubertPretrainEncoder method)</a>
@@ -1117,7 +1164,11 @@
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.check_required_command_args">check_required_command_args() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.check_short_utt">check_short_utt() (in module espnet.nets.pytorch_backend.transformer.subsampling)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.check_short_utt">(in module espnet2.asr_transducer.utils)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.check_state">check_state() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.check_task_requirements">check_task_requirements() (espnet2.tasks.abs_task.AbsTask class method)</a>
@@ -1140,6 +1191,16 @@
 </li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.chose_norm">chose_norm() (in module espnet2.diar.layers.tcn_nomask)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer.chunk_forward">chunk_forward() (espnet2.asr_transducer.encoder.blocks.conformer.Conformer method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.chunk_forward">(espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.chunk_forward">(espnet2.asr_transducer.encoder.encoder.Encoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks.chunk_forward">(espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks method)</a>
+</li>
+      </ul></li>
       <li><a href="_gen/espnet2.iterators.html#espnet2.iterators.chunk_iter_factory.ChunkIterFactory">ChunkIterFactory (class in espnet2.iterators.chunk_iter_factory)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.CISDRLoss">CISDRLoss (class in espnet2.enh.loss.criterions.time_domain)</a>
@@ -1150,6 +1211,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.class_choices_list">(espnet2.tasks.asr.ASRTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.class_choices_list">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.class_choices_list">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>
@@ -1197,6 +1260,8 @@
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.collect_feats">collect_feats() (espnet2.asr.espnet_model.ESPnetASRModel method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.collect_feats">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
+</li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.collect_feats">(espnet2.diar.espnet_model.ESPnetDiarizationModel method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.collect_feats">(espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel method)</a>
@@ -1232,17 +1297,19 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.CompareValueTrigger">CompareValueTrigger (class in espnet.asr.asr_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.complex_cat">complex_cat() (in module espnet2.enh.layers.complexnn)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complex_utils.complex_norm">complex_norm() (in module espnet2.enh.layers.complex_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm">ComplexBatchNorm (class in espnet2.enh.layers.complexnn)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConv2d">ComplexConv2d (class in espnet2.enh.layers.complexnn)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConvTranspose2d">ComplexConvTranspose2d (class in espnet2.enh.layers.complexnn)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.compute_attention_score">compute_attention_score() (espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_aux_transducer_and_symm_kl_div_losses">compute_aux_transducer_and_symm_kl_div_losses() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
@@ -1274,6 +1341,8 @@
         <li><a href="_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.compute_perplexity">(in module espnet.lm.pytorch_backend.lm)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.compute_simplified_attention_score">compute_simplified_attention_score() (espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_transducer_loss">compute_transducer_loss() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.concat_examples">concat_examples() (in module espnet.lm.pytorch_backend.lm)</a>
@@ -1284,6 +1353,10 @@
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentationTask.config">(espnet2.bin.asr_align.CTCSegmentationTask attribute)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer">Conformer (class in espnet2.asr_transducer.encoder.blocks.conformer)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution">ConformerConvolution (class in espnet2.asr_transducer.encoder.modules.convolution)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.conformer_encoder.ConformerEncoder">ConformerEncoder (class in espnet2.asr.encoder.conformer_encoder)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.conformer_separator.ConformerSeparator">ConformerSeparator (class in espnet2.enh.separator.conformer_separator)</a>
@@ -1301,6 +1374,8 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d">Conv1d (class in espnet.nets.pytorch_backend.transducer.conv1d_nets)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d">(class in espnet2.asr_transducer.encoder.blocks.conv1d)</a>
+</li>
         <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.wavenet.residual_block.Conv1d">(class in espnet2.gan_tts.wavenet.residual_block)</a>
 </li>
       </ul></li>
@@ -1345,8 +1420,12 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer.convert_to_char">(espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator.convert_to_char">(espnet2.asr_transducer.error_calculator.ErrorCalculator method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.flow.ConvFlow">ConvFlow (class in espnet2.gan_tts.vits.flow)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput">ConvInput (class in espnet2.asr_transducer.encoder.blocks.conv_input)</a>
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.parallel_wavegan.upsample.ConvInUpsampleNetwork">ConvInUpsampleNetwork (class in espnet2.gan_tts.parallel_wavegan.upsample)</a>
 </li>
@@ -1367,7 +1446,9 @@
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.TransducerDecoderInterface.create_batch_states">(espnet.nets.transducer_decoder_interface.TransducerDecoderInterface method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.create_batch_states">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.create_batch_states">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.create_batch_states">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.create_ctc_graph">create_ctc_graph() (espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction static method)</a>
@@ -1378,19 +1459,29 @@
 </li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.create_length_mask">create_length_mask() (espnet2.diar.espnet_model.ESPnetDiarizationModel method)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.create_lm_batch_inputs">create_lm_batch_inputs() (espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.create_lm_batch_states">create_lm_batch_states() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.create_mask_label">create_mask_label() (espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss method)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.dccrn_separator.DCCRNSeparator.create_masks">create_masks() (espnet2.enh.separator.dccrn_separator.DCCRNSeparator method)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput.create_new_conv2d_mask">create_new_conv2d_mask() (espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d.create_new_mask">create_new_mask() (espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d method)</a>
 
       <ul>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L.create_new_mask">(espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.create_new_mask">(espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d.create_new_pos_embed">create_new_pos_embed() (espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d method)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.create_new_pos_enc">create_new_pos_enc() (espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d method)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput.create_new_vgg_mask">create_new_vgg_mask() (espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput method)</a>
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.create_transducer_compatible_state_dict">create_transducer_compatible_state_dict() (in module espnet.asr.pytorch_backend.asr_init)</a>
 </li>
@@ -1531,7 +1622,11 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.ExtendedHypothesis.dec_out">(espnet2.asr.transducer.beam_search_transducer.ExtendedHypothesis attribute)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis.dec_out">(espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis attribute)</a>
+</li>
       </ul></li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.Hypothesis.dec_state">dec_state (espnet2.asr_transducer.beam_search_transducer.Hypothesis attribute)</a>
+</li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech.decode">decode() (espnet2.bin.diar_inference.DiarizeSpeech method)</a>
 
       <ul>
@@ -1595,6 +1690,8 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.default_beam_search">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.default_beam_search">(espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.training.tensorboard_logger.TensorboardLogger.default_name">default_name (espnet.utils.training.tensorboard_logger.TensorboardLogger attribute)</a>
 </li>
@@ -1630,10 +1727,10 @@
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask">DiarizationTask (class in espnet2.tasks.diar)</a>
 </li>
-      <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech">DiarizeSpeech (class in espnet2.bin.diar_inference)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech">DiarizeSpeech (class in espnet2.bin.diar_inference)</a>
+</li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.pack.DiarPackedContents">DiarPackedContents (class in espnet2.bin.pack)</a>
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.flow.DilatedDepthSeparableConv">DilatedDepthSeparableConv (class in espnet2.gan_tts.vits.flow)</a>
@@ -1813,6 +1910,8 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.encode">(espnet2.asr.espnet_model.ESPnetASRModel method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.encode">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech.encode">(espnet2.bin.diar_inference.DiarizeSpeech method)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.encode">(espnet2.diar.espnet_model.ESPnetDiarizationModel method)</a>
@@ -1848,6 +1947,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.Encoder">(class in espnet.nets.pytorch_backend.transducer.rnn_encoder)</a>
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder.Encoder">(class in espnet.nets.pytorch_backend.transformer.encoder)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder">(class in espnet2.asr_transducer.encoder.encoder)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.svoice_separator.Encoder">(class in espnet2.enh.separator.svoice_separator)</a>
 </li>
@@ -1936,6 +2037,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.e2e_mt_common.ErrorCalculator">(class in espnet.nets.e2e_mt_common)</a>
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator">(class in espnet.nets.pytorch_backend.transducer.error_calculator)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator">(class in espnet2.asr_transducer.error_calculator)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer">ErrorCalculatorTransducer (class in espnet2.asr.transducer.error_calculator)</a>
@@ -2414,6 +2517,8 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.decoder.rnn_decoder">espnet2.asr.decoder.rnn_decoder (module)</a>
 </li>
+      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.decoder.transducer_decoder">espnet2.asr.decoder.transducer_decoder (module)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.decoder.transformer_decoder">espnet2.asr.decoder.transformer_decoder (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.__init__">espnet2.asr.encoder.__init__ (module)</a>
@@ -2464,8 +2569,6 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.postencoder.__init__">espnet2.asr.postencoder.__init__ (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.postencoder.abs_postencoder">espnet2.asr.postencoder.abs_postencoder (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.postencoder.hugging_face_transformers_postencoder">espnet2.asr.postencoder.hugging_face_transformers_postencoder (module)</a>
@@ -2490,11 +2593,57 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.error_calculator">espnet2.asr.transducer.error_calculator (module)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.joint_network">espnet2.asr.transducer.joint_network (module)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.__init__">espnet2.asr_transducer.__init__ (module)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.transducer_decoder">espnet2.asr.transducer.transducer_decoder (module)</a>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.activation">espnet2.asr_transducer.activation (module)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.utils">espnet2.asr.transducer.utils (module)</a>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.beam_search_transducer">espnet2.asr_transducer.beam_search_transducer (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.__init__">espnet2.asr_transducer.decoder.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.abs_decoder">espnet2.asr_transducer.decoder.abs_decoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.rnn_decoder">espnet2.asr_transducer.decoder.rnn_decoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.stateless_decoder">espnet2.asr_transducer.decoder.stateless_decoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.__init__">espnet2.asr_transducer.encoder.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.__init__">espnet2.asr_transducer.encoder.blocks.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conformer">espnet2.asr_transducer.encoder.blocks.conformer (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conv1d">espnet2.asr_transducer.encoder.blocks.conv1d (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conv_input">espnet2.asr_transducer.encoder.blocks.conv_input (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.building">espnet2.asr_transducer.encoder.building (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.encoder">espnet2.asr_transducer.encoder.encoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.__init__">espnet2.asr_transducer.encoder.modules.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.attention">espnet2.asr_transducer.encoder.modules.attention (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.convolution">espnet2.asr_transducer.encoder.modules.convolution (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.multi_blocks">espnet2.asr_transducer.encoder.modules.multi_blocks (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.normalization">espnet2.asr_transducer.encoder.modules.normalization (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.positional_encoding">espnet2.asr_transducer.encoder.modules.positional_encoding (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.validation">espnet2.asr_transducer.encoder.validation (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.error_calculator">espnet2.asr_transducer.error_calculator (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.espnet_transducer_model">espnet2.asr_transducer.espnet_transducer_model (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.joint_network">espnet2.asr_transducer.joint_network (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.utils">espnet2.asr_transducer.utils (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.__init__">espnet2.bin.__init__ (module)</a>
 </li>
@@ -2509,6 +2658,10 @@
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_inference_streaming">espnet2.bin.asr_inference_streaming (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_train">espnet2.bin.asr_train (module)</a>
+</li>
+      <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_inference">espnet2.bin.asr_transducer_inference (module)</a>
+</li>
+      <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_train">espnet2.bin.asr_transducer_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.diar_inference">espnet2.bin.diar_inference (module)</a>
 </li>
@@ -2910,6 +3063,8 @@
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asr">espnet2.tasks.asr (module)</a>
 </li>
+      <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asr_transducer">espnet2.tasks.asr_transducer (module)</a>
+</li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.diar">espnet2.tasks.diar (module)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.enh">espnet2.tasks.enh (module)</a>
@@ -3074,6 +3229,8 @@
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel">ESPnetASRModel (class in espnet2.asr.espnet_model)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel">ESPnetASRTransducerModel (class in espnet2.asr_transducer.espnet_transducer_model)</a>
+</li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.dataset.ESPnetDataset">ESPnetDataset (class in espnet2.train.dataset)</a>
 </li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel">ESPnetDiarizationModel (class in espnet2.diar.espnet_model)</a>
@@ -3125,6 +3282,8 @@
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding.extend_pe">(espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding.extend_pe">(espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.ctc_prefix_score.CTCPrefixScoreTH.extend_prob">extend_prob() (espnet.nets.ctc_prefix_score.CTCPrefixScoreTH method)</a>
 
@@ -3142,6 +3301,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.ExtendedHypothesis">(class in espnet2.asr.transducer.beam_search_transducer)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis">(class in espnet2.asr_transducer.beam_search_transducer)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.feature_transform.GlobalMVN.extra_repr">extra_repr() (espnet.nets.pytorch_backend.frontends.feature_transform.GlobalMVN method)</a>
@@ -3589,6 +3750,8 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder.forward">(espnet2.asr.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.forward">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward">(espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder method)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder.forward">(espnet2.asr.encoder.abs_encoder.AbsEncoder method)</a>
@@ -3655,9 +3818,45 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.specaug.specaug.SpecAug.forward">(espnet2.asr.specaug.specaug.SpecAug method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.joint_network.JointNetwork.forward">(espnet2.asr.transducer.joint_network.JointNetwork method)</a>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.FTSwish.forward">(espnet2.asr_transducer.activation.FTSwish method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.forward">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Mish.forward">(espnet2.asr_transducer.activation.Mish method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Smish.forward">(espnet2.asr_transducer.activation.Smish method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Swish.forward">(espnet2.asr_transducer.activation.Swish method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.forward">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.forward">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.forward">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer.forward">(espnet2.asr_transducer.encoder.blocks.conformer.Conformer method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.forward">(espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput.forward">(espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.forward">(espnet2.asr_transducer.encoder.encoder.Encoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.forward">(espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution.forward">(espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks.forward">(espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm.forward">(espnet2.asr_transducer.encoder.modules.normalization.BasicNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm.forward">(espnet2.asr_transducer.encoder.modules.normalization.RMSNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm.forward">(espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding.forward">(espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.forward">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.joint_network.JointNetwork.forward">(espnet2.asr_transducer.joint_network.JointNetwork method)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.abs_diar.AbsDiarization.forward">(espnet2.diar.abs_diar.AbsDiarization method)</a>
 </li>
@@ -4077,7 +4276,11 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_attention">forward_attention() (espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.forward_attention">(espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward_enhance">forward_enhance() (espnet2.enh.espnet_model.ESPnetEnhancementModel method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer.forward_infer">forward_infer() (espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer method)</a>
@@ -4109,7 +4312,11 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv">forward_qkv() (espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.forward_qkv">(espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.abs_diar.AbsDiarization.forward_rawwav">forward_rawwav() (espnet2.diar.abs_diar.AbsDiarization method)</a>
 
       <ul>
@@ -4185,6 +4392,8 @@
       <ul>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_inference_maskctc.Speech2Text.from_pretrained">(espnet2.bin.asr_inference_maskctc.Speech2Text static method)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.from_pretrained">(espnet2.bin.asr_transducer_inference.Speech2Text static method)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech.from_pretrained">(espnet2.bin.diar_inference.DiarizeSpeech static method)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech.from_pretrained">(espnet2.bin.enh_inference.SeparateSpeech static method)</a>
@@ -4203,6 +4412,8 @@
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentation.fs">fs (espnet2.bin.asr_align.CTCSegmentation attribute)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.tts_inference.Text2Speech.fs">fs() (espnet2.bin.tts_inference.Text2Speech property)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.FTSwish">FTSwish (class in espnet2.asr_transducer.activation)</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.functional.FuncTrans.func">func() (espnet.transform.functional.FuncTrans property)</a>
 
@@ -4249,7 +4460,11 @@
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.GeneratorAdversarialLoss">GeneratorAdversarialLoss (class in espnet2.gan_tts.hifigan.loss)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.get_activation">get_activation() (in module espnet.nets.pytorch_backend.nets_utils)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.get_activation">(in module espnet2.asr_transducer.activation)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.Reporter.get_all_keys">get_all_keys() (espnet2.train.reporter.Reporter method)</a>
 </li>
       <li><a href="_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface.get_arg">get_arg() (espnet.scheduler.scheduler.SchedulerInterface method)</a>
@@ -4283,6 +4498,8 @@
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.get_default_kwargs.get_default_kwargs">get_default_kwargs() (in module espnet2.utils.get_default_kwargs)</a>
 </li>
       <li><a href="_gen/espnet2.main_funcs.html#espnet2.main_funcs.pack_funcs.get_dict_from_cache">get_dict_from_cache() (in module espnet2.main_funcs.pack_funcs)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.get_encoder_input_raw_size">get_encoder_input_raw_size() (espnet2.asr_transducer.encoder.encoder.Encoder method)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.Reporter.get_epoch">get_epoch() (espnet2.train.reporter.Reporter method)</a>
 
@@ -4346,6 +4563,8 @@
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.get_node_rank">get_node_rank() (in module espnet2.train.distributed_utils)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.get_normalization">get_normalization() (in module espnet2.asr_transducer.encoder.modules.normalization)</a>
+</li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.cli_writers.get_num_frames_writer">get_num_frames_writer() (in module espnet.utils.cli_writers)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.get_num_nodes">get_num_nodes() (in module espnet2.train.distributed_utils)</a>
@@ -4408,6 +4627,10 @@
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_inference_streaming.get_parser">(in module espnet2.bin.asr_inference_streaming)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_train.get_parser">(in module espnet2.bin.asr_train)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.get_parser">(in module espnet2.bin.asr_transducer_inference)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_train.get_parser">(in module espnet2.bin.asr_transducer_train)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.get_parser">(in module espnet2.bin.diar_inference)</a>
 </li>
@@ -4498,6 +4721,8 @@
       </ul></li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.sized_dict.get_size">get_size() (in module espnet2.utils.sized_dict)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput.get_size_before_subsampling">get_size_before_subsampling() (espnet2.asr_transducer.encoder.blocks.conv_input.ConvInput method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.optimizer.get_std_opt">get_std_opt() (in module espnet.nets.pytorch_backend.transformer.optimizer)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.get_subsample">get_subsample() (in module espnet.nets.pytorch_backend.nets_utils)</a>
@@ -4536,7 +4761,7 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict">get_trained_model_state_dict() (in module espnet.asr.pytorch_backend.asr_init)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.utils.get_transducer_task_io">get_transducer_task_io() (in module espnet2.asr.transducer.utils)</a>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.get_transducer_task_io">get_transducer_task_io() (in module espnet2.asr_transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.get_transducer_tasks_io">get_transducer_tasks_io() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
@@ -4666,12 +4891,16 @@
 </li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.types.humanfriendly_parse_size_or_none">humanfriendly_parse_size_or_none() (in module espnet2.utils.types)</a>
 </li>
+      <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.hypotheses_to_results">hypotheses_to_results() (espnet2.bin.asr_transducer_inference.Speech2Text method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.beam_search.Hypothesis">Hypothesis (class in espnet.nets.beam_search)</a>
 
       <ul>
         <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.Hypothesis">(class in espnet.nets.transducer_decoder_interface)</a>
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.Hypothesis">(class in espnet2.asr.transducer.beam_search_transducer)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.Hypothesis">(class in espnet2.asr_transducer.beam_search_transducer)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -4759,6 +4988,8 @@
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_inference_streaming.inference">(in module espnet2.bin.asr_inference_streaming)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.inference">(in module espnet2.bin.asr_transducer_inference)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.inference">(in module espnet2.bin.diar_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.enh_inference.inference">(in module espnet2.bin.enh_inference)</a>
@@ -4792,10 +5023,10 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st.E2E.init_like_chainer">(espnet.nets.pytorch_backend.e2e_st.E2E method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_mt.E2E.init_like_fairseq">init_like_fairseq() (espnet.nets.pytorch_backend.e2e_mt.E2E method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.init_lm_state">init_lm_state() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption.init_options">init_options() (espnet2.train.distributed_utils.DistributedOption method)</a>
@@ -4819,7 +5050,13 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder.init_state">(espnet2.asr.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.init_state">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.init_state">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.init_state">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.init_state">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.init_state">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.DistributedOption.init_torch_distributed">init_torch_distributed() (espnet2.train.distributed_utils.DistributedOption method)</a>
@@ -4937,7 +5174,7 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork">JointNetwork (class in espnet.nets.pytorch_backend.transducer.joint_network)</a>
 
       <ul>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.joint_network.JointNetwork">(class in espnet2.asr.transducer.joint_network)</a>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.joint_network.JointNetwork">(class in espnet2.asr_transducer.joint_network)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav">JointText2Wav (class in espnet2.gan_tts.joint.joint_text2wav)</a>
@@ -5034,6 +5271,8 @@
 </li>
       <li><a href="_gen/espnet2.tts.html#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram">LinearSpectrogram (class in espnet2.tts.feats_extract.linear_spectrogram)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis.lm_score">lm_score (espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis attribute)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.ExtendedHypothesis.lm_scores">lm_scores (espnet.nets.transducer_decoder_interface.ExtendedHypothesis attribute)</a>
 
       <ul>
@@ -5044,6 +5283,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.Hypothesis.lm_state">(espnet2.asr.transducer.beam_search_transducer.Hypothesis attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.Hypothesis.lm_state">(espnet2.asr_transducer.beam_search_transducer.Hypothesis attribute)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.LMEvaluator">LMEvaluator (class in espnet.lm.chainer_backend.lm)</a>
@@ -5223,6 +5464,10 @@
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_train.main">(in module espnet2.bin.asr_train)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.main">(in module espnet2.bin.asr_transducer_inference)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_train.main">(in module espnet2.bin.asr_transducer_train)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.main">(in module espnet2.bin.diar_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_train.main">(in module espnet2.bin.diar_train)</a>
@@ -5274,6 +5519,8 @@
 </li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.training.batchfy.make_batchset">make_batchset() (in module espnet.utils.training.batchfy)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.make_chunk_mask">make_chunk_mask() (in module espnet2.asr_transducer.utils)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.mask.make_history_mask">make_history_mask() (in module espnet.nets.chainer_backend.transformer.mask)</a>
 </li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.lm_utils.make_lexical_tree">make_lexical_tree() (in module espnet.lm.lm_utils)</a>
@@ -5281,6 +5528,8 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.make_non_pad_mask">make_non_pad_mask() (in module espnet.nets.pytorch_backend.nets_utils)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.make_pad_mask">make_pad_mask() (in module espnet.nets.pytorch_backend.nets_utils)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.make_source_mask">make_source_mask() (in module espnet2.asr_transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.lm_utils.MakeSymlinkToBestModel">MakeSymlinkToBestModel (class in espnet.lm.lm_utils)</a>
 </li>
@@ -5370,6 +5619,8 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix.PIT.min_pit_sample">min_pit_sample() (espnet.nets.pytorch_backend.e2e_asr_mix.PIT method)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Mish">Mish (class in espnet2.asr_transducer.activation)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.mlm_decoder.MLMDecoder">MLMDecoder (class in espnet2.asr.decoder.mlm_decoder)</a>
 </li>
       <li><a href="_gen/espnet2.torch_utils.html#espnet2.torch_utils.model_summary.model_summary">model_summary() (in module espnet2.torch_utils.model_summary)</a>
@@ -5379,12 +5630,16 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.modified_adaptive_expansion_search">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.modified_adaptive_expansion_search">(espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.mt_interface.MTInterface">MTInterface (class in espnet.nets.mt_interface)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask">MTTask (class in espnet2.tasks.mt)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dpmulcat.MulCatBlock">MulCatBlock (class in espnet2.enh.layers.dpmulcat)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks">MultiBlocks (class in espnet2.asr_transducer.encoder.modules.multi_blocks)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.attention.MultiHeadAttention">MultiHeadAttention (class in espnet.nets.chainer_backend.transformer.attention)</a>
 </li>
@@ -5519,6 +5774,8 @@
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.num_optimizers">(espnet2.tasks.asr.ASRTask attribute)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.num_optimizers">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.num_optimizers">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.num_optimizers">(espnet2.tasks.enh.EnhancementTask attribute)</a>
@@ -5608,6 +5865,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.optional_data_names">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.optional_data_names">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.optional_data_names">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -5970,8 +6229,12 @@
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.decoders.Decoder.recognize_beam_batch">recognize_beam_batch() (espnet.nets.pytorch_backend.rnn.decoders.Decoder method)</a>
 </li>
-      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.recombine_hyps">recombine_hyps() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.recombine_hyps">recombine_hyps() (espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.recombine_hyps">(in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.torch_utils.html#espnet2.torch_utils.recursive_op.recursive_average">recursive_average() (in module espnet2.torch_utils.recursive_op)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.enh_inference.recursive_dict_update">recursive_dict_update() (in module espnet2.bin.enh_inference)</a>
@@ -5993,6 +6256,8 @@
       <ul>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention.rel_shift">(espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.rel_shift">(espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder.reload_pretrained_parameters">reload_pretrained_parameters() (espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder method)</a>
 
@@ -6007,9 +6272,17 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.RelPositionalEncoding">RelPositionalEncoding (class in espnet.nets.pytorch_backend.transformer.embedding)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding">(class in espnet2.asr_transducer.encoder.modules.positional_encoding)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention">RelPositionMultiHeadedAttention (class in espnet.nets.pytorch_backend.transformer.attention)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention">(class in espnet2.asr_transducer.encoder.modules.attention)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.types.remove_parenthesis">remove_parenthesis() (in module espnet2.utils.types)</a>
 </li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.types.remove_quotes">remove_quotes() (in module espnet2.utils.types)</a>
@@ -6086,8 +6359,6 @@
         <li><a href="_gen/espnet2.tts.html#espnet2.tts.abs_tts.AbsTTS.require_raw_speech">(espnet2.tts.abs_tts.AbsTTS property)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.jets.JETS.require_vocoder">require_vocoder() (espnet2.gan_tts.jets.jets.JETS property)</a>
 
       <ul>
@@ -6098,10 +6369,14 @@
         <li><a href="_gen/espnet2.tts.html#espnet2.tts.abs_tts.AbsTTS.require_vocoder">(espnet2.tts.abs_tts.AbsTTS property)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.required_data_names">required_data_names() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.required_data_names">(espnet2.tasks.asr.ASRTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.required_data_names">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.required_data_names">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -6170,6 +6445,12 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_encoder.reset_backward_rnn_state">(in module espnet.nets.pytorch_backend.transducer.rnn_encoder)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.reset_inference_cache">reset_inference_cache() (espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.reset_inference_cache">(espnet2.bin.asr_transducer_inference.Speech2Text method)</a>
+</li>
+      </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.reset_parameters">reset_parameters() (espnet.nets.chainer_backend.e2e_asr_transformer.E2E method)</a>
 
       <ul>
@@ -6210,6 +6491,16 @@
       </ul></li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.reset_running_stats">reset_running_stats() (espnet2.enh.layers.complexnn.ComplexBatchNorm method)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer.reset_streaming_cache">reset_streaming_cache() (espnet2.asr_transducer.encoder.blocks.conformer.Conformer method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.reset_streaming_cache">(espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.reset_streaming_cache">(espnet2.asr_transducer.encoder.encoder.Encoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks.reset_streaming_cache">(espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks method)</a>
+</li>
+      </ul></li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock">ResidualAffineCouplingBlock (class in espnet2.gan_tts.vits.residual_coupling)</a>
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer">ResidualAffineCouplingLayer (class in espnet2.gan_tts.vits.residual_coupling)</a>
@@ -6232,6 +6523,8 @@
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.perturb.RIRConvolve">RIRConvolve (class in espnet.transform.perturb)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm">RMSNorm (class in espnet2.asr_transducer.encoder.modules.normalization)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.encoders.RNN">RNN (class in espnet.nets.chainer_backend.rnn.encoders)</a>
 
       <ul>
@@ -6249,7 +6542,9 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder.rnn_forward">(espnet2.asr.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.rnn_forward">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.rnn_forward">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.rnn_forward">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.attractor.rnn_attractor.RnnAttractor">RnnAttractor (class in espnet2.diar.attractor.rnn_attractor)</a>
@@ -6258,6 +6553,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder">(class in espnet2.asr.decoder.rnn_decoder)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder">(class in espnet2.asr_transducer.decoder.rnn_decoder)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.encoder.rnn_encoder.RNNEncoder">RNNEncoder (class in espnet2.asr.encoder.rnn_encoder)</a>
@@ -6306,6 +6603,8 @@
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.ScaledPositionalEncoding">ScaledPositionalEncoding (class in espnet.nets.pytorch_backend.transformer.embedding)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm">ScaleNorm (class in espnet2.asr_transducer.encoder.modules.normalization)</a>
+</li>
       <li><a href="_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface">SchedulerInterface (class in espnet.scheduler.scheduler)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchHypothesis.score">score (espnet.nets.batch_beam_search.BatchHypothesis attribute)</a>
@@ -6339,9 +6638,15 @@
 </li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.rnn_decoder.RNNDecoder.score">(espnet2.asr.decoder.rnn_decoder.RNNDecoder method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.score">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score">(espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.score">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.score">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.score">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.score">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
         <li><a href="_gen/espnet2.lm.html#espnet2.lm.seq_rnn_lm.SequentialRNNLM.score">(espnet2.lm.seq_rnn_lm.SequentialRNNLM method)</a>
 </li>
@@ -6412,8 +6717,12 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.streaming.segment.SegmentStreamingE2E">SegmentStreamingE2E (class in espnet.nets.pytorch_backend.streaming.segment)</a>
 </li>
-      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.select_k_expansions">select_k_expansions() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.select_k_expansions">select_k_expansions() (espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.select_k_expansions">(in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.utils.select_lm_state">select_lm_state() (in module espnet.nets.pytorch_backend.transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.custom_decoder.CustomDecoder.select_state">select_state() (espnet.nets.pytorch_backend.transducer.custom_decoder.CustomDecoder method)</a>
@@ -6429,7 +6738,13 @@
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.TransducerDecoderInterface.select_state">(espnet.nets.transducer_decoder_interface.TransducerDecoderInterface method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.select_state">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.select_state">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.select_state">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.select_state">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.select_state">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.sentencepiece_tokenizer.SentencepiecesTokenizer">SentencepiecesTokenizer (class in espnet2.text.sentencepiece_tokenizer)</a>
@@ -6473,7 +6788,13 @@
       <ul>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.set_device">(espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder method)</a>
 </li>
-        <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.set_device">(espnet2.asr.transducer.transducer_decoder.TransducerDecoder method)</a>
+        <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.set_device">(espnet2.asr.decoder.transducer_decoder.TransducerDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.set_device">(espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder.set_device">(espnet2.asr_transducer.decoder.rnn_decoder.RNNDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.set_device">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.training.train_utils.set_early_stop">set_early_stop() (in module espnet.utils.training.train_utils)</a>
@@ -6516,12 +6837,12 @@
       </ul></li>
       <li><a href="_gen/espnet.distributed.html#espnet.distributed.pytorch_backend.launch.MainProcessError.signal_no">signal_no() (espnet.distributed.pytorch_backend.launch.MainProcessError property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.sinc">sinc() (espnet2.layers.sinc_conv.SincConv static method)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv">SincConv (class in espnet2.layers.sinc_conv)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.SingleRNN">SingleRNN (class in espnet2.enh.layers.dprnn)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">SISNRLoss (class in espnet2.enh.loss.criterions.time_domain)</a>
@@ -6533,6 +6854,8 @@
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.skim_separator.SkiMSeparator">SkiMSeparator (class in espnet2.enh.separator.skim_separator)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow">SlidingWindow (class in espnet2.asr.frontend.windowing)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Smish">Smish (class in espnet2.asr_transducer.activation)</a>
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.snapshot_object">snapshot_object() (in module espnet.asr.asr_utils)</a>
 </li>
@@ -6556,6 +6879,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.sort_nbest">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.sort_nbest">(espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.Reporter.sort_values">sort_values() (espnet2.train.reporter.Reporter method)</a>
@@ -6602,6 +6927,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_inference_maskctc.Speech2Text">(class in espnet2.bin.asr_inference_maskctc)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text">(class in espnet2.bin.asr_transducer_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.st_inference.Speech2Text">(class in espnet2.bin.st_inference)</a>
 </li>
@@ -6658,6 +6985,8 @@
       </ul></li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentationTask.state_list">state_list (espnet2.bin.asr_align.CTCSegmentationTask attribute)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder">StatelessDecoder (class in espnet2.asr_transducer.decoder.stateless_decoder)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchHypothesis.states">states (espnet.nets.batch_beam_search.BatchHypothesis attribute)</a>
 
       <ul>
@@ -6712,6 +7041,8 @@
 </li>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.types.str_or_none">str_or_none() (in module espnet2.utils.types)</a>
 </li>
+      <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.streaming_decode">streaming_decode() (espnet2.bin.asr_transducer_inference.Speech2Text method)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding">StreamPositionalEncoding (class in espnet.nets.pytorch_backend.transformer.embedding)</a>
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.parallel_wavegan.upsample.Stretch2d">Stretch2d (class in espnet2.gan_tts.parallel_wavegan.upsample)</a>
@@ -6727,6 +7058,8 @@
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.style_melgan.style_melgan.StyleMelGANGenerator">StyleMelGANGenerator (class in espnet2.gan_tts.style_melgan.style_melgan)</a>
 </li>
       <li><a href="_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.StyleTokenLayer">StyleTokenLayer (class in espnet2.tts.gst.style_encoder)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.sub_factor_to_params">sub_factor_to_params() (in module espnet2.asr_transducer.utils)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.SubReporter">SubReporter (class in espnet2.train.reporter)</a>
 </li>
@@ -6749,7 +7082,11 @@
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.svoice_separator.SVoiceSeparator">SVoiceSeparator (class in espnet2.enh.separator.svoice_separator)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.swish.Swish">Swish (class in espnet.nets.pytorch_backend.conformer.swish)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Swish">(class in espnet2.asr_transducer.activation)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.PQMF.synthesis">synthesis() (espnet2.gan_tts.melgan.pqmf.PQMF method)</a>
 </li>
   </ul></td>
@@ -6855,6 +7192,8 @@
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.time_sync_decoding">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
+        <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.time_sync_decoding">(espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer method)</a>
+</li>
       </ul></li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.spec_augment.time_warp">time_warp() (in module espnet.transform.spec_augment)</a>
 
@@ -6920,7 +7259,7 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.TooShortUttError">TooShortUttError</a>
+      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.TooShortUttError">TooShortUttError</a>, <a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.TooShortUttError">[1]</a>
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_load">torch_load() (in module espnet.asr.asr_utils)</a>
 </li>
@@ -6965,6 +7304,8 @@
       <ul>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.trainer">(espnet2.tasks.asr.ASRTask attribute)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.trainer">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.trainer">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.trainer">(espnet2.tasks.enh.EnhancementTask attribute)</a>
@@ -6996,7 +7337,7 @@
       </ul></li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.transducer_add_arguments">transducer_add_arguments() (espnet.nets.pytorch_backend.e2e_asr_transducer.E2E static method)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.transducer_decoder.TransducerDecoder">TransducerDecoder (class in espnet2.asr.transducer.transducer_decoder)</a>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.transducer_decoder.TransducerDecoder">TransducerDecoder (class in espnet2.asr.decoder.transducer_decoder)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.transducer_decoder_interface.TransducerDecoderInterface">TransducerDecoderInterface (class in espnet.nets.transducer_decoder_interface)</a>
 </li>
@@ -7170,6 +7511,12 @@
 </li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.Jaso.VALID_CHARS">VALID_CHARS (espnet2.text.phoneme_tokenizer.Jaso attribute)</a>
 </li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.validation.validate_architecture">validate_architecture() (in module espnet2.asr_transducer.encoder.validation)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.validation.validate_block_arguments">validate_block_arguments() (in module espnet2.asr_transducer.encoder.validation)</a>
+</li>
+      <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.validation.validate_input_block">validate_input_block() (in module espnet2.asr_transducer.encoder.validation)</a>
+</li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.gan_trainer.GANTrainer.validate_one_epoch">validate_one_epoch() (espnet2.train.gan_trainer.GANTrainer class method)</a>
 
       <ul>
@@ -7184,10 +7531,10 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.VaswaniRule">VaswaniRule (class in espnet.nets.chainer_backend.transformer.training)</a>
 </li>
-      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.verify_block_arguments">verify_block_arguments() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.verify_block_arguments">verify_block_arguments() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.argument.verify_rel_pos_type">verify_rel_pos_type() (in module espnet.nets.pytorch_backend.conformer.argument)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.encoders.VGG2L">VGG2L (class in espnet.nets.chainer_backend.rnn.encoders)</a>

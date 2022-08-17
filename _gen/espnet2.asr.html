@@ -144,6 +144,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-mlm-decoder">espnet2.asr.decoder.mlm_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-rnn-decoder">espnet2.asr.decoder.rnn_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-init">espnet2.asr.decoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-transducer-decoder">espnet2.asr.decoder.transducer_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-transformer-decoder">espnet2.asr.decoder.transformer_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-cgmlp">espnet2.asr.layers.cgmlp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-init">espnet2.asr.layers.__init__</a></li>
@@ -154,9 +155,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-error-calculator">espnet2.asr.transducer.error_calculator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-beam-search-transducer">espnet2.asr.transducer.beam_search_transducer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-init">espnet2.asr.transducer.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-utils">espnet2.asr.transducer.utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-transducer-decoder">espnet2.asr.transducer.transducer_decoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-joint-network">espnet2.asr.transducer.joint_network</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
@@ -167,6 +165,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
 </ul>
@@ -1868,8 +1867,182 @@ and next state for ys</p>
 <section id="espnet2-asr-decoder-init">
 <span id="id33"></span><h2>espnet2.asr.decoder.__init__<a class="headerlink" href="#espnet2-asr-decoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.__init__"></span></section>
+<section id="espnet2-asr-decoder-transducer-decoder">
+<span id="id34"></span><h2>espnet2.asr.decoder.transducer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transducer-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.decoder.transducer_decoder"></span><p>(RNN-)Transducer decoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.transducer_decoder.</code><code class="sig-name descname">TransducerDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">num_layers: int = 1</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">dropout_embed: float = 0.0</em>, <em class="sig-param">embed_pad: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<p>(RNN-)Transducer decoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocab_size</strong> – Output dimension.</p></li>
+<li><p><strong>layers_type</strong> – (RNN-)Decoder layers type.</p></li>
+<li><p><strong>num_layers</strong> – Number of decoder layers.</p></li>
+<li><p><strong>hidden_size</strong> – Number of decoder units per layer.</p></li>
+<li><p><strong>dropout</strong> – Dropout rate for decoder layers.</p></li>
+<li><p><strong>dropout_embed</strong> – Dropout rate for embedding layer.</p></li>
+<li><p><strong>embed_pad</strong> – Embed/Blank symbol ID.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.batch_score">
+<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">hyps: Union[List[espnet2.asr.transducer.beam_search_transducer.Hypothesis], List[espnet2.asr.transducer.beam_search_transducer.ExtendedHypothesis]], dec_states: Tuple[torch.Tensor, Optional[torch.Tensor]], cache: Dict[str, Any], use_lm: bool</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>One-step forward hypotheses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyps</strong> – Hypotheses.</p></li>
+<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
+<li><p><strong>cache</strong> – Pairs of (dec_out, dec_states) for each label sequences. (keys)</p></li>
+<li><p><strong>use_lm</strong> – Whether to compute label ID sequences for LM.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Decoder output sequences. (B, D_dec)
+dec_states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
+lm_labels: Label ID sequences for LM. (B,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dec_out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.create_batch_states">
+<code class="sig-name descname">create_batch_states</code><span class="sig-paren">(</span><em class="sig-param">states: Tuple[torch.Tensor, Optional[torch.Tensor]], new_states: List[Tuple[torch.Tensor, Optional[torch.Tensor]]], check_list: Optional[List] = None</em><span class="sig-paren">)</span> &#x2192; List[Tuple[torch.Tensor, Optional[torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.create_batch_states"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.create_batch_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create decoder hidden states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
+<li><p><strong>new_states</strong> – Decoder hidden states. [N x ((1, D_dec), (1, D_dec))]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>states</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">labels: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode source label sequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>labels</strong> – Label ID sequences. (B, L)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Decoder output sequences. (B, T, U, D_dec)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dec_out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.init_state">
+<code class="sig-name descname">init_state</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[None._VariableFunctionsClass.tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.init_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.init_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize decoder states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch_size</strong> – Batch size.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.rnn_forward">
+<code class="sig-name descname">rnn_forward</code><span class="sig-paren">(</span><em class="sig-param">sequence: torch.Tensor, state: Tuple[torch.Tensor, Optional[torch.Tensor]]</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.rnn_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.rnn_forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode source label sequences.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sequence</strong> – RNN input sequences. (B, D_emb)</p></li>
+<li><p><strong>state</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>RNN output sequences. (B, D_dec)
+(h_next, c_next): Decoder hidden states. (N, B, D_dec), (N, B, D_dec))</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>sequence</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.score">
+<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet2.asr.transducer.beam_search_transducer.Hypothesis, cache: Dict[str, Any]</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>One-step forward hypothesis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hyp</strong> – Hypothesis.</p></li>
+<li><p><strong>cache</strong> – Pairs of (dec_out, state) for each label sequence. (key)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Decoder output sequence. (1, D_dec)
+new_state: Decoder hidden states. ((N, 1, D_dec), (N, 1, D_dec))
+label: Label ID for LM. (1,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dec_out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.select_state">
+<code class="sig-name descname">select_state</code><span class="sig-paren">(</span><em class="sig-param">states: Tuple[torch.Tensor, Optional[torch.Tensor]], idx: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.select_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.select_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get specified ID state from decoder hidden states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
+<li><p><strong>idx</strong> – State ID to extract.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Decoder hidden state for given ID.</dt><dd><p>((N, 1, D_dec), (N, 1, D_dec))</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder.set_device">
+<code class="sig-name descname">set_device</code><span class="sig-paren">(</span><em class="sig-param">device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transducer_decoder.html#TransducerDecoder.set_device"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transducer_decoder.TransducerDecoder.set_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set GPU device to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>device</strong> – Device ID.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-decoder-transformer-decoder">
-<span id="id34"></span><h2>espnet2.asr.decoder.transformer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transformer-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id35"></span><h2>espnet2.asr.decoder.transformer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transformer-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.transformer_decoder"></span><p>Decoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder">
@@ -2019,7 +2192,7 @@ y.shape` is (batch, maxlen_out, token)</p>
 
 </section>
 <section id="espnet2-asr-layers-cgmlp">
-<span id="id35"></span><h2>espnet2.asr.layers.cgmlp<a class="headerlink" href="#espnet2-asr-layers-cgmlp" title="Permalink to this headline">¶</a></h2>
+<span id="id36"></span><h2>espnet2.asr.layers.cgmlp<a class="headerlink" href="#espnet2-asr-layers-cgmlp" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.cgmlp"></span><p>MLP with convolutional gating (cgMLP) definition.</p>
 <p class="rubric">References</p>
 <p><a class="reference external" href="https://openreview.net/forum?id=RA-zVvZLYIy">https://openreview.net/forum?id=RA-zVvZLYIy</a>
@@ -2079,10 +2252,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-layers-init">
-<span id="id36"></span><h2>espnet2.asr.layers.__init__<a class="headerlink" href="#espnet2-asr-layers-init" title="Permalink to this headline">¶</a></h2>
+<span id="id37"></span><h2>espnet2.asr.layers.__init__<a class="headerlink" href="#espnet2-asr-layers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.__init__"></span></section>
 <section id="espnet2-asr-layers-fastformer">
-<span id="id37"></span><h2>espnet2.asr.layers.fastformer<a class="headerlink" href="#espnet2-asr-layers-fastformer" title="Permalink to this headline">¶</a></h2>
+<span id="id38"></span><h2>espnet2.asr.layers.fastformer<a class="headerlink" href="#espnet2-asr-layers-fastformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.fastformer"></span><p>Fastformer attention definition.</p>
 <dl class="simple">
 <dt>Reference:</dt><dd><p>Wu et al., “Fastformer: Additive Attention Can Be All You Need”
@@ -2143,7 +2316,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-postencoder-hugging-face-transformers-postencoder">
-<span id="id38"></span><h2>espnet2.asr.postencoder.hugging_face_transformers_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder" title="Permalink to this headline">¶</a></h2>
+<span id="id39"></span><h2>espnet2.asr.postencoder.hugging_face_transformers_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.hugging_face_transformers_postencoder"></span><p>Hugging Face Transformers PostEncoder.</p>
 <dl class="class">
 <dt id="espnet2.asr.postencoder.hugging_face_transformers_postencoder.HuggingFaceTransformersPostEncoder">
@@ -2172,7 +2345,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-postencoder-abs-postencoder">
-<span id="id39"></span><h2>espnet2.asr.postencoder.abs_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-abs-postencoder" title="Permalink to this headline">¶</a></h2>
+<span id="id40"></span><h2>espnet2.asr.postencoder.abs_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-abs-postencoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.abs_postencoder"></span><dl class="class">
 <dt id="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.abs_postencoder.</code><code class="sig-name descname">AbsPostEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/postencoder/abs_postencoder.html#AbsPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="Permalink to this definition">¶</a></dt>
@@ -2201,10 +2374,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-postencoder-init">
-<span id="id40"></span><h2>espnet2.asr.postencoder.__init__<a class="headerlink" href="#espnet2-asr-postencoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id41"></span><h2>espnet2.asr.postencoder.__init__<a class="headerlink" href="#espnet2-asr-postencoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.__init__"></span></section>
 <section id="espnet2-asr-transducer-error-calculator">
-<span id="id41"></span><h2>espnet2.asr.transducer.error_calculator<a class="headerlink" href="#espnet2-asr-transducer-error-calculator" title="Permalink to this headline">¶</a></h2>
+<span id="id42"></span><h2>espnet2.asr.transducer.error_calculator<a class="headerlink" href="#espnet2-asr-transducer-error-calculator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.error_calculator"></span><p>Error Calculator module for Transducer.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer">
@@ -2283,11 +2456,11 @@ char_target: Target character sequences. (B, ?)</p>
 
 </section>
 <section id="espnet2-asr-transducer-beam-search-transducer">
-<span id="id42"></span><h2>espnet2.asr.transducer.beam_search_transducer<a class="headerlink" href="#espnet2-asr-transducer-beam-search-transducer" title="Permalink to this headline">¶</a></h2>
+<span id="id43"></span><h2>espnet2.asr.transducer.beam_search_transducer<a class="headerlink" href="#espnet2-asr-transducer-beam-search-transducer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.beam_search_transducer"></span><p>Search algorithms for Transducer models.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr.transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Beam search implementation for Transducer.</p>
 <p>Initialize Transducer search module.</p>
@@ -2477,254 +2650,8 @@ until further modifications.</p>
 
 </section>
 <section id="espnet2-asr-transducer-init">
-<span id="id43"></span><h2>espnet2.asr.transducer.__init__<a class="headerlink" href="#espnet2-asr-transducer-init" title="Permalink to this headline">¶</a></h2>
+<span id="id44"></span><h2>espnet2.asr.transducer.__init__<a class="headerlink" href="#espnet2-asr-transducer-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.__init__"></span></section>
-<section id="espnet2-asr-transducer-utils">
-<span id="id44"></span><h2>espnet2.asr.transducer.utils<a class="headerlink" href="#espnet2-asr-transducer-utils" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.asr.transducer.utils"></span><p>Utility functions for Transducer models.</p>
-<dl class="function">
-<dt id="espnet2.asr.transducer.utils.get_transducer_task_io">
-<code class="sig-prename descclassname">espnet2.asr.transducer.utils.</code><code class="sig-name descname">get_transducer_task_io</code><span class="sig-paren">(</span><em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">encoder_out_lens: torch.Tensor</em>, <em class="sig-param">ignore_id: int = -1</em>, <em class="sig-param">blank_id: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/utils.html#get_transducer_task_io"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.utils.get_transducer_task_io" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get Transducer loss I/O.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>labels</strong> – Label ID sequences. (B, L)</p></li>
-<li><p><strong>encoder_out_lens</strong> – Encoder output lengths. (B,)</p></li>
-<li><p><strong>ignore_id</strong> – Padding symbol ID.</p></li>
-<li><p><strong>blank_id</strong> – Blank symbol ID.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Decoder inputs. (B, U)
-target: Target label ID sequences. (B, U)
-t_len: Time lengths. (B,)
-u_len: Label lengths. (B,)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>decoder_in</p>
-</dd>
-</dl>
-</dd></dl>
-
-</section>
-<section id="espnet2-asr-transducer-transducer-decoder">
-<span id="id45"></span><h2>espnet2.asr.transducer.transducer_decoder<a class="headerlink" href="#espnet2-asr-transducer-transducer-decoder" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.asr.transducer.transducer_decoder"></span><p>(RNN-)Transducer decoder definition.</p>
-<dl class="class">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.transducer_decoder.</code><code class="sig-name descname">TransducerDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">num_layers: int = 1</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">dropout_embed: float = 0.0</em>, <em class="sig-param">embed_pad: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a></p>
-<p>(RNN-)Transducer decoder module.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>vocab_size</strong> – Output dimension.</p></li>
-<li><p><strong>layers_type</strong> – (RNN-)Decoder layers type.</p></li>
-<li><p><strong>num_layers</strong> – Number of decoder layers.</p></li>
-<li><p><strong>hidden_size</strong> – Number of decoder units per layer.</p></li>
-<li><p><strong>dropout</strong> – Dropout rate for decoder layers.</p></li>
-<li><p><strong>dropout_embed</strong> – Dropout rate for embedding layer.</p></li>
-<li><p><strong>embed_pad</strong> – Embed/Blank symbol ID.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.batch_score">
-<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">hyps: Union[List[espnet2.asr.transducer.beam_search_transducer.Hypothesis], List[espnet2.asr.transducer.beam_search_transducer.ExtendedHypothesis]], dec_states: Tuple[torch.Tensor, Optional[torch.Tensor]], cache: Dict[str, Any], use_lm: bool</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
-<dd><p>One-step forward hypotheses.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hyps</strong> – Hypotheses.</p></li>
-<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
-<li><p><strong>cache</strong> – Pairs of (dec_out, dec_states) for each label sequences. (keys)</p></li>
-<li><p><strong>use_lm</strong> – Whether to compute label ID sequences for LM.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Decoder output sequences. (B, D_dec)
-dec_states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
-lm_labels: Label ID sequences for LM. (B,)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dec_out</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.create_batch_states">
-<code class="sig-name descname">create_batch_states</code><span class="sig-paren">(</span><em class="sig-param">states: Tuple[torch.Tensor, Optional[torch.Tensor]], new_states: List[Tuple[torch.Tensor, Optional[torch.Tensor]]], check_list: Optional[List] = None</em><span class="sig-paren">)</span> &#x2192; List[Tuple[torch.Tensor, Optional[torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.create_batch_states"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.create_batch_states" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create decoder hidden states.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
-<li><p><strong>new_states</strong> – Decoder hidden states. [N x ((1, D_dec), (1, D_dec))]</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>states</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">labels: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Encode source label sequences.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>labels</strong> – Label ID sequences. (B, L)</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Decoder output sequences. (B, T, U, D_dec)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dec_out</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.init_state">
-<code class="sig-name descname">init_state</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[None._VariableFunctionsClass.tensor]]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.init_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.init_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize decoder states.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>batch_size</strong> – Batch size.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.rnn_forward">
-<code class="sig-name descname">rnn_forward</code><span class="sig-paren">(</span><em class="sig-param">sequence: torch.Tensor, state: Tuple[torch.Tensor, Optional[torch.Tensor]]</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.rnn_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.rnn_forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Encode source label sequences.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sequence</strong> – RNN input sequences. (B, D_emb)</p></li>
-<li><p><strong>state</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>RNN output sequences. (B, D_dec)
-(h_next, c_next): Decoder hidden states. (N, B, D_dec), (N, B, D_dec))</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>sequence</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.score">
-<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet2.asr.transducer.beam_search_transducer.Hypothesis, cache: Dict[str, Any]</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.score" title="Permalink to this definition">¶</a></dt>
-<dd><p>One-step forward hypothesis.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hyp</strong> – Hypothesis.</p></li>
-<li><p><strong>cache</strong> – Pairs of (dec_out, state) for each label sequence. (key)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Decoder output sequence. (1, D_dec)
-new_state: Decoder hidden states. ((N, 1, D_dec), (N, 1, D_dec))
-label: Label ID for LM. (1,)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>dec_out</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.select_state">
-<code class="sig-name descname">select_state</code><span class="sig-paren">(</span><em class="sig-param">states: Tuple[torch.Tensor, Optional[torch.Tensor]], idx: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.select_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.select_state" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get specified ID state from decoder hidden states.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>states</strong> – Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</p></li>
-<li><p><strong>idx</strong> – State ID to extract.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Decoder hidden state for given ID.</dt><dd><p>((N, 1, D_dec), (N, 1, D_dec))</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.asr.transducer.transducer_decoder.TransducerDecoder.set_device">
-<code class="sig-name descname">set_device</code><span class="sig-paren">(</span><em class="sig-param">device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/transducer_decoder.html#TransducerDecoder.set_device"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.transducer_decoder.TransducerDecoder.set_device" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set GPU device to use.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>device</strong> – Device ID.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</section>
-<section id="espnet2-asr-transducer-joint-network">
-<span id="id46"></span><h2>espnet2.asr.transducer.joint_network<a class="headerlink" href="#espnet2-asr-transducer-joint-network" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.asr.transducer.joint_network"></span><p>Transducer joint network implementation.</p>
-<dl class="class">
-<dt id="espnet2.asr.transducer.joint_network.JointNetwork">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.joint_network.</code><code class="sig-name descname">JointNetwork</code><span class="sig-paren">(</span><em class="sig-param">joint_output_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">decoder_output_size: int</em>, <em class="sig-param">joint_space_size: int = 256</em>, <em class="sig-param">joint_activation_type: str = 'tanh'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/joint_network.html#JointNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.joint_network.JointNetwork" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Transducer joint network module.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>joint_output_size</strong> – Joint network output dimension</p></li>
-<li><p><strong>encoder_output_size</strong> – Encoder output dimension.</p></li>
-<li><p><strong>decoder_output_size</strong> – Decoder output dimension.</p></li>
-<li><p><strong>joint_space_size</strong> – Dimension of joint space.</p></li>
-<li><p><strong>joint_activation_type</strong> – Type of activation for joint network.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Joint network initializer.</p>
-<dl class="method">
-<dt id="espnet2.asr.transducer.joint_network.JointNetwork.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em>, <em class="sig-param">dec_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/transducer/joint_network.html#JointNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.joint_network.JointNetwork.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Joint computation of encoder and decoder hidden state sequences.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>enc_out</strong> – Expanded encoder output state sequences (B, T, 1, D_enc)</p></li>
-<li><p><strong>dec_out</strong> – Expanded decoder output state sequences (B, 1, U, D_dec)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Joint output state sequences. (B, T, U, D_out)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>joint_out</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-</section>
 </section>
 
 

@@ -37,6 +37,17 @@ espnet2.tasks.lm
     :show-inheritance:
 
 
+.. _espnet2.tasks.asr_transducer:
+
+espnet2.tasks.asr_transducer
+----------------------------
+
+.. automodule:: espnet2.tasks.asr_transducer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.abs_task:
 
 espnet2.tasks.abs_task

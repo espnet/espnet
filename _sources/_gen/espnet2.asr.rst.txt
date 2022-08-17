@@ -367,6 +367,17 @@ espnet2.asr.decoder.__init__
     :show-inheritance:
 
 
+.. _espnet2.asr.decoder.transducer_decoder:
+
+espnet2.asr.decoder.transducer_decoder
+--------------------------------------
+
+.. automodule:: espnet2.asr.decoder.transducer_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.decoder.transformer_decoder:
 
 espnet2.asr.decoder.transformer_decoder
@@ -472,39 +483,6 @@ espnet2.asr.transducer.__init__
 -------------------------------
 
 .. automodule:: espnet2.asr.transducer.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.utils:
-
-espnet2.asr.transducer.utils
-----------------------------
-
-.. automodule:: espnet2.asr.transducer.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.transducer_decoder:
-
-espnet2.asr.transducer.transducer_decoder
------------------------------------------
-
-.. automodule:: espnet2.asr.transducer.transducer_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.joint_network:
-
-espnet2.asr.transducer.joint_network
-------------------------------------
-
-.. automodule:: espnet2.asr.transducer.joint_network
     :members:
     :undoc-members:
     :show-inheritance:

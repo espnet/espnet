@@ -119,6 +119,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
 </ul>
@@ -1364,6 +1365,11 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr.html#module-espnet2.asr.decoder.transducer_decoder"><code class="xref">espnet2.asr.decoder.transducer_decoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.asr.html#module-espnet2.asr.decoder.transformer_decoder"><code class="xref">espnet2.asr.decoder.transformer_decoder</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -1549,17 +1555,127 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.joint_network"><code class="xref">espnet2.asr.transducer.joint_network</code></a></td><td>
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.__init__"><code class="xref">espnet2.asr_transducer.__init__</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.transducer_decoder"><code class="xref">espnet2.asr.transducer.transducer_decoder</code></a></td><td>
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.activation"><code class="xref">espnet2.asr_transducer.activation</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
-       <a href="_gen/espnet2.asr.html#module-espnet2.asr.transducer.utils"><code class="xref">espnet2.asr.transducer.utils</code></a></td><td>
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.beam_search_transducer"><code class="xref">espnet2.asr_transducer.beam_search_transducer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.__init__"><code class="xref">espnet2.asr_transducer.decoder.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.abs_decoder"><code class="xref">espnet2.asr_transducer.decoder.abs_decoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.rnn_decoder"><code class="xref">espnet2.asr_transducer.decoder.rnn_decoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.decoder.stateless_decoder"><code class="xref">espnet2.asr_transducer.decoder.stateless_decoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.__init__"><code class="xref">espnet2.asr_transducer.encoder.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.__init__"><code class="xref">espnet2.asr_transducer.encoder.blocks.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conformer"><code class="xref">espnet2.asr_transducer.encoder.blocks.conformer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conv1d"><code class="xref">espnet2.asr_transducer.encoder.blocks.conv1d</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.blocks.conv_input"><code class="xref">espnet2.asr_transducer.encoder.blocks.conv_input</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.building"><code class="xref">espnet2.asr_transducer.encoder.building</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.encoder"><code class="xref">espnet2.asr_transducer.encoder.encoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.__init__"><code class="xref">espnet2.asr_transducer.encoder.modules.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.attention"><code class="xref">espnet2.asr_transducer.encoder.modules.attention</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.convolution"><code class="xref">espnet2.asr_transducer.encoder.modules.convolution</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.multi_blocks"><code class="xref">espnet2.asr_transducer.encoder.modules.multi_blocks</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.normalization"><code class="xref">espnet2.asr_transducer.encoder.modules.normalization</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.modules.positional_encoding"><code class="xref">espnet2.asr_transducer.encoder.modules.positional_encoding</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.encoder.validation"><code class="xref">espnet2.asr_transducer.encoder.validation</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.error_calculator"><code class="xref">espnet2.asr_transducer.error_calculator</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.espnet_transducer_model"><code class="xref">espnet2.asr_transducer.espnet_transducer_model</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.joint_network"><code class="xref">espnet2.asr_transducer.joint_network</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.utils"><code class="xref">espnet2.asr_transducer.utils</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
@@ -1595,6 +1711,16 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_train"><code class="xref">espnet2.bin.asr_train</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_inference"><code class="xref">espnet2.bin.asr_transducer_inference</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_train"><code class="xref">espnet2.bin.asr_transducer_train</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
@@ -2595,6 +2721,11 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asr"><code class="xref">espnet2.tasks.asr</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asr_transducer"><code class="xref">espnet2.tasks.asr_transducer</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>

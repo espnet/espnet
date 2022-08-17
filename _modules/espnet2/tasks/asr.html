@@ -116,6 +116,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
 </ul>
@@ -164,6 +165,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.mlm_decoder</span> <span class="kn">import</span> <span class="n">MLMDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transducer_decoder</span> <span class="kn">import</span> <span class="n">TransducerDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transformer_decoder</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">DynamicConvolution2DTransformerDecoder</span><span class="p">,</span>
     <span class="n">DynamicConvolutionTransformerDecoder</span><span class="p">,</span>
@@ -205,8 +207,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.specaug</span> <span class="kn">import</span> <span class="n">SpecAug</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.transducer_decoder</span> <span class="kn">import</span> <span class="n">TransducerDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr_transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.utterance_mvn</span> <span class="kn">import</span> <span class="n">UtteranceMVN</span>

@@ -180,6 +180,17 @@ espnet2.bin.lm_calc_perplexity
     :show-inheritance:
 
 
+.. _espnet2.bin.asr_transducer_train:
+
+espnet2.bin.asr_transducer_train
+--------------------------------
+
+.. automodule:: espnet2.bin.asr_transducer_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.aggregate_stats_dirs:
 
 espnet2.bin.aggregate_stats_dirs
@@ -296,6 +307,17 @@ espnet2.bin.tokenize_text
 -------------------------
 
 .. automodule:: espnet2.bin.tokenize_text
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_transducer_inference:
+
+espnet2.bin.asr_transducer_inference
+------------------------------------
+
+.. automodule:: espnet2.bin.asr_transducer_inference
     :members:
     :undoc-members:
     :show-inheritance:

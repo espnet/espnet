@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>espnet2.asr.transducer.joint_network &mdash; ESPnet 202207 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <title>espnet2.asr_transducer.decoder.abs_decoder &mdash; ESPnet 202207 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../../../_static/js/html5shiv.min.js"></script>
@@ -116,6 +116,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
 </ul>
@@ -142,7 +143,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
-      <li>espnet2.asr.transducer.joint_network</li>
+      <li>espnet2.asr_transducer.decoder.abs_decoder</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -151,62 +152,117 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for espnet2.asr.transducer.joint_network</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Transducer joint network implementation.&quot;&quot;&quot;</span>
+  <h1>Source code for espnet2.asr_transducer.decoder.abs_decoder</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Abstract decoder definition for Transducer models.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_activation</span>
 
+<div class="viewcode-block" id="AbsDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder">[docs]</a><span class="k">class</span> <span class="nc">AbsDecoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract decoder module.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="JointNetwork"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.joint_network.JointNetwork">[docs]</a><span class="k">class</span> <span class="nc">JointNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transducer joint network module.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        joint_output_size: Joint network output dimension</span>
-<span class="sd">        encoder_output_size: Encoder output dimension.</span>
-<span class="sd">        decoder_output_size: Decoder output dimension.</span>
-<span class="sd">        joint_space_size: Dimension of joint space.</span>
-<span class="sd">        joint_activation_type: Type of activation for joint network.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">joint_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">encoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">decoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">joint_space_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
-        <span class="n">joint_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tanh&quot;</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Joint network initializer.&quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">lin_enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="n">joint_space_size</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">decoder_output_size</span><span class="p">,</span> <span class="n">joint_space_size</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">joint_space_size</span><span class="p">,</span> <span class="n">joint_output_size</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span> <span class="o">=</span> <span class="n">get_activation</span><span class="p">(</span><span class="n">joint_activation_type</span><span class="p">)</span>
-
-<div class="viewcode-block" id="JointNetwork.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.joint_network.JointNetwork.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">dec_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Joint computation of encoder and decoder hidden state sequences.</span>
+<div class="viewcode-block" id="AbsDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.forward">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)</span>
-<span class="sd">            dec_out: Expanded decoder output state sequences (B, 1, U, D_dec)</span>
+<span class="sd">            labels: Label ID sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            joint_out: Joint output state sequences. (B, T, U, D_out)</span>
+<span class="sd">            dec_out: Decoder output sequences. (B, T, D_dec)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lin_enc</span><span class="p">(</span><span class="n">enc_out</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span><span class="p">(</span><span class="n">dec_out</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span><span class="p">(</span><span class="n">joint_out</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="AbsDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.score">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">label_sequence</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">dec_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]]:</span>
+        <span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            label: Previous label. (1, 1)</span>
+<span class="sd">            label_sequence: Current label sequence.</span>
+<span class="sd">            dec_state: Previous decoder hidden states.</span>
+<span class="sd">                         ((N, 1, D_dec), (N, 1, D_dec) or None) or None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dec_out: Decoder output sequence. (1, D_dec) or (1, D_emb)</span>
+<span class="sd">            dec_state: Decoder hidden states.</span>
+<span class="sd">                         ((N, 1, D_dec), (N, 1, D_dec) or None) or None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="AbsDecoder.batch_score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.batch_score">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]]:</span>
+        <span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hyps: Hypotheses.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dec_out: Decoder output sequences. (B, D_dec) or (B, D_emb)</span>
+<span class="sd">            states: Decoder hidden states.</span>
+<span class="sd">                      ((N, B, D_dec), (N, B, D_dec) or None) or None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="AbsDecoder.set_device"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.set_device">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">set_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            device: Device ID.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="AbsDecoder.init_state"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.init_state">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            batch_size: Batch size.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Initial decoder hidden states.</span>
+<span class="sd">                ((N, B, D_dec), (N, B, D_dec) or None) or None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="AbsDecoder.select_state"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.select_state">[docs]</a>    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Get specified ID state from batch of states, if provided.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            states: Decoder hidden states.</span>
+<span class="sd">                      ((N, B, D_dec), (N, B, D_dec) or None) or None</span>
+<span class="sd">            idx: State ID to extract.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            : Decoder hidden state for given ID.</span>
+<span class="sd">                ((N, 1, D_dec), (N, 1, D_dec) or None) or None</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
 </pre></div>
 
            </div>
