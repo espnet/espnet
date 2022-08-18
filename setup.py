@@ -24,6 +24,7 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
+        "numpy<=1.21.4",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
         # ASR
@@ -40,7 +41,7 @@ requirements = {
     ],
     # train: The modules invoked when training only.
     "train": [
-        "matplotlib==3.1.0",
+        "matplotlib",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "wandb",
@@ -75,7 +76,6 @@ requirements = {
         "gtn==0.0.0",
     ],
     "setup": [
-        "numpy<=1.21.4",
         "pytest-runner",
     ],
     "test": [
