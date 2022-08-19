@@ -160,12 +160,9 @@ class Branchformer(torch.nn.Module):
         else:
             att_cache = key[:, -left_context:, :]
 
-        x1 = self.dropout(
-            self.self_att(x1, key, val, pos_enc, mask=mask, left_context=left_context)
-        )
+        x1 = self.self_att(x1, key, val, pos_enc, mask=mask, left_context=left_context)
 
         x2 = self.norm_mlp(x2)
-
         x2 = self.channel_proj1(x2)
 
         x2, conv_cache = self.conv_mod(
