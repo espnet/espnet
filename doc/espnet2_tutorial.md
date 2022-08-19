@@ -453,7 +453,7 @@ It is similar to the custom encoder in ESPnet1, meaning we don't need to set the
   2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
   3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
 
-The first and second configurations are optional. If needed, fhe following parameters can be modified in each configuration:
+The first and second configurations are optional. If needed, the following parameters can be modified in each configuration:
 
     main_conf:
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
@@ -463,8 +463,8 @@ The first and second configurations are optional. If needed, fhe following param
       simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
       norm_type: Normalization module type for X-former. (str, default = "layer_norm")
       conv_mod_norm_type: Normalization module for Branchformer convolution module. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization. (float, default = None)
-      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = None)
+      after_norm_eps: Epsilon value for the final normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
+      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = -1.0)
       dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
       short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
       short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
@@ -506,10 +506,10 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       linear_size: Dimension of the Linear layers. (int)
       conv_mod_kernel_size: Number of kernel in convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      norm_eps (optional): Epsilon value for normalization module. (float, default = None)
-      norm_partial (optional): Partial value for the RMSNorm normalization module. (float, default = None)
-      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = None)
-      conv_mod_norm_partial (optional): Partial value for the RMSNorm convolutional module normalization . (float, default = None)
+      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the RMSNorm normalization module. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
+      conv_mod_norm_partial (optional): Partial value for the RMSNorm convolutional module normalization . (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
@@ -520,10 +520,10 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       linear_size: Dimension of feed-forward module. (int)
       conv_mod_kernel_size: Number of kernel in convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      norm_eps (optional): Epsilon value for normalization module. (float, default = None)
-      norm_partial (optional): Value for the RMSNorm normalization module. (float, default = None)
-      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in convolutional module. (float, default = None)
-      conv_mod_norm_momentum (optional): Momentum value for the Batchnorm1d convolutional module. (float, default = None)
+      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Value for the RMSNorm normalization module. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in convolutional module. (float, default = 1e-05)
+      conv_mod_norm_momentum (optional): Momentum value for the Batchnorm1d convolutional module. (float, default = 0.1)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
@@ -653,6 +653,7 @@ To perform chunk-by-chunk inference, the parameter `streaming` should be set to 
 For each parameter, the number of frames is defined AFTER subsampling, meaning the input chunk will be bigger than the one provided. The input size is determined by the frontend and the input block's subsampling, given `chunk_size + right_context` defining the decoding window.
 
 ***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
+
 ***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
 
 ### FAQ
