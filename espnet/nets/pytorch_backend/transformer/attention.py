@@ -8,7 +8,6 @@
 
 import math
 
-import numpy
 import torch
 from torch import nn
 
