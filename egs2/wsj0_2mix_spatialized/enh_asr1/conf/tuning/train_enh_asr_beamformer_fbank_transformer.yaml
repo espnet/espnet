@@ -1,6 +1,6 @@
 # minibatch related
 batch_type: folded
-batch_size: 16  # A6000 x 1
+batch_size: 8  # TITAN RTX x 1
 accum_grad: 2
 grad_clip: 5
 max_epoch: 50
@@ -63,7 +63,7 @@ enh_criterions:
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper: pit
     wrapper_conf:
-      weight: 1.0
+      weight: 10.0  # in order to match the scale of loss_asr
       independent_perm: False
 
 frontend: default
@@ -107,6 +107,7 @@ asr_model_conf:
 
 model_conf:
     bypass_enh_prob: 0.0
+    calc_enh_loss: true
 
 optim: adam
 optim_conf:

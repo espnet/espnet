@@ -57,7 +57,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             and self.enh_model.num_spk > 1
             and isinstance(self.s2t_model, ESPnetASRModel)
         ):
-            if not self.calc_enh_loss:
+            if self.calc_enh_loss:
+                logging.warning("The permutation issue will be handled by the Enh loss")
+            else:
                 logging.warning("The permutation issue will be handled by the CTC loss")
 
     def forward(
@@ -75,7 +77,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                                       have the speech_lengths returned.
                                       see in
                                       espnet2/iterators/chunk_iter_factory.py
-            For ENh+ASR task:
+            For Enh+ASR task:
                 text_spk1: (Batch, Length)
                 text_spk2: (Batch, Length)
                 ...
