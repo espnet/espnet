@@ -69,7 +69,7 @@ ngram_exp=
 ngram_num=3
 
 # Language model related
-use_lm=true       # Use language model for ASR decoding.
+use_lm=true       # Use language model for SLU decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
@@ -82,18 +82,18 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
-# ASR model related
-asr_tag=       # Suffix to the result dir for asr model training.
-asr_exp=       # Specify the directory path for ASR experiment.
-               # If this option is specified, asr_tag is ignored.
-asr_stats_dir= # Specify the directory path for ASR statistics.
-asr_config=    # Config for asr model training.
-asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
-               # Note that it will overwrite args in asr config.
+# SLU model related
+slu_tag=       # Suffix to the result dir for slu model training.
+slu_exp=       # Specify the directory path for SLU experiment.
+               # If this option is specified, slu_tag is ignored.
+slu_stats_dir= # Specify the directory path for SLU statistics.
+slu_config=    # Config for slu model training.
+slu_args=      # Arguments for slu model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in slu config.
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
-num_splits_asr=1           # Number of splitting for lm corpus.
+num_splits_slu=1           # Number of splitting for lm corpus.
 
 # Upload model related
 hf_repo=
@@ -107,12 +107,12 @@ inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
-inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
+inference_slu_model=valid.acc.ave.pth # SLU model path for decoding.
                                       # e.g.
-                                      # inference_asr_model=train.loss.best.pth
-                                      # inference_asr_model=3epoch.pth
-                                      # inference_asr_model=valid.acc.best.pth
-                                      # inference_asr_model=valid.loss.ave.pth
+                                      # inference_slu_model=train.loss.best.pth
+                                      # inference_slu_model=3epoch.pth
+                                      # inference_slu_model=valid.acc.best.pth
+                                      # inference_slu_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -136,8 +136,8 @@ g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
-asr_speech_fold_length=800 # fold_length for speech data during ASR training.
-asr_text_fold_length=150   # fold_length for text data during ASR training.
+slu_speech_fold_length=800 # fold_length for speech data during SLU training.
+slu_text_fold_length=150   # fold_length for text data during SLU training.
 lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
@@ -192,19 +192,19 @@ Options:
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
-    # ASR model related
-    --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
-    --asr_exp          # Specify the directory path for ASR experiment.
-                       # If this option is specified, asr_tag is ignored (default="${asr_exp}").
-    --asr_stats_dir    # Specify the directory path for ASR statistics (default="${asr_stats_dir}").
-    --asr_config       # Config for asr model training (default="${asr_config}").
-    --asr_args         # Arguments for asr model training (default="${asr_args}").
-                       # e.g., --asr_args "--max_epoch 10"
-                       # Note that it will overwrite args in asr config.
+    # SLU model related
+    --slu_tag          # Suffix to the result dir for slu model training (default="${slu_tag}").
+    --slu_exp          # Specify the directory path for SLU experiment.
+                       # If this option is specified, slu_tag is ignored (default="${slu_exp}").
+    --slu_stats_dir    # Specify the directory path for SLU statistics (default="${slu_stats_dir}").
+    --slu_config       # Config for slu model training (default="${slu_config}").
+    --slu_args         # Arguments for slu model training (default="${slu_args}").
+                       # e.g., --slu_args "--max_epoch 10"
+                       # Note that it will overwrite args in slu config.
     --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
     --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
+    --num_splits_slu   # Number of splitting for lm corpus  (default="${num_splits_slu}").
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
     --inference_config    # Config for decoding (default="${inference_config}").
@@ -212,7 +212,7 @@ Options:
                           # e.g., --inference_args "--lm_weight 0.1"
                           # Note that it will overwrite args in inference config.
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
-    --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
+    --inference_slu_model # SLU model path for decoding (default="${inference_slu_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -229,8 +229,8 @@ Options:
     --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
-    --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
-    --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
+    --slu_speech_fold_length # fold_length for speech data during SLU training (default="${slu_speech_fold_length}").
+    --slu_text_fold_length   # fold_length for text data during SLU training (default="${slu_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 EOF
 )
@@ -272,20 +272,20 @@ fi
 
 utt_extra_files="transcript"
 
-# Use the same text as ASR for bpe training if not specified.
+# Use the same text as SLU for bpe training if not specified.
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
-# Use the same text as ASR for lm training if not specified.
+# Use the same text as SLU for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text"
-# Use the same text as ASR for lm training if not specified.
+# Use the same text as SLU for lm training if not specified.
 [ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text"
 # Use the text of the 1st evaldir if lm_test is not specified
 [ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text"
 
-# Use the same transcript as ASR for bpe training if not specified.
+# Use the same transcript as SLU for bpe training if not specified.
 [ -z "${bpe_train_transcript}" ] && bpe_train_transcript="${data_feats}/${train_set}/transcript"
-# Use the same transcript as ASR for lm training if not specified.
+# Use the same transcript as SLU for lm training if not specified.
 [ -z "${lm_train_transcript}" ] && lm_train_transcript="${data_feats}/${train_set}/transcript"
-# Use the same transcript as ASR for lm training if not specified.
+# Use the same transcript as SLU for lm training if not specified.
 [ -z "${lm_dev_transcript}" ] && lm_dev_transcript="${data_feats}/${valid_set}/transcript"
 # Use the transcript of the 1st evaldir if lm_test is not specified
 [ -z "${lm_test_transcript}" ] && lm_test_transcript="${data_feats}/${test_sets%% *}/transcript"
@@ -339,26 +339,26 @@ fi
 
 
 # Set tag for naming of model directory
-if [ -z "${asr_tag}" ]; then
-    if [ -n "${asr_config}" ]; then
-        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}"
+if [ -z "${slu_tag}" ]; then
+    if [ -n "${slu_config}" ]; then
+        slu_tag="$(basename "${slu_config}" .yaml)_${feats_type}"
     else
-        asr_tag="train_${feats_type}"
+        slu_tag="train_${feats_type}"
     fi
     if [ "${lang}" != noinfo ]; then
-        asr_tag+="_${lang}_${token_type}"
+        slu_tag+="_${lang}_${token_type}"
     else
-        asr_tag+="_${token_type}"
+        slu_tag+="_${token_type}"
     fi
     if [ "${token_type}" = bpe ]; then
-        asr_tag+="${nbpe}"
+        slu_tag+="${nbpe}"
     fi
     # Add overwritten arg's info
-    if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
+    if [ -n "${slu_args}" ]; then
+        slu_tag+="$(echo "${slu_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_tag+="_sp"
+        slu_tag+="_sp"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -382,17 +382,17 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-if [ -z "${asr_stats_dir}" ]; then
+if [ -z "${slu_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
-        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${lang}_${token_type}"
+        slu_stats_dir="${expdir}/slu_stats_${feats_type}_${lang}_${token_type}"
     else
-        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+        slu_stats_dir="${expdir}/slu_stats_${feats_type}_${token_type}"
     fi
     if [ "${token_type}" = bpe ]; then
-        asr_stats_dir+="${nbpe}"
+        slu_stats_dir+="${nbpe}"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_stats_dir+="_sp"
+        slu_stats_dir+="_sp"
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
@@ -406,8 +406,8 @@ if [ -z "${lm_stats_dir}" ]; then
     fi
 fi
 # The directory used for training commands
-if [ -z "${asr_exp}" ]; then
-    asr_exp="${expdir}/asr_${asr_tag}"
+if [ -z "${slu_exp}" ]; then
+    slu_exp="${expdir}/slu_${slu_tag}"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
@@ -433,7 +433,7 @@ if [ -z "${inference_tag}" ]; then
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
-    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_slu_model_$(echo "${inference_slu_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
@@ -505,7 +505,6 @@ if ! "${skip_data_prep}"; then
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
                 done
-                echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
                 for extra_file in ${expand_utt_extra_files}; do
                     LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
@@ -711,7 +710,7 @@ if ! "${skip_data_prep}"; then
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            # 0 is reserved for CTC-blank for SLU and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" \
                 --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
@@ -958,18 +957,18 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        _asr_train_dir="${data_feats}/${train_set}"
-        _asr_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 10: ASR collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+        _slu_train_dir="${data_feats}/${train_set}"
+        _slu_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 10: SLU collect stats: train_set=${_slu_train_dir}, valid_set=${_slu_valid_dir}"
 
         _opts=
-        if [ -n "${asr_config}" ]; then
+        if [ -n "${slu_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
-            _opts+="--config ${asr_config} "
+            #   % python3 -m espnet2.bin.slu_train --print_config --optim adam
+            _opts+="--config ${slu_config} "
         fi
 
-        _feats_type="$(<${_asr_train_dir}/feats_type)"
+        _feats_type="$(<${_slu_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
@@ -982,18 +981,18 @@ if ! "${skip_train}"; then
         else
             _scp=feats.scp
             _type=kaldi_ark
-            _input_size="$(<${_asr_train_dir}/feats_dim)"
+            _input_size="$(<${_slu_train_dir}/feats_dim)"
             _opts+="--input_size=${_input_size} "
         fi
 
         # 1. Split the key file
-        _logdir="${asr_stats_dir}/logdir"
+        _logdir="${slu_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(<${_asr_train_dir}/${_scp} wc -l)" "$(<${_asr_valid_dir}/${_scp} wc -l)")
+        _nj=$(min "${nj}" "$(<${_slu_train_dir}/${_scp} wc -l)" "$(<${_slu_valid_dir}/${_scp} wc -l)")
 
-        key_file="${_asr_train_dir}/${_scp}"
+        key_file="${_slu_train_dir}/${_scp}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/train.${n}.scp"
@@ -1001,7 +1000,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        key_file="${_asr_valid_dir}/${_scp}"
+        key_file="${_slu_valid_dir}/${_scp}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -1010,11 +1009,11 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
-        mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
+        log "Generate '${slu_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
+        mkdir -p "${slu_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${slu_stats_dir}/run.sh"; chmod +x "${slu_stats_dir}/run.sh"
 
         # 3. Submit jobs
-        log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
+        log "SLU collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
@@ -1034,16 +1033,16 @@ if ! "${skip_train}"; then
                     --g2p "${g2p}" \
                     --two_pass "${two_pass}" \
                     --pre_postencoder_norm "${pre_postencoder_norm}" \
-                    --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
-                    --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-                    --train_data_path_and_name_and_type "${_asr_train_dir}/transcript,transcript,text" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/transcript,transcript,text" \
+                    --train_data_path_and_name_and_type "${_slu_train_dir}/${_scp},speech,${_type}" \
+                    --train_data_path_and_name_and_type "${_slu_train_dir}/text,text,text" \
+                    --train_data_path_and_name_and_type "${_slu_train_dir}/transcript,transcript,text" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/text,text,text" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/transcript,transcript,text" \
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/valid.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }    
+                    ${_opts} ${slu_args} || { cat "${_logdir}"/stats.1.log; exit 1; }    
         else
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.slu_train \
@@ -1055,14 +1054,14 @@ if ! "${skip_train}"; then
                     --non_linguistic_symbols "${nlsyms_txt}" \
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
-                    --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
-                    --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
+                    --train_data_path_and_name_and_type "${_slu_train_dir}/${_scp},speech,${_type}" \
+                    --train_data_path_and_name_and_type "${_slu_train_dir}/text,text,text" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/text,text,text" \
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/valid.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${slu_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
         fi
         # 4. Aggregate shape files
         _opts=
@@ -1070,43 +1069,43 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${slu_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${asr_stats_dir}/train/text_shape" \
+        <"${slu_stats_dir}/train/text_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/train/text_shape.${token_type}"
+            >"${slu_stats_dir}/train/text_shape.${token_type}"
 
-        <"${asr_stats_dir}/valid/text_shape" \
+        <"${slu_stats_dir}/valid/text_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/valid/text_shape.${token_type}"
+            >"${slu_stats_dir}/valid/text_shape.${token_type}"
 
         if "${use_transcript}"; then
             # Append the num-tokens at the last dimensions. This is used for batch-bins count
-            <"${asr_stats_dir}/train/transcript_shape" \
+            <"${slu_stats_dir}/train/transcript_shape" \
                 awk -v N="$(<${transcript_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${asr_stats_dir}/train/transcript_shape.${token_type}"
+                >"${slu_stats_dir}/train/transcript_shape.${token_type}"
 
-            <"${asr_stats_dir}/valid/transcript_shape" \
+            <"${slu_stats_dir}/valid/transcript_shape" \
                 awk -v N="$(<${transcript_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${asr_stats_dir}/valid/transcript_shape.${token_type}"
+                >"${slu_stats_dir}/valid/transcript_shape.${token_type}"
         fi
     fi
 
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        _asr_train_dir="${data_feats}/${train_set}"
-        _asr_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 11: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+        _slu_train_dir="${data_feats}/${train_set}"
+        _slu_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 11: SLU Training: train_set=${_slu_train_dir}, valid_set=${_slu_valid_dir}"
 
         _opts=
-        if [ -n "${asr_config}" ]; then
+        if [ -n "${slu_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
-            _opts+="--config ${asr_config} "
+            #   % python3 -m espnet2.bin.slu_train --print_config --optim adam
+            _opts+="--config ${slu_config} "
         fi
 
-        _feats_type="$(<${_asr_train_dir}/feats_type)"
+        _feats_type="$(<${_slu_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
@@ -1115,36 +1114,36 @@ if ! "${skip_train}"; then
             else
                 _type=sound
             fi
-            _fold_length="$((asr_speech_fold_length * 100))"
+            _fold_length="$((slu_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
         else
             _scp=feats.scp
             _type=kaldi_ark
-            _fold_length="${asr_speech_fold_length}"
-            _input_size="$(<${_asr_train_dir}/feats_dim)"
+            _fold_length="${slu_speech_fold_length}"
+            _input_size="$(<${_slu_train_dir}/feats_dim)"
             _opts+="--input_size=${_input_size} "
 
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
-            _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz "
+            _opts+="--normalize=global_mvn --normalize_conf stats_file=${slu_stats_dir}/train/feats_stats.npz "
         fi
 
-        if [ "${num_splits_asr}" -gt 1 ]; then
+        if [ "${num_splits_slu}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
             # so the memory footprint can be limited to the memory required for each dataset.
 
-            _split_dir="${asr_stats_dir}/splits${num_splits_asr}"
+            _split_dir="${slu_stats_dir}/splits${num_splits_slu}"
             if [ ! -f "${_split_dir}/.done" ]; then
                 rm -f "${_split_dir}/.done"
                 ${python} -m espnet2.bin.split_scps \
                   --scps \
-                      "${_asr_train_dir}/${_scp}" \
-                      "${_asr_train_dir}/text" \
-                      "${asr_stats_dir}/train/speech_shape" \
-                      "${asr_stats_dir}/train/text_shape.${token_type}" \
-                  --num_splits "${num_splits_asr}" \
+                      "${_slu_train_dir}/${_scp}" \
+                      "${_slu_train_dir}/text" \
+                      "${slu_stats_dir}/train/speech_shape" \
+                      "${slu_stats_dir}/train/text_shape.${token_type}" \
+                  --num_splits "${num_splits_slu}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
             else
@@ -1158,38 +1157,38 @@ if ! "${skip_train}"; then
             _opts+="--multiple_iterator true "
 
         else
-            _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_slu_train_dir}/${_scp},speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_slu_train_dir}/text,text,text "
             if "${use_transcript}"; then
-                _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/transcript,transcript,text "
+                _opts+="--train_data_path_and_name_and_type ${_slu_train_dir}/transcript,transcript,text "
             fi
-            _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
-            _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${slu_stats_dir}/train/speech_shape "
+            _opts+="--train_shape_file ${slu_stats_dir}/train/text_shape.${token_type} "
             if "${use_transcript}"; then
-                _opts+="--train_shape_file ${asr_stats_dir}/train/transcript_shape.${token_type} "
+                _opts+="--train_shape_file ${slu_stats_dir}/train/transcript_shape.${token_type} "
             fi
         fi
 
-        log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
-        mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
+        log "Generate '${slu_exp}/run.sh'. You can resume the process from stage 11 using this script"
+        mkdir -p "${slu_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${slu_exp}/run.sh"; chmod +x "${slu_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-        log "ASR training started... log: '${asr_exp}/train.log'"
+        log "SLU training started... log: '${slu_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
-            jobname="$(basename ${asr_exp})"
+            jobname="$(basename ${slu_exp})"
         else
-            jobname="${asr_exp}/train.log"
+            jobname="${slu_exp}/train.log"
         fi
 
         if "${use_transcript}"; then
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
-                --log "${asr_exp}"/train.log \
+                --log "${slu_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
-                --init_file_prefix "${asr_exp}"/.dist_init_ \
+                --init_file_prefix "${slu_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.slu_train \
                     --use_preprocessor true \
@@ -1202,28 +1201,28 @@ if ! "${skip_train}"; then
                     --g2p "${g2p}" \
                     --two_pass "${two_pass}" \
                     --pre_postencoder_norm "${pre_postencoder_norm}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/transcript,transcript,text" \
-                    --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-                    --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
-                    --valid_shape_file "${asr_stats_dir}/valid/transcript_shape.${token_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/text,text,text" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/transcript,transcript,text" \
+                    --valid_shape_file "${slu_stats_dir}/valid/speech_shape" \
+                    --valid_shape_file "${slu_stats_dir}/valid/text_shape.${token_type}" \
+                    --valid_shape_file "${slu_stats_dir}/valid/transcript_shape.${token_type}" \
                     --resume true \
                     --init_param ${pretrained_model} \
                     --ignore_init_mismatch ${ignore_init_mismatch} \
                     --fold_length "${_fold_length}" \
-                    --fold_length "${asr_text_fold_length}" \
-                    --fold_length "${asr_text_fold_length}" \
-                    --output_dir "${asr_exp}" \
-                    ${_opts} ${asr_args}
+                    --fold_length "${slu_text_fold_length}" \
+                    --fold_length "${slu_text_fold_length}" \
+                    --output_dir "${slu_exp}" \
+                    ${_opts} ${slu_args}
         else
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
-                --log "${asr_exp}"/train.log \
+                --log "${slu_exp}"/train.log \
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
-                --init_file_prefix "${asr_exp}"/.dist_init_ \
+                --init_file_prefix "${slu_exp}"/.dist_init_ \
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.slu_train \
                     --use_preprocessor true \
@@ -1233,17 +1232,17 @@ if ! "${skip_train}"; then
                     --non_linguistic_symbols "${nlsyms_txt}" \
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                    --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
-                    --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-                    --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_slu_valid_dir}/text,text,text" \
+                    --valid_shape_file "${slu_stats_dir}/valid/speech_shape" \
+                    --valid_shape_file "${slu_stats_dir}/valid/text_shape.${token_type}" \
                     --resume true \
                     --init_param ${pretrained_model} \
                     --ignore_init_mismatch ${ignore_init_mismatch} \
                     --fold_length "${_fold_length}" \
-                    --fold_length "${asr_text_fold_length}" \
-                    --output_dir "${asr_exp}" \
-                    ${_opts} ${asr_args}
+                    --fold_length "${slu_text_fold_length}" \
+                    --output_dir "${slu_exp}" \
+                    ${_opts} ${slu_args}
         fi
 
     fi
@@ -1254,24 +1253,24 @@ fi
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    asr_exp="${expdir}/${download_model}"
-    mkdir -p "${asr_exp}"
+    slu_exp="${expdir}/${download_model}"
+    mkdir -p "${slu_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${asr_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${slu_exp}/config.txt"
 
     # Get the path of each file
-    _asr_model_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_model_file': '\([^']*\)'.*$/\1/")
-    _asr_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_train_config': '\([^']*\)'.*$/\1/")
+    _slu_model_file=$(<"${slu_exp}/config.txt" sed -e "s/.*'slu_model_file': '\([^']*\)'.*$/\1/")
+    _slu_train_config=$(<"${slu_exp}/config.txt" sed -e "s/.*'slu_train_config': '\([^']*\)'.*$/\1/")
 
     # Create symbolic links
-    ln -sf "${_asr_model_file}" "${asr_exp}"
-    ln -sf "${_asr_train_config}" "${asr_exp}"
-    inference_asr_model=$(basename "${_asr_model_file}")
+    ln -sf "${_slu_model_file}" "${slu_exp}"
+    ln -sf "${_slu_train_config}" "${slu_exp}"
+    inference_slu_model=$(basename "${_slu_model_file}")
 
-    if [ "$(<${asr_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
-        _lm_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
-        _lm_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
+    if [ "$(<${slu_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
+        _lm_file=$(<"${slu_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
+        _lm_train_config=$(<"${slu_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
 
         lm_exp="${expdir}/${download_model}/lm"
         mkdir -p "${lm_exp}"
@@ -1286,7 +1285,7 @@ fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Decoding: training_dir=${asr_exp}"
+        log "Stage 12: Decoding: training_dir=${slu_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1314,12 +1313,12 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
-        mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
+        log "Generate '${slu_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
+        mkdir -p "${slu_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${slu_exp}/${inference_tag}/run.sh"; chmod +x "${slu_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+            _dir="${slu_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1341,7 +1340,7 @@ if ! "${skip_eval}"; then
             split_scps=""
             
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            asr_inference_tool="espnet2.bin.slu_inference"
+            slu_inference_tool="espnet2.bin.slu_inference"
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1350,29 +1349,29 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit decoding jobs
-            log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/slu_inference.*.log'"
             # shellcheck disable=SC2086
             if "${use_transcript}"; then
-                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                    ${python} -m ${asr_inference_tool} \
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/slu_inference.JOB.log \
+                    ${python} -m ${slu_inference_tool} \
                         --batch_size ${batch_size} \
                         --ngpu "${_ngpu}" \
                         --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                         --data_path_and_name_and_type "${_data}/transcript,transcript,text" \
                         --key_file "${_logdir}"/keys.JOB.scp \
-                        --asr_train_config "${asr_exp}"/config.yaml \
-                        --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+                        --slu_train_config "${slu_exp}"/config.yaml \
+                        --slu_model_file "${slu_exp}"/"${inference_slu_model}" \
                         --output_dir "${_logdir}"/output.JOB \
                         ${_opts} ${inference_args}
             else
-                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m ${asr_inference_tool} \
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/slu_inference.JOB.log \
+                ${python} -m ${slu_inference_tool} \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --asr_train_config "${asr_exp}"/config.yaml \
-                    --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+                    --slu_train_config "${slu_exp}"/config.yaml \
+                    --slu_model_file "${slu_exp}"/"${inference_slu_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
             fi
@@ -1396,7 +1395,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+            _dir="${slu_exp}/${inference_tag}/${dset}"
 
             for _type in cer wer ter; do
                 [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
@@ -1495,11 +1494,11 @@ if ! "${skip_eval}"; then
         done
 
         test_sets_arr=(${test_sets})
-        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"  "${inference_tag}/${valid_set}/" "${inference_tag}/${test_sets_arr[0]}/"
+        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${slu_exp}"  "${inference_tag}/${valid_set}/" "${inference_tag}/${test_sets_arr[0]}/"
 
         # Show results in Markdown syntax
-        scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
-        cat "${asr_exp}"/RESULTS.md
+        scripts/utils/show_asr_result.sh "${slu_exp}" > "${slu_exp}"/RESULTS.md
+        cat "${slu_exp}"/RESULTS.md
 
     fi
 else
@@ -1507,7 +1506,7 @@ else
 fi
 
 
-packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
+packed_model="${slu_exp}/${slu_exp##*/}_${inference_slu_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
@@ -1521,7 +1520,7 @@ if [ -z "${download_model}" ]; then
             _opts+="--option ${lm_exp}/images "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
-            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+            _opts+="--option ${slu_stats_dir}/train/feats_stats.npz "
         fi
         if [ "${token_type}" = bpe ]; then
             _opts+="--option ${bpemodel} "
@@ -1530,13 +1529,13 @@ if [ -z "${download_model}" ]; then
             _opts+="--option ${nlsyms_txt} "
         fi
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack asr \
-            --asr_train_config "${asr_exp}"/config.yaml \
-            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+        ${python} -m espnet2.bin.pack slu \
+            --slu_train_config "${slu_exp}"/config.yaml \
+            --slu_model_file "${slu_exp}"/"${inference_slu_model}" \
             ${_opts} \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/images \
+            --option "${slu_exp}"/RESULTS.md \
+            --option "${slu_exp}"/RESULTS.md \
+            --option "${slu_exp}"/images \
             --outpath "${packed_model}"
     fi
 fi
@@ -1567,7 +1566,7 @@ git checkout $(git show -s --format=%H)"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
         # Generate description file
-        cat << EOF > "${asr_exp}"/description
+        cat << EOF > "${slu_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
@@ -1579,8 +1578,8 @@ pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${slu_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>SLU config</strong><pre><code>$(cat "${slu_exp}"/config.yaml)</code></pre></li>
 <li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
 </ul>
 EOF
@@ -1592,7 +1591,7 @@ EOF
         espnet_model_zoo_upload \
             --file "${packed_model}" \
             --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-            --description_file "${asr_exp}"/description \
+            --description_file "${slu_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
             --use_sandbox false \
@@ -1638,7 +1637,7 @@ if ! "${skip_upload_hf}"; then
         # shellcheck disable=SC2034
         espnet_task=ASR
         # shellcheck disable=SC2034
-        task_exp=${asr_exp}
+        task_exp=${slu_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}

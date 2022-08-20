@@ -10,12 +10,11 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-asr_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
+slu_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
 
-./slu_transcript.sh \
+./slu.sh \
     --lang en \
     --ngpu 1 \
-    --stage 11\
     --use_transcript true \
     --use_lm false \
     --nbpe 5000 \
@@ -24,8 +23,9 @@ asr_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
     --max_wav_duration 30 \
     --feats_normalize utterance_mvn\
     --inference_nj 12 \
-    --inference_asr_model valid.acc.ave_10best.pth\
-    --asr_config "${asr_config}" \
+    --pretrained_model ../../slurp_new/asr1/exp/asr_train_asr_conformer_raw_en_word/valid.acc.ave_10best.pth:encoder:encoder\
+    --inference_slu_model valid.acc.ave_10best.pth\
+    --slu_config "${slu_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" "$@"

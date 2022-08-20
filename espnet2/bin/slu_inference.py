@@ -35,22 +35,22 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 
-class Speech2Text:
-    """Speech2Text class
+class Speech2Understand:
+    """Speech2Understand class
 
     Examples:
         >>> import soundfile
-        >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
+        >>> speech2understand = Speech2Understand("slu_config.yml", "slu.pth")
         >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
+        >>> speech2understand(audio)
         [(text, token, token_int, hypothesis object), ...]
 
     """
 
     def __init__(
         self,
-        asr_train_config: Union[Path, str] = None,
-        asr_model_file: Union[Path, str] = None,
+        slu_train_config: Union[Path, str] = None,
+        slu_model_file: Union[Path, str] = None,
         transducer_conf: dict = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
@@ -94,7 +94,7 @@ class Speech2Text:
         # 1. Build ASR model
         scorers = {}
         asr_model, asr_train_args = task.build_model_from_file(
-            asr_train_config, asr_model_file, device
+            slu_train_config, slu_model_file, device
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -187,7 +187,7 @@ class Speech2Text:
                 if len(non_batch) == 0:
                     if streaming:
                         beam_search.__class__ = BatchBeamSearchOnlineSim
-                        beam_search.set_streaming_config(asr_train_config)
+                        beam_search.set_streaming_config(slu_train_config)
                         logging.info(
                             "BatchBeamSearchOnlineSim implementation is selected."
                         )
@@ -343,14 +343,14 @@ class Speech2Text:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build Speech2Understand instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2Text instance.
+            Speech2Understand: Speech2Understand instance.
 
         """
         if model_tag is not None:
@@ -366,7 +366,7 @@ class Speech2Text:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return Speech2Text(**kwargs)
+        return Speech2Understand(**kwargs)
 
 
 def inference(
@@ -387,8 +387,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    asr_train_config: Optional[str],
-    asr_model_file: Optional[str],
+    slu_train_config: Optional[str],
+    slu_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -426,10 +426,10 @@ def inference(
     # 1. Set random-seed
     set_all_random_seed(seed)
 
-    # 2. Build speech2text
-    speech2text_kwargs = dict(
-        asr_train_config=asr_train_config,
-        asr_model_file=asr_model_file,
+    # 2. Build speech2understand
+    speech2understand_kwargs = dict(
+        slu_train_config=slu_train_config,
+        slu_model_file=slu_model_file,
         transducer_conf=transducer_conf,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
@@ -452,9 +452,9 @@ def inference(
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
     )
-    speech2text = Speech2Text.from_pretrained(
+    speech2understand = Speech2Understand.from_pretrained(
         model_tag=model_tag,
-        **speech2text_kwargs,
+        **speech2understand_kwargs,
     )
 
     # 3. Build data-iterator
@@ -464,8 +464,8 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=SLUTask.build_preprocess_fn(speech2text.asr_train_args, False),
-        collate_fn=SLUTask.build_collate_fn(speech2text.asr_train_args, False),
+        preprocess_fn=SLUTask.build_preprocess_fn(speech2understand.asr_train_args, False),
+        collate_fn=SLUTask.build_collate_fn(speech2understand.asr_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -482,7 +482,7 @@ def inference(
 
             # N-best list of (text, token, token_int, hyp_object)
             try:
-                results = speech2text(**batch)
+                results = speech2understand(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
@@ -552,12 +552,12 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--asr_train_config",
+        "--slu_train_config",
         type=str,
         help="ASR training configuration",
     )
     group.add_argument(
-        "--asr_model_file",
+        "--slu_model_file",
         type=str,
         help="ASR model parameter file",
     )

@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE
-for f in slu_transcript.sh path.sh db.sh scripts pyscripts; do
+for f in slu.sh path.sh db.sh scripts pyscripts; do
     target=../../TEMPLATE/slu1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "

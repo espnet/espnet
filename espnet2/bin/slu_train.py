@@ -12,9 +12,9 @@ def main(cmd=None):
 
     Example:
 
-        % python asr_train.py asr --print_config --optim adadelta \
-                > conf/train_asr.yaml
-        % python asr_train.py --config conf/train_asr.yaml
+        % python slu_train.py slu --print_config --optim adadelta \
+                > conf/train_slu.yaml
+        % python slu_train.py --config conf/train_slu.yaml
     """
     SLUTask.main(cmd=cmd)
 
