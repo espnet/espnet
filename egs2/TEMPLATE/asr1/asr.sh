@@ -83,6 +83,7 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
+asr_task=asr   # ASR task mode. Either 'asr' or 'asr_transducer'.
 asr_tag=       # Suffix to the result dir for asr model training.
 asr_exp=       # Specify the directory path for ASR experiment.
                # If this option is specified, asr_tag is ignored.
@@ -203,6 +204,7 @@ Options:
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ASR model related
+    --asr_task         # ASR task mode. Either 'asr' or 'asr_transducer'. (default="${asr_task}").
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the directory path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
@@ -974,7 +976,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.${asr_task}_train \
                 --collect_stats true \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
@@ -1101,7 +1103,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${asr_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.${asr_task}_train \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
@@ -1191,24 +1193,24 @@ if ! "${skip_eval}"; then
         # 2. Generate run.sh
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
-        if "${use_k2}"; then
-          # Now only _nj=1 is verified if using k2
-          asr_inference_tool="espnet2.bin.asr_inference_k2"
 
-          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
-          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
-          _opts+="--num_paths ${num_paths} "
-          _opts+="--nll_batch_size ${nll_batch_size} "
-          _opts+="--k2_config ${k2_config} "
-        else
-          if "${use_streaming}"; then
-              asr_inference_tool="espnet2.bin.asr_inference_streaming"
-          elif "${use_maskctc}"; then
-              asr_inference_tool="espnet2.bin.asr_inference_maskctc"
-          else
-              asr_inference_tool="espnet2.bin.asr_inference"
-          fi
-        fi
+	inference_bin_tag=""
+	if [ ${asr_task} == "asr" ]; then
+            if "${use_k2}"; then
+		# Now only _nj=1 is verified if using k2
+		inference_bin_tag="_k2"
+
+		_opts+="--is_ctc_decoding ${k2_ctc_decoding} "
+		_opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+		_opts+="--num_paths ${num_paths} "
+		_opts+="--nll_batch_size ${nll_batch_size} "
+		_opts+="--k2_config ${k2_config} "
+	    elif "${use_streaming}"; then
+		inference_bin_tag="_streaming"
+	    elif "${use_maskctc}"; then
+		inference_bin_tag="_maskctc"
+            fi
+	fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1250,7 +1252,7 @@ if ! "${skip_eval}"; then
             rm -f "${_logdir}/*.log"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m ${asr_inference_tool} \
+                ${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag} \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
@@ -1261,7 +1263,7 @@ if ! "${skip_eval}"; then
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
             # 3. Calculate and report RTF based on decoding logs
-            if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
+            if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
                 log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
                 rm -f "${_logdir}"/calculate_rtf.log
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")

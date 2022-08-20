@@ -1,8 +1,8 @@
 import pytest
 import torch
 
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis
-from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 
 
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])

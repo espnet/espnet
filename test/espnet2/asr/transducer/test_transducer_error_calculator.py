@@ -1,9 +1,9 @@
 import pytest
 import torch
 
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
-from espnet2.asr.transducer.joint_network import JointNetwork
-from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize(
@@ -13,7 +13,7 @@ from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
         {"report_cer": True, "report_wer": True},
     ],
 )
-def test_error_calculator(report_opts):
+def test_transducer_error_calculator(report_opts):
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
