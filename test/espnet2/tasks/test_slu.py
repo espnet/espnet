@@ -9,10 +9,6 @@ def test_add_arguments():
     SLUTask.get_parser()
 
 
-def test_add_arguments():
-    SLUTask.get_parser()
-
-
 def test_add_arguments_help():
     parser = SLUTask.get_parser()
     with pytest.raises(SystemExit):
