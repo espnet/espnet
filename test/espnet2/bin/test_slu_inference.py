@@ -1,5 +1,6 @@
 import string
 from argparse import ArgumentParser
+from distutils.version import LooseVersion
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,8 @@ from espnet2.bin.slu_inference import Speech2Understand, get_parser, main
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.slu import SLUTask
 from espnet.nets.beam_search import Hypothesis
+
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def test_get_parser():
@@ -96,15 +99,27 @@ def lm_config_file(tmp_path: Path, token_list):
     return tmp_path / "lm" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
-def test_Speech2Understand_lm(slu_config_file, lm_config_file):
+@pytest.mark.execution_timeout(10)
+@pytest.mark.parametrize(
+    "use_lm, token_type",
+    [
+        (False, "char"),
+        (True, "char"),
+        (False, "bpe"),
+        (False, None),
+    ],
+)
+def test_Speech2Understand_lm(use_lm, token_type, slu_config_file, lm_config_file):
     speech2understand = Speech2Understand(
-        slu_train_config=slu_config_file, lm_train_config=lm_config_file, beam_size=1
+        slu_train_config=slu_config_file,
+        lm_train_config=lm_config_file if use_lm else None,
+        beam_size=1,
+        token_type=token_type,
     )
     speech = np.random.randn(100000)
     results = speech2understand(speech)
     for text, token, token_int, hyp in results:
-        assert isinstance(text, str)
+        assert text is None or isinstance(text, str)
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)

@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # This script is called in data preparation step by local/data.sh
 # It takes the data prepared using token type word as input
 # It then trains a bpe model with "nbpe" number of tokens on the train transcript i.e. text after first word (intent)
@@ -8,7 +10,6 @@ bpemode=bpe #try unigram, bpe
 . utils/parse_options.sh
 
 new_data=data_${bpemode}_${nbpe}
-dict=${new_data}/en_token_list/word/tokens.txt
 bpemodel=${new_data}/spm_train_${bpemode}${nbpe}
 
 cp -R data ${new_data}
@@ -36,5 +37,3 @@ for split in train devel test; do
     rm ${new_data}/tmp_${split}_transcript
     rm ${new_data}/new_${split}_transcript
 done
-
-#| awk '{print $0 " " NR+1}' >> ${dict}
