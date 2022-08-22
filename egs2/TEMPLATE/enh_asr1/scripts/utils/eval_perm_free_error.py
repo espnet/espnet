@@ -77,38 +77,12 @@ def compute_permutation(old_dic, num_spkrs=2):
 
     min_scores = np.stack(min_scores)
 
-    # Print results
-    # score_sum = np.sum(min_scores, axis=0, dtype=int)
-    # print(f"Total Scores (#Snt {min_scores.shape[0]}): (#C #S #D #I) "
-    #       + " ".join(map(str, list(score_sum))))
-    # print(
-    #     "Error Rate:   {:0.2f}".format(
-    #         100 * sum(score_sum[1:4]) / float(sum(score_sum[0:3]))
-    #     )
-    # )
-
-    # new_dic = OrderedDict()
-    # for u_idx, u_key in enumerate(all_keys):
-    #     dic = {}
-    #     for r, h in enumerate(hyp_perms[u_idx]):
-    #         key = f"r{r+1}h{h+1}"
-    #         dic[key] = old_dic[all_keys[u_idx]][key]
-    #     dic["Scores"] = (
-    #         "(#C #S #D #I) " + " ".join(map(str, min_scores))
-    #     )
-    #     new_dic[u_key] = dic
-
     return hyp_perms, all_keys
 
 
 def read_result(result_file, result_key):
     re_id = r"^id: "
-    re_strings = {
-        # "Speaker": r"^Speaker sentences",
-        "Scores": r"^Scores: ",
-        # "REF": r"^REF: ",
-        # "HYP": r"^HYP: ",
-    }
+    re_strings = {"Scores": r"^Scores: "}
     re_id = re.compile(re_id)
     re_patterns = {}
     for p in re_strings.keys():

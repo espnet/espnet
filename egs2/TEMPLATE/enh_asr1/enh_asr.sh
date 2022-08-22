@@ -793,6 +793,13 @@ fi
 
 if ! "${skip_train}"; then
     if "${use_lm}"; then
+        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
+            for n in $(seq ${spk_num}); do
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
+            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
+            lm_dev_text="${data_feats}/lm_dev.txt"
+        fi
+
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
@@ -801,13 +808,6 @@ if ! "${skip_train}"; then
                 # To generate the config file: e.g.
                 #   % python3 -m espnet2.bin.lm_train --print_config --optim adam
                 _opts+="--config ${lm_config} "
-            fi
-
-            if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
-                for n in $(seq ${spk_num}); do
-                    awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
-                done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
-                lm_dev_text="${data_feats}/lm_dev.txt"
             fi
 
             # 1. Split the key file
