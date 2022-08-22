@@ -9,8 +9,8 @@ class ConformerConvolution(torch.nn.Module):
     """ConformerConvolution module definition.
 
     Args:
-        channels: The number of channels of conv layers.
-        kernel_size: Kernel size of conv layers.
+        channels: The number of channels.
+        kernel_size: Size of the convolving kernel.
         activation: Type of activation function.
         norm_class: Normalization module class.
         norm_args: Normalization module arguments.
@@ -112,8 +112,8 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
     """Convolutional Spatial Gating Unit module definition.
 
     Args:
-        size: Initial size to determine number of channels for convolution.
-        kernel_size: Kernel size of conv layers.
+        size: Initial size to determine the number of channels.
+        kernel_size: Size of the convolving kernel.
         activation: Type of activation function.
         norm_class: Normalization module class.
         norm_args: Normalization module arguments.

@@ -462,13 +462,9 @@ The first and second configurations are optional. If needed, the following param
       pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
       simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
       norm_type: Normalization module type for X-former. (str, default = "layer_norm")
-      conv_mod_norm_type: Normalization module for Branchformer convolution module. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
-      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = -1.0)
-      dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
-      short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
-      short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
-      left_chunk_size: Number of frames in left context. (int, default = 0)
+      conv_mod_norm_type: Normalization module type for Branchformer convolutional module. (str, default = "layer_norm")
+      after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      after_norm_partial: Partial value for the final normalization module, if it's of the type RMSNorm. (float, default = -1.0)
       # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
@@ -491,7 +487,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
     # Conv 1D
     - block_type: conv1d
       output_size: Output size. (int)
-      kernel_size: Size of the context window. (int or Tuple)
+      kernel_size: Size of the convolving kernel. (int or Tuple)
       stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
       dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
       groups (optional): Number of blocked connections from input channels to output channels. (int, default = 1)
@@ -504,26 +500,25 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
     - block_type: branchformer
       hidden_size: Hidden (and output) dimension. (int)
       linear_size: Dimension of the Linear layers. (int)
-      conv_mod_kernel_size: Number of kernel in convolutional module. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      norm_partial (optional): Partial value for the RMSNorm normalization module. (float, default = -1.0)
+      norm_eps (optional): Epsilon value for the normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the normalization module, if it's of the type RMSNorm. (float, default = -1.0)
       conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
-      conv_mod_norm_partial (optional): Partial value for the RMSNorm convolutional module normalization . (float, default = -1.0)
+      conv_mod_norm_partial (optional): Partial value for the convolutional module normalization, if it's of the type RMSNorm . (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
-      pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
 
     # Conformer
     - block_type: conformer
       hidden_size: Hidden (and output) dimension. (int)
       linear_size: Dimension of feed-forward module. (int)
-      conv_mod_kernel_size: Number of kernel in convolutional module. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      norm_partial (optional): Value for the RMSNorm normalization module. (float, default = -1.0)
-      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in convolutional module. (float, default = 1e-05)
-      conv_mod_norm_momentum (optional): Momentum value for the Batchnorm1d convolutional module. (float, default = 0.1)
+      norm_partial (optional): Partial value for the normalization module, if it's of the type RMSNorm. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in the convolutional module. (float, default = 1e-05)
+      conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the convolutional module. (float, default = 0.1)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
       pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
@@ -638,9 +633,14 @@ For a complete explanation on the different procedure and parameters, we refer t
 
 #### Training
 
-To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`.
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`. From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`).
 
-From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`). All these parameters can be configured through the `main_conf`. The Encoder section provides a short description of the parameters.
+All these parameters can be configured through `main_conf`, introduced in the Encoder section:
+
+    dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+    short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
+    short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+    left_chunk_size: Number of frames in left context. (int, default = 0)
 
 #### Decoding
 

@@ -10,7 +10,7 @@ def get_normalization(
     eps: Optional[float] = None,
     partial: Optional[float] = None,
 ) -> Tuple[torch.nn.Module, Dict]:
-    """Return normalization module.
+    """Get normalization module and arguments given parameters.
 
     Args:
         normalization_type: Normalization module type.

@@ -12,7 +12,7 @@ class Branchformer(torch.nn.Module):
 
     Args:
         block_size: Input/output size.
-        linear_size: Linear layers hidden.
+        linear_size: Linear layers' hidden size.
         self_att: Self-attention module instance.
         conv_mod: Convolution module instance.
         norm_class: Normalization class.
