@@ -12,7 +12,7 @@ train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
 nlsyms_txt=data/nlsyms.txt
-asr_config=conf/tuning/train_asr_transformer.yaml
+asr_config=conf/train_asr_hubert_large_ll60k_transformer.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
@@ -25,7 +25,7 @@ elif [[ "es" == *"${lang}"* ]]; then
 elif [[ "all" == *"${lang}"* ]]; then
   nbpe=6500
 else
-  nbpe=150
+  nbpe=300
 fi
 
 if [[ "all" == *"${lang}"* ]]; then
@@ -33,7 +33,8 @@ if [[ "all" == *"${lang}"* ]]; then
       --lang "${lang}" \
       --local_data_opts "--stage 0 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
       --audio_format "wav" \
-      --use_lm true \
+      --use_lm false \
+      --feats_normalize utt_mvn \
       --lm_config "${lm_config}" \
       --token_type bpe \
       --nbpe $nbpe \
@@ -46,14 +47,15 @@ if [[ "all" == *"${lang}"* ]]; then
       --valid_set "${train_dev}" \
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" "$@" \
-      --local_score_opts "--score_lang_id true" "$@" 
+      --lm_train_text "data/${train_set}/text" \
+      --local_score_opts "--score_lang_id true --decode_folder decode_asr_asr_model_valid.acc.best" "$@" 
 else
   ./asr.sh \
       --lang "${lang}" \
       --local_data_opts "--lang ${lang}" \
       --audio_format "wav" \
-      --use_lm true \
+      --use_lm false \
+      --feats_normalize utt_mvn \
       --lm_config "${lm_config}" \
       --token_type bpe \
       --nbpe $nbpe \
@@ -65,5 +67,6 @@ else
       --valid_set "${train_dev}" \
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" "$@" 
+      --lm_train_text "data/${train_set}/text" 
+      --local_score_opts "--score_lang_id false" "$@" 
 fi
