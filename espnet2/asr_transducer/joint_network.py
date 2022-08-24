@@ -2,38 +2,42 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.asr_transducer.activation import get_activation
 
 
 class JointNetwork(torch.nn.Module):
     """Transducer joint network module.
 
     Args:
-        joint_output_size: Joint network output dimension
-        encoder_output_size: Encoder output dimension.
-        decoder_output_size: Decoder output dimension.
-        joint_space_size: Dimension of joint space.
-        joint_activation_type: Type of activation for joint network.
+        output_size: Output size.
+        encoder_size: Encoder output size.
+        decoder_size: Decoder output size..
+        joint_space_size: Joint space size.
+        joint_act_type: Type of activation for joint network.
+        **activation_parameters: Parameters for the activation function.
 
     """
 
     def __init__(
         self,
-        joint_output_size: int,
-        encoder_output_size: int,
-        decoder_output_size: int,
+        output_size: int,
+        encoder_size: int,
+        decoder_size: int,
         joint_space_size: int = 256,
         joint_activation_type: str = "tanh",
+        **activation_parameters,
     ):
         """Joint network initializer."""
         super().__init__()
 
-        self.lin_enc = torch.nn.Linear(encoder_output_size, joint_space_size)
-        self.lin_dec = torch.nn.Linear(decoder_output_size, joint_space_size)
+        self.lin_enc = torch.nn.Linear(encoder_size, joint_space_size)
+        self.lin_dec = torch.nn.Linear(decoder_size, joint_space_size, bias=False)
 
-        self.lin_out = torch.nn.Linear(joint_space_size, joint_output_size)
+        self.lin_out = torch.nn.Linear(joint_space_size, output_size)
 
-        self.joint_activation = get_activation(joint_activation_type)
+        self.joint_activation = get_activation(
+            joint_activation_type, **activation_parameters
+        )
 
     def forward(
         self,
