@@ -6,8 +6,15 @@ import sys
 
 def get_parser():
     parser = argparse.ArgumentParser(description="prep data for lang id scoring")
-    parser.add_argument("--decode_folder", type=str, help="folder containing decoded text", required=True)
-    parser.add_argument("--exp_folder", type=str, help="folder of experiment", required=True)
+    parser.add_argument(
+        "--decode_folder",
+        type=str,
+        help="folder containing decoded text",
+        required=True,
+    )
+    parser.add_argument(
+        "--exp_folder", type=str, help="folder of experiment", required=True
+    )
     parser.add_argument(
         "--out",
         type=argparse.FileType("w"),
@@ -16,9 +23,11 @@ def get_parser():
     )
     return parser
 
+
 def main(args):
     args = get_parser().parse_args(args)
     scoring(args.exp_folder, args.decode_folder, args.out)
+
 
 def scoring(exp_folder, decode_folder, out):
     exp_decode_folder = f"{exp_folder}/{decode_folder}"
@@ -26,7 +35,9 @@ def scoring(exp_folder, decode_folder, out):
     for folder in subfolders:
         decode_file_name = f"{exp_decode_folder}/{folder}/text"
         decode_file = None
-        output_file = open(f"{exp_decode_folder}/{folder}/lang_id_refs.tsv", 'w', encoding="utf-8")
+        output_file = open(
+            f"{exp_decode_folder}/{folder}/lang_id_refs.tsv", "w", encoding="utf-8"
+        )
         output_file.write(f"utt_id\tref_lid\thyp_lid\n")
 
         try:
@@ -38,7 +49,7 @@ def scoring(exp_folder, decode_folder, out):
         utt_num = 0
         correct = 0
 
-        while True: 
+        while True:
             hyp = decode_file.readline()
             if not hyp:
                 break
@@ -60,10 +71,11 @@ def scoring(exp_folder, decode_folder, out):
             output_file.write(f"{utt_id}\t{ref_lid}\t{hyp_lid}\n")
 
         out.write(
-        "Language Identification Scoring: Accuracy {:.4f} ({}/{})\n".format(
-            (correct / float(utt_num)), correct, utt_num
+            "Language Identification Scoring: Accuracy {:.4f} ({}/{})\n".format(
+                (correct / float(utt_num)), correct, utt_num
+            )
         )
-    )
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
