@@ -12,9 +12,9 @@ train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
 nlsyms_txt=data/nlsyms.txt
-asr_config=conf/train_asr_hubert_large_ll60k_transformer.yaml
+asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
-inference_config=conf/decode_asr.yaml
+inference_config=conf/decode.yaml
 
 if [[ "zh" == *"${lang}"* ]]; then
   nbpe=2500
