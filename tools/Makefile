@@ -88,14 +88,20 @@ packaging.done: activate_python.sh
 	. ./activate_python.sh && python3 -m pip install packaging
 	touch packaging.done
 
-pytorch.done: activate_python.sh packaging.done
+numba.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
-	# NOTE(kamo): Temporary fixed numpy version
-	. ./activate_python.sh && pip install "numpy<=1.21.4"
+	. ./activate_python.sh && python3 -m pip install numba
+else
+	. ./activate_python.sh && conda install -y numba
+endif
+	touch numba.done
+
+# NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
+# (Pytorch is not related to numba directly)
+pytorch.done: activate_python.sh packaging.done numba.done
+ifeq ($(strip $(USE_CONDA)),)
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
-	# NOTE(kamo): Temporary fixed numpy version
-	. ./activate_python.sh && pip install "numpy<=1.21.4"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
