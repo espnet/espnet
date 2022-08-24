@@ -1,11 +1,12 @@
-from argparse import ArgumentParser
 import os
 import re
 import shutil
-import soundfile as sf
 import string
 import sys
+from argparse import ArgumentParser
 from xml.dom.minidom import parse
+
+import soundfile as sf
 
 s = "".join(chr(c) for c in range(sys.maxunicode + 1))
 ws = "".join(re.findall(r"\s", s))

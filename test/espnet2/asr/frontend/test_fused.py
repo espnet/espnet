@@ -1,6 +1,6 @@
-from espnet2.asr.frontend.fused import FusedFrontends
 import torch
 
+from espnet2.asr.frontend.fused import FusedFrontends
 
 frontend1 = {"frontend_type": "default", "n_mels": 80, "n_fft": 512}
 frontend2 = {"frontend_type": "default", "hop_length": 128}

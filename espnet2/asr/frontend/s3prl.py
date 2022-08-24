@@ -1,19 +1,18 @@
-from argparse import Namespace
 import copy
 import logging
 import os
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from argparse import Namespace
+from pathlib import Path
+from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 def base_s3prl_setup(args):
@@ -59,13 +58,22 @@ class S3prlFrontend(AbsFrontend):
         )
         self.args = s3prl_args
 
-        s3prl_path = None
-        python_path_list = os.environ.get("PYTHONPATH", "(None)").split(":")
-        for p in python_path_list:
-            if p.endswith("s3prl"):
-                s3prl_path = p
-                break
-        assert s3prl_path is not None
+        try:
+            import s3prl  # noqa
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "s3prl is not installed, please git clone s3prl"
+                " (DO NOT USE PIP or CONDA) "
+                "and install it from Github repo, "
+                "by cloning it locally."
+            )
+        s3prl_path = Path(os.path.abspath(s3prl.__file__)).parent.parent
+        if not os.path.exists(os.path.join(s3prl_path, "hubconf.py")):
+            raise RuntimeError(
+                "You probably have s3prl installed as a pip"
+                "package, please uninstall it and then install it from "
+                "the GitHub repo, by cloning it locally."
+            )
 
         s3prl_upstream = torch.hub.load(
             s3prl_path,
@@ -86,10 +94,10 @@ class S3prlFrontend(AbsFrontend):
 
         from s3prl.upstream.interfaces import Featurizer
 
-        if self.multilayer_feature is None:
-            feature_selection = "last_hidden_state"
-        else:
+        if self.multilayer_feature:
             feature_selection = "hidden_states"
+        else:
+            feature_selection = "last_hidden_state"
         s3prl_featurizer = Featurizer(
             upstream=s3prl_upstream,
             feature_selection=feature_selection,
@@ -103,6 +111,7 @@ class S3prlFrontend(AbsFrontend):
 
         Input - sequence of representations
                 shape: (batch_size, seq_len, feature_dim)
+
         Output - sequence of tiled representations
                  shape: (batch_size, seq_len * factor, feature_dim)
         """
@@ -123,8 +132,7 @@ class S3prlFrontend(AbsFrontend):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         wavs = [wav[: input_lengths[i]] for i, wav in enumerate(input)]
         self.upstream.eval()
-        with torch.no_grad():
-            feats = self.upstream(wavs)
+        feats = self.upstream(wavs)
         feats = self.featurizer(wavs, feats)
 
         if self.args.tile_factor != 1:

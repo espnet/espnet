@@ -1,11 +1,11 @@
-from distutils.version import LooseVersion
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.stft import Stft
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class STFTDecoder(AbsDecoder):
@@ -36,7 +36,7 @@ class STFTDecoder(AbsDecoder):
         """Forward.
 
         Args:
-            input (ComplexTensor): spectrum [Batch, T, F]
+            input (ComplexTensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
         """
         if not isinstance(input, ComplexTensor) and (
@@ -44,6 +44,18 @@ class STFTDecoder(AbsDecoder):
         ):
             raise TypeError("Only support complex tensors for stft decoder")
 
+        bs = input.size(0)
+        if input.dim() == 4:
+            multi_channel = True
+            # input: (Batch, T, C, F) -> (Batch * C, T, F)
+            input = input.transpose(1, 2).reshape(-1, input.size(1), input.size(3))
+        else:
+            multi_channel = False
+
         wav, wav_lens = self.stft.inverse(input, ilens)
+
+        if multi_channel:
+            # wav: (Batch * C, Nsamples) -> (Batch, Nsamples, C)
+            wav = wav.reshape(bs, -1, wav.size(1)).transpose(1, 2)
 
         return wav, wav_lens

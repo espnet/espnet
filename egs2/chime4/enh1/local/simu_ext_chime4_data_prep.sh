@@ -85,6 +85,8 @@ elif [[ "$track" == "6" ]]; then
   done
 
   for x in $list_set; do
+    # drop the second channel to follow the convention in CHiME-4
+    # see P27 in https://hal.inria.fr/hal-01399180/file/vincent_CSL16.pdf
     mix-mono-wav-scp.py ${x}_wav.CH{1,3,4,5,6}.scp > ${x}_wav.scp
     mix-mono-wav-scp.py ${x}_spk1_wav.CH{1,3,4,5,6}.scp > ${x}_spk1_wav.scp
     sed -E "s#\.Clean\.wav#\.Noise\.wav#g" ${x}_spk1_wav.scp > ${x}_noise_wav.scp

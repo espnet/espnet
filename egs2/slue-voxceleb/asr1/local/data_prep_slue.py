@@ -8,6 +8,7 @@
 import os
 import re
 import sys
+
 import pandas as pd
 
 if len(sys.argv) != 2:
@@ -42,6 +43,8 @@ for x in dir_dict:
                     "<blank>"  # Test set is blind, will have to submit to leaderboard
                 )
             else:
+                if row[4] == "<mixed>":
+                    continue
                 print(x)
                 print(row)
                 words = (

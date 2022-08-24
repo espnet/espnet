@@ -7,8 +7,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 
-from typing import Any
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 

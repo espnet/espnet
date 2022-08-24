@@ -58,6 +58,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     for datadir in ${train_set} ${train_dev} ${test_set}; do
         python local/data_prep.py data/ ${DSING}/sing_300x30x2 local/dsing_task/DSing\ Kaldi\ Recipe/dsing/s5/conf/${datadir}.json ${datadir}
         utils/utt2spk_to_spk2utt.pl data/${datadir}/utt2spk > data/${datadir}/spk2utt
+        utils/fix_data_dir.sh data/${datadir}
     done
 fi
 

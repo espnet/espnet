@@ -6,12 +6,12 @@
 
 """End-to-end speech recognition model decoding script."""
 
-import configargparse
 import logging
 import os
 import random
 import sys
 
+import configargparse
 import numpy as np
 
 from espnet.utils.cli_utils import strtobool

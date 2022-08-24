@@ -4,14 +4,12 @@
 
 import os
 
-from distutils.version import LooseVersion
-from setuptools import find_packages
-from setuptools import setup
-
+from setuptools import find_packages, setup
 
 requirements = {
     "install": [
         "setuptools>=38.5.1",
+        "packaging",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "humanfriendly",
@@ -26,6 +24,9 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
+        "numpy<=1.21.4",
+        # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
+        "protobuf<=3.20.1",
         # ASR
         "sentencepiece",
         "ctc-segmentation<1.8,>=1.6.6",
@@ -36,10 +37,11 @@ requirements = {
         # ENH
         "ci_sdr",
         "pytorch_wpe",
+        "fast-bss-eval==0.1.3",
     ],
     # train: The modules invoked when training only.
     "train": [
-        "matplotlib==3.1.0",
+        "matplotlib",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "wandb",
@@ -74,7 +76,6 @@ requirements = {
         "gtn==0.0.0",
     ],
     "setup": [
-        "numpy<=1.21.3",
         "pytest-runner",
     ],
     "test": [
@@ -85,12 +86,14 @@ requirements = {
         "hacking>=2.0.0",
         "mock>=2.0.0",
         "pycodestyle",
-        "jsondiff>=1.2.0",
+        "jsondiff<2.0.0,>=1.2.0",
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
+        "isort",
     ],
     "doc": [
+        "Jinja2<3.1",
         "Sphinx==2.1.2",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
@@ -139,6 +142,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

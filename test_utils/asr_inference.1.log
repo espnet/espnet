@@ -1,0 +1,1256 @@
+# python3 -m espnet2.bin.asr_inference --batch_size 1 --ngpu 0 --data_path_and_name_and_type dump/raw/test_clean/wav.scp,speech,kaldi_ark --key_file exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir/keys.1.scp --asr_train_config exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/config.yaml --asr_model_file exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/valid.acc.ave_10best.pth --output_dir exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir/output.1 --config conf/decode_asr.yaml --lm_train_config exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/lm/config.yaml --lm_file exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/lm/valid.loss.ave.pth 
+2022-06-14 14:02:05,013 (asr:399) INFO: Vocabulary size: 5000
+2022-06-14 14:02:05,189 (conformer_encoder:136) WARNING: Using legacy_rel_pos and it will be deprecated in the future.
+2022-06-14 14:02:05,328 (conformer_encoder:236) WARNING: Using legacy_rel_selfattn and it will be deprecated in the future.
+2022-06-14 14:02:09,510 (lm:191) INFO: Vocabulary size: 5000
+2022-06-14 14:02:13,420 (asr_inference:209) INFO: BatchBeamSearch implementation is selected.
+2022-06-14 14:02:13,431 (asr_inference:220) INFO: Beam_search: BatchBeamSearch(
+  (nn_dict): ModuleDict(
+    (decoder): TransformerDecoder(
+      (embed): Sequential(
+        (0): Embedding(5000, 512)
+        (1): PositionalEncoding(
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+      (after_norm): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+      (output_layer): Linear(in_features=512, out_features=5000, bias=True)
+      (decoders): MultiSequential(
+        (0): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+        (1): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+        (2): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+        (3): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+        (4): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+        (5): DecoderLayer(
+          (self_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (src_attn): MultiHeadedAttention(
+            (linear_q): Linear(in_features=512, out_features=512, bias=True)
+            (linear_k): Linear(in_features=512, out_features=512, bias=True)
+            (linear_v): Linear(in_features=512, out_features=512, bias=True)
+            (linear_out): Linear(in_features=512, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (feed_forward): PositionwiseFeedForward(
+            (w_1): Linear(in_features=512, out_features=2048, bias=True)
+            (w_2): Linear(in_features=2048, out_features=512, bias=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+            (activation): ReLU()
+          )
+          (norm1): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm2): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (norm3): LayerNorm((512,), eps=1e-12, elementwise_affine=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+    )
+    (lm): SequentialRNNLM(
+      (drop): Dropout(p=0.0, inplace=False)
+      (encoder): Embedding(5000, 2048, padding_idx=0)
+      (rnn): LSTM(2048, 2048, num_layers=4, batch_first=True)
+      (decoder): Linear(in_features=2048, out_features=5000, bias=True)
+    )
+  )
+)
+2022-06-14 14:02:13,431 (asr_inference:221) INFO: Decoding device=cpu, dtype=float32
+2022-06-14 14:02:13,522 (asr_inference:239) INFO: Text tokenizer: SentencepiecesTokenizer(model="espnet/tools/anaconda/envs/espnet/lib/python3.8/site-packages/espnet_model_zoo/byan--librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp.main.0a2826997d20af320609dbe71885e11bc615f191/data/token_list/bpe_unigram5000/bpe.model")
+2022-06-14 14:02:14,352 (asr_inference:283) INFO: speech length: 166960
+2022-06-14 14:02:17,279 (beam_search:356) INFO: decoder input length: 216
+2022-06-14 14:02:17,279 (beam_search:357) INFO: max output length: 216
+2022-06-14 14:02:17,279 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:03:56,498 (beam_search:370) INFO: end detected at 51
+2022-06-14 14:03:56,501 (beam_search:394) INFO:  -3.24 * 0.7 =  -2.26 for decoder
+2022-06-14 14:03:56,501 (beam_search:394) INFO:  -2.52 * 0.3 =  -0.76 for ctc
+2022-06-14 14:03:56,501 (beam_search:394) INFO: -176.76 * 0.6 = -106.06 for lm
+2022-06-14 14:03:56,501 (beam_search:397) INFO: total log probability: -109.08
+2022-06-14 14:03:56,501 (beam_search:398) INFO: normalized log probability: -2.32
+2022-06-14 14:03:56,501 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:03:56,502 (beam_search:401) INFO: best hypo: ▁HE▁HOPED▁THERE▁WOULD▁BE▁STEW▁FOR▁DINNER▁TURNIPS▁AND▁CARROTS▁AND▁BRUISED▁POTATOES▁AND▁FAT▁MUTTON▁PIECES▁TO▁BE▁LADLED▁OUT▁IN▁THICK▁PEPPERED▁FLOUR▁FAT▁AND▁SAUCE
+
+2022-06-14 14:03:56,690 (asr_inference:283) INFO: speech length: 52400
+2022-06-14 14:03:57,312 (beam_search:356) INFO: decoder input length: 67
+2022-06-14 14:03:57,312 (beam_search:357) INFO: max output length: 67
+2022-06-14 14:03:57,312 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:04:19,835 (beam_search:370) INFO: end detected at 16
+2022-06-14 14:04:19,837 (beam_search:394) INFO:  -2.18 * 0.7 =  -1.53 for decoder
+2022-06-14 14:04:19,837 (beam_search:394) INFO:  -0.75 * 0.3 =  -0.23 for ctc
+2022-06-14 14:04:19,837 (beam_search:394) INFO: -55.90 * 0.6 = -33.54 for lm
+2022-06-14 14:04:19,838 (beam_search:397) INFO: total log probability: -35.29
+2022-06-14 14:04:19,838 (beam_search:398) INFO: normalized log probability: -2.94
+2022-06-14 14:04:19,838 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 14:04:19,838 (beam_search:401) INFO: best hypo: ▁STUFFED▁INTO▁YOU▁HIS▁BELLY▁COUNSELLED▁HIM
+
+2022-06-14 14:04:19,844 (asr_inference:283) INFO: speech length: 106000
+2022-06-14 14:04:20,711 (beam_search:356) INFO: decoder input length: 137
+2022-06-14 14:04:20,712 (beam_search:357) INFO: max output length: 137
+2022-06-14 14:04:20,712 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:05:11,855 (beam_search:370) INFO: end detected at 30
+2022-06-14 14:05:11,858 (beam_search:394) INFO:  -3.38 * 0.7 =  -2.36 for decoder
+2022-06-14 14:05:11,858 (beam_search:394) INFO:  -0.76 * 0.3 =  -0.23 for ctc
+2022-06-14 14:05:11,858 (beam_search:394) INFO: -101.64 * 0.6 = -60.98 for lm
+2022-06-14 14:05:11,858 (beam_search:397) INFO: total log probability: -63.57
+2022-06-14 14:05:11,859 (beam_search:398) INFO: normalized log probability: -2.45
+2022-06-14 14:05:11,859 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 14:05:11,859 (beam_search:401) INFO: best hypo: ▁AFTER▁EARLY▁NIGHTFALL▁THE▁YELLOW▁LAMPS▁WOULD▁LIGHT▁UP▁HERE▁AND▁THERE▁THE▁SQUALID▁QUARTER▁OF▁THE▁BROTHELS
+
+2022-06-14 14:05:11,866 (asr_inference:283) INFO: speech length: 42880
+2022-06-14 14:05:12,397 (beam_search:356) INFO: decoder input length: 55
+2022-06-14 14:05:12,398 (beam_search:357) INFO: max output length: 55
+2022-06-14 14:05:12,398 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:05:36,357 (beam_search:370) INFO: end detected at 17
+2022-06-14 14:05:36,363 (beam_search:394) INFO:  -0.75 * 0.7 =  -0.52 for decoder
+2022-06-14 14:05:36,363 (beam_search:394) INFO:  -0.34 * 0.3 =  -0.10 for ctc
+2022-06-14 14:05:36,363 (beam_search:394) INFO: -46.00 * 0.6 = -27.60 for lm
+2022-06-14 14:05:36,363 (beam_search:397) INFO: total log probability: -28.22
+2022-06-14 14:05:36,363 (beam_search:398) INFO: normalized log probability: -2.17
+2022-06-14 14:05:36,363 (beam_search:399) INFO: total number of ended hypotheses: 34
+2022-06-14 14:05:36,363 (beam_search:401) INFO: best hypo: ▁HALLO▁BERTIE▁ANY▁GOOD▁IN▁YOUR▁MIND
+
+2022-06-14 14:05:36,369 (asr_inference:283) INFO: speech length: 83441
+2022-06-14 14:05:37,150 (beam_search:356) INFO: decoder input length: 107
+2022-06-14 14:05:37,150 (beam_search:357) INFO: max output length: 107
+2022-06-14 14:05:37,150 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:06:05,735 (beam_search:370) INFO: end detected at 19
+2022-06-14 14:06:05,737 (beam_search:394) INFO:  -1.79 * 0.7 =  -1.26 for decoder
+2022-06-14 14:06:05,738 (beam_search:394) INFO:  -0.28 * 0.3 =  -0.08 for ctc
+2022-06-14 14:06:05,738 (beam_search:394) INFO: -77.46 * 0.6 = -46.48 for lm
+2022-06-14 14:06:05,738 (beam_search:397) INFO: total log probability: -47.82
+2022-06-14 14:06:05,738 (beam_search:398) INFO: normalized log probability: -3.19
+2022-06-14 14:06:05,738 (beam_search:399) INFO: total number of ended hypotheses: 32
+2022-06-14 14:06:05,738 (beam_search:401) INFO: best hypo: ▁NUMBER▁TEN▁FRESH▁NELLY▁IS▁WAITING▁ON▁YOU▁GOOD▁NIGHT▁HUSBAND
+
+2022-06-14 14:06:05,744 (asr_inference:283) INFO: speech length: 154160
+2022-06-14 14:06:06,993 (beam_search:356) INFO: decoder input length: 200
+2022-06-14 14:06:06,993 (beam_search:357) INFO: max output length: 200
+2022-06-14 14:06:06,993 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:07:07,827 (beam_search:370) INFO: end detected at 34
+2022-06-14 14:07:07,830 (beam_search:394) INFO:  -1.91 * 0.7 =  -1.34 for decoder
+2022-06-14 14:07:07,830 (beam_search:394) INFO:  -0.03 * 0.3 =  -0.01 for ctc
+2022-06-14 14:07:07,830 (beam_search:394) INFO: -128.22 * 0.6 = -76.93 for lm
+2022-06-14 14:07:07,830 (beam_search:397) INFO: total log probability: -78.28
+2022-06-14 14:07:07,830 (beam_search:398) INFO: normalized log probability: -2.53
+2022-06-14 14:07:07,830 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:07:07,831 (beam_search:401) INFO: best hypo: ▁THE▁MUSIC▁CAME▁NEARER▁AND▁HE▁RECALLED▁THE▁WORDS▁THE▁WORDS▁OF▁SHELLEY'S▁FRAGMENT▁UPON▁THE▁MOON▁WANDERING▁COMPANIONLESS▁PALE▁FOR▁WEARINESS
+
+2022-06-14 14:07:07,837 (asr_inference:283) INFO: speech length: 168880
+2022-06-14 14:07:09,490 (beam_search:356) INFO: decoder input length: 219
+2022-06-14 14:07:09,490 (beam_search:357) INFO: max output length: 219
+2022-06-14 14:07:09,490 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:08:12,468 (beam_search:370) INFO: end detected at 35
+2022-06-14 14:08:12,470 (beam_search:394) INFO:  -2.06 * 0.7 =  -1.44 for decoder
+2022-06-14 14:08:12,470 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 14:08:12,470 (beam_search:394) INFO: -128.80 * 0.6 = -77.28 for lm
+2022-06-14 14:08:12,470 (beam_search:397) INFO: total log probability: -78.73
+2022-06-14 14:08:12,471 (beam_search:398) INFO: normalized log probability: -2.46
+2022-06-14 14:08:12,471 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:08:12,471 (beam_search:401) INFO: best hypo: ▁THE▁DULL▁LIGHT▁FELL▁MORE▁FAINTLY▁UPON▁THE▁PAGE▁WHEREON▁ANOTHER▁EQUATION▁BEGAN▁TO▁UNFOLD▁ITSELF▁SLOWLY▁AND▁TO▁SPREAD▁ABROAD▁ITS▁WIDENING▁TAIL
+
+2022-06-14 14:08:12,477 (asr_inference:283) INFO: speech length: 68400
+2022-06-14 14:08:13,147 (beam_search:356) INFO: decoder input length: 88
+2022-06-14 14:08:13,147 (beam_search:357) INFO: max output length: 88
+2022-06-14 14:08:13,147 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:08:36,901 (beam_search:370) INFO: end detected at 16
+2022-06-14 14:08:36,903 (beam_search:394) INFO:  -2.65 * 0.7 =  -1.86 for decoder
+2022-06-14 14:08:36,903 (beam_search:394) INFO:  -7.34 * 0.3 =  -2.20 for ctc
+2022-06-14 14:08:36,903 (beam_search:394) INFO: -39.52 * 0.6 = -23.71 for lm
+2022-06-14 14:08:36,903 (beam_search:397) INFO: total log probability: -27.77
+2022-06-14 14:08:36,903 (beam_search:398) INFO: normalized log probability: -2.31
+2022-06-14 14:08:36,903 (beam_search:399) INFO: total number of ended hypotheses: 26
+2022-06-14 14:08:36,903 (beam_search:401) INFO: best hypo: ▁A▁COLD▁LUCID▁INDIFFERENCE▁REIGNED▁IN▁HIS▁SOUL
+
+2022-06-14 14:08:36,909 (asr_inference:283) INFO: speech length: 107680
+2022-06-14 14:08:37,978 (beam_search:356) INFO: decoder input length: 139
+2022-06-14 14:08:37,978 (beam_search:357) INFO: max output length: 139
+2022-06-14 14:08:37,978 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:09:24,712 (beam_search:370) INFO: end detected at 28
+2022-06-14 14:09:24,715 (beam_search:394) INFO:  -1.80 * 0.7 =  -1.26 for decoder
+2022-06-14 14:09:24,715 (beam_search:394) INFO:  -1.40 * 0.3 =  -0.42 for ctc
+2022-06-14 14:09:24,715 (beam_search:394) INFO: -84.13 * 0.6 = -50.48 for lm
+2022-06-14 14:09:24,715 (beam_search:397) INFO: total log probability: -52.16
+2022-06-14 14:09:24,715 (beam_search:398) INFO: normalized log probability: -2.09
+2022-06-14 14:09:24,715 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:09:24,715 (beam_search:401) INFO: best hypo: ▁THE▁CHAOS▁IN▁WHICH▁HIS▁ARDOUR▁EXTINGUISHED▁ITSELF▁WAS▁A▁COLD▁INDIFFERENT▁KNOWLEDGE▁OF▁HIMSELF
+
+2022-06-14 14:09:24,721 (asr_inference:283) INFO: speech length: 169200
+2022-06-14 14:09:26,430 (beam_search:356) INFO: decoder input length: 219
+2022-06-14 14:09:26,430 (beam_search:357) INFO: max output length: 219
+2022-06-14 14:09:26,430 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:10:28,934 (beam_search:370) INFO: end detected at 35
+2022-06-14 14:10:28,936 (beam_search:394) INFO:  -1.97 * 0.7 =  -1.38 for decoder
+2022-06-14 14:10:28,936 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:10:28,936 (beam_search:394) INFO: -147.19 * 0.6 = -88.31 for lm
+2022-06-14 14:10:28,936 (beam_search:397) INFO: total log probability: -89.69
+2022-06-14 14:10:28,936 (beam_search:398) INFO: normalized log probability: -2.80
+2022-06-14 14:10:28,937 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:10:28,937 (beam_search:401) INFO: best hypo: ▁AT▁MOST▁BY▁AN▁ALMS▁GIVEN▁TO▁A▁BEGGAR▁WHOSE▁BLESSING▁HE▁FLED▁FROM▁HE▁MIGHT▁HOPE▁WEARILY▁TO▁WIN▁FOR▁HIMSELF▁SOME▁MEASURE▁OF▁ACTUAL▁GRACE
+
+2022-06-14 14:10:28,944 (asr_inference:283) INFO: speech length: 70480
+2022-06-14 14:10:29,726 (beam_search:356) INFO: decoder input length: 91
+2022-06-14 14:10:29,726 (beam_search:357) INFO: max output length: 91
+2022-06-14 14:10:29,726 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:11:04,495 (beam_search:370) INFO: end detected at 23
+2022-06-14 14:11:04,497 (beam_search:394) INFO:  -3.61 * 0.7 =  -2.52 for decoder
+2022-06-14 14:11:04,498 (beam_search:394) INFO: -11.91 * 0.3 =  -3.57 for ctc
+2022-06-14 14:11:04,498 (beam_search:394) INFO: -66.84 * 0.6 = -40.11 for lm
+2022-06-14 14:11:04,498 (beam_search:397) INFO: total log probability: -46.20
+2022-06-14 14:11:04,498 (beam_search:398) INFO: normalized log probability: -2.57
+2022-06-14 14:11:04,498 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 14:11:04,498 (beam_search:401) INFO: best hypo: ▁WELL▁NOW▁ENNIS▁I▁DECLARE▁YOU▁HAVE▁A▁HEAD▁AND▁SO▁HAS▁MY▁STICK
+
+2022-06-14 14:11:04,504 (asr_inference:283) INFO: speech length: 199120
+2022-06-14 14:11:06,437 (beam_search:356) INFO: decoder input length: 258
+2022-06-14 14:11:06,437 (beam_search:357) INFO: max output length: 258
+2022-06-14 14:11:06,437 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:12:50,714 (beam_search:370) INFO: end detected at 55
+2022-06-14 14:12:50,716 (beam_search:394) INFO:  -3.94 * 0.7 =  -2.76 for decoder
+2022-06-14 14:12:50,717 (beam_search:394) INFO:  -4.94 * 0.3 =  -1.48 for ctc
+2022-06-14 14:12:50,717 (beam_search:394) INFO: -211.55 * 0.6 = -126.93 for lm
+2022-06-14 14:12:50,717 (beam_search:397) INFO: total log probability: -131.17
+2022-06-14 14:12:50,717 (beam_search:398) INFO: normalized log probability: -2.62
+2022-06-14 14:12:50,717 (beam_search:399) INFO: total number of ended hypotheses: 36
+2022-06-14 14:12:50,717 (beam_search:401) INFO: best hypo: ▁ON▁SATURDAY▁MORNINGS▁WHEN▁THE▁SODELITY▁MET▁IN▁THE▁CHAPEL▁TO▁RECITE▁THE▁LITTLE▁OFFICE▁HIS▁PLACE▁WAS▁A▁CUSHIONED▁KNEELING▁DESK▁AT▁THE▁RIGHT▁OF▁THE▁ALTAR▁FROM▁WHICH▁HE▁LED▁HIS▁WING▁OF▁BOYS▁THROUGH▁THE▁RESPONSES
+
+2022-06-14 14:12:50,724 (asr_inference:283) INFO: speech length: 186240
+2022-06-14 14:12:52,291 (beam_search:356) INFO: decoder input length: 241
+2022-06-14 14:12:52,292 (beam_search:357) INFO: max output length: 241
+2022-06-14 14:12:52,292 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:14:12,599 (beam_search:370) INFO: end detected at 43
+2022-06-14 14:14:12,601 (beam_search:394) INFO:  -2.58 * 0.7 =  -1.81 for decoder
+2022-06-14 14:14:12,602 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:14:12,602 (beam_search:394) INFO: -143.31 * 0.6 = -85.99 for lm
+2022-06-14 14:14:12,602 (beam_search:397) INFO: total log probability: -87.79
+2022-06-14 14:14:12,602 (beam_search:398) INFO: normalized log probability: -2.19
+2022-06-14 14:14:12,602 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:14:12,602 (beam_search:401) INFO: best hypo: ▁HER▁EYES▁SEEMED▁TO▁REGARD▁HIM▁WITH▁MILD▁PITY▁HER▁HOLINESS▁A▁STRANGE▁LIGHT▁GLOWING▁FAINTLY▁UPON▁HER▁FRAIL▁FLESH▁DID▁NOT▁HUMILIATE▁THE▁SINNER▁WHO▁APPROACHED▁HER
+
+2022-06-14 14:14:12,610 (asr_inference:283) INFO: speech length: 126640
+2022-06-14 14:14:13,819 (beam_search:356) INFO: decoder input length: 164
+2022-06-14 14:14:13,819 (beam_search:357) INFO: max output length: 164
+2022-06-14 14:14:13,819 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:15:07,852 (beam_search:370) INFO: end detected at 32
+2022-06-14 14:15:07,858 (beam_search:394) INFO:  -1.95 * 0.7 =  -1.36 for decoder
+2022-06-14 14:15:07,858 (beam_search:394) INFO:  -0.09 * 0.3 =  -0.03 for ctc
+2022-06-14 14:15:07,858 (beam_search:394) INFO: -107.80 * 0.6 = -64.68 for lm
+2022-06-14 14:15:07,859 (beam_search:397) INFO: total log probability: -66.07
+2022-06-14 14:15:07,859 (beam_search:398) INFO: normalized log probability: -2.28
+2022-06-14 14:15:07,859 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:15:07,859 (beam_search:401) INFO: best hypo: ▁IF▁EVER▁HE▁WAS▁IMPELLED▁TO▁CAST▁SIN▁FROM▁HIM▁AND▁TO▁REPENT▁THE▁IMPULSE▁THAT▁MOVED▁HIM▁WAS▁THE▁WISH▁TO▁BE▁HER▁KNIGHT
+
+2022-06-14 14:15:07,867 (asr_inference:283) INFO: speech length: 35600
+2022-06-14 14:15:08,302 (beam_search:356) INFO: decoder input length: 45
+2022-06-14 14:15:08,302 (beam_search:357) INFO: max output length: 45
+2022-06-14 14:15:08,302 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:15:26,109 (beam_search:370) INFO: end detected at 13
+2022-06-14 14:15:26,111 (beam_search:394) INFO:  -0.65 * 0.7 =  -0.46 for decoder
+2022-06-14 14:15:26,112 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:15:26,112 (beam_search:394) INFO: -21.92 * 0.6 = -13.15 for lm
+2022-06-14 14:15:26,112 (beam_search:397) INFO: total log probability: -13.61
+2022-06-14 14:15:26,112 (beam_search:398) INFO: normalized log probability: -1.36
+2022-06-14 14:15:26,112 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:15:26,112 (beam_search:401) INFO: best hypo: ▁HE▁TRIED▁TO▁THINK▁HOW▁IT▁COULD▁BE
+
+2022-06-14 14:15:26,119 (asr_inference:283) INFO: speech length: 93040
+2022-06-14 14:15:27,021 (beam_search:356) INFO: decoder input length: 120
+2022-06-14 14:15:27,021 (beam_search:357) INFO: max output length: 120
+2022-06-14 14:15:27,021 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:16:04,518 (beam_search:370) INFO: end detected at 23
+2022-06-14 14:16:04,521 (beam_search:394) INFO:  -1.30 * 0.7 =  -0.91 for decoder
+2022-06-14 14:16:04,521 (beam_search:394) INFO:  -0.05 * 0.3 =  -0.02 for ctc
+2022-06-14 14:16:04,521 (beam_search:394) INFO: -80.79 * 0.6 = -48.48 for lm
+2022-06-14 14:16:04,521 (beam_search:397) INFO: total log probability: -49.40
+2022-06-14 14:16:04,521 (beam_search:398) INFO: normalized log probability: -2.47
+2022-06-14 14:16:04,521 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 14:16:04,521 (beam_search:401) INFO: best hypo: ▁BUT▁THE▁DUSK▁DEEPENING▁IN▁THE▁SCHOOLROOM▁COVERED▁OVER▁HIS▁THOUGHTS▁THE▁BELL▁RANG
+
+2022-06-14 14:16:04,527 (asr_inference:283) INFO: speech length: 56640
+2022-06-14 14:16:05,025 (beam_search:356) INFO: decoder input length: 73
+2022-06-14 14:16:05,025 (beam_search:357) INFO: max output length: 73
+2022-06-14 14:16:05,025 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:16:38,007 (beam_search:370) INFO: end detected at 21
+2022-06-14 14:16:38,007 (beam_search:394) INFO:  -1.13 * 0.7 =  -0.79 for decoder
+2022-06-14 14:16:38,007 (beam_search:394) INFO:  -1.04 * 0.3 =  -0.31 for ctc
+2022-06-14 14:16:38,007 (beam_search:394) INFO: -58.84 * 0.6 = -35.30 for lm
+2022-06-14 14:16:38,008 (beam_search:397) INFO: total log probability: -36.41
+2022-06-14 14:16:38,008 (beam_search:398) INFO: normalized log probability: -2.02
+2022-06-14 14:16:38,008 (beam_search:399) INFO: total number of ended hypotheses: 26
+2022-06-14 14:16:38,008 (beam_search:401) INFO: best hypo: ▁THEN▁YOU▁CAN▁ASK▁HIM▁QUESTIONS▁ON▁THE▁CATECHISM▁DAEDALUS
+
+2022-06-14 14:16:38,014 (asr_inference:283) INFO: speech length: 141920
+2022-06-14 14:16:39,201 (beam_search:356) INFO: decoder input length: 184
+2022-06-14 14:16:39,202 (beam_search:357) INFO: max output length: 184
+2022-06-14 14:16:39,202 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:17:44,603 (beam_search:370) INFO: end detected at 37
+2022-06-14 14:17:44,608 (beam_search:394) INFO:  -2.26 * 0.7 =  -1.58 for decoder
+2022-06-14 14:17:44,608 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 14:17:44,608 (beam_search:394) INFO: -125.37 * 0.6 = -75.22 for lm
+2022-06-14 14:17:44,608 (beam_search:397) INFO: total log probability: -76.81
+2022-06-14 14:17:44,608 (beam_search:398) INFO: normalized log probability: -2.26
+2022-06-14 14:17:44,608 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 14:17:44,608 (beam_search:401) INFO: best hypo: ▁STEPHEN▁LEANING▁BACK▁AND▁DRAWING▁IDLY▁ON▁HIS▁SCRIBBLER▁LISTENED▁TO▁THE▁TALK▁ABOUT▁HIM▁WHICH▁HERON▁CHECKED▁FROM▁TIME▁TO▁TIME▁BY▁SAYING
+
+2022-06-14 14:17:44,615 (asr_inference:283) INFO: speech length: 251520
+2022-06-14 14:17:46,884 (beam_search:356) INFO: decoder input length: 326
+2022-06-14 14:17:46,884 (beam_search:357) INFO: max output length: 326
+2022-06-14 14:17:46,884 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:19:34,590 (beam_search:370) INFO: end detected at 53
+2022-06-14 14:19:34,592 (beam_search:394) INFO:  -3.39 * 0.7 =  -2.37 for decoder
+2022-06-14 14:19:34,593 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 14:19:34,593 (beam_search:394) INFO: -174.74 * 0.6 = -104.85 for lm
+2022-06-14 14:19:34,593 (beam_search:397) INFO: total log probability: -107.22
+2022-06-14 14:19:34,593 (beam_search:398) INFO: normalized log probability: -2.14
+2022-06-14 14:19:34,593 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:19:34,593 (beam_search:401) INFO: best hypo: ▁IT▁WAS▁STRANGE▁TOO▁THAT▁HE▁FOUND▁AN▁ARID▁PLEASURE▁IN▁FOLLOWING▁UP▁TO▁THE▁END▁THE▁RIGID▁LINES▁OF▁THE▁DOCTRINES▁OF▁THE▁CHURCH▁AND▁PENETRATING▁INTO▁OBSCURE▁SILENCES▁ONLY▁TO▁HEAR▁AND▁FEEL▁THE▁MORE▁DEEPLY▁HIS▁OWN▁CONDEMNATION
+
+2022-06-14 14:19:34,599 (asr_inference:283) INFO: speech length: 222320
+2022-06-14 14:19:36,673 (beam_search:356) INFO: decoder input length: 288
+2022-06-14 14:19:36,673 (beam_search:357) INFO: max output length: 288
+2022-06-14 14:19:36,673 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:21:21,742 (beam_search:370) INFO: end detected at 54
+2022-06-14 14:21:21,746 (beam_search:394) INFO:  -3.34 * 0.7 =  -2.34 for decoder
+2022-06-14 14:21:21,746 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 14:21:21,746 (beam_search:394) INFO: -176.58 * 0.6 = -105.95 for lm
+2022-06-14 14:21:21,746 (beam_search:397) INFO: total log probability: -108.29
+2022-06-14 14:21:21,746 (beam_search:398) INFO: normalized log probability: -2.17
+2022-06-14 14:21:21,746 (beam_search:399) INFO: total number of ended hypotheses: 36
+2022-06-14 14:21:21,746 (beam_search:401) INFO: best hypo: ▁THE▁SENTENCE▁OF▁SAINT▁JAMES▁WHICH▁SAYS▁THAT▁HE▁WHO▁OFFENDS▁AGAINST▁ONE▁COMMANDMENT▁BECOMES▁GUILTY▁OF▁ALL▁HAD▁SEEMED▁TO▁HIM▁FIRST▁A▁SWOLLEN▁PHRASE▁UNTIL▁HE▁HAD▁BEGUN▁TO▁GROPE▁IN▁THE▁DARKNESS▁OF▁HIS▁OWN▁STATE
+
+2022-06-14 14:21:21,753 (asr_inference:283) INFO: speech length: 268640
+2022-06-14 14:21:24,188 (beam_search:356) INFO: decoder input length: 349
+2022-06-14 14:21:24,188 (beam_search:357) INFO: max output length: 349
+2022-06-14 14:21:24,188 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:23:31,417 (beam_search:370) INFO: end detected at 63
+2022-06-14 14:23:31,420 (beam_search:394) INFO:  -4.20 * 0.7 =  -2.94 for decoder
+2022-06-14 14:23:31,420 (beam_search:394) INFO:  -0.94 * 0.3 =  -0.28 for ctc
+2022-06-14 14:23:31,420 (beam_search:394) INFO: -236.88 * 0.6 = -142.13 for lm
+2022-06-14 14:23:31,420 (beam_search:397) INFO: total log probability: -145.35
+2022-06-14 14:23:31,420 (beam_search:398) INFO: normalized log probability: -2.42
+2022-06-14 14:23:31,420 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:23:31,421 (beam_search:401) INFO: best hypo: ▁IF▁A▁MAN▁HAD▁STOLEN▁A▁POUND▁IN▁HIS▁YOUTH▁AND▁HAD▁USED▁THAT▁POUND▁TO▁AMASS▁A▁HUGE▁FORTUNE▁HOW▁MUCH▁WAS▁HE▁OBLIGED▁TO▁GIVE▁BACK▁THE▁POUND▁HE▁HAD▁STOLEN▁ONLY▁OR▁THE▁POUND▁TOGETHER▁WITH▁THE▁COMPOUND▁INTEREST▁ACCRUING▁UPON▁IT▁OR▁ALL▁HIS▁HUGE▁FORTUNE
+
+2022-06-14 14:23:31,429 (asr_inference:283) INFO: speech length: 104800
+2022-06-14 14:23:32,412 (beam_search:356) INFO: decoder input length: 135
+2022-06-14 14:23:32,412 (beam_search:357) INFO: max output length: 135
+2022-06-14 14:23:32,412 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:24:22,481 (beam_search:370) INFO: end detected at 30
+2022-06-14 14:24:22,484 (beam_search:394) INFO:  -1.80 * 0.7 =  -1.26 for decoder
+2022-06-14 14:24:22,484 (beam_search:394) INFO:  -0.09 * 0.3 =  -0.03 for ctc
+2022-06-14 14:24:22,484 (beam_search:394) INFO: -111.66 * 0.6 = -67.00 for lm
+2022-06-14 14:24:22,485 (beam_search:397) INFO: total log probability: -68.28
+2022-06-14 14:24:22,485 (beam_search:398) INFO: normalized log probability: -2.63
+2022-06-14 14:24:22,485 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 14:24:22,485 (beam_search:401) INFO: best hypo: ▁IF▁A▁LAYMAN▁IN▁GIVING▁BAPTISM▁POUR▁THE▁WATER▁BEFORE▁SAYING▁THE▁WORDS▁IS▁THE▁CHILD▁BAPTIZED
+
+2022-06-14 14:24:22,492 (asr_inference:283) INFO: speech length: 178800
+2022-06-14 14:24:24,161 (beam_search:356) INFO: decoder input length: 232
+2022-06-14 14:24:24,162 (beam_search:357) INFO: max output length: 232
+2022-06-14 14:24:24,162 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:25:44,408 (beam_search:370) INFO: end detected at 43
+2022-06-14 14:25:44,410 (beam_search:394) INFO:  -4.16 * 0.7 =  -2.91 for decoder
+2022-06-14 14:25:44,410 (beam_search:394) INFO:  -0.37 * 0.3 =  -0.11 for ctc
+2022-06-14 14:25:44,411 (beam_search:394) INFO: -152.86 * 0.6 = -91.72 for lm
+2022-06-14 14:25:44,411 (beam_search:397) INFO: total log probability: -94.73
+2022-06-14 14:25:44,411 (beam_search:398) INFO: normalized log probability: -2.37
+2022-06-14 14:25:44,411 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:25:44,411 (beam_search:401) INFO: best hypo: ▁HOW▁COMES▁IT▁THAT▁WHILE▁THE▁FIRST▁BEATITUDE▁PROMISES▁THE▁KINGDOM▁OF▁HEAVEN▁TO▁THE▁POOR▁OF▁HEART▁THE▁SECOND▁BEATITUDE▁PROMISES▁ALSO▁TO▁THE▁MEEK▁THAT▁THEY▁SHALL▁POSSESS▁THE▁LAND
+
+2022-06-14 14:25:44,417 (asr_inference:283) INFO: speech length: 212400
+2022-06-14 14:25:46,493 (beam_search:356) INFO: decoder input length: 275
+2022-06-14 14:25:46,493 (beam_search:357) INFO: max output length: 275
+2022-06-14 14:25:46,493 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:27:30,795 (beam_search:370) INFO: end detected at 55
+2022-06-14 14:27:30,800 (beam_search:394) INFO:  -3.40 * 0.7 =  -2.38 for decoder
+2022-06-14 14:27:30,800 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:27:30,800 (beam_search:394) INFO: -175.57 * 0.6 = -105.34 for lm
+2022-06-14 14:27:30,801 (beam_search:397) INFO: total log probability: -107.72
+2022-06-14 14:27:30,801 (beam_search:398) INFO: normalized log probability: -2.07
+2022-06-14 14:27:30,801 (beam_search:399) INFO: total number of ended hypotheses: 32
+2022-06-14 14:27:30,801 (beam_search:401) INFO: best hypo: ▁WHY▁WAS▁THE▁SACRAMENT▁OF▁THE▁EUCHARIST▁INSTITUTED▁UNDER▁THE▁TWO▁SPECIES▁OF▁BREAD▁AND▁WINE▁IF▁JESUS▁CHRIST▁BE▁PRESENT▁BODY▁AND▁BLOOD▁SOUL▁AND▁DIVINITY▁IN▁THE▁BREAD▁ALONE▁AND▁IN▁THE▁WINE▁ALONE
+
+2022-06-14 14:27:30,808 (asr_inference:283) INFO: speech length: 186480
+2022-06-14 14:27:32,522 (beam_search:356) INFO: decoder input length: 242
+2022-06-14 14:27:32,523 (beam_search:357) INFO: max output length: 242
+2022-06-14 14:27:32,523 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:28:52,564 (beam_search:370) INFO: end detected at 43
+2022-06-14 14:28:52,567 (beam_search:394) INFO:  -2.56 * 0.7 =  -1.80 for decoder
+2022-06-14 14:28:52,567 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 14:28:52,567 (beam_search:394) INFO: -177.08 * 0.6 = -106.25 for lm
+2022-06-14 14:28:52,567 (beam_search:397) INFO: total log probability: -108.04
+2022-06-14 14:28:52,567 (beam_search:398) INFO: normalized log probability: -2.77
+2022-06-14 14:28:52,567 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 14:28:52,568 (beam_search:401) INFO: best hypo: ▁IF▁THE▁WINE▁CHANGE▁INTO▁VINEGAR▁AND▁THE▁HOST▁CRUMBLE▁INTO▁CORRUPTION▁AFTER▁THEY▁HAVE▁BEEN▁CONSECRATED▁IS▁JESUS▁CHRIST▁STILL▁PRESENT▁UNDER▁THEIR▁SPECIES▁AS▁GOD▁AND▁AS▁MAN
+
+2022-06-14 14:28:52,574 (asr_inference:283) INFO: speech length: 105760
+2022-06-14 14:28:53,642 (beam_search:356) INFO: decoder input length: 137
+2022-06-14 14:28:53,642 (beam_search:357) INFO: max output length: 137
+2022-06-14 14:28:53,642 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:29:31,639 (beam_search:370) INFO: end detected at 23
+2022-06-14 14:29:31,641 (beam_search:394) INFO:  -1.22 * 0.7 =  -0.85 for decoder
+2022-06-14 14:29:31,641 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:29:31,642 (beam_search:394) INFO: -93.35 * 0.6 = -56.01 for lm
+2022-06-14 14:29:31,642 (beam_search:397) INFO: total log probability: -56.86
+2022-06-14 14:29:31,642 (beam_search:398) INFO: normalized log probability: -2.84
+2022-06-14 14:29:31,642 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:29:31,642 (beam_search:401) INFO: best hypo: ▁A▁GENTLE▁KICK▁FROM▁THE▁TALL▁BOY▁IN▁THE▁BENCH▁BEHIND▁URGED▁STEPHEN▁TO▁ASK▁A▁DIFFICULT▁QUESTION
+
+2022-06-14 14:29:31,648 (asr_inference:283) INFO: speech length: 64160
+2022-06-14 14:29:32,239 (beam_search:356) INFO: decoder input length: 82
+2022-06-14 14:29:32,239 (beam_search:357) INFO: max output length: 82
+2022-06-14 14:29:32,239 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:30:08,598 (beam_search:370) INFO: end detected at 23
+2022-06-14 14:30:08,600 (beam_search:394) INFO:  -1.19 * 0.7 =  -0.83 for decoder
+2022-06-14 14:30:08,600 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:30:08,600 (beam_search:394) INFO: -61.11 * 0.6 = -36.67 for lm
+2022-06-14 14:30:08,601 (beam_search:397) INFO: total log probability: -37.50
+2022-06-14 14:30:08,601 (beam_search:398) INFO: normalized log probability: -1.97
+2022-06-14 14:30:08,601 (beam_search:399) INFO: total number of ended hypotheses: 36
+2022-06-14 14:30:08,601 (beam_search:401) INFO: best hypo: ▁THE▁RECTOR▁DID▁NOT▁ASK▁FOR▁A▁CATECHISM▁TO▁HEAR▁THE▁LESSON▁FROM
+
+2022-06-14 14:30:08,608 (asr_inference:283) INFO: speech length: 43360
+2022-06-14 14:30:09,076 (beam_search:356) INFO: decoder input length: 55
+2022-06-14 14:30:09,077 (beam_search:357) INFO: max output length: 55
+2022-06-14 14:30:09,077 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:30:32,886 (beam_search:370) INFO: end detected at 16
+2022-06-14 14:30:32,891 (beam_search:394) INFO:  -0.90 * 0.7 =  -0.63 for decoder
+2022-06-14 14:30:32,891 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:30:32,891 (beam_search:394) INFO: -31.23 * 0.6 = -18.74 for lm
+2022-06-14 14:30:32,891 (beam_search:397) INFO: total log probability: -19.37
+2022-06-14 14:30:32,891 (beam_search:398) INFO: normalized log probability: -1.49
+2022-06-14 14:30:32,891 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:30:32,891 (beam_search:401) INFO: best hypo: ▁HE▁CLASPED▁HIS▁HANDS▁ON▁THE▁DESK▁AND▁SAID
+
+2022-06-14 14:30:32,897 (asr_inference:283) INFO: speech length: 125280
+2022-06-14 14:30:33,928 (beam_search:356) INFO: decoder input length: 162
+2022-06-14 14:30:33,929 (beam_search:357) INFO: max output length: 162
+2022-06-14 14:30:33,929 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:31:24,238 (beam_search:370) INFO: end detected at 29
+2022-06-14 14:31:24,240 (beam_search:394) INFO:  -2.00 * 0.7 =  -1.40 for decoder
+2022-06-14 14:31:24,240 (beam_search:394) INFO:  -1.97 * 0.3 =  -0.59 for ctc
+2022-06-14 14:31:24,241 (beam_search:394) INFO: -97.99 * 0.6 = -58.79 for lm
+2022-06-14 14:31:24,241 (beam_search:397) INFO: total log probability: -60.78
+2022-06-14 14:31:24,241 (beam_search:398) INFO: normalized log probability: -2.34
+2022-06-14 14:31:24,241 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:31:24,241 (beam_search:401) INFO: best hypo: ▁THE▁RETREAT▁WILL▁BEGIN▁ON▁WEDNESDAY▁AFTERNOON▁IN▁HONOR▁OF▁SAINT▁FRANCIS▁SAVIOUR▁WHOSE▁FEAST▁DAY▁IS▁SATURDAY
+
+2022-06-14 14:31:24,247 (asr_inference:283) INFO: speech length: 74720
+2022-06-14 14:31:24,866 (beam_search:356) INFO: decoder input length: 96
+2022-06-14 14:31:24,866 (beam_search:357) INFO: max output length: 96
+2022-06-14 14:31:24,866 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:31:56,380 (beam_search:370) INFO: end detected at 20
+2022-06-14 14:31:56,382 (beam_search:394) INFO:  -1.09 * 0.7 =  -0.77 for decoder
+2022-06-14 14:31:56,383 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:31:56,383 (beam_search:394) INFO: -67.31 * 0.6 = -40.39 for lm
+2022-06-14 14:31:56,383 (beam_search:397) INFO: total log probability: -41.15
+2022-06-14 14:31:56,383 (beam_search:398) INFO: normalized log probability: -2.42
+2022-06-14 14:31:56,383 (beam_search:399) INFO: total number of ended hypotheses: 26
+2022-06-14 14:31:56,383 (beam_search:401) INFO: best hypo: ▁ON▁FRIDAY▁CONFESSION▁WILL▁BE▁HEARD▁ALL▁THE▁AFTERNOON▁AFTER▁BEADS
+
+2022-06-14 14:31:56,388 (asr_inference:283) INFO: speech length: 43440
+2022-06-14 14:31:56,787 (beam_search:356) INFO: decoder input length: 55
+2022-06-14 14:31:56,787 (beam_search:357) INFO: max output length: 55
+2022-06-14 14:31:56,787 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:32:13,027 (beam_search:370) INFO: end detected at 12
+2022-06-14 14:32:13,030 (beam_search:394) INFO:  -0.50 * 0.7 =  -0.35 for decoder
+2022-06-14 14:32:13,031 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:32:13,031 (beam_search:394) INFO: -25.00 * 0.6 = -15.00 for lm
+2022-06-14 14:32:13,031 (beam_search:397) INFO: total log probability: -15.35
+2022-06-14 14:32:13,031 (beam_search:398) INFO: normalized log probability: -1.71
+2022-06-14 14:32:13,031 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 14:32:13,031 (beam_search:401) INFO: best hypo: ▁BEWARE▁OF▁MAKING▁THAT▁MISTAKE
+
+2022-06-14 14:32:13,039 (asr_inference:283) INFO: speech length: 105840
+2022-06-14 14:32:13,955 (beam_search:356) INFO: decoder input length: 137
+2022-06-14 14:32:13,955 (beam_search:357) INFO: max output length: 137
+2022-06-14 14:32:13,955 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:32:54,065 (beam_search:370) INFO: end detected at 25
+2022-06-14 14:32:54,068 (beam_search:394) INFO:  -1.38 * 0.7 =  -0.97 for decoder
+2022-06-14 14:32:54,068 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:32:54,068 (beam_search:394) INFO: -85.98 * 0.6 = -51.59 for lm
+2022-06-14 14:32:54,068 (beam_search:397) INFO: total log probability: -52.56
+2022-06-14 14:32:54,068 (beam_search:398) INFO: normalized log probability: -2.39
+2022-06-14 14:32:54,068 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:32:54,068 (beam_search:401) INFO: best hypo: ▁STEPHEN'S▁HEART▁BEGAN▁SLOWLY▁TO▁FOLD▁AND▁FADE▁WITH▁FEAR▁LIKE▁A▁WITHERING▁FLOWER
+
+2022-06-14 14:32:54,074 (asr_inference:283) INFO: speech length: 65440
+2022-06-14 14:32:54,643 (beam_search:356) INFO: decoder input length: 84
+2022-06-14 14:32:54,643 (beam_search:357) INFO: max output length: 84
+2022-06-14 14:32:54,643 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:33:21,702 (beam_search:370) INFO: end detected at 18
+2022-06-14 14:33:21,704 (beam_search:394) INFO:  -0.99 * 0.7 =  -0.69 for decoder
+2022-06-14 14:33:21,704 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:33:21,704 (beam_search:394) INFO: -42.48 * 0.6 = -25.49 for lm
+2022-06-14 14:33:21,704 (beam_search:397) INFO: total log probability: -26.18
+2022-06-14 14:33:21,704 (beam_search:398) INFO: normalized log probability: -1.75
+2022-06-14 14:33:21,704 (beam_search:399) INFO: total number of ended hypotheses: 25
+2022-06-14 14:33:21,704 (beam_search:401) INFO: best hypo: ▁HE▁IS▁CALLED▁AS▁YOU▁KNOW▁THE▁APOSTLE▁OF▁THE▁INDIES
+
+2022-06-14 14:33:21,711 (asr_inference:283) INFO: speech length: 53280
+2022-06-14 14:33:22,254 (beam_search:356) INFO: decoder input length: 68
+2022-06-14 14:33:22,255 (beam_search:357) INFO: max output length: 68
+2022-06-14 14:33:22,255 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:33:41,987 (beam_search:370) INFO: end detected at 14
+2022-06-14 14:33:41,989 (beam_search:394) INFO:  -1.19 * 0.7 =  -0.83 for decoder
+2022-06-14 14:33:41,990 (beam_search:394) INFO:  -1.60 * 0.3 =  -0.48 for ctc
+2022-06-14 14:33:41,990 (beam_search:394) INFO: -43.01 * 0.6 = -25.81 for lm
+2022-06-14 14:33:41,990 (beam_search:397) INFO: total log probability: -27.12
+2022-06-14 14:33:41,990 (beam_search:398) INFO: normalized log probability: -2.47
+2022-06-14 14:33:41,990 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:33:41,990 (beam_search:401) INFO: best hypo: ▁A▁GREAT▁SAINT▁SAINT▁FRANCIS▁SAVIOR
+
+2022-06-14 14:33:41,998 (asr_inference:283) INFO: speech length: 92960
+2022-06-14 14:33:42,830 (beam_search:356) INFO: decoder input length: 120
+2022-06-14 14:33:42,830 (beam_search:357) INFO: max output length: 120
+2022-06-14 14:33:42,830 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:34:17,392 (beam_search:370) INFO: end detected at 21
+2022-06-14 14:34:17,396 (beam_search:394) INFO:  -1.21 * 0.7 =  -0.85 for decoder
+2022-06-14 14:34:17,396 (beam_search:394) INFO:  -1.37 * 0.3 =  -0.41 for ctc
+2022-06-14 14:34:17,396 (beam_search:394) INFO: -54.59 * 0.6 = -32.75 for lm
+2022-06-14 14:34:17,396 (beam_search:397) INFO: total log probability: -34.01
+2022-06-14 14:34:17,396 (beam_search:398) INFO: normalized log probability: -1.89
+2022-06-14 14:34:17,396 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:34:17,396 (beam_search:401) INFO: best hypo: ▁THE▁RECTOR▁PAUSED▁AND▁THEN▁SHAKING▁HIS▁CLASPED▁HANDS▁BEFORE▁HIM▁WENT▁ON
+
+2022-06-14 14:34:17,403 (asr_inference:283) INFO: speech length: 55120
+2022-06-14 14:34:17,945 (beam_search:356) INFO: decoder input length: 71
+2022-06-14 14:34:17,946 (beam_search:357) INFO: max output length: 71
+2022-06-14 14:34:17,946 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:34:39,727 (beam_search:370) INFO: end detected at 15
+2022-06-14 14:34:39,731 (beam_search:394) INFO:  -0.74 * 0.7 =  -0.52 for decoder
+2022-06-14 14:34:39,731 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:34:39,731 (beam_search:394) INFO: -39.07 * 0.6 = -23.44 for lm
+2022-06-14 14:34:39,731 (beam_search:397) INFO: total log probability: -23.96
+2022-06-14 14:34:39,732 (beam_search:398) INFO: normalized log probability: -2.00
+2022-06-14 14:34:39,732 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:34:39,732 (beam_search:401) INFO: best hypo: ▁HE▁HAD▁THE▁FAITH▁IN▁HIM▁THAT▁MOVES▁MOUNTAINS
+
+2022-06-14 14:34:39,738 (asr_inference:283) INFO: speech length: 52000
+2022-06-14 14:34:40,329 (beam_search:356) INFO: decoder input length: 67
+2022-06-14 14:34:40,329 (beam_search:357) INFO: max output length: 67
+2022-06-14 14:34:40,329 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:34:59,741 (beam_search:370) INFO: end detected at 14
+2022-06-14 14:34:59,743 (beam_search:394) INFO:  -1.28 * 0.7 =  -0.90 for decoder
+2022-06-14 14:34:59,743 (beam_search:394) INFO: -18.47 * 0.3 =  -5.54 for ctc
+2022-06-14 14:34:59,743 (beam_search:394) INFO: -37.68 * 0.6 = -22.61 for lm
+2022-06-14 14:34:59,743 (beam_search:397) INFO: total log probability: -29.04
+2022-06-14 14:34:59,743 (beam_search:398) INFO: normalized log probability: -2.90
+2022-06-14 14:34:59,743 (beam_search:399) INFO: total number of ended hypotheses: 32
+2022-06-14 14:34:59,744 (beam_search:401) INFO: best hypo: ▁A▁GREAT▁SAINT▁FRANCIS▁SAVIOR
+
+2022-06-14 14:34:59,750 (asr_inference:283) INFO: speech length: 83360
+2022-06-14 14:35:00,430 (beam_search:356) INFO: decoder input length: 107
+2022-06-14 14:35:00,430 (beam_search:357) INFO: max output length: 107
+2022-06-14 14:35:00,430 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:35:36,218 (beam_search:370) INFO: end detected at 22
+2022-06-14 14:35:36,218 (beam_search:394) INFO:  -1.26 * 0.7 =  -0.88 for decoder
+2022-06-14 14:35:36,218 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:35:36,219 (beam_search:394) INFO: -70.11 * 0.6 = -42.06 for lm
+2022-06-14 14:35:36,219 (beam_search:397) INFO: total log probability: -42.95
+2022-06-14 14:35:36,219 (beam_search:398) INFO: normalized log probability: -2.26
+2022-06-14 14:35:36,219 (beam_search:399) INFO: total number of ended hypotheses: 24
+2022-06-14 14:35:36,219 (beam_search:401) INFO: best hypo: ▁IN▁THE▁SILENCE▁THEIR▁DARK▁FIRE▁KINDLED▁THE▁DUSK▁INTO▁A▁TAWNY▁GLOW
+
+2022-06-14 14:35:36,226 (asr_inference:283) INFO: speech length: 33360
+2022-06-14 14:35:36,682 (beam_search:356) INFO: decoder input length: 42
+2022-06-14 14:35:36,682 (beam_search:357) INFO: max output length: 42
+2022-06-14 14:35:36,682 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:35:49,682 (beam_search:370) INFO: end detected at 10
+2022-06-14 14:35:49,684 (beam_search:394) INFO:  -0.41 * 0.7 =  -0.28 for decoder
+2022-06-14 14:35:49,684 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:35:49,684 (beam_search:394) INFO: -16.73 * 0.6 = -10.04 for lm
+2022-06-14 14:35:49,685 (beam_search:397) INFO: total log probability: -10.32
+2022-06-14 14:35:49,685 (beam_search:398) INFO: normalized log probability: -1.47
+2022-06-14 14:35:49,685 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:35:49,685 (beam_search:401) INFO: best hypo: ▁HE▁COULD▁WAIT▁NO▁LONGER
+
+2022-06-14 14:35:49,691 (asr_inference:283) INFO: speech length: 86640
+2022-06-14 14:35:50,428 (beam_search:356) INFO: decoder input length: 112
+2022-06-14 14:35:50,428 (beam_search:357) INFO: max output length: 112
+2022-06-14 14:35:50,428 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:36:28,714 (beam_search:370) INFO: end detected at 23
+2022-06-14 14:36:28,717 (beam_search:394) INFO:  -1.28 * 0.7 =  -0.90 for decoder
+2022-06-14 14:36:28,717 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:36:28,717 (beam_search:394) INFO: -50.99 * 0.6 = -30.60 for lm
+2022-06-14 14:36:28,717 (beam_search:397) INFO: total log probability: -31.50
+2022-06-14 14:36:28,717 (beam_search:398) INFO: normalized log probability: -1.57
+2022-06-14 14:36:28,717 (beam_search:399) INFO: total number of ended hypotheses: 27
+2022-06-14 14:36:28,717 (beam_search:401) INFO: best hypo: ▁FOR▁A▁FULL▁HOUR▁HE▁HAD▁PACED▁UP▁AND▁DOWN▁WAITING▁BUT▁HE▁COULD▁WAIT▁NO▁LONGER
+
+2022-06-14 14:36:28,723 (asr_inference:283) INFO: speech length: 185600
+2022-06-14 14:36:30,400 (beam_search:356) INFO: decoder input length: 241
+2022-06-14 14:36:30,400 (beam_search:357) INFO: max output length: 241
+2022-06-14 14:36:30,400 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:38:02,002 (beam_search:370) INFO: end detected at 48
+2022-06-14 14:38:02,005 (beam_search:394) INFO:  -2.87 * 0.7 =  -2.01 for decoder
+2022-06-14 14:38:02,006 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:38:02,006 (beam_search:394) INFO: -147.88 * 0.6 = -88.73 for lm
+2022-06-14 14:38:02,006 (beam_search:397) INFO: total log probability: -90.74
+2022-06-14 14:38:02,006 (beam_search:398) INFO: normalized log probability: -2.06
+2022-06-14 14:38:02,006 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 14:38:02,006 (beam_search:401) INFO: best hypo: ▁HE▁SET▁OFF▁ABRUPTLY▁FOR▁THE▁BULL▁WALKING▁RAPIDLY▁LEST▁HIS▁FATHER'S▁SHRILL▁WHISTLE▁MIGHT▁CALL▁HIM▁BACK▁AND▁IN▁A▁FEW▁MOMENTS▁HE▁HAD▁ROUNDED▁THE▁CURVE▁AT▁THE▁POLICE▁BARRACK▁AND▁WAS▁SAFE
+
+2022-06-14 14:38:02,013 (asr_inference:283) INFO: speech length: 34800
+2022-06-14 14:38:02,404 (beam_search:356) INFO: decoder input length: 44
+2022-06-14 14:38:02,404 (beam_search:357) INFO: max output length: 44
+2022-06-14 14:38:02,404 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:38:10,428 (beam_search:370) INFO: end detected at 7
+2022-06-14 14:38:10,431 (beam_search:394) INFO:  -0.23 * 0.7 =  -0.16 for decoder
+2022-06-14 14:38:10,431 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:38:10,431 (beam_search:394) INFO: -16.64 * 0.6 =  -9.98 for lm
+2022-06-14 14:38:10,431 (beam_search:397) INFO: total log probability: -10.15
+2022-06-14 14:38:10,431 (beam_search:398) INFO: normalized log probability: -2.54
+2022-06-14 14:38:10,431 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 14:38:10,431 (beam_search:401) INFO: best hypo: ▁THE▁UNIVERSITY
+
+2022-06-14 14:38:10,437 (asr_inference:283) INFO: speech length: 82801
+2022-06-14 14:38:11,207 (beam_search:356) INFO: decoder input length: 107
+2022-06-14 14:38:11,207 (beam_search:357) INFO: max output length: 107
+2022-06-14 14:38:11,207 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:38:38,655 (beam_search:370) INFO: end detected at 18
+2022-06-14 14:38:38,657 (beam_search:394) INFO:  -1.89 * 0.7 =  -1.32 for decoder
+2022-06-14 14:38:38,657 (beam_search:394) INFO:  -0.22 * 0.3 =  -0.07 for ctc
+2022-06-14 14:38:38,657 (beam_search:394) INFO: -68.38 * 0.6 = -41.03 for lm
+2022-06-14 14:38:38,657 (beam_search:397) INFO: total log probability: -42.41
+2022-06-14 14:38:38,657 (beam_search:398) INFO: normalized log probability: -2.83
+2022-06-14 14:38:38,657 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:38:38,658 (beam_search:401) INFO: best hypo: ▁PRIDE▁AFTER▁SATISFACTION▁UPLIFTED▁HIM▁LIKE▁LONG▁SLOW▁WAVES
+
+2022-06-14 14:38:38,665 (asr_inference:283) INFO: speech length: 85760
+2022-06-14 14:38:39,462 (beam_search:356) INFO: decoder input length: 111
+2022-06-14 14:38:39,462 (beam_search:357) INFO: max output length: 111
+2022-06-14 14:38:39,462 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:39:20,205 (beam_search:370) INFO: end detected at 25
+2022-06-14 14:39:20,209 (beam_search:394) INFO:  -1.41 * 0.7 =  -0.99 for decoder
+2022-06-14 14:39:20,210 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:39:20,210 (beam_search:394) INFO: -68.00 * 0.6 = -40.80 for lm
+2022-06-14 14:39:20,210 (beam_search:397) INFO: total log probability: -41.79
+2022-06-14 14:39:20,210 (beam_search:398) INFO: normalized log probability: -1.90
+2022-06-14 14:39:20,210 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 14:39:20,210 (beam_search:401) INFO: best hypo: ▁WHOSE▁FEET▁ARE▁AS▁THE▁FEET▁OF▁HEARTS▁AND▁UNDERNEATH▁THE▁EVERLASTING▁ARMS
+
+2022-06-14 14:39:20,216 (asr_inference:283) INFO: speech length: 94320
+2022-06-14 14:39:21,154 (beam_search:356) INFO: decoder input length: 122
+2022-06-14 14:39:21,154 (beam_search:357) INFO: max output length: 122
+2022-06-14 14:39:21,154 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:40:00,197 (beam_search:370) INFO: end detected at 24
+2022-06-14 14:40:00,200 (beam_search:394) INFO:  -1.35 * 0.7 =  -0.94 for decoder
+2022-06-14 14:40:00,200 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:40:00,200 (beam_search:394) INFO: -79.14 * 0.6 = -47.49 for lm
+2022-06-14 14:40:00,200 (beam_search:397) INFO: total log probability: -48.43
+2022-06-14 14:40:00,200 (beam_search:398) INFO: normalized log probability: -2.31
+2022-06-14 14:40:00,200 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 14:40:00,201 (beam_search:401) INFO: best hypo: ▁THE▁PRIDE▁OF▁THAT▁DIM▁IMAGE▁BROUGHT▁BACK▁TO▁HIS▁MIND▁THE▁DIGNITY▁OF▁THE▁OFFICE▁HE▁HAD▁REFUSED
+
+2022-06-14 14:40:00,207 (asr_inference:283) INFO: speech length: 55040
+2022-06-14 14:40:00,849 (beam_search:356) INFO: decoder input length: 71
+2022-06-14 14:40:00,849 (beam_search:357) INFO: max output length: 71
+2022-06-14 14:40:00,849 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:40:25,628 (beam_search:370) INFO: end detected at 16
+2022-06-14 14:40:25,630 (beam_search:394) INFO:  -0.81 * 0.7 =  -0.57 for decoder
+2022-06-14 14:40:25,631 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:40:25,631 (beam_search:394) INFO: -45.82 * 0.6 = -27.49 for lm
+2022-06-14 14:40:25,631 (beam_search:397) INFO: total log probability: -28.06
+2022-06-14 14:40:25,631 (beam_search:398) INFO: normalized log probability: -2.16
+2022-06-14 14:40:25,631 (beam_search:399) INFO: total number of ended hypotheses: 26
+2022-06-14 14:40:25,631 (beam_search:401) INFO: best hypo: ▁SOON▁THE▁WHOLE▁BRIDGE▁WAS▁TREMBLING▁AND▁RESOUNDING
+
+2022-06-14 14:40:25,638 (asr_inference:283) INFO: speech length: 239760
+2022-06-14 14:40:27,942 (beam_search:356) INFO: decoder input length: 311
+2022-06-14 14:40:27,943 (beam_search:357) INFO: max output length: 311
+2022-06-14 14:40:27,943 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:42:27,329 (beam_search:370) INFO: end detected at 59
+2022-06-14 14:42:27,332 (beam_search:394) INFO:  -3.51 * 0.7 =  -2.46 for decoder
+2022-06-14 14:42:27,332 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:42:27,332 (beam_search:394) INFO: -188.51 * 0.6 = -113.11 for lm
+2022-06-14 14:42:27,332 (beam_search:397) INFO: total log probability: -115.57
+2022-06-14 14:42:27,332 (beam_search:398) INFO: normalized log probability: -2.06
+2022-06-14 14:42:27,332 (beam_search:399) INFO: total number of ended hypotheses: 24
+2022-06-14 14:42:27,333 (beam_search:401) INFO: best hypo: ▁THE▁UNCOUTH▁FACES▁PASSED▁HIM▁TWO▁BY▁TWO▁STAINED▁YELLOW▁OR▁RED▁OR▁LIVID▁BY▁THE▁SEA▁AND▁AS▁HE▁STROVE▁TO▁LOOK▁AT▁THEM▁WITH▁EASE▁AND▁INDIFFERENCE▁A▁FAINT▁STAIN▁OF▁PERSONAL▁SHAME▁AND▁COMMISERATION▁ROSE▁TO▁HIS▁OWN▁FACE
+
+2022-06-14 14:42:27,340 (asr_inference:283) INFO: speech length: 320880
+2022-06-14 14:42:30,405 (beam_search:356) INFO: decoder input length: 417
+2022-06-14 14:42:30,406 (beam_search:357) INFO: max output length: 417
+2022-06-14 14:42:30,406 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:44:59,856 (beam_search:370) INFO: end detected at 69
+2022-06-14 14:44:59,860 (beam_search:394) INFO:  -5.44 * 0.7 =  -3.81 for decoder
+2022-06-14 14:44:59,860 (beam_search:394) INFO:  -0.26 * 0.3 =  -0.08 for ctc
+2022-06-14 14:44:59,860 (beam_search:394) INFO: -273.79 * 0.6 = -164.27 for lm
+2022-06-14 14:44:59,861 (beam_search:397) INFO: total log probability: -168.16
+2022-06-14 14:44:59,861 (beam_search:398) INFO: normalized log probability: -2.59
+2022-06-14 14:44:59,861 (beam_search:399) INFO: total number of ended hypotheses: 36
+2022-06-14 14:44:59,861 (beam_search:401) INFO: best hypo: ▁ANGRY▁WITH▁HIMSELF▁HE▁TRIED▁TO▁HIDE▁HIS▁FACE▁FROM▁THEIR▁EYES▁BY▁GAZING▁DOWN▁SIDEWAYS▁INTO▁THE▁SHALLOW▁SWIRLING▁WATER▁UNDER▁THE▁BRIDGE▁BUT▁HE▁STILL▁SAW▁A▁REFLECTION▁THEREIN▁OF▁THEIR▁TOP▁HEAVY▁SILK▁HATS▁AND▁HUMBLE▁TAPE▁LIKE▁COLLARS▁AND▁LOOSELY▁HANGING▁CLERICAL▁CLOTHES▁BROTHER▁HICKY
+
+2022-06-14 14:44:59,870 (asr_inference:283) INFO: speech length: 51120
+2022-06-14 14:45:00,513 (beam_search:356) INFO: decoder input length: 65
+2022-06-14 14:45:00,514 (beam_search:357) INFO: max output length: 65
+2022-06-14 14:45:00,514 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:45:21,261 (beam_search:370) INFO: end detected at 15
+2022-06-14 14:45:21,263 (beam_search:394) INFO:  -8.02 * 0.7 =  -5.61 for decoder
+2022-06-14 14:45:21,263 (beam_search:394) INFO: -18.61 * 0.3 =  -5.58 for ctc
+2022-06-14 14:45:21,263 (beam_search:394) INFO: -46.24 * 0.6 = -27.74 for lm
+2022-06-14 14:45:21,264 (beam_search:397) INFO: total log probability: -38.94
+2022-06-14 14:45:21,264 (beam_search:398) INFO: normalized log probability: -3.54
+2022-06-14 14:45:21,264 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 14:45:21,264 (beam_search:401) INFO: best hypo: ▁BROTHER▁MIKADO▁BROTHER▁KIEV
+
+2022-06-14 14:45:21,270 (asr_inference:283) INFO: speech length: 320160
+2022-06-14 14:45:24,473 (beam_search:356) INFO: decoder input length: 416
+2022-06-14 14:45:24,473 (beam_search:357) INFO: max output length: 416
+2022-06-14 14:45:24,474 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:48:05,141 (beam_search:370) INFO: end detected at 74
+2022-06-14 14:48:05,144 (beam_search:394) INFO:  -5.38 * 0.7 =  -3.77 for decoder
+2022-06-14 14:48:05,144 (beam_search:394) INFO:  -0.55 * 0.3 =  -0.17 for ctc
+2022-06-14 14:48:05,144 (beam_search:394) INFO: -243.75 * 0.6 = -146.25 for lm
+2022-06-14 14:48:05,144 (beam_search:397) INFO: total log probability: -150.19
+2022-06-14 14:48:05,144 (beam_search:398) INFO: normalized log probability: -2.12
+2022-06-14 14:48:05,144 (beam_search:399) INFO: total number of ended hypotheses: 27
+2022-06-14 14:48:05,145 (beam_search:401) INFO: best hypo: ▁THEIR▁PIETY▁WOULD▁BE▁LIKE▁THEIR▁NAMES▁LIKE▁THEIR▁FACES▁LIKE▁THEIR▁CLOTHES▁AND▁IT▁WAS▁IDLE▁FOR▁HIM▁TO▁TELL▁HIMSELF▁THAT▁THEIR▁HUMBLE▁AND▁CONTRITE▁HEARTS▁IT▁MIGHT▁BE▁PAID▁A▁FAR▁RICHER▁TRIBUTE▁OF▁DEVOTION▁THAN▁HIS▁HAD▁EVER▁BEEN▁A▁GIFT▁TENFOLD▁MORE▁ACCEPTABLE▁THAN▁HIS▁ELABORATE▁ADORATION
+
+2022-06-14 14:48:05,151 (asr_inference:283) INFO: speech length: 240480
+2022-06-14 14:48:07,455 (beam_search:356) INFO: decoder input length: 312
+2022-06-14 14:48:07,456 (beam_search:357) INFO: max output length: 312
+2022-06-14 14:48:07,456 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:49:59,546 (beam_search:370) INFO: end detected at 55
+2022-06-14 14:49:59,553 (beam_search:394) INFO:  -3.50 * 0.7 =  -2.45 for decoder
+2022-06-14 14:49:59,553 (beam_search:394) INFO:  -2.31 * 0.3 =  -0.69 for ctc
+2022-06-14 14:49:59,553 (beam_search:394) INFO: -200.69 * 0.6 = -120.41 for lm
+2022-06-14 14:49:59,553 (beam_search:397) INFO: total log probability: -123.56
+2022-06-14 14:49:59,553 (beam_search:398) INFO: normalized log probability: -2.38
+2022-06-14 14:49:59,553 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 14:49:59,554 (beam_search:401) INFO: best hypo: ▁IT▁WAS▁IDLE▁FOR▁HIM▁TO▁MOVE▁HIMSELF▁TO▁BE▁GENEROUS▁TOWARDS▁THEM▁TO▁TELL▁HIMSELF▁THAT▁IF▁HE▁EVER▁CAME▁TO▁THEIR▁GATES▁STRIPPED▁OF▁HIS▁PRIDE▁BEATEN▁AND▁IN▁BEGGAR'S▁WEEDS▁THAT▁THEY▁WOULD▁BE▁GENEROUS▁TOWARDS▁HIM▁LOVING▁HIM▁AS▁THEMSELVES
+
+2022-06-14 14:49:59,561 (asr_inference:283) INFO: speech length: 261280
+2022-06-14 14:50:02,062 (beam_search:356) INFO: decoder input length: 339
+2022-06-14 14:50:02,062 (beam_search:357) INFO: max output length: 339
+2022-06-14 14:50:02,062 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:52:21,061 (beam_search:370) INFO: end detected at 67
+2022-06-14 14:52:21,065 (beam_search:394) INFO:  -4.77 * 0.7 =  -3.34 for decoder
+2022-06-14 14:52:21,065 (beam_search:394) INFO:  -1.53 * 0.3 =  -0.46 for ctc
+2022-06-14 14:52:21,065 (beam_search:394) INFO: -221.35 * 0.6 = -132.81 for lm
+2022-06-14 14:52:21,065 (beam_search:397) INFO: total log probability: -136.61
+2022-06-14 14:52:21,066 (beam_search:398) INFO: normalized log probability: -2.17
+2022-06-14 14:52:21,066 (beam_search:399) INFO: total number of ended hypotheses: 34
+2022-06-14 14:52:21,066 (beam_search:401) INFO: best hypo: ▁IDLE▁AND▁EMBITTERING▁FINALLY▁TO▁ARGUE▁AGAINST▁HIS▁OWN▁DISPASSIONATE▁CERTITUDE▁THAT▁THE▁COMMANDMENT▁OF▁LOVE▁BADE▁US▁NOT▁TO▁LOVE▁OUR▁NEIGHBOUR▁AS▁OURSELVES▁WITH▁THE▁SAME▁AMOUNT▁AND▁INTENSITY▁OF▁LOVE▁BUT▁TO▁LOVE▁HIM▁AS▁OURSELVES▁WITH▁THE▁SAME▁KIND▁OF▁LOVE
+
+2022-06-14 14:52:21,074 (asr_inference:283) INFO: speech length: 76080
+2022-06-14 14:52:21,950 (beam_search:356) INFO: decoder input length: 98
+2022-06-14 14:52:21,950 (beam_search:357) INFO: max output length: 98
+2022-06-14 14:52:21,950 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:52:54,639 (beam_search:370) INFO: end detected at 21
+2022-06-14 14:52:54,644 (beam_search:394) INFO:  -0.94 * 0.7 =  -0.66 for decoder
+2022-06-14 14:52:54,644 (beam_search:394) INFO:  -0.98 * 0.3 =  -0.29 for ctc
+2022-06-14 14:52:54,645 (beam_search:394) INFO: -57.30 * 0.6 = -34.38 for lm
+2022-06-14 14:52:54,645 (beam_search:397) INFO: total log probability: -35.33
+2022-06-14 14:52:54,645 (beam_search:398) INFO: normalized log probability: -2.36
+2022-06-14 14:52:54,645 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 14:52:54,645 (beam_search:401) INFO: best hypo: ▁THE▁PHRASE▁AND▁THE▁DAY▁AND▁THE▁SCENE▁HARMONIZED▁IN▁ACCORD
+
+2022-06-14 14:52:54,651 (asr_inference:283) INFO: speech length: 54320
+2022-06-14 14:52:55,264 (beam_search:356) INFO: decoder input length: 70
+2022-06-14 14:52:55,264 (beam_search:357) INFO: max output length: 70
+2022-06-14 14:52:55,264 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:53:09,447 (beam_search:370) INFO: end detected at 11
+2022-06-14 14:53:09,452 (beam_search:394) INFO:  -0.86 * 0.7 =  -0.60 for decoder
+2022-06-14 14:53:09,452 (beam_search:394) INFO:  -2.46 * 0.3 =  -0.74 for ctc
+2022-06-14 14:53:09,452 (beam_search:394) INFO: -39.14 * 0.6 = -23.49 for lm
+2022-06-14 14:53:09,453 (beam_search:397) INFO: total log probability: -24.82
+2022-06-14 14:53:09,453 (beam_search:398) INFO: normalized log probability: -3.10
+2022-06-14 14:53:09,453 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 14:53:09,453 (beam_search:401) INFO: best hypo: ▁WORDS▁WAS▁IT▁THEIR▁COLOURS
+
+2022-06-14 14:53:09,460 (asr_inference:283) INFO: speech length: 144960
+2022-06-14 14:53:10,965 (beam_search:356) INFO: decoder input length: 188
+2022-06-14 14:53:10,965 (beam_search:357) INFO: max output length: 188
+2022-06-14 14:53:10,965 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:54:17,839 (beam_search:370) INFO: end detected at 37
+2022-06-14 14:54:17,844 (beam_search:394) INFO:  -2.41 * 0.7 =  -1.69 for decoder
+2022-06-14 14:54:17,844 (beam_search:394) INFO:  -0.33 * 0.3 =  -0.10 for ctc
+2022-06-14 14:54:17,844 (beam_search:394) INFO: -121.48 * 0.6 = -72.89 for lm
+2022-06-14 14:54:17,844 (beam_search:397) INFO: total log probability: -74.67
+2022-06-14 14:54:17,844 (beam_search:398) INFO: normalized log probability: -2.20
+2022-06-14 14:54:17,844 (beam_search:399) INFO: total number of ended hypotheses: 27
+2022-06-14 14:54:17,844 (beam_search:401) INFO: best hypo: ▁THEY▁WERE▁VOYAGING▁ACROSS▁THE▁DESERTS▁OF▁THE▁SKY▁A▁HOST▁OF▁NOMADS▁ON▁THE▁MARCH▁VOYAGING▁HIGH▁OVER▁IRELAND▁WESTWARD▁BOUND
+
+2022-06-14 14:54:17,851 (asr_inference:283) INFO: speech length: 187120
+2022-06-14 14:54:19,784 (beam_search:356) INFO: decoder input length: 242
+2022-06-14 14:54:19,784 (beam_search:357) INFO: max output length: 242
+2022-06-14 14:54:19,784 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:55:58,066 (beam_search:370) INFO: end detected at 52
+2022-06-14 14:55:58,071 (beam_search:394) INFO: -11.24 * 0.7 =  -7.86 for decoder
+2022-06-14 14:55:58,071 (beam_search:394) INFO:  -8.80 * 0.3 =  -2.64 for ctc
+2022-06-14 14:55:58,071 (beam_search:394) INFO: -186.90 * 0.6 = -112.14 for lm
+2022-06-14 14:55:58,071 (beam_search:397) INFO: total log probability: -122.65
+2022-06-14 14:55:58,071 (beam_search:398) INFO: normalized log probability: -2.56
+2022-06-14 14:55:58,071 (beam_search:399) INFO: total number of ended hypotheses: 37
+2022-06-14 14:55:58,072 (beam_search:401) INFO: best hypo: ▁THE▁EUROPE▁THEY▁HAD▁COME▁FROM▁LAY▁OUT▁THERE▁BEYOND▁THE▁IRISH▁SEA▁EUROPE▁OF▁STRANGE▁TONGUES▁AND▁VALLEYS▁AND▁WOOD▁BEGIRT▁AND▁CITADELED▁AND▁OF▁INTRENCHED▁AND▁MARSHALLED▁RACES
+
+2022-06-14 14:55:58,078 (asr_inference:283) INFO: speech length: 49440
+2022-06-14 14:55:58,556 (beam_search:356) INFO: decoder input length: 63
+2022-06-14 14:55:58,556 (beam_search:357) INFO: max output length: 63
+2022-06-14 14:55:58,556 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:56:06,484 (beam_search:370) INFO: end detected at 7
+2022-06-14 14:56:06,487 (beam_search:394) INFO:  -0.23 * 0.7 =  -0.16 for decoder
+2022-06-14 14:56:06,487 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:56:06,487 (beam_search:394) INFO: -15.75 * 0.6 =  -9.45 for lm
+2022-06-14 14:56:06,488 (beam_search:397) INFO: total log probability: -9.61
+2022-06-14 14:56:06,488 (beam_search:398) INFO: normalized log probability: -2.40
+2022-06-14 14:56:06,488 (beam_search:399) INFO: total number of ended hypotheses: 25
+2022-06-14 14:56:06,488 (beam_search:401) INFO: best hypo: ▁AGAIN▁AGAIN
+
+2022-06-14 14:56:06,496 (asr_inference:283) INFO: speech length: 50480
+2022-06-14 14:56:07,106 (beam_search:356) INFO: decoder input length: 65
+2022-06-14 14:56:07,106 (beam_search:357) INFO: max output length: 65
+2022-06-14 14:56:07,106 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:56:25,245 (beam_search:370) INFO: end detected at 13
+2022-06-14 14:56:25,248 (beam_search:394) INFO:  -0.62 * 0.7 =  -0.43 for decoder
+2022-06-14 14:56:25,248 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:56:25,248 (beam_search:394) INFO: -31.89 * 0.6 = -19.13 for lm
+2022-06-14 14:56:25,248 (beam_search:397) INFO: total log probability: -19.57
+2022-06-14 14:56:25,249 (beam_search:398) INFO: normalized log probability: -1.96
+2022-06-14 14:56:25,249 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 14:56:25,249 (beam_search:401) INFO: best hypo: ▁A▁VOICE▁FROM▁BEYOND▁THE▁WORLD▁WAS▁CALLING
+
+2022-06-14 14:56:25,255 (asr_inference:283) INFO: speech length: 63840
+2022-06-14 14:56:25,979 (beam_search:356) INFO: decoder input length: 82
+2022-06-14 14:56:25,979 (beam_search:357) INFO: max output length: 82
+2022-06-14 14:56:25,980 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:56:56,305 (beam_search:370) INFO: end detected at 20
+2022-06-14 14:56:56,309 (beam_search:394) INFO:  -2.68 * 0.7 =  -1.88 for decoder
+2022-06-14 14:56:56,309 (beam_search:394) INFO:  -7.90 * 0.3 =  -2.37 for ctc
+2022-06-14 14:56:56,309 (beam_search:394) INFO: -54.44 * 0.6 = -32.66 for lm
+2022-06-14 14:56:56,309 (beam_search:397) INFO: total log probability: -36.91
+2022-06-14 14:56:56,310 (beam_search:398) INFO: normalized log probability: -2.46
+2022-06-14 14:56:56,310 (beam_search:399) INFO: total number of ended hypotheses: 34
+2022-06-14 14:56:56,310 (beam_search:401) INFO: best hypo: ▁HALLO▁STEPHANOS▁HERE▁COMES▁THE▁DAEDALUS
+
+2022-06-14 14:56:56,315 (asr_inference:283) INFO: speech length: 213920
+2022-06-14 14:56:58,325 (beam_search:356) INFO: decoder input length: 277
+2022-06-14 14:56:58,325 (beam_search:357) INFO: max output length: 277
+2022-06-14 14:56:58,325 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:59:00,137 (beam_search:370) INFO: end detected at 61
+2022-06-14 14:59:00,142 (beam_search:394) INFO:  -4.19 * 0.7 =  -2.93 for decoder
+2022-06-14 14:59:00,142 (beam_search:394) INFO:  -0.75 * 0.3 =  -0.23 for ctc
+2022-06-14 14:59:00,142 (beam_search:394) INFO: -210.19 * 0.6 = -126.12 for lm
+2022-06-14 14:59:00,142 (beam_search:397) INFO: total log probability: -129.28
+2022-06-14 14:59:00,143 (beam_search:398) INFO: normalized log probability: -2.27
+2022-06-14 14:59:00,143 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 14:59:00,143 (beam_search:401) INFO: best hypo: ▁THEIR▁DIVING▁STONE▁POISED▁ON▁ITS▁RUDE▁SUPPORTS▁AND▁ROCKING▁UNDER▁THEIR▁PLUNGES▁AND▁THE▁ROUGH▁HEWN▁STONES▁OF▁THE▁SLOPING▁BREAKWATER▁OVER▁WHICH▁THEY▁SCRAMBLED▁IN▁THEIR▁HORSE▁PLAY▁GLEAMED▁WITH▁COLD▁WET▁LUSTRE
+
+2022-06-14 14:59:00,152 (asr_inference:283) INFO: speech length: 90160
+2022-06-14 14:59:01,194 (beam_search:356) INFO: decoder input length: 116
+2022-06-14 14:59:01,195 (beam_search:357) INFO: max output length: 116
+2022-06-14 14:59:01,195 (beam_search:358) INFO: min output length: 0
+2022-06-14 14:59:45,088 (beam_search:370) INFO: end detected at 26
+2022-06-14 14:59:45,090 (beam_search:394) INFO:  -1.61 * 0.7 =  -1.13 for decoder
+2022-06-14 14:59:45,090 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 14:59:45,091 (beam_search:394) INFO: -76.13 * 0.6 = -45.68 for lm
+2022-06-14 14:59:45,091 (beam_search:397) INFO: total log probability: -46.81
+2022-06-14 14:59:45,091 (beam_search:398) INFO: normalized log probability: -2.04
+2022-06-14 14:59:45,091 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 14:59:45,091 (beam_search:401) INFO: best hypo: ▁HE▁STOOD▁STILL▁IN▁DEFERENCE▁TO▁THEIR▁CALLS▁AND▁PARRIED▁THEIR▁BANTER▁WITH▁EASY▁WORDS
+
+2022-06-14 14:59:45,097 (asr_inference:283) INFO: speech length: 123760
+2022-06-14 14:59:46,474 (beam_search:356) INFO: decoder input length: 160
+2022-06-14 14:59:46,475 (beam_search:357) INFO: max output length: 160
+2022-06-14 14:59:46,475 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:00:55,687 (beam_search:370) INFO: end detected at 39
+2022-06-14 15:00:55,690 (beam_search:394) INFO:  -2.36 * 0.7 =  -1.65 for decoder
+2022-06-14 15:00:55,690 (beam_search:394) INFO:  -0.05 * 0.3 =  -0.02 for ctc
+2022-06-14 15:00:55,690 (beam_search:394) INFO: -123.69 * 0.6 = -74.22 for lm
+2022-06-14 15:00:55,690 (beam_search:397) INFO: total log probability: -75.89
+2022-06-14 15:00:55,690 (beam_search:398) INFO: normalized log probability: -2.11
+2022-06-14 15:00:55,690 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 15:00:55,691 (beam_search:401) INFO: best hypo: ▁IT▁WAS▁A▁PAIN▁TO▁SEE▁THEM▁AND▁A▁SWORD▁LIKE▁PAIN▁TO▁SEE▁THE▁SIGNS▁OF▁ADOLESCENCE▁THAT▁MADE▁REPELLENT▁THEIR▁PITIABLE▁NAKEDNESS
+
+2022-06-14 15:00:55,699 (asr_inference:283) INFO: speech length: 35440
+2022-06-14 15:00:56,140 (beam_search:356) INFO: decoder input length: 45
+2022-06-14 15:00:56,141 (beam_search:357) INFO: max output length: 45
+2022-06-14 15:00:56,141 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:01:16,595 (beam_search:370) INFO: end detected at 15
+2022-06-14 15:01:16,602 (beam_search:394) INFO:  -6.52 * 0.7 =  -4.57 for decoder
+2022-06-14 15:01:16,602 (beam_search:394) INFO: -15.14 * 0.3 =  -4.54 for ctc
+2022-06-14 15:01:16,602 (beam_search:394) INFO: -36.32 * 0.6 = -21.79 for lm
+2022-06-14 15:01:16,602 (beam_search:397) INFO: total log probability: -30.90
+2022-06-14 15:01:16,602 (beam_search:398) INFO: normalized log probability: -2.81
+2022-06-14 15:01:16,602 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 15:01:16,603 (beam_search:401) INFO: best hypo: ▁STEPHANO'S▁DEDLOCKS
+
+2022-06-14 15:01:16,610 (asr_inference:283) INFO: speech length: 128080
+2022-06-14 15:01:17,864 (beam_search:356) INFO: decoder input length: 166
+2022-06-14 15:01:17,864 (beam_search:357) INFO: max output length: 166
+2022-06-14 15:01:17,864 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:02:17,114 (beam_search:370) INFO: end detected at 34
+2022-06-14 15:02:17,116 (beam_search:394) INFO:  -3.46 * 0.7 =  -2.42 for decoder
+2022-06-14 15:02:17,116 (beam_search:394) INFO:  -4.86 * 0.3 =  -1.46 for ctc
+2022-06-14 15:02:17,116 (beam_search:394) INFO: -118.60 * 0.6 = -71.16 for lm
+2022-06-14 15:02:17,117 (beam_search:397) INFO: total log probability: -75.03
+2022-06-14 15:02:17,117 (beam_search:398) INFO: normalized log probability: -2.50
+2022-06-14 15:02:17,117 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 15:02:17,117 (beam_search:401) INFO: best hypo: ▁A▁MOMENT▁BEFORE▁THE▁GHOST▁OF▁THE▁ANCIENT▁KINGDOM▁OF▁THE▁DANES▁HAD▁LOOKED▁FORTH▁THROUGH▁THE▁VESTURE▁OF▁THE▁HAZE▁RAPT▁CITY
+
+2022-06-14 15:02:17,123 (asr_inference:283) INFO: speech length: 171600
+2022-06-14 15:02:18,706 (beam_search:356) INFO: decoder input length: 222
+2022-06-14 15:02:18,706 (beam_search:357) INFO: max output length: 222
+2022-06-14 15:02:18,707 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:03:22,341 (beam_search:370) INFO: end detected at 35
+2022-06-14 15:03:22,344 (beam_search:394) INFO:  -2.71 * 0.7 =  -1.90 for decoder
+2022-06-14 15:03:22,344 (beam_search:394) INFO:  -6.36 * 0.3 =  -1.91 for ctc
+2022-06-14 15:03:22,344 (beam_search:394) INFO: -117.33 * 0.6 = -70.40 for lm
+2022-06-14 15:03:22,344 (beam_search:397) INFO: total log probability: -74.20
+2022-06-14 15:03:22,344 (beam_search:398) INFO: normalized log probability: -2.39
+2022-06-14 15:03:22,344 (beam_search:399) INFO: total number of ended hypotheses: 33
+2022-06-14 15:03:22,344 (beam_search:401) INFO: best hypo: ▁YOU▁WILL▁FIND▁ME▁CONTINUALLY▁SPEAKING▁OF▁FOUR▁MEN▁TITIAN▁HOLBEIN▁TURNER▁AND▁TINTORET▁IN▁ALMOST▁THE▁SAME▁TERMS
+
+2022-06-14 15:03:22,351 (asr_inference:283) INFO: speech length: 144640
+2022-06-14 15:03:23,851 (beam_search:356) INFO: decoder input length: 187
+2022-06-14 15:03:23,852 (beam_search:357) INFO: max output length: 187
+2022-06-14 15:03:23,852 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:04:21,291 (beam_search:370) INFO: end detected at 32
+2022-06-14 15:04:21,296 (beam_search:394) INFO:  -3.44 * 0.7 =  -2.41 for decoder
+2022-06-14 15:04:21,296 (beam_search:394) INFO:  -6.65 * 0.3 =  -2.00 for ctc
+2022-06-14 15:04:21,296 (beam_search:394) INFO: -124.99 * 0.6 = -75.00 for lm
+2022-06-14 15:04:21,296 (beam_search:397) INFO: total log probability: -79.40
+2022-06-14 15:04:21,296 (beam_search:398) INFO: normalized log probability: -2.84
+2022-06-14 15:04:21,296 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 15:04:21,297 (beam_search:401) INFO: best hypo: ▁THEY▁UNITE▁EVERY▁QUALITY▁AND▁SOMETIMES▁YOU▁WILL▁FIND▁ME▁REFERRING▁TO▁THEM▁AS▁COLORISTS▁SOMETIMES▁AS▁CHIAROSCURISTS
+
+2022-06-14 15:04:21,303 (asr_inference:283) INFO: speech length: 287360
+2022-06-14 15:04:24,071 (beam_search:356) INFO: decoder input length: 373
+2022-06-14 15:04:24,071 (beam_search:357) INFO: max output length: 373
+2022-06-14 15:04:24,071 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:06:50,260 (beam_search:370) INFO: end detected at 72
+2022-06-14 15:06:50,262 (beam_search:394) INFO:  -6.53 * 0.7 =  -4.57 for decoder
+2022-06-14 15:06:50,262 (beam_search:394) INFO:  -8.04 * 0.3 =  -2.41 for ctc
+2022-06-14 15:06:50,262 (beam_search:394) INFO: -269.14 * 0.6 = -161.48 for lm
+2022-06-14 15:06:50,262 (beam_search:397) INFO: total log probability: -168.46
+2022-06-14 15:06:50,262 (beam_search:398) INFO: normalized log probability: -2.48
+2022-06-14 15:06:50,262 (beam_search:399) INFO: total number of ended hypotheses: 32
+2022-06-14 15:06:50,263 (beam_search:401) INFO: best hypo: ▁BY▁BEING▁STUDIOUS▁OF▁COLOR▁THEY▁ARE▁STUDIOUS▁OF▁DIVISION▁AND▁WHILE▁THE▁CUROSCURIST▁DEVOTES▁HIMSELF▁TO▁THE▁REPRESENTATION▁OF▁DEGREES▁OF▁FORCE▁IN▁ONE▁THING▁UNSEPARATED▁LIGHT▁THE▁COLORISTS▁HAVE▁FOR▁THEIR▁FUNCTION▁THE▁ATTAINMENT▁OF▁BEAUTY▁BY▁ARRANGEMENT▁OF▁THE▁DIVISIONS▁OF▁LIGHT
+
+2022-06-14 15:06:50,269 (asr_inference:283) INFO: speech length: 201760
+2022-06-14 15:06:52,117 (beam_search:356) INFO: decoder input length: 262
+2022-06-14 15:06:52,117 (beam_search:357) INFO: max output length: 262
+2022-06-14 15:06:52,117 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:08:17,844 (beam_search:370) INFO: end detected at 46
+2022-06-14 15:08:17,846 (beam_search:394) INFO:  -2.60 * 0.7 =  -1.82 for decoder
+2022-06-14 15:08:17,846 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 15:08:17,846 (beam_search:394) INFO: -177.10 * 0.6 = -106.26 for lm
+2022-06-14 15:08:17,846 (beam_search:397) INFO: total log probability: -108.08
+2022-06-14 15:08:17,846 (beam_search:398) INFO: normalized log probability: -2.57
+2022-06-14 15:08:17,846 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 15:08:17,846 (beam_search:401) INFO: best hypo: ▁MY▁FIRST▁AND▁PRINCIPAL▁REASON▁WAS▁THAT▁THEY▁ENFORCED▁BEYOND▁ALL▁RESISTANCE▁ON▁ANY▁STUDENT▁WHO▁MIGHT▁ATTEMPT▁TO▁COPY▁THEM▁THIS▁METHOD▁OF▁LAYING▁PORTIONS▁OF▁DISTINCT▁HUE▁SIDE▁BY▁SIDE
+
+2022-06-14 15:08:17,853 (asr_inference:283) INFO: speech length: 170400
+2022-06-14 15:08:19,329 (beam_search:356) INFO: decoder input length: 221
+2022-06-14 15:08:19,329 (beam_search:357) INFO: max output length: 221
+2022-06-14 15:08:19,329 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:09:43,298 (beam_search:370) INFO: end detected at 46
+2022-06-14 15:09:43,301 (beam_search:394) INFO:  -2.71 * 0.7 =  -1.90 for decoder
+2022-06-14 15:09:43,301 (beam_search:394) INFO:  -0.17 * 0.3 =  -0.05 for ctc
+2022-06-14 15:09:43,301 (beam_search:394) INFO: -158.42 * 0.6 = -95.05 for lm
+2022-06-14 15:09:43,301 (beam_search:397) INFO: total log probability: -97.00
+2022-06-14 15:09:43,301 (beam_search:398) INFO: normalized log probability: -2.31
+2022-06-14 15:09:43,301 (beam_search:399) INFO: total number of ended hypotheses: 34
+2022-06-14 15:09:43,302 (beam_search:401) INFO: best hypo: ▁SOME▁OF▁THE▁TOUCHES▁INDEED▁WHEN▁THE▁TINT▁HAS▁BEEN▁MIXED▁WITH▁MUCH▁WATER▁HAVE▁BEEN▁LAID▁IN▁LITTLE▁DROPS▁OR▁PONDS▁SO▁THAT▁THE▁PIGMENT▁MIGHT▁CRYSTALLIZE▁HARD▁AT▁THE▁EDGE
+
+2022-06-14 15:09:43,309 (asr_inference:283) INFO: speech length: 136960
+2022-06-14 15:09:44,424 (beam_search:356) INFO: decoder input length: 177
+2022-06-14 15:09:44,424 (beam_search:357) INFO: max output length: 177
+2022-06-14 15:09:44,424 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:11:00,697 (beam_search:370) INFO: end detected at 44
+2022-06-14 15:11:00,703 (beam_search:394) INFO:  -2.95 * 0.7 =  -2.06 for decoder
+2022-06-14 15:11:00,704 (beam_search:394) INFO:  -0.85 * 0.3 =  -0.25 for ctc
+2022-06-14 15:11:00,704 (beam_search:394) INFO: -138.97 * 0.6 = -83.38 for lm
+2022-06-14 15:11:00,704 (beam_search:397) INFO: total log probability: -85.70
+2022-06-14 15:11:00,704 (beam_search:398) INFO: normalized log probability: -2.20
+2022-06-14 15:11:00,704 (beam_search:399) INFO: total number of ended hypotheses: 37
+2022-06-14 15:11:00,704 (beam_search:401) INFO: best hypo: ▁IT▁IS▁THE▁HEAD▁OF▁A▁PARROT▁WITH▁A▁LITTLE▁FLOWER▁IN▁HIS▁BEAK▁FROM▁A▁PICTURE▁OF▁CARPATIOS▁ONE▁OF▁HIS▁SERIES▁OF▁THE▁LIFE▁OF▁SAINT▁GEORGE
+
+2022-06-14 15:11:00,711 (asr_inference:283) INFO: speech length: 38400
+2022-06-14 15:11:01,111 (beam_search:356) INFO: decoder input length: 49
+2022-06-14 15:11:01,112 (beam_search:357) INFO: max output length: 49
+2022-06-14 15:11:01,112 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:11:21,650 (beam_search:370) INFO: end detected at 15
+2022-06-14 15:11:21,655 (beam_search:394) INFO:  -0.82 * 0.7 =  -0.57 for decoder
+2022-06-14 15:11:21,655 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 15:11:21,655 (beam_search:394) INFO: -36.17 * 0.6 = -21.70 for lm
+2022-06-14 15:11:21,656 (beam_search:397) INFO: total log probability: -22.28
+2022-06-14 15:11:21,656 (beam_search:398) INFO: normalized log probability: -1.86
+2022-06-14 15:11:21,656 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 15:11:21,656 (beam_search:401) INFO: best hypo: ▁THEN▁HE▁COMES▁TO▁THE▁BEAK▁OF▁IT
+
+2022-06-14 15:11:21,663 (asr_inference:283) INFO: speech length: 227840
+2022-06-14 15:11:23,707 (beam_search:356) INFO: decoder input length: 296
+2022-06-14 15:11:23,708 (beam_search:357) INFO: max output length: 296
+2022-06-14 15:11:23,708 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:13:09,600 (beam_search:370) INFO: end detected at 55
+2022-06-14 15:13:09,603 (beam_search:394) INFO:  -4.03 * 0.7 =  -2.82 for decoder
+2022-06-14 15:13:09,603 (beam_search:394) INFO:  -0.27 * 0.3 =  -0.08 for ctc
+2022-06-14 15:13:09,603 (beam_search:394) INFO: -232.37 * 0.6 = -139.42 for lm
+2022-06-14 15:13:09,603 (beam_search:397) INFO: total log probability: -142.32
+2022-06-14 15:13:09,603 (beam_search:398) INFO: normalized log probability: -2.74
+2022-06-14 15:13:09,603 (beam_search:399) INFO: total number of ended hypotheses: 27
+2022-06-14 15:13:09,603 (beam_search:401) INFO: best hypo: ▁THE▁BROWN▁GROUND▁BENEATH▁IS▁LEFT▁FOR▁THE▁MOST▁PART▁ONE▁TOUCH▁OF▁BLACK▁IS▁PUT▁FOR▁THE▁HOLLOW▁TWO▁DELICATE▁LINES▁OF▁DARK▁GRAY▁TO▁FIND▁THE▁OUTER▁CURVE▁AND▁ONE▁LITTLE▁QUIVERING▁TOUCH▁OF▁WHITE▁DRAWS▁THE▁INNER▁EDGE▁OF▁THE▁MANDIBLE
+
+2022-06-14 15:13:09,610 (asr_inference:283) INFO: speech length: 332080
+2022-06-14 15:13:12,890 (beam_search:356) INFO: decoder input length: 431
+2022-06-14 15:13:12,890 (beam_search:357) INFO: max output length: 431
+2022-06-14 15:13:12,890 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:15:54,985 (beam_search:370) INFO: end detected at 76
+2022-06-14 15:15:54,987 (beam_search:394) INFO:  -7.53 * 0.7 =  -5.27 for decoder
+2022-06-14 15:15:54,987 (beam_search:394) INFO:  -2.67 * 0.3 =  -0.80 for ctc
+2022-06-14 15:15:54,987 (beam_search:394) INFO: -318.02 * 0.6 = -190.81 for lm
+2022-06-14 15:15:54,987 (beam_search:397) INFO: total log probability: -196.89
+2022-06-14 15:15:54,987 (beam_search:398) INFO: normalized log probability: -2.70
+2022-06-14 15:15:54,987 (beam_search:399) INFO: total number of ended hypotheses: 30
+2022-06-14 15:15:54,988 (beam_search:401) INFO: best hypo: ▁FOR▁BELIEVE▁ME▁THE▁FINAL▁PHILOSOPHY▁OF▁ART▁CAN▁ONLY▁RATIFY▁THEIR▁OPINION▁THAT▁THE▁BEAUTY▁OF▁A▁COCK▁ROBIN▁IS▁TO▁BE▁READ▁AND▁OF▁A▁GRASS▁PLOT▁TO▁BE▁GREEN▁AND▁THE▁BEST▁SKILL▁OF▁ART▁IS▁AN▁INSTANTLY▁SEIZING▁ON▁THE▁MANIFOLD▁DELICIOUSNESS▁OF▁LIGHT▁WHICH▁YOU▁CAN▁ONLY▁SEIZE▁BY▁PRECISION▁OF▁INSTANTANEOUS▁TOUCH
+
+2022-06-14 15:15:54,995 (asr_inference:283) INFO: speech length: 368960
+2022-06-14 15:15:58,930 (beam_search:356) INFO: decoder input length: 479
+2022-06-14 15:15:58,930 (beam_search:357) INFO: max output length: 479
+2022-06-14 15:15:58,930 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:19:27,986 (beam_search:370) INFO: end detected at 93
+2022-06-14 15:19:27,988 (beam_search:394) INFO: -11.68 * 0.7 =  -8.17 for decoder
+2022-06-14 15:19:27,988 (beam_search:394) INFO: -12.49 * 0.3 =  -3.75 for ctc
+2022-06-14 15:19:27,989 (beam_search:394) INFO: -357.95 * 0.6 = -214.77 for lm
+2022-06-14 15:19:27,989 (beam_search:397) INFO: total log probability: -226.69
+2022-06-14 15:19:27,989 (beam_search:398) INFO: normalized log probability: -2.58
+2022-06-14 15:19:27,989 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 15:19:27,989 (beam_search:401) INFO: best hypo: ▁NOW▁YOU▁WILL▁SEE▁IN▁THESE▁STUDIES▁THAT▁THE▁MOMENT▁THE▁WHITE▁IS▁ENCLOSED▁PROPERLY▁AND▁HARMONIZE▁WITH▁THE▁OTHER▁HUES▁IT▁BECOMES▁SOMEHOW▁MORE▁PRECIOUS▁AND▁PEARLY▁THAN▁THE▁WHITE▁PAPER▁AND▁THAT▁I▁AM▁NOT▁AFRAID▁TO▁LEAVE▁A▁WHOLE▁FIELD▁OF▁UNTREATED▁WHITE▁PAPER▁ALL▁ROUND▁IT▁BEING▁SURE▁THAT▁EVEN▁THE▁LITTLE▁DIAMONDS▁IN▁THE▁ROUND▁WINDOW▁WILL▁TELL▁AS▁JEWELS▁IF▁THEY▁ARE▁GRADATED▁JUSTLY
+
+2022-06-14 15:19:27,996 (asr_inference:283) INFO: speech length: 97520
+2022-06-14 15:19:29,075 (beam_search:356) INFO: decoder input length: 126
+2022-06-14 15:19:29,075 (beam_search:357) INFO: max output length: 126
+2022-06-14 15:19:29,075 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:20:13,060 (beam_search:370) INFO: end detected at 27
+2022-06-14 15:20:13,063 (beam_search:394) INFO:  -3.18 * 0.7 =  -2.22 for decoder
+2022-06-14 15:20:13,064 (beam_search:394) INFO: -11.08 * 0.3 =  -3.32 for ctc
+2022-06-14 15:20:13,064 (beam_search:394) INFO: -89.29 * 0.6 = -53.57 for lm
+2022-06-14 15:20:13,064 (beam_search:397) INFO: total log probability: -59.12
+2022-06-14 15:20:13,064 (beam_search:398) INFO: normalized log probability: -2.46
+2022-06-14 15:20:13,064 (beam_search:399) INFO: total number of ended hypotheses: 29
+2022-06-14 15:20:13,064 (beam_search:401) INFO: best hypo: ▁BUT▁IN▁THIS▁VIGNETTE▁COPIED▁FROM▁TURNER▁YOU▁HAVE▁THE▁TWO▁PRINCIPLES▁BROUGHT▁OUT▁PERFECTLY
+
+2022-06-14 15:20:13,071 (asr_inference:283) INFO: speech length: 243040
+2022-06-14 15:20:15,293 (beam_search:356) INFO: decoder input length: 315
+2022-06-14 15:20:15,293 (beam_search:357) INFO: max output length: 315
+2022-06-14 15:20:15,293 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:22:08,080 (beam_search:370) INFO: end detected at 57
+2022-06-14 15:22:08,086 (beam_search:394) INFO:  -6.67 * 0.7 =  -4.67 for decoder
+2022-06-14 15:22:08,086 (beam_search:394) INFO:  -3.18 * 0.3 =  -0.96 for ctc
+2022-06-14 15:22:08,086 (beam_search:394) INFO: -238.94 * 0.6 = -143.36 for lm
+2022-06-14 15:22:08,086 (beam_search:397) INFO: total log probability: -148.98
+2022-06-14 15:22:08,086 (beam_search:398) INFO: normalized log probability: -2.81
+2022-06-14 15:22:08,086 (beam_search:399) INFO: total number of ended hypotheses: 36
+2022-06-14 15:22:08,087 (beam_search:401) INFO: best hypo: ▁THEY▁ARE▁BEYOND▁ALL▁OTHER▁WORKS▁THAT▁I▁KNOW▁EXISTING▁DEPENDENT▁FOR▁THEIR▁EFFECT▁ON▁LOW▁SUBDUED▁TONES▁THEIR▁FAVORITE▁CHOICE▁IN▁TIME▁OF▁DAY▁BEING▁EITHER▁DAWN▁OR▁TWILIGHT▁AND▁EVEN▁THEIR▁BRIGHTEST▁SUNSETS▁PRODUCED▁CHIEFLY▁OUT▁OF▁GRAY▁PAPER
+
+2022-06-14 15:22:08,093 (asr_inference:283) INFO: speech length: 234400
+2022-06-14 15:22:10,182 (beam_search:356) INFO: decoder input length: 304
+2022-06-14 15:22:10,182 (beam_search:357) INFO: max output length: 304
+2022-06-14 15:22:10,182 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:23:48,930 (beam_search:370) INFO: end detected at 51
+2022-06-14 15:23:48,937 (beam_search:394) INFO:  -5.44 * 0.7 =  -3.81 for decoder
+2022-06-14 15:23:48,938 (beam_search:394) INFO: -12.07 * 0.3 =  -3.62 for ctc
+2022-06-14 15:23:48,938 (beam_search:394) INFO: -196.31 * 0.6 = -117.79 for lm
+2022-06-14 15:23:48,938 (beam_search:397) INFO: total log probability: -125.22
+2022-06-14 15:23:48,938 (beam_search:398) INFO: normalized log probability: -2.61
+2022-06-14 15:23:48,938 (beam_search:399) INFO: total number of ended hypotheses: 32
+2022-06-14 15:23:48,938 (beam_search:401) INFO: best hypo: ▁IT▁MAY▁BE▁THAT▁A▁GREAT▁COLOR▁AT▁LEAST▁WILL▁USE▁HIS▁UTMOST▁FORCE▁OF▁COLOR▁AS▁A▁SINGER▁HIS▁FULL▁POWER▁OF▁VOICE▁BUT▁LOUD▁OR▁LOW▁THE▁VIRTUE▁IS▁IN▁BOTH▁CASES▁ALWAYS▁IN▁REFINEMENT▁NEVER▁IN▁LOUDNESS
+
+2022-06-14 15:23:48,946 (asr_inference:283) INFO: speech length: 48320
+2022-06-14 15:23:49,470 (beam_search:356) INFO: decoder input length: 62
+2022-06-14 15:23:49,471 (beam_search:357) INFO: max output length: 62
+2022-06-14 15:23:49,471 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:24:06,838 (beam_search:370) INFO: end detected at 13
+2022-06-14 15:24:06,844 (beam_search:394) INFO: -10.46 * 0.7 =  -7.32 for decoder
+2022-06-14 15:24:06,844 (beam_search:394) INFO: -14.06 * 0.3 =  -4.22 for ctc
+2022-06-14 15:24:06,844 (beam_search:394) INFO: -18.13 * 0.6 = -10.88 for lm
+2022-06-14 15:24:06,844 (beam_search:397) INFO: total log probability: -22.42
+2022-06-14 15:24:06,844 (beam_search:398) INFO: normalized log probability: -2.49
+2022-06-14 15:24:06,844 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 15:24:06,844 (beam_search:401) INFO: best hypo: ▁IT▁MUST▁BE▁ONE▁OR▁THE▁OTHER
+
+2022-06-14 15:24:06,851 (asr_inference:283) INFO: speech length: 70240
+2022-06-14 15:24:07,465 (beam_search:356) INFO: decoder input length: 90
+2022-06-14 15:24:07,465 (beam_search:357) INFO: max output length: 90
+2022-06-14 15:24:07,465 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:24:37,776 (beam_search:370) INFO: end detected at 20
+2022-06-14 15:24:37,778 (beam_search:394) INFO:  -1.08 * 0.7 =  -0.75 for decoder
+2022-06-14 15:24:37,778 (beam_search:394) INFO:  -0.00 * 0.3 =  -0.00 for ctc
+2022-06-14 15:24:37,778 (beam_search:394) INFO: -59.65 * 0.6 = -35.79 for lm
+2022-06-14 15:24:37,779 (beam_search:397) INFO: total log probability: -36.54
+2022-06-14 15:24:37,779 (beam_search:398) INFO: normalized log probability: -2.28
+2022-06-14 15:24:37,779 (beam_search:399) INFO: total number of ended hypotheses: 31
+2022-06-14 15:24:37,779 (beam_search:401) INFO: best hypo: ▁DO▁NOT▁THEREFORE▁THINK▁THAT▁THE▁GOTHIC▁SCHOOLS▁AN▁EASY▁ONE
+
+2022-06-14 15:24:37,785 (asr_inference:283) INFO: speech length: 257360
+2022-06-14 15:24:40,124 (beam_search:356) INFO: decoder input length: 334
+2022-06-14 15:24:40,124 (beam_search:357) INFO: max output length: 334
+2022-06-14 15:24:40,124 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:26:17,821 (beam_search:370) INFO: end detected at 58
+2022-06-14 15:26:17,823 (beam_search:394) INFO:  -3.76 * 0.7 =  -2.63 for decoder
+2022-06-14 15:26:17,823 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 15:26:17,823 (beam_search:394) INFO: -215.34 * 0.6 = -129.20 for lm
+2022-06-14 15:26:17,823 (beam_search:397) INFO: total log probability: -131.83
+2022-06-14 15:26:17,823 (beam_search:398) INFO: normalized log probability: -2.44
+2022-06-14 15:26:17,823 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 15:26:17,823 (beam_search:401) INFO: best hypo: ▁THE▁LAW▁OF▁THAT▁SCHOOL▁IS▁THAT▁EVERYTHING▁SHALL▁BE▁SEEN▁CLEARLY▁OR▁AT▁LEAST▁ONLY▁IN▁SUCH▁MIST▁OR▁FAINTNESS▁AS▁SHALL▁BE▁DELIGHTFUL▁AND▁I▁HAVE▁NO▁DOUBT▁THAT▁THE▁BEST▁INTRODUCTION▁TO▁IT▁WOULD▁BE▁THE▁ELEMENTARY▁PRACTICE▁OF▁PAINTING▁EVERY▁STUDY▁ON▁A▁GOLDEN▁GROUND
+
+2022-06-14 15:26:17,828 (asr_inference:283) INFO: speech length: 265520
+2022-06-14 15:26:19,517 (beam_search:356) INFO: decoder input length: 345
+2022-06-14 15:26:19,517 (beam_search:357) INFO: max output length: 345
+2022-06-14 15:26:19,517 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:28:06,869 (beam_search:370) INFO: end detected at 66
+2022-06-14 15:28:06,878 (beam_search:394) INFO:  -4.09 * 0.7 =  -2.86 for decoder
+2022-06-14 15:28:06,878 (beam_search:394) INFO:  -0.02 * 0.3 =  -0.01 for ctc
+2022-06-14 15:28:06,878 (beam_search:394) INFO: -187.01 * 0.6 = -112.21 for lm
+2022-06-14 15:28:06,878 (beam_search:397) INFO: total log probability: -115.08
+2022-06-14 15:28:06,878 (beam_search:398) INFO: normalized log probability: -1.86
+2022-06-14 15:28:06,878 (beam_search:399) INFO: total number of ended hypotheses: 35
+2022-06-14 15:28:06,878 (beam_search:401) INFO: best hypo: ▁THIS▁AT▁ONCE▁COMPELS▁YOU▁TO▁UNDERSTAND▁THAT▁THE▁WORK▁IS▁TO▁BE▁IMAGINATIVE▁AND▁DECORATIVE▁THAT▁IT▁REPRESENTS▁BEAUTIFUL▁THINGS▁IN▁THE▁CLEAREST▁WAY▁BUT▁NOT▁UNDER▁EXISTING▁CONDITIONS▁AND▁THAT▁IN▁FACT▁YOU▁ARE▁PRODUCING▁JEWELLER'S▁WORK▁RATHER▁THAN▁PICTURES
+
+2022-06-14 15:28:06,883 (asr_inference:283) INFO: speech length: 73840
+2022-06-14 15:28:07,449 (beam_search:356) INFO: decoder input length: 95
+2022-06-14 15:28:07,450 (beam_search:357) INFO: max output length: 95
+2022-06-14 15:28:07,450 (beam_search:358) INFO: min output length: 0
+2022-06-14 15:28:41,757 (beam_search:370) INFO: end detected at 25
+2022-06-14 15:28:41,758 (beam_search:394) INFO:  -1.53 * 0.7 =  -1.07 for decoder
+2022-06-14 15:28:41,758 (beam_search:394) INFO:  -0.01 * 0.3 =  -0.00 for ctc
+2022-06-14 15:28:41,758 (beam_search:394) INFO: -77.51 * 0.6 = -46.51 for lm
+2022-06-14 15:28:41,758 (beam_search:397) INFO: total log probability: -47.59
+2022-06-14 15:28:41,758 (beam_search:398) INFO: normalized log probability: -2.16
+2022-06-14 15:28:41,758 (beam_search:399) INFO: total number of ended hypotheses: 28
+2022-06-14 15:28:41,758 (beam_search:401) INFO: best hypo: ▁THAT▁A▁STYLE▁IS▁RESTRAINED▁OR▁SEVERE▁DOES▁NOT▁MEAN▁THAT▁IT▁IS▁ALSO▁ERRONEOUS
+
+# Accounting: begin_time=1655215307
+# Accounting: end_time=1655220522
+# Accounting: time=5215 threads=1
+# Finished at Tue Jun 14 15:28:42 UTC 2022 with status 0

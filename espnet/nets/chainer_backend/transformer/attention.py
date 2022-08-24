@@ -2,10 +2,8 @@
 """Class Declaration of Transformer's Attention."""
 
 import chainer
-
 import chainer.functions as F
 import chainer.links as L
-
 import numpy as np
 
 MIN_VALUE = float(np.finfo(np.float32).min)

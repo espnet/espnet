@@ -2,9 +2,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
+import os
 
 import numpy
-import os
 
 from espnet.asr import asr_utils
 
@@ -33,12 +33,12 @@ def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
         ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         # Labels for major ticks
         if xtokens is not None:
-            ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, len(xtokens)))
-            ax.set_xticks(numpy.linspace(0, len(xtokens) - 1, 1), minor=True)
+            ax.set_xticks(numpy.linspace(0, len(xtokens), len(xtokens) + 1))
+            ax.set_xticks(numpy.linspace(0, len(xtokens), 1), minor=True)
             ax.set_xticklabels(xtokens + [""], rotation=40)
         if ytokens is not None:
-            ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, len(ytokens)))
-            ax.set_yticks(numpy.linspace(0, len(ytokens) - 1, 1), minor=True)
+            ax.set_yticks(numpy.linspace(0, len(ytokens), len(ytokens) + 1))
+            ax.set_yticks(numpy.linspace(0, len(ytokens), 1), minor=True)
             ax.set_yticklabels(ytokens + [""])
     fig.tight_layout()
     return fig

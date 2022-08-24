@@ -32,14 +32,14 @@ the following packages are installed using Anaconda, so you can skip them.)
     # For CentOS
     $ sudo yum install libsndfile
     ```
-- ffmpeg (This is not required when installataion, but used in some recipes)
+- ffmpeg (This is not required when installing, but used in some recipes)
     ```sh
     # For Ubuntu
     $ sudo apt-get install ffmpeg
     # For CentOS
     $ sudo yum install ffmpeg
     ```
-- flac (This is not required when installataion, but used in some recipes)
+- flac (This is not required when installing, but used in some recipes)
     ```sh
     # For Ubuntu
     $ sudo apt-get install flac

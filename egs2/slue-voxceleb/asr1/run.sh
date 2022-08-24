@@ -18,6 +18,7 @@ asr_config=conf/train_asr.yaml
     --nbpe 5000 \
     --token_type word\
     --feats_type raw\
+    --gpu_inference true\
     --max_wav_duration 30 \
     --feats_normalize utterance_mvn\
     --inference_nj 8 \

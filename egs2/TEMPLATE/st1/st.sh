@@ -111,6 +111,7 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+use_streaming=false # Whether to use streaming decoding
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -138,7 +139,6 @@ lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
-lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
 st_speech_fold_length=800 # fold_length for speech data during ST training.
@@ -249,7 +249,6 @@ Options:
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
-    --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
@@ -296,18 +295,8 @@ fi
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
-if "${token_joint}"; then
-    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-
-    # Prepare data as text.${src_lang}_${tgt_lang})
-    cat $src_bpe_train_text $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-    tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-else
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-fi
+[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
@@ -316,11 +305,7 @@ fi
 [ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${tgt_case}.${tgt_lang}"
 
 # Check tokenization type
-if [ "${lang}" != noinfo ]; then
-    token_listdir=data/${lang}_token_list
-else
-    token_listdir=data/token_list
-fi
+token_listdir=data/${src_lang}_${tgt_lang}_token_list
 # The tgt bpedir is set for all cases when using bpe
 tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
 tgt_bpeprefix="${tgt_bpedir}"/bpe
@@ -335,7 +320,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -395,11 +380,7 @@ if [ -z "${st_tag}" ]; then
     else
         st_tag="train_${feats_type}"
     fi
-    if [ "${lang}" != noinfo ]; then
-        st_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
-    else
-        st_tag+="_${tgt_token_type}_${tgt_case}"
-    fi
+    st_tag+="_${src_lang}_${tgt_lang}_${tgt_token_type}_${tgt_case}"
     if [ "${tgt_token_type}" = bpe ]; then
         st_tag+="${tgt_nbpe}"
     fi
@@ -417,11 +398,7 @@ if [ -z "${lm_tag}" ]; then
     else
         lm_tag="train"
     fi
-    if [ "${lang}" != noinfo ]; then
-        lm_tag+="_${lang}_${lm_token_type}"
-    else
-        lm_tag+="_${lm_token_type}"
-    fi
+    lm_tag+="_${src_lang}_${tgt_lang}_${lm_token_type}"
     if [ "${lm_token_type}" = bpe ]; then
         lm_tag+="${tgt_nbpe}"
     fi
@@ -433,11 +410,7 @@ fi
 
 # The directory used for collect-stats mode
 if [ -z "${st_stats_dir}" ]; then
-    if [ "${lang}" != noinfo ]; then
-        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang}_${tgt_token_type}"
-    else
-        st_stats_dir="${expdir}/st_stats_${feats_type}_${tgt_token_type}"
-    fi
+    st_stats_dir="${expdir}/st_stats_${feats_type}_${src_lang}_${tgt_lang}_${tgt_token_type}"
     if [ "${tgt_token_type}" = bpe ]; then
         st_stats_dir+="${tgt_nbpe}"
     fi
@@ -446,11 +419,7 @@ if [ -z "${st_stats_dir}" ]; then
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
-    if [ "${lang}" != noinfo ]; then
-        lm_stats_dir="${expdir}/lm_stats_${lang}_${lm_token_type}"
-    else
-        lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
-    fi
+    lm_stats_dir="${expdir}/lm_stats_${src_lang}_${tgt_lang}_${lm_token_type}"
     if [ "${lm_token_type}" = bpe ]; then
         lm_stats_dir+="${tgt_nbpe}"
     fi
@@ -514,9 +483,9 @@ if ! "${skip_data_prep}"; then
             done
             utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
             for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
                 mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
-            done 
+            done
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -549,11 +518,11 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    # with regex to suuport multi-references
+                    # with regex to support multi-references
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
@@ -594,11 +563,11 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    # with regex to suuport multi-references
+                    # with regex to support multi-references
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 for extra_file in ${expand_utt_extra_files}; do
                     LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
@@ -628,7 +597,7 @@ if ! "${skip_data_prep}"; then
 
         elif  [ "${feats_type}" = extracted ]; then
             log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-            # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
+            # Assuming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
@@ -643,11 +612,11 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    # with regex to suuport multi-references
+                    # with regex to support multi-references
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
                 for extra_file in ${expand_utt_extra_files}; do
@@ -726,23 +695,36 @@ if ! "${skip_data_prep}"; then
             fi
 
             # Remove empty text
-            <"${data_feats}/org/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+            for utt_extra_file in ${utt_extra_files}; do
+                <"${data_feats}/org/${dset}/${utt_extra_file}" \
+                    awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/${utt_extra_file}"
+            done
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
-                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-            done 
+            done
         done
 
         # shellcheck disable=SC2002
-        cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+        cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' \
+            > "${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt"
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        # Combine source and target texts when using joint tokenization
+        if "${token_joint}"; then
+            log "Merge src and target data if joint BPE"
+
+            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            # Set the new text as the target text
+            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+        fi
+
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
             log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
@@ -802,10 +784,10 @@ if ! "${skip_data_prep}"; then
 
         # Create word-list for word-LM training
         if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
-            log "Generate word level token_list from ${data_feats}/lm_train.txt"
+            log "Generate word level token_list from ${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
-                --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
+                --input "${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt" --output "${lm_token_list}" \
                 --field 2- \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -891,7 +873,7 @@ fi
 if ! "${skip_train}"; then
     if "${use_lm}"; then
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-            log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
+            log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt, dev_set=${lm_dev_text}"
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -904,9 +886,9 @@ if ! "${skip_train}"; then
             _logdir="${lm_stats_dir}/logdir"
             mkdir -p "${_logdir}"
             # Get the minimum number among ${nj} and the number lines of input files
-            _nj=$(min "${nj}" "$(<${data_feats}/lm_train.txt wc -l)" "$(<${lm_dev_text} wc -l)")
+            _nj=$(min "${nj}" "$(<${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt wc -l)" "$(<${lm_dev_text} wc -l)")
 
-            key_file="${data_feats}/lm_train.txt"
+            key_file="${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt"
             split_scps=""
             for n in $(seq ${_nj}); do
                 split_scps+=" ${_logdir}/train.${n}.scp"
@@ -930,7 +912,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -941,12 +923,12 @@ if ! "${skip_train}"; then
                     --non_linguistic_symbols "${nlsyms_txt}" \
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
-                    --train_data_path_and_name_and_type "${data_feats}/lm_train.txt,text,text" \
+                    --train_data_path_and_name_and_type "${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt,text,text" \
                     --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -968,7 +950,7 @@ if ! "${skip_train}"; then
 
 
         if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-            log "Stage 7: LM Training: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
+            log "Stage 7: LM Training: train_set=${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt, dev_set=${lm_dev_text}"
 
             _opts=
             if [ -n "${lm_config}" ]; then
@@ -986,7 +968,7 @@ if ! "${skip_train}"; then
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
                     ${python} -m espnet2.bin.split_scps \
-                      --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+                      --scps "${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
                       --num_splits "${num_splits_lm}" \
                       --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
@@ -994,12 +976,12 @@ if ! "${skip_train}"; then
                     log "${_split_dir}/.done exists. Spliting is skipped"
                 fi
 
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.txt,text,text "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt,text,text "
                 _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
                 _opts+="--multiple_iterator true "
 
             else
-                _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.txt,text,text "
+                _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt,text,text "
                 _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
             fi
 
@@ -1072,9 +1054,9 @@ if ! "${skip_train}"; then
     fi
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
-            log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt"
+            cut -f 2 -d " " ${data_feats}/lm_train.${src_lang}.${tgt_case}.${tgt_lang}.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1412,7 +1394,11 @@ if ! "${skip_eval}"; then
             key_file=${_data}/${_scp}
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            st_inference_tool="espnet2.bin.st_inference"
+            if "${use_streaming}"; then
+                st_inference_tool="espnet2.bin.st_inference_streaming"
+            else
+                st_inference_tool="espnet2.bin.st_inference"
+            fi
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1422,7 +1408,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/st_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
                     --batch_size ${batch_size} \
@@ -1432,7 +1418,7 @@ if ! "${skip_eval}"; then
                     --st_train_config "${st_exp}"/config.yaml \
                     --st_model_file "${st_exp}"/"${inference_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1478,29 +1464,35 @@ if ! "${skip_eval}"; then
                             ) \
                 <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                     >"${_scoredir}/hyp.trn.org"
-            
+
             # remove utterance id
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+
+            # rotate result files
+            if [ ${tgt_case} = "tc" ]; then
+                pyscripts/utils/rotate_logfile.py ${_scoredir}/result.tc.txt
+            fi
+            pyscripts/utils/rotate_logfile.py ${_scoredir}/result.lc.txt
 
             if [ ${tgt_case} = "tc" ]; then
-                echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
+                echo "Case sensitive BLEU result (single-reference)" > ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
                           >> ${_scoredir}/result.tc.txt
-                
+
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
             fi
 
             # detokenize & remove punctuation except apostrophe
             remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
             remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
-            echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
+            echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
@@ -1525,10 +1517,10 @@ if ! "${skip_eval}"; then
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
-                    
-                    # 
-                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+
+                    # remove utterance id
+                    perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1551,8 +1543,8 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        cat "${st_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"
@@ -1641,7 +1633,7 @@ EOF
         # shellcheck disable=SC2086
         espnet_model_zoo_upload \
             --file "${packed_model}" \
-            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${src_lang}_${tgt_lang}" \
             --description_file "${st_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
@@ -1662,11 +1654,11 @@ if ! "${skip_upload_hf}"; then
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
             log "ERROR: You need to install git-lfs first" && \
-            exit 1             
-  
+            exit 1
+
         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-  
+
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
             _checkout="git checkout $(git show -s --format=%H)"
@@ -1679,13 +1671,13 @@ if ! "${skip_upload_hf}"; then
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-  
+
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=speech-translation
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=ST
         # shellcheck disable=SC2034
         task_exp=${st_exp}

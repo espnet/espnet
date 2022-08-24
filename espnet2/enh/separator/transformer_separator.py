@@ -1,26 +1,22 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,  # noqa: H301
-)
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TransformerSeparator(AbsSeparator):
@@ -28,6 +24,7 @@ class TransformerSeparator(AbsSeparator):
         self,
         input_dim: int,
         num_spk: int = 2,
+        predict_noise: bool = False,
         adim: int = 384,
         aheads: int = 4,
         layers: int = 6,
@@ -47,6 +44,7 @@ class TransformerSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
+            predict_noise: whether to output the estimated noise signal
             adim (int): Dimension of attention.
             aheads (int): The number of heads of multi head attention.
             linear_units (int): The number of units of position-wise feed forward.
@@ -70,6 +68,7 @@ class TransformerSeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
+        self.predict_noise = predict_noise
 
         pos_enc_class = (
             ScaledPositionalEncoding if use_scaled_pos_enc else PositionalEncoding
@@ -91,8 +90,9 @@ class TransformerSeparator(AbsSeparator):
             positionwise_conv_kernel_size=positionwise_conv_kernel_size,
         )
 
+        num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
         self.linear = torch.nn.ModuleList(
-            [torch.nn.Linear(adim, input_dim) for _ in range(self.num_spk)]
+            [torch.nn.Linear(adim, input_dim) for _ in range(num_outputs)]
         )
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):
@@ -105,13 +105,18 @@ class TransformerSeparator(AbsSeparator):
         }[nonlinear]
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
+            additional (Dict or None): other data included in model
+                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
@@ -141,11 +146,16 @@ class TransformerSeparator(AbsSeparator):
             y = self.nonlinear(y)
             masks.append(y)
 
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
         masked = [input * m for m in masks]
 
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
+        if self.predict_noise:
+            others["noise1"] = input * mask_noise
 
         return masked, ilens, others
 

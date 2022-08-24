@@ -3,8 +3,8 @@ from typing import Tuple
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class UtteranceMVN(AbsNormalize):
@@ -76,7 +76,7 @@ def utterance_mvn(
         if norm_vars:
             var = x.pow(2).sum(dim=1, keepdim=True) / ilens_
             std = torch.clamp(var.sqrt(), min=eps)
-            x = x / std.sqrt()
+            x = x / std
         return x, ilens
     else:
         if norm_vars:

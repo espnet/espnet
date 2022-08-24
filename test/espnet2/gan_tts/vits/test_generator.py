@@ -3,8 +3,6 @@
 
 """Test VITS generator modules."""
 
-from distutils.version import LooseVersion
-
 import pytest
 import torch
 
@@ -66,10 +64,6 @@ def make_generator_args(**kwargs):
 #   so a little bit more time is needed to run. Therefore,
 #   here we extend execution timeout from 2 sec to 5 sec.
 @pytest.mark.execution_timeout(5)
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
-)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
@@ -198,10 +192,6 @@ def test_vits_generator_forward(model_dict):
                 print(f"{i+j+1}: {output_.shape}")
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
-)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "

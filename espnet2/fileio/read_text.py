@@ -1,8 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Dict
-from typing import List
-from typing import Union
+from typing import Dict, List, Union
 
 from typeguard import check_argument_types
 

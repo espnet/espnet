@@ -1,9 +1,6 @@
-from typing import Mapping
-from typing import Optional
-from typing import Tuple
+from typing import Mapping, Optional, Tuple
 
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str_or_none

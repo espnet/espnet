@@ -8,17 +8,17 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `6bf3c2a4f138d35331634d2e879bbc5c32a5266e`
   - Commit date: `Mon Dec 22 15:41:32 EST 2021`
-- Pretrained Model
-  - Hugging Face : https://huggingface.co/espnet/siddhana_slue_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
 
 ## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
+- ASR config: [conf/tuning/train_asr_conformer.yaml]
 - token_type: word
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/siddhana_slue_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
 |dataset|Snt|Intent Classification Accuracy (%)|Intent Classification Macro F1 (%)|
 |---|---|---|---|
-|inference_asr_model_valid.acc.ave_10best/devel|955|80.2|29.7|
+|inference_asr_model_valid.acc.ave_10best/devel|954|80.2|39.7|
 
 ### Detailed Classification Report
 
@@ -27,4 +27,20 @@
 |inference_asr_model_valid.acc.ave_10best/devel|Neutral|784|85|93|89|
 |inference_asr_model_valid.acc.ave_10best/devel|Positive|167|40|24|30|
 |inference_asr_model_valid.acc.ave_10best/devel|Negative|3|0|0|0|
-|inference_asr_model_valid.acc.ave_10best/devel|Mixed|1|0|0|0|
+
+## Using Conformer based encoder with output size 256 and Transformer based decoder with spectral augmentation and predicting transcript along with intent
+- ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_wav2vec2_conformer_small.yaml)
+- token_type: word
+
+|dataset|Snt|Intent Classification Accuracy (%)|Intent Classification Macro F1 (%)|
+|---|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/devel|954|79.0|44.0|
+
+### Detailed Classification Report
+
+|dataset|Label|Snt|Prec|Recall|F1|
+|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/devel|Neutral|784|88|87|87|
+|inference_asr_model_valid.acc.ave_10best/devel|Positive|167|46|43|44|
+|inference_asr_model_valid.acc.ave_10best/devel|Negative|3|0|0|0|
+

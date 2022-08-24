@@ -1,0 +1,5 @@
+beam_size: 10
+lm_weight: 0.2
+transducer_conf:
+    search_type: default
+    score_norm: False

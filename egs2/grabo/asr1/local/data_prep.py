@@ -9,12 +9,11 @@
 # https://arxiv.org/pdf/2008.01994.pdf (for train/dev/test split)
 
 
-import os
-import glob
-import random
 import argparse
+import glob
+import os
+import random
 import xml.etree.ElementTree as ET
-
 
 parser = argparse.ArgumentParser(description="Process Grabo dataset.")
 parser.add_argument(

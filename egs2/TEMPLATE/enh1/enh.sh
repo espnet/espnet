@@ -59,12 +59,15 @@ enh_config= # Config for enhancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2   # Number of speakers
+dynamic_mixing=false # Flag for dynamic mixing in speech separation task. 
 noise_type_num=1
 dereverb_ref_num=1
 
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+use_preprocessor=false
+extra_wav_list= # Extra list of scp files for wav formatting
 
 # Pretrained model related
 # The number of --init_param must be same.
@@ -76,8 +79,10 @@ inference_model=valid.loss.ave.pth
 download_model=
 
 # Evaluation related
-scoring_protocol="STOI SDR SAR SIR"
+scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
+inference_tag=  # Prefix to the result dir for ENH inference.
+inference_enh_config= # Config for enhancement.
 score_with_asr=false
 asr_exp=""       # asr model for scoring WER
 lm_exp=""       # lm model for scoring WER
@@ -138,6 +143,7 @@ Options:
     --enh_args   # Arguments for enhancement model training, e.g., "--max_epoch 10" (default="${enh_args}").
                  # Note that it will overwrite args in enhancement config.
     --spk_num    # Number of speakers in the input audio (default="${spk_num}")
+    --dynamic_mixing   # Flag for dynamic mixing in speech separation task (default="${dynamic_mixing}").
     --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
     --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
 
@@ -146,13 +152,16 @@ Options:
                          for training a dereverberation model (default="${use_dereverb_ref}")
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
+    --use_preprocessor # Whether or not to apply preprocessing (default="${use_preprocessor}")
+    --extra_wav_list   # Extra list of scp files for wav formatting (default="${extra_wav_list}")
 
     # Pretrained model related
     --init_param    # pretrained model path and module name (default="${init_param}")
 
     # Enhancement related
-    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model  # Enhancement model path for inference (default="${inference_model}").
+    --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model      # Enhancement model path for inference (default="${inference_model}").
+    --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -201,6 +210,9 @@ fi
 [ -z "${valid_set}" ] &&   { log "${help_message}"; log "Error: --valid_set is required"  ; exit 2; };
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
+# Extra files for enhancement process
+utt_extra_files="utt2category"
+
 data_feats=${dumpdir}/raw
 
 
@@ -213,7 +225,7 @@ if [ -z "${enh_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${enh_args}" ]; then
-        enh_tag+="$(echo "${enh_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        enh_tag+="$(echo "${enh_args}" | sed -e "s/--\|\//\_/g" -e "s/[ |=]//g")"
     fi
 fi
 
@@ -247,6 +259,16 @@ if [ -n "${speed_perturb_factors}" ]; then
   enh_exp="${enh_exp}_sp"
 fi
 
+if [ -z "${inference_tag}" ]; then
+    if [ -n "${inference_enh_config}" ]; then
+        inference_tag="$(basename "${inference_enh_config}" .yaml)"
+    else
+        inference_tag=enhanced
+    fi
+fi
+
+
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -267,7 +289,7 @@ if ! "${skip_data_prep}"; then
 
            for factor in ${speed_perturb_factors}; do
                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_enh_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
+                   scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
                    # If speed factor is 1, same as the original
@@ -337,6 +359,18 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
 
             done
+
+            for f in $extra_wav_list; do
+                if [ -e "data/${dset}/$f" ]; then
+                    # shellcheck disable=SC2086
+                    scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                        --out-filename "$f" \
+                        --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                        "data/${dset}/$f" "${data_feats}/${dset}" \
+                        "${data_feats}/${dset}/logs/${f%.*}" "${data_feats}/${dset}/data/${f%.*}"
+                fi
+            done
+
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
         done
@@ -480,17 +514,17 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
 
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
-                --use_preprocessor true \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${enh_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -515,7 +549,15 @@ if ! "${skip_train}"; then
             _opts+="--config ${enh_config} "
         fi
 
-        _scp=wav.scp
+        if ${dynamic_mixing}; then
+            # In current version, if you want to enable dynamic mixing in speech separation,
+            # you need to prepare the training set manually. Here we assume all speech sources 
+            # are collected in "spk1.scp", and other scp files (wav.scp, spk{N}.scp) are not used. 
+            log "Dynamic mixing is enabled, use spk1.scp as the source file list."
+            _scp=spk1.scp
+        else
+            _scp=wav.scp
+        fi
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -525,15 +567,32 @@ if ! "${skip_train}"; then
         fi
         _fold_length="$((enh_speech_fold_length * 100))"
 
-        # prepare train and valid data parameters
-        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,${_type} "
-        _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
-        _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
-        _fold_length_param="--fold_length ${_fold_length} "
+        
+        if ! ${dynamic_mixing} ; then
+
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_mix,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+
+            for spk in $(seq "${spk_num}"); do
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+            done
+        
+        else 
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_ref1,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_ref1_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+            _opts+="--utt2spk ${_enh_train_dir}/utt2spk "
+        fi
+
         for spk in $(seq "${spk_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
-            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
@@ -580,6 +639,7 @@ if ! "${skip_train}"; then
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.enh_train \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \
@@ -614,7 +674,7 @@ if ! "${skip_eval}"; then
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${enh_exp}/enhanced_${dset}"
+            _dir="${enh_exp}/${inference_tag}_${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -638,7 +698,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
@@ -646,9 +706,10 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_exp}"/config.yaml \
+                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/enh_inference.*.log) ; exit 1; }
 
 
             _spk_list=" "
@@ -686,7 +747,7 @@ if ! "${skip_eval}"; then
                 if "${score_obs}"; then
                     _dir="${data_feats}/${dset}/scoring"
                 else
-                    _dir="${enh_exp}/enhanced_${dset}/scoring"
+                    _dir="${enh_exp}/${inference_tag}_${dset}/scoring"
                 fi
 
                 _logdir="${_dir}/logdir"
@@ -713,7 +774,7 @@ if ! "${skip_eval}"; then
                         # To compute the score of observation, input original wav.scp
                         _inf_scp+="--inf_scp ${data_feats}/${dset}/wav.scp "
                     else
-                        _inf_scp+="--inf_scp ${enh_exp}/enhanced_${dset}/spk${spk}.scp "
+                        _inf_scp+="--inf_scp ${enh_exp}/${inference_tag}_${dset}/spk${spk}.scp "
                     fi
                 done
 
@@ -749,7 +810,7 @@ if ! "${skip_eval}"; then
             ./scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../RESULTS.md"
         done
         log "Evaluation result for observation: ${data_feats}/RESULTS.md"
-        log "Evaluation result for enhancement: ${enh_exp}/enhanced/RESULTS.md"
+        log "Evaluation result for enhancement: ${enh_exp}/RESULTS.md"
 
     fi
 else
@@ -808,7 +869,7 @@ if "${score_with_asr}"; then
                         # Using same wav.scp for all speakers
                         cp "${_data}/wav.scp" "${_ddir}/wav.scp"
                     else
-                        cp "${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk}" "${_ddir}/wav.scp"
+                        cp "${enh_exp}/${inference_tag}_${dset}/scoring/wav_spk${spk}" "${_ddir}/wav.scp"
                     fi
                     cp data/${dset}/text_spk${spk} ${_ddir}/text
                     cp ${_data}/{spk2utt,utt2spk,utt2num_samples,feats_type} ${_ddir}

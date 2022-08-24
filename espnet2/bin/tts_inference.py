@@ -7,23 +7,15 @@ import logging
 import shutil
 import sys
 import time
-
-from distutils.version import LooseVersion
 from pathlib import Path
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import soundfile as sf
 import torch
-
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts import TTSTask
@@ -35,9 +27,8 @@ from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class Text2Speech:
@@ -92,6 +83,7 @@ class Text2Speech:
         device: str = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
+        prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
         assert check_argument_types()
@@ -114,6 +106,7 @@ class Text2Speech:
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
+        self.prefer_normalized_feats = prefer_normalized_feats
         if self.tts.require_vocoder:
             vocoder = TTSTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
@@ -209,10 +202,13 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            if output_dict.get("feat_gen_denorm") is not None:
-                input_feat = output_dict["feat_gen_denorm"]
-            else:
+            if (
+                self.prefer_normalized_feats
+                or output_dict.get("feat_gen_denorm") is None
+            ):
                 input_feat = output_dict["feat_gen"]
+            else:
+                input_feat = output_dict["feat_gen_denorm"]
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
@@ -295,7 +291,7 @@ class Text2Speech:
                 from parallel_wavegan import __version__
 
                 # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
-                assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
+                assert V(__version__) > V("0.5.1"), (
                     "Please install the latest parallel_wavegan "
                     "via `pip install -U parallel_wavegan`."
                 )

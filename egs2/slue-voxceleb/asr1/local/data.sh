@@ -52,7 +52,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
     local/run_spm.sh
     mv data data_old
-    mv data_bpe_500 data
+    mv data_bpe_1000 data
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

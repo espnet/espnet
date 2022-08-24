@@ -726,6 +726,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
 - [Conformer](https://arxiv.org/abs/2005.08100)-based FastSpeech / FastSpeech2
 - [VITS](https://arxiv.org/abs/2106.06103)
+- [JETS](https://arxiv.org/abs/2203.16852)
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
@@ -741,6 +742,11 @@ X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
 You can find example configs of the above models in:
 - [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 - [`egs2/libritts/tts1/conf/tuning`](../../vctk/libritts/conf/tuning).
+
+And now we support other toolkit's xvector.
+Please check the following options.
+
+https://github.com/espnet/espnet/blob/df053b8c13c26fe289fc882751801fd781e9d43e/egs2/TEMPLATE/tts1/tts.sh#L69-L71
 
 ## FAQ
 

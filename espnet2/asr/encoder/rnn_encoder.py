@@ -1,15 +1,12 @@
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 
 class RNNEncoder(AbsEncoder):
@@ -49,12 +46,12 @@ class RNNEncoder(AbsEncoder):
             raise ValueError(f"Not supported rnn_type={rnn_type}")
 
         if subsample is None:
-            subsample = np.ones(num_layers + 1, dtype=np.int)
+            subsample = np.ones(num_layers + 1, dtype=np.int64)
         else:
             subsample = subsample[:num_layers]
             # Append 1 at the beginning because the second or later is used
             subsample = np.pad(
-                np.array(subsample, dtype=np.int),
+                np.array(subsample, dtype=np.int64),
                 [1, num_layers - len(subsample)],
                 mode="constant",
                 constant_values=1,
