@@ -31,6 +31,11 @@ def initialize(model: torch.nn.Module, init: str):
                 # bias
                 data.zero_()
                 logging.info(f"Initialize {name} to zeros")
+            elif data.dim() == 1:
+                # linear weight
+                n = data.size(0)
+                stdv = 1.0 / math.sqrt(n)
+                data.normal_(0, stdv)
             elif data.dim() == 2:
                 # linear weight
                 n = data.size(1)
