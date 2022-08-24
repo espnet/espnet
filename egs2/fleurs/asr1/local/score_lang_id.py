@@ -2,6 +2,7 @@ import argparse
 import codecs
 import os
 import sys
+import traceback
 
 
 def get_parser():
@@ -42,7 +43,8 @@ def scoring(exp_folder, decode_folder, out):
 
         try:
             decode_file = codecs.open(decode_file_name, "r", encoding="utf-8")
-        except:
+        except Exception:
+            traceback.print_exc()
             print("Unable to open output file: " + decode_file_name)
             continue
 
