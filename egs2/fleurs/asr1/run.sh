@@ -67,6 +67,6 @@ else
       --valid_set "${train_dev}" \
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" 
+      --lm_train_text "data/${train_set}/text" \
       --local_score_opts "--score_lang_id false" "$@" 
 fi
