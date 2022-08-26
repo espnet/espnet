@@ -155,9 +155,6 @@
   <h1>Source code for espnet2.asr.frontend.s3prl</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">humanfriendly</span>
@@ -167,18 +164,6 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.frontend</span> <span class="kn">import</span> <span class="n">Frontend</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
-
-
-<div class="viewcode-block" id="base_s3prl_setup"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.base_s3prl_setup">[docs]</a><span class="k">def</span> <span class="nf">base_s3prl_setup</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">upstream_feature_selection</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;upstream_feature_selection&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">upstream_model_config</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;upstream_model_config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">upstream_refresh</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;upstream_refresh&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">upstream_ckpt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;upstream_ckpt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">init_ckpt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;init_ckpt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;verbose&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-    <span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;tile_factor&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">args</span></div>
 
 
 <div class="viewcode-block" id="S3prlFrontend"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend">[docs]</a><span class="k">class</span> <span class="nc">S3prlFrontend</span><span class="p">(</span><span class="n">AbsFrontend</span><span class="p">):</span>
@@ -191,75 +176,48 @@
         <span class="n">download_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">multilayer_feature</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">s3prl</span>
+            <span class="kn">from</span> <span class="nn">s3prl.nn</span> <span class="kn">import</span> <span class="n">Featurizer</span><span class="p">,</span> <span class="n">S3PRLUpstream</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: S3PRL is not properly installed.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install S3PRL: cd $</span><span class="si">{MAIN_ROOT}</span><span class="s2">/tools &amp;&amp; make s3prl.done&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">fs</span> <span class="o">=</span> <span class="n">humanfriendly</span><span class="o">.</span><span class="n">parse_size</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fs</span> <span class="o">!=</span> <span class="mi">16000</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;All the upstream models in S3PRL now only support 16 kHz audio.&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">download_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">set_dir</span><span class="p">(</span><span class="n">download_dir</span><span class="p">)</span>
+            <span class="n">s3prl</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">download</span><span class="o">.</span><span class="n">set_dir</span><span class="p">(</span><span class="n">download_dir</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span> <span class="o">=</span> <span class="n">multilayer_feature</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_upstream</span><span class="p">(</span><span class="n">frontend_conf</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">output_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">frontend_type</span> <span class="o">=</span> <span class="s2">&quot;s3prl&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">get_downsample_rates</span><span class="p">(</span><span class="s2">&quot;key&quot;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_get_upstream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frontend_conf</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get S3PRL upstream model.&quot;&quot;&quot;</span>
-        <span class="n">s3prl_args</span> <span class="o">=</span> <span class="n">base_s3prl_setup</span><span class="p">(</span>
-            <span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">frontend_conf</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+        <span class="k">assert</span> <span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;upstream&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">in</span> <span class="n">S3PRLUpstream</span><span class="o">.</span><span class="n">available_names</span><span class="p">()</span>
+        <span class="n">upstream</span> <span class="o">=</span> <span class="n">S3PRLUpstream</span><span class="p">(</span>
+            <span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;upstream&quot;</span><span class="p">),</span>
+            <span class="n">path_or_url</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path_or_url&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">s3prl_args</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">s3prl</span>  <span class="c1"># noqa</span>
-        <span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ModuleNotFoundError</span><span class="p">(</span>
-                <span class="s2">&quot;s3prl is not installed, please git clone s3prl&quot;</span>
-                <span class="s2">&quot; (DO NOT USE PIP or CONDA) &quot;</span>
-                <span class="s2">&quot;and install it from Github repo, &quot;</span>
-                <span class="s2">&quot;by cloning it locally.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">s3prl_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">s3prl</span><span class="o">.</span><span class="vm">__file__</span><span class="p">))</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s3prl_path</span><span class="p">,</span> <span class="s2">&quot;hubconf.py&quot;</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="s2">&quot;You probably have s3prl installed as a pip&quot;</span>
-                <span class="s2">&quot;package, please uninstall it and then install it from &quot;</span>
-                <span class="s2">&quot;the GitHub repo, by cloning it locally.&quot;</span>
-            <span class="p">)</span>
-
-        <span class="n">s3prl_upstream</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
-            <span class="n">s3prl_path</span><span class="p">,</span>
-            <span class="n">s3prl_args</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span>
-            <span class="n">ckpt</span><span class="o">=</span><span class="n">s3prl_args</span><span class="o">.</span><span class="n">upstream_ckpt</span><span class="p">,</span>
-            <span class="n">model_config</span><span class="o">=</span><span class="n">s3prl_args</span><span class="o">.</span><span class="n">upstream_model_config</span><span class="p">,</span>
-            <span class="n">refresh</span><span class="o">=</span><span class="n">s3prl_args</span><span class="o">.</span><span class="n">upstream_refresh</span><span class="p">,</span>
-            <span class="n">source</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
-
+        <span class="n">upstream</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
-            <span class="n">s3prl_upstream</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">s3prl_upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="n">upstream</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span>
             <span class="s2">&quot;Wav2Vec2Model&quot;</span><span class="p">,</span>
             <span class="s2">&quot;HubertModel&quot;</span><span class="p">,</span>
         <span class="p">]:</span>
-            <span class="n">s3prl_upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layerdrop</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layerdrop</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">featurizer</span> <span class="o">=</span> <span class="n">Featurizer</span><span class="p">(</span><span class="n">upstream</span><span class="p">)</span>
 
-        <span class="kn">from</span> <span class="nn">s3prl.upstream.interfaces</span> <span class="kn">import</span> <span class="n">Featurizer</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span><span class="p">:</span>
-            <span class="n">feature_selection</span> <span class="o">=</span> <span class="s2">&quot;hidden_states&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">feature_selection</span> <span class="o">=</span> <span class="s2">&quot;last_hidden_state&quot;</span>
-        <span class="n">s3prl_featurizer</span> <span class="o">=</span> <span class="n">Featurizer</span><span class="p">(</span>
-            <span class="n">upstream</span><span class="o">=</span><span class="n">s3prl_upstream</span><span class="p">,</span>
-            <span class="n">feature_selection</span><span class="o">=</span><span class="n">feature_selection</span><span class="p">,</span>
-            <span class="n">upstream_device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">s3prl_upstream</span><span class="p">,</span> <span class="n">s3prl_featurizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span> <span class="o">=</span> <span class="n">multilayer_feature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span> <span class="o">=</span> <span class="n">upstream</span><span class="p">,</span> <span class="n">featurizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frontend_type</span> <span class="o">=</span> <span class="s2">&quot;s3prl&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">downsample_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">=</span> <span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tile_factor&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_tile_representations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tile up the representations by `tile_factor`.</span>
@@ -273,33 +231,28 @@
         <span class="k">assert</span> <span class="p">(</span>
             <span class="nb">len</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
         <span class="p">),</span> <span class="s2">&quot;Input argument `feature` has invalid shape: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">tiled_feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">)</span>
+        <span class="n">tiled_feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">)</span>
         <span class="n">tiled_feature</span> <span class="o">=</span> <span class="n">tiled_feature</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">tiled_feature</span>
 
 <div class="viewcode-block" id="S3prlFrontend.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="o">.</span><span class="n">output_size</span></div>
 
 <div class="viewcode-block" id="S3prlFrontend.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="n">wavs</span> <span class="o">=</span> <span class="p">[</span><span class="n">wav</span><span class="p">[:</span> <span class="n">input_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">wav</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">input</span><span class="p">)]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-        <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">(</span><span class="n">wavs</span><span class="p">)</span>
-        <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">(</span><span class="n">wavs</span><span class="p">,</span> <span class="n">feats</span><span class="p">)</span>
+        <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span><span class="p">:</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">(</span><span class="n">feats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">feats_lens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:])</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_representations</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
 
-        <span class="n">input_feats</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-        <span class="n">feats_lens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
-
-        <span class="c1"># Saving CUDA Memory</span>
-        <span class="k">del</span> <span class="n">feats</span>
-
-        <span class="k">return</span> <span class="n">input_feats</span><span class="p">,</span> <span class="n">feats_lens</span></div>
+        <span class="k">return</span> <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span></div>
 
 <div class="viewcode-block" id="S3prlFrontend.reload_pretrained_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend.reload_pretrained_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reload_pretrained_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span><span class="p">)</span>
