@@ -93,10 +93,20 @@ def initialize(model: torch.nn.Module, init: str):
             model.encoder, "reload_pretrained_parameters", None
         ):
             model.encoder.reload_pretrained_parameters()
-        if getattr(model, "frontend", None) and getattr(
-            model.frontend, "reload_pretrained_parameters", None
-        ):
-            model.frontend.reload_pretrained_parameters()
+        if getattr(model, "frontend", None):
+            if getattr(model.frontend, "reload_pretrained_parameters", None):
+                model.frontend.reload_pretrained_parameters()
+            elif isinstance(
+                getattr(model.frontend, "frontends", None),
+                torch.nn.ModuleList,
+            ):
+                for i, _ in enumerate(getattr(model.frontend, "frontends")):
+                    if getattr(
+                        model.frontend.frontends[i],
+                        "reload_pretrained_parameters",
+                        None,
+                    ):
+                        model.frontend.frontends[i].reload_pretrained_parameters()
         if getattr(model, "postencoder", None) and getattr(
             model.postencoder, "reload_pretrained_parameters", None
         ):
