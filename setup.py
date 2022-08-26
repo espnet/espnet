@@ -29,7 +29,7 @@ requirements = {
         "protobuf<=3.20.1",
         # ASR
         "sentencepiece",
-        "ctc-segmentation<1.8,>=1.6.6",
+        "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
         "pypinyin<=0.44.0",
