@@ -98,7 +98,7 @@ endif
 
 # NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
 # (Pytorch is not related to numba directly)
-pytorch.done: activate_python.sh packaging.done numba.done
+pytorch.done: packaging.done numba.done
 ifeq ($(strip $(USE_CONDA)),)
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
@@ -108,7 +108,9 @@ endif
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
+	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
+	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	touch espnet.done
 
 chainer.done: espnet.done
