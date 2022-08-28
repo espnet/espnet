@@ -8,12 +8,6 @@ import traceback
 def get_parser():
     parser = argparse.ArgumentParser(description="prep data for lang id scoring")
     parser.add_argument(
-        "--decode_folder",
-        type=str,
-        help="folder containing decoded text",
-        required=True,
-    )
-    parser.add_argument(
         "--exp_folder", type=str, help="folder of experiment", required=True
     )
     parser.add_argument(
@@ -27,7 +21,10 @@ def get_parser():
 
 def main(args):
     args = get_parser().parse_args(args)
-    scoring(args.exp_folder, args.decode_folder, args.out)
+    decode_folders = next(os.walk(args.exp_folder))[1]
+    for folder in decode_folders:
+        if 'decode_asr' in folder:
+            scoring(args.exp_folder, folder, args.out)
 
 
 def scoring(exp_folder, decode_folder, out):
@@ -45,7 +42,7 @@ def scoring(exp_folder, decode_folder, out):
             decode_file = codecs.open(decode_file_name, "r", encoding="utf-8")
         except Exception:
             traceback.print_exc()
-            print("Unable to open output file: " + decode_file_name)
+            print("\nUnable to open output file: " + decode_file_name)
             continue
 
         utt_num = 0
@@ -72,6 +69,7 @@ def scoring(exp_folder, decode_folder, out):
 
             output_file.write(f"{utt_id}\t{ref_lid}\t{hyp_lid}\n")
 
+        out.write(f"\n{exp_decode_folder}/{folder}\n")
         out.write(
             "Language Identification Scoring: Accuracy {:.4f} ({}/{})\n".format(
                 (correct / float(utt_num)), correct, utt_num

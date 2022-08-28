@@ -26,4 +26,4 @@ fi
 
 echo "Preparing model output for language identification scoring"
 
-python local/score_lang_id.py --exp_folder $exp --decode_folder $decode_folder
+python local/score_lang_id.py --exp_folder $exp
