@@ -23,7 +23,7 @@ def main(args):
     args = get_parser().parse_args(args)
     decode_folders = next(os.walk(args.exp_folder))[1]
     for folder in decode_folders:
-        if 'decode_asr' in folder:
+        if "decode_asr" in folder:
             scoring(args.exp_folder, folder, args.out)
 
 
@@ -40,6 +40,7 @@ def scoring(exp_folder, decode_folder, out):
 
         try:
             decode_file = codecs.open(decode_file_name, "r", encoding="utf-8")
+
         except Exception:
             traceback.print_exc()
             print("\nUnable to open output file: " + decode_file_name)
