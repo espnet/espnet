@@ -10,6 +10,13 @@
   - Commit date: `Wed Jun 1 14:21:14 2022 +0900`
 - Pretrained Model: https://huggingface.co/espnet/wanchichen_fleurs_multilingual_asr_hubert_frontend
 
+### Language Identification
+|dataset|Accuracy|
+|---|---|
+|decode_asr_asr_model_valid.acc.best/dev_all|0.9193 (29070/31622)|
+|decode_asr_asr_model_valid.acc.best/test_all|0.9296 (72334/77809)|
+
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
