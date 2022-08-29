@@ -54,28 +54,21 @@ specaug_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
+    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(
-        sinc=LightweightSincConvs,
-    ),
+    classes=dict(sinc=LightweightSincConvs,),
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
 )
 encoder_choices = ClassChoices(
     "encoder",
-    classes=dict(
-        hubert_pretrain=FairseqHubertPretrainEncoder,
-    ),
+    classes=dict(hubert_pretrain=FairseqHubertPretrainEncoder,),
     type_check=AbsEncoder,
     default="hubert_pretrain",
 )

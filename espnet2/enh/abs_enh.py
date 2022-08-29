@@ -12,9 +12,7 @@ class AbsEnhancement(torch.nn.Module, ABC):
 
     @abstractmethod
     def forward(
-        self,
-        input: torch.Tensor,
-        ilens: torch.Tensor,
+        self, input: torch.Tensor, ilens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, OrderedDict]:
         raise NotImplementedError
 

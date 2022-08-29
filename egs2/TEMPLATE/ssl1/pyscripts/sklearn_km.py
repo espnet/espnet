@@ -113,13 +113,7 @@ def get_hubert_feature(feats_dir, fs, portion, url, dir, layer):
 
 
 def load_feature(
-    feats_dir,
-    fs,
-    nj,
-    portion,
-    feature_type,
-    hubert_model_url,
-    hubert_model_path,
+    feats_dir, fs, nj, portion, feature_type, hubert_model_url, hubert_model_path,
 ):
     # generate mfcc feature
     if feature_type == "mfcc":

@@ -269,8 +269,7 @@ class Tacotron2(AbsTTS):
         )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
-                sigma=guided_attn_loss_sigma,
-                alpha=guided_attn_loss_lambda,
+                sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
             )
 
     def forward(
@@ -322,13 +321,7 @@ class Tacotron2(AbsTTS):
 
         # calculate tacotron2 outputs
         after_outs, before_outs, logits, att_ws = self._forward(
-            xs=xs,
-            ilens=ilens,
-            ys=ys,
-            olens=olens,
-            spembs=spembs,
-            sids=sids,
-            lids=lids,
+            xs=xs, ilens=ilens, ys=ys, olens=olens, spembs=spembs, sids=sids, lids=lids,
         )
 
         # modify mod part of groundtruth
@@ -358,9 +351,7 @@ class Tacotron2(AbsTTS):
             raise ValueError(f"unknown --loss-type {self.loss_type}")
 
         stats = dict(
-            l1_loss=l1_loss.item(),
-            mse_loss=mse_loss.item(),
-            bce_loss=bce_loss.item(),
+            l1_loss=l1_loss.item(), mse_loss=mse_loss.item(), bce_loss=bce_loss.item(),
         )
 
         # calculate attention loss

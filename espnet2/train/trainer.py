@@ -35,6 +35,8 @@ from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.kwargs2args import kwargs2args
 
+from sniper.sniper import SniperTraining, log_nonzeros_count
+
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
@@ -159,6 +161,7 @@ class Trainer:
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
         plot_attention_iter_factory: Optional[AbsIterFactory],
+        sniper: Union[SniperTraining, None],
         trainer_options,
         distributed_option: DistributedOption,
     ) -> None:
@@ -430,6 +433,10 @@ class Trainer:
                         _removed.append(str(p))
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
+
+            if sniper is not None:
+                # log_nonzeros_count(model.tts)
+                sniper.step()
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:

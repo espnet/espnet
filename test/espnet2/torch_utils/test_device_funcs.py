@@ -19,8 +19,7 @@ class Named(NamedTuple):
 
 
 @pytest.mark.parametrize(
-    "obj",
-    [x, x.numpy(), (x,), [x], {"x": [x]}, {x}, Data(x), Named(x), 23, 3.0, None],
+    "obj", [x, x.numpy(), (x,), [x], {"x": [x]}, {x}, Data(x), Named(x), 23, 3.0, None],
 )
 def test_to_device(obj):
     to_device(obj, "cpu")
@@ -34,8 +33,7 @@ def test_to_device_cuda():
 
 
 @pytest.mark.parametrize(
-    "obj",
-    [x, x.numpy(), (x,), [x], {"x": x}, {x}, Data(x), Named(x), 23, 3.0, None],
+    "obj", [x, x.numpy(), (x,), [x], {"x": x}, {x}, Data(x), Named(x), 23, 3.0, None],
 )
 def test_force_gatherable(obj):
     force_gatherable(obj, "cpu")

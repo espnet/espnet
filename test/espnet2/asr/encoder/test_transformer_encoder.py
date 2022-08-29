@@ -9,17 +9,10 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
     "interctc_layer_idx, interctc_use_conditioning",
-    [
-        ([], False),
-        ([1], False),
-        ([1], True),
-    ],
+    [([], False), ([1], False), ([1], True),],
 )
 def test_Encoder_forward_backward(
-    input_layer,
-    positionwise_layer_type,
-    interctc_layer_idx,
-    interctc_use_conditioning,
+    input_layer, positionwise_layer_type, interctc_layer_idx, interctc_use_conditioning,
 ):
     encoder = TransformerEncoder(
         20,
@@ -51,15 +44,11 @@ def test_Encoder_forward_backward(
 def test_encoder_invalid_interctc_layer_idx():
     with pytest.raises(AssertionError):
         TransformerEncoder(
-            20,
-            num_blocks=2,
-            interctc_layer_idx=[0, 1],
+            20, num_blocks=2, interctc_layer_idx=[0, 1],
         )
     with pytest.raises(AssertionError):
         TransformerEncoder(
-            20,
-            num_blocks=2,
-            interctc_layer_idx=[1, 2],
+            20, num_blocks=2, interctc_layer_idx=[1, 2],
         )
 
 

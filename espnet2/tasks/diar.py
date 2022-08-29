@@ -37,9 +37,7 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
-        s3prl=S3prlFrontend,
+        default=DefaultFrontend, sliding_window=SlidingWindow, s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
     default="default",
@@ -54,10 +52,7 @@ specaug_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
+    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
@@ -70,9 +65,7 @@ label_aggregator_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        conformer=ConformerEncoder,
-        transformer=TransformerEncoder,
-        rnn=RNNEncoder,
+        conformer=ConformerEncoder, transformer=TransformerEncoder, rnn=RNNEncoder,
     ),
     type_check=AbsEncoder,
     default="transformer",
@@ -85,9 +78,7 @@ decoder_choices = ClassChoices(
 )
 attractor_choices = ClassChoices(
     "attractor",
-    classes=dict(
-        rnn=RnnAttractor,
-    ),
+    classes=dict(rnn=RnnAttractor,),
     type_check=AbsAttractor,
     default=None,
     optional=True,
@@ -274,8 +265,7 @@ class DiarizationTask(AbsTask):
         if getattr(args, "attractor", None) is not None:
             attractor_class = attractor_choices.get_class(args.attractor)
             attractor = attractor_class(
-                encoder_output_size=encoder.output_size(),
-                **args.attractor_conf,
+                encoder_output_size=encoder.output_size(), **args.attractor_conf,
             )
         else:
             attractor = None

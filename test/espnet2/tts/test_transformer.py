@@ -13,8 +13,7 @@ from espnet2.tts.transformer import Transformer
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize(
-    "spks, langs, use_gst",
-    [(-1, -1, False), (5, 2, True)],
+    "spks, langs, use_gst", [(-1, -1, False), (5, 2, True)],
 )
 @pytest.mark.parametrize(
     "use_guided_attn_loss, modules_applied_guided_attn",
@@ -95,9 +94,7 @@ def test_tranformer(
         model.eval()
 
         # free running
-        inputs = dict(
-            text=torch.randint(0, 10, (2,)),
-        )
+        inputs = dict(text=torch.randint(0, 10, (2,)),)
         if use_gst:
             inputs.update(feats=torch.randn(5, 5))
         if spk_embed_dim is not None:

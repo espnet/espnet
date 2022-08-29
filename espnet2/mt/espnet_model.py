@@ -153,11 +153,7 @@ class ESPnetMTModel(AbsESPnetModel):
         # 3. Loss computation
         loss = loss_mt_att
 
-        stats = dict(
-            loss=loss.detach(),
-            acc=acc_mt_att,
-            bleu=bleu_mt_att,
-        )
+        stats = dict(loss=loss.detach(), acc=acc_mt_att, bleu=bleu_mt_att,)
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

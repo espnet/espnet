@@ -57,11 +57,7 @@ class ImprovedTransformerLayer(nn.Module):
         self.norm_attn = choose_norm(norm, input_size)
 
         self.rnn = getattr(nn, rnn_type)(
-            input_size,
-            hidden_size,
-            1,
-            batch_first=True,
-            bidirectional=bidirectional,
+            input_size, hidden_size, 1, batch_first=True, bidirectional=bidirectional,
         )
 
         activation = get_activation(activation)

@@ -142,8 +142,7 @@ class Encoder(torch.nn.Module):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(attention_dim, positional_dropout_rate),
+                input_layer, pos_enc_class(attention_dim, positional_dropout_rate),
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(

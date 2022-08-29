@@ -35,11 +35,7 @@ class JointNetwork(torch.nn.Module):
 
         self.joint_activation = get_activation(joint_activation_type)
 
-    def forward(
-        self,
-        enc_out: torch.Tensor,
-        dec_out: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, enc_out: torch.Tensor, dec_out: torch.Tensor,) -> torch.Tensor:
         """Joint computation of encoder and decoder hidden state sequences.
 
         Args:

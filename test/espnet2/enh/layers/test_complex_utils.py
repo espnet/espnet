@@ -200,9 +200,6 @@ def test_complex_impl_consistency():
         (inverse(mat_th), inverse(mat_ct)),
         (matmul(mat_th, vec_th.unsqueeze(-1)), matmul(mat_ct, vec_ct.unsqueeze(-1))),
         (solve(vec_th.unsqueeze(-1), mat_th), solve(vec_ct.unsqueeze(-1), mat_ct)),
-        (
-            einsum("bec,bc->be", mat_th, vec_th),
-            einsum("bec,bc->be", mat_ct, vec_ct),
-        ),
+        (einsum("bec,bc->be", mat_th, vec_th), einsum("bec,bc->be", mat_ct, vec_ct),),
     ):
         np.testing.assert_allclose(result_th.numpy(), result_ct.numpy(), atol=1e-6)

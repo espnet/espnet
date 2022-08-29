@@ -26,9 +26,7 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
     """Hugging Face Transformers PostEncoder."""
 
     def __init__(
-        self,
-        input_size: int,
-        model_name_or_path: str,
+        self, input_size: int, model_name_or_path: str,
     ):
         """Initialize the module."""
         assert check_argument_types()

@@ -135,12 +135,12 @@ class NoamScheduler(SchedulerInterface):
     def __init__(self, key, args):
         """Initialize class."""
         super().__init__(key, args)
-        self.normalize = 1 / (self.warmup * self.warmup**-1.5)
+        self.normalize = 1 / (self.warmup * self.warmup ** -1.5)
 
     def scale(self, step):
         """Scale of lr."""
         step += 1  # because step starts from 0
-        return self.normalize * min(step**-0.5, step * self.warmup**-1.5)
+        return self.normalize * min(step ** -0.5, step * self.warmup ** -1.5)
 
 
 @register_scheduler

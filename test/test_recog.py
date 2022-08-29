@@ -129,11 +129,7 @@ def test_batch_beam_search(ctc_weight):
     rand_range = (-0.01, 0.01)
     torch.manual_seed(1)
     char_list = ["<blank>", "<space>"] + args.char_list + ["<eos>"]
-    args = make_small_arg(
-        ctc_weight=ctc_weight,
-        ctc_window_margin=10,
-        beam_size=5,
-    )
+    args = make_small_arg(ctc_weight=ctc_weight, ctc_window_margin=10, beam_size=5,)
     model = e2e_asr.E2E(idim, len(char_list), args)
 
     char_dict = {x: i for i, x in enumerate(char_list)}

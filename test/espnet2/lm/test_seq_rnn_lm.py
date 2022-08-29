@@ -61,9 +61,7 @@ def test_SequentialRNNLM_beam_search(rnn_type, tie_weights, dtype):
     enc = torch.randn(10, 20).type(dtype)
     with torch.no_grad():
         beam(
-            x=enc,
-            maxlenratio=0.0,
-            minlenratio=0.0,
+            x=enc, maxlenratio=0.0, minlenratio=0.0,
         )
 
 
@@ -92,7 +90,5 @@ def test_SequentialRNNLM_batch_beam_search(rnn_type, tie_weights, dtype):
     enc = torch.randn(10, 20).type(dtype)
     with torch.no_grad():
         beam(
-            x=enc,
-            maxlenratio=0.0,
-            minlenratio=0.0,
+            x=enc, maxlenratio=0.0, minlenratio=0.0,
         )

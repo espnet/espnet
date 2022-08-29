@@ -90,7 +90,7 @@ sort_batch: descending    # how to sort created batches
 num_workers: 1            # number of workers of data loader
 train_dtype: float32      # dtype in training
 log_interval: null        # log interval in iterations
-keep_nbest_models: 5      # number of models to keep
+keep_nbest_models: 1      # number of models to keep
 num_att_plot: 3           # number of attention figures to be saved in every check
 seed: 0                   # random seed number
 best_model_criterion:     # criterion to save the best models
@@ -100,5 +100,21 @@ best_model_criterion:     # criterion to save the best models
 -   - train
     - loss
     - min
+
+##########################################################
+#                SNIPER TRAINING SETTING                 #
+##########################################################
+use_sniper: true
+sniper_dir: sniper/fastspeech2
+sniper_conf:
+    exclude_params:
+        - batch_norm
+    schedule:    # epoch: sparsity
+        0: 60
+        100: 40
+        250: 20
+        450: 10
+        700: 0
+
 
 

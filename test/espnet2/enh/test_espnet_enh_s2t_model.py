@@ -21,57 +21,35 @@ from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.layers.label_aggregation import LabelAggregate
 
-enh_stft_encoder = STFTEncoder(
-    n_fft=32,
-    hop_length=16,
-)
+enh_stft_encoder = STFTEncoder(n_fft=32, hop_length=16,)
 
-enh_stft_decoder = STFTDecoder(
-    n_fft=32,
-    hop_length=16,
-)
+enh_stft_decoder = STFTDecoder(n_fft=32, hop_length=16,)
 
-enh_rnn_separator = RNNSeparator(
-    input_dim=17,
-    layer=1,
-    unit=10,
-    num_spk=1,
-)
+enh_rnn_separator = RNNSeparator(input_dim=17, layer=1, unit=10, num_spk=1,)
 
 si_snr_loss = SISNRLoss()
 
 fix_order_solver = FixedOrderSolver(criterion=si_snr_loss)
 
 default_frontend = DefaultFrontend(
-    fs=300,
-    n_fft=32,
-    win_length=32,
-    hop_length=24,
-    n_mels=32,
+    fs=300, n_fft=32, win_length=32, hop_length=24, n_mels=32,
 )
 
 token_list = ["<blank>", "<space>", "a", "e", "i", "o", "u", "<sos/eos>"]
 
 asr_transformer_encoder = TransformerEncoder(
-    32,
-    output_size=16,
-    linear_units=16,
-    num_blocks=2,
+    32, output_size=16, linear_units=16, num_blocks=2,
 )
 
 asr_transformer_decoder = TransformerDecoder(
-    len(token_list),
-    16,
-    linear_units=16,
-    num_blocks=2,
+    len(token_list), 16, linear_units=16, num_blocks=2,
 )
 
 asr_ctc = CTC(odim=len(token_list), encoder_output_size=16)
 
 
 @pytest.mark.parametrize(
-    "enh_encoder, enh_decoder",
-    [(enh_stft_encoder, enh_stft_decoder)],
+    "enh_encoder, enh_decoder", [(enh_stft_encoder, enh_stft_decoder)],
 )
 @pytest.mark.parametrize("enh_separator", [enh_rnn_separator])
 @pytest.mark.parametrize("training", [True, False])
@@ -116,10 +94,7 @@ def test_enh_asr_model(
         postencoder=None,
         joint_network=None,
     )
-    enh_s2t_model = ESPnetEnhS2TModel(
-        enh_model=enh_model,
-        s2t_model=s2t_model,
-    )
+    enh_s2t_model = ESPnetEnhS2TModel(enh_model=enh_model, s2t_model=s2t_model,)
 
     if training:
         enh_s2t_model.train()
@@ -136,22 +111,11 @@ def test_enh_asr_model(
     loss, stats, weight = enh_s2t_model(**kwargs)
 
 
-label_aggregator = LabelAggregate(
-    win_length=32,
-    hop_length=16,
-)
+label_aggregator = LabelAggregate(win_length=32, hop_length=16,)
 
-enh_encoder = ConvEncoder(
-    channel=17,
-    kernel_size=32,
-    stride=16,
-)
+enh_encoder = ConvEncoder(channel=17, kernel_size=32, stride=16,)
 
-enh_decoder = ConvDecoder(
-    channel=17,
-    kernel_size=32,
-    stride=16,
-)
+enh_decoder = ConvDecoder(channel=17, kernel_size=32, stride=16,)
 
 tcn_separator = TCNSeparatorNomask(
     input_dim=enh_encoder.output_dim,
@@ -163,17 +127,10 @@ tcn_separator = TCNSeparatorNomask(
 )
 
 mask_module = MultiMask(
-    bottleneck_dim=10,
-    max_num_spk=3,
-    input_dim=enh_encoder.output_dim,
+    bottleneck_dim=10, max_num_spk=3, input_dim=enh_encoder.output_dim,
 )
 
-diar_frontend = DefaultFrontend(
-    n_fft=32,
-    win_length=32,
-    hop_length=16,
-    n_mels=32,
-)
+diar_frontend = DefaultFrontend(n_fft=32, win_length=32, hop_length=16, n_mels=32,)
 
 diar_encoder = TransformerEncoder(
     input_layer="linear",
@@ -184,10 +141,7 @@ diar_encoder = TransformerEncoder(
     input_size=tcn_separator.output_dim + diar_frontend.output_size(),
 )
 
-diar_decoder = LinearDecoder(
-    num_spk=2,
-    encoder_output_size=diar_encoder.output_size(),
-)
+diar_decoder = LinearDecoder(num_spk=2, encoder_output_size=diar_encoder.output_size(),)
 
 
 @pytest.mark.parametrize("label_aggregator", [label_aggregator])
@@ -229,10 +183,7 @@ def test_enh_diar_model(
         normalize=None,
         attractor=None,
     )
-    enh_s2t_model = ESPnetEnhS2TModel(
-        enh_model=enh_model,
-        s2t_model=diar_model,
-    )
+    enh_s2t_model = ESPnetEnhS2TModel(enh_model=enh_model, s2t_model=diar_model,)
 
     if training:
         enh_s2t_model.train()

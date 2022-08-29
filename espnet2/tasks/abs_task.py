@@ -64,6 +64,8 @@ from espnet2.utils.types import (
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 from espnet.utils.cli_utils import get_commandline_args
 
+from sniper.sniper import SniperTraining
+
 try:
     import wandb
 except Exception:
@@ -89,9 +91,7 @@ optim_classes = dict(
 )
 if V(torch.__version__) >= V("1.10.0"):
     # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
+    optim_classes.update(radam=torch.optim.RAdam,)
 try:
     import torch_optimizer
 
@@ -111,22 +111,20 @@ try:
     )
     if V(torch_optimizer.__version__) < V("0.2.0"):
         # From 0.2.0, RAdam is dropped
-        optim_classes.update(
-            radam=torch_optimizer.RAdam,
-        )
+        optim_classes.update(radam=torch_optimizer.RAdam,)
     del torch_optimizer
 except ImportError:
     pass
 try:
-    import apex
+    from apex import optimizers
 
     optim_classes.update(
-        fusedadam=apex.optimizers.FusedAdam,
-        fusedlamb=apex.optimizers.FusedLAMB,
-        fusednovograd=apex.optimizers.FusedNovoGrad,
-        fusedsgd=apex.optimizers.FusedSGD,
+        fusedadam=optimizers.FusedAdam,
+        fusedlamb=optimizers.FusedLAMB,
+        fusednovograd=optimizers.FusedNovoGrad,
+        fusedsgd=optimizers.FusedSGD,
     )
-    del apex
+    del optimizers
 except ImportError:
     pass
 try:
@@ -261,8 +259,7 @@ class AbsTask(ABC):
         assert check_argument_types()
 
         class ArgumentDefaultsRawTextHelpFormatter(
-            argparse.RawTextHelpFormatter,
-            argparse.ArgumentDefaultsHelpFormatter,
+            argparse.RawTextHelpFormatter, argparse.ArgumentDefaultsHelpFormatter,
         ):
             pass
 
@@ -331,10 +328,7 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("distributed training related")
         group.add_argument(
-            "--dist_backend",
-            default="nccl",
-            type=str,
-            help="distributed backend",
+            "--dist_backend", default="nccl", type=str, help="distributed backend",
         )
         group.add_argument(
             "--dist_init_method",
@@ -578,34 +572,19 @@ class AbsTask(ABC):
             help="Whether to create graph in tensorboard",
         )
         group.add_argument(
-            "--use_wandb",
-            type=str2bool,
-            default=False,
-            help="Enable wandb logging",
+            "--use_wandb", type=str2bool, default=False, help="Enable wandb logging",
         )
         group.add_argument(
-            "--wandb_project",
-            type=str,
-            default=None,
-            help="Specify wandb project",
+            "--wandb_project", type=str, default=None, help="Specify wandb project",
         )
         group.add_argument(
-            "--wandb_id",
-            type=str,
-            default=None,
-            help="Specify wandb id",
+            "--wandb_id", type=str, default=None, help="Specify wandb id",
         )
         group.add_argument(
-            "--wandb_entity",
-            type=str,
-            default=None,
-            help="Specify wandb entity",
+            "--wandb_entity", type=str, default=None, help="Specify wandb entity",
         )
         group.add_argument(
-            "--wandb_name",
-            type=str,
-            default=None,
-            help="Specify wandb run name",
+            "--wandb_name", type=str, default=None, help="Specify wandb run name",
         )
         group.add_argument(
             "--wandb_model_log_interval",
@@ -649,11 +628,7 @@ class AbsTask(ABC):
             help="Ignore size mismatch when loading pre-trained model",
         )
         group.add_argument(
-            "--freeze_param",
-            type=str,
-            default=[],
-            nargs="*",
-            help="Freeze parameters",
+            "--freeze_param", type=str, default=[], nargs="*", help="Freeze parameters",
         )
 
         group = parser.add_argument_group("BatchSampler related")
@@ -846,6 +821,26 @@ class AbsTask(ABC):
                 help="The keyword arguments for lr scheduler",
             )
 
+        group = parser.add_argument_group("SNIP related")
+        group.add_argument(
+            "--use_sniper",
+            type=str2bool,
+            default=False,
+            help="Whether to use SNIP"
+        )
+        group.add_argument(
+            "--sniper_dir",
+            type=str,
+            default='',
+            help="Directory to save masks and initial weights",
+        )
+        group.add_argument(
+            "--sniper_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Config which should contain exclude_params and schedule",
+        )
+
         cls.trainer.add_arguments(parser)
         cls.add_task_arguments(parser)
 
@@ -854,9 +849,7 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls,
-        args: argparse.Namespace,
-        model: torch.nn.Module,
+        cls, args: argparse.Namespace, model: torch.nn.Module,
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
@@ -877,6 +870,7 @@ class AbsTask(ABC):
 
         optimizers = [optim]
         return optimizers
+
 
     @classmethod
     def exclude_opts(cls) -> Tuple[str, ...]:
@@ -1013,6 +1007,7 @@ class AbsTask(ABC):
             sys.exit(0)
         cls.check_required_command_args(args)
 
+
         # "distributed" is decided using the other command args
         resolve_distributed_mode(args)
         if not args.distributed or not args.multiprocessing_distributed:
@@ -1058,9 +1053,7 @@ class AbsTask(ABC):
                 local_args.ngpu = 1
 
                 process = mp.Process(
-                    target=cls.main_worker,
-                    args=(local_args,),
-                    daemon=False,
+                    target=cls.main_worker, args=(local_args,), daemon=False,
                 )
                 process.start()
                 processes.append(process)
@@ -1123,10 +1116,10 @@ class AbsTask(ABC):
             raise RuntimeError(
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
-        model = model.to(
-            dtype=getattr(torch, args.train_dtype),
-            device="cuda" if args.ngpu > 0 else "cpu",
-        )
+        train_dtype = getattr(torch, args.train_dtype)
+        device = "cuda" if args.ngpu > 0 else "cpu"
+        model = model.to(dtype=train_dtype, device=device)
+
         for t in args.freeze_param:
             for k, p in model.named_parameters():
                 if k.startswith(t + ".") or k == t:
@@ -1240,20 +1233,14 @@ class AbsTask(ABC):
             # 7. Build iterator factories
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
-                    args=args,
-                    distributed_option=distributed_option,
-                    mode="train",
+                    args=args, distributed_option=distributed_option, mode="train",
                 )
             else:
                 train_iter_factory = cls.build_iter_factory(
-                    args=args,
-                    distributed_option=distributed_option,
-                    mode="train",
+                    args=args, distributed_option=distributed_option, mode="train",
                 )
             valid_iter_factory = cls.build_iter_factory(
-                args=args,
-                distributed_option=distributed_option,
-                mode="valid",
+                args=args, distributed_option=distributed_option, mode="valid",
             )
             if not args.use_matplotlib and args.num_att_plot != 0:
                 args.num_att_plot = 0
@@ -1261,12 +1248,34 @@ class AbsTask(ABC):
 
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
-                    args=args,
-                    distributed_option=distributed_option,
-                    mode="plot_att",
+                    args=args, distributed_option=distributed_option, mode="plot_att",
                 )
             else:
                 plot_attention_iter_factory = None
+
+            if args.use_sniper:
+                sniper = SniperTraining(sniper_dir=args.sniper_dir, device=device, logger=logging.root)
+                data_loader = train_iter_factory.build_iter(epoch=1)
+                batch_iterator = (batch for utt_id, batch in data_loader)
+                schedule = args.sniper_conf["schedule"]
+                exclude_params = args.sniper_conf["exclude_params"]
+
+                def get_loss_fn(model, batch):
+                    retval = model(**batch)
+                    return retval["loss"] if isinstance(retval, dict) else retval[0]
+                sniper.train(
+                    schedule=schedule,
+                    model=model,
+                    model_builder=lambda: cls.build_model(args),
+                    snip_module_name="tts",
+                    batch_iterator=batch_iterator,
+                    get_loss_fn=get_loss_fn,
+                    exclude_params=exclude_params,
+                    train_dtype=train_dtype,
+                    epoch=0
+                )
+            else:
+                sniper = None
 
             # 8. Start training
             if args.use_wandb:
@@ -1319,6 +1328,7 @@ class AbsTask(ABC):
                 train_iter_factory=train_iter_factory,
                 valid_iter_factory=valid_iter_factory,
                 plot_attention_iter_factory=plot_attention_iter_factory,
+                sniper=sniper,
                 trainer_options=trainer_options,
                 distributed_option=distributed_option,
             )
@@ -1328,10 +1338,7 @@ class AbsTask(ABC):
 
     @classmethod
     def build_iter_options(
-        cls,
-        args: argparse.Namespace,
-        distributed_option: DistributedOption,
-        mode: str,
+        cls, args: argparse.Namespace, distributed_option: DistributedOption, mode: str,
     ):
         if mode == "train":
             preprocess_fn = cls.build_preprocess_fn(args, train=True)
@@ -1422,22 +1429,22 @@ class AbsTask(ABC):
     ) -> AbsIterFactory:
         """Build a factory object of mini-batch iterator.
 
-        This object is invoked at every epochs to build the iterator for each epoch
+        This object is invoked at every epoch to build the iterator for each epoch
         as following:
 
         >>> iter_factory = cls.build_iter_factory(...)
         >>> for epoch in range(1, max_epoch):
-        ...     for keys, batch in iter_fatory.build_iter(epoch):
+        ...     for keys, batch in iter_factory.build_iter(epoch):
         ...         model(**batch)
 
-        The mini-batches for each epochs are fully controlled by this class.
+        The mini-batches for each epoch are fully controlled by this class.
         Note that the random seed used for shuffling is decided as "seed + epoch" and
-        the generated mini-batches can be reproduces when resuming.
+        the generated mini-batches can be reproduced when resuming.
 
         Note that the definition of "epoch" doesn't always indicate
         to run out of the whole training corpus.
         "--num_iters_per_epoch" option restricts the number of iterations for each epoch
-        and the rest of samples for the originally epoch are left for the next epoch.
+        and the rest of samples for the original epoch are left for the next epoch.
         e.g. If The number of mini-batches equals to 4, the following two are same:
 
         - 1 epoch without "--num_iters_per_epoch"
@@ -1454,21 +1461,15 @@ class AbsTask(ABC):
 
         if args.iterator_type == "sequence":
             return cls.build_sequence_iter_factory(
-                args=args,
-                iter_options=iter_options,
-                mode=mode,
+                args=args, iter_options=iter_options, mode=mode,
             )
         elif args.iterator_type == "chunk":
             return cls.build_chunk_iter_factory(
-                args=args,
-                iter_options=iter_options,
-                mode=mode,
+                args=args, iter_options=iter_options, mode=mode,
             )
         elif args.iterator_type == "task":
             return cls.build_task_iter_factory(
-                args=args,
-                iter_options=iter_options,
-                mode=mode,
+                args=args, iter_options=iter_options, mode=mode,
             )
         else:
             raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
@@ -1553,10 +1554,7 @@ class AbsTask(ABC):
 
     @classmethod
     def build_chunk_iter_factory(
-        cls,
-        args: argparse.Namespace,
-        iter_options: IteratorOptions,
-        mode: str,
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str,
     ) -> AbsIterFactory:
         assert check_argument_types()
 
@@ -1626,10 +1624,7 @@ class AbsTask(ABC):
     # NOTE(kamo): Not abstract class
     @classmethod
     def build_task_iter_factory(
-        cls,
-        args: argparse.Namespace,
-        iter_options: IteratorOptions,
-        mode: str,
+        cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str,
     ) -> AbsIterFactory:
         """Build task specific iterator factory
 
@@ -1781,10 +1776,7 @@ class AbsTask(ABC):
         )
 
         return DataLoader(
-            dataset=dataset,
-            pin_memory=ngpu > 0,
-            num_workers=num_workers,
-            **kwargs,
+            dataset=dataset, pin_memory=ngpu > 0, num_workers=num_workers, **kwargs,
         )
 
     # ~~~~~~~~~ The methods below are mainly used for inference ~~~~~~~~~

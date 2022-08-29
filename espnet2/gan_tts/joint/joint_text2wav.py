@@ -284,39 +284,27 @@ class JointText2Wav(AbsGANTTS):
         self.generator = torch.nn.ModuleDict()
         text2mel_class = AVAILABLE_TEXT2MEL[text2mel_type]
         text2mel_params.update(idim=idim, odim=odim)
-        self.generator["text2mel"] = text2mel_class(
-            **text2mel_params,
-        )
+        self.generator["text2mel"] = text2mel_class(**text2mel_params,)
         vocoder_class = AVAILABLE_VOCODER[vocoder_type]
         if vocoder_type in ["hifigan_generator", "melgan_generator"]:
             vocoder_params.update(in_channels=odim)
         elif vocoder_type in ["parallel_wavegan_generator", "style_melgan_generator"]:
             vocoder_params.update(aux_channels=odim)
-        self.generator["vocoder"] = vocoder_class(
-            **vocoder_params,
-        )
+        self.generator["vocoder"] = vocoder_class(**vocoder_params,)
         if self.use_pqmf:
             self.pqmf = PQMF(**pqmf_params)
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
-        self.discriminator = discriminator_class(
-            **discriminator_params,
-        )
-        self.generator_adv_loss = GeneratorAdversarialLoss(
-            **generator_adv_loss_params,
-        )
+        self.discriminator = discriminator_class(**discriminator_params,)
+        self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params,)
         self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
             **discriminator_adv_loss_params,
         )
         self.use_feat_match_loss = use_feat_match_loss
         if self.use_feat_match_loss:
-            self.feat_match_loss = FeatureMatchLoss(
-                **feat_match_loss_params,
-            )
+            self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params,)
         self.use_mel_loss = use_mel_loss
         if self.use_mel_loss:
-            self.mel_loss = MelSpectrogramLoss(
-                **mel_loss_params,
-            )
+            self.mel_loss = MelSpectrogramLoss(**mel_loss_params,)
 
         # coefficients
         self.lambda_text2mel = lambda_text2mel
@@ -604,11 +592,7 @@ class JointText2Wav(AbsGANTTS):
             "optim_idx": 1,  # needed for trainer
         }
 
-    def inference(
-        self,
-        text: torch.Tensor,
-        **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    def inference(self, text: torch.Tensor, **kwargs,) -> Dict[str, torch.Tensor]:
         """Run inference.
 
         Args:
@@ -620,10 +604,7 @@ class JointText2Wav(AbsGANTTS):
                 * feat_gan (Tensor): Generated feature tensor (T_text, C).
 
         """
-        output_dict = self.generator["text2mel"].inference(
-            text=text,
-            **kwargs,
-        )
+        output_dict = self.generator["text2mel"].inference(text=text, **kwargs,)
         wav = self.generator["vocoder"].inference(output_dict["feat_gen"])
         if self.use_pqmf:
             wav = self.pqmf.synthesis(wav.unsqueeze(0).transpose(1, 2))

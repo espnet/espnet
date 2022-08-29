@@ -22,14 +22,7 @@ def test_main():
 def diar_config_file(tmp_path: Path):
     # Write default configuration file
     DiarizationTask.main(
-        cmd=[
-            "--dry_run",
-            "true",
-            "--output_dir",
-            str(tmp_path),
-            "--num_spk",
-            "2",
-        ]
+        cmd=["--dry_run", "true", "--output_dir", str(tmp_path), "--num_spk", "2",]
     )
     return tmp_path / "config.yaml"
 
@@ -82,11 +75,7 @@ def diar_config_file2(tmp_path: Path):
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
     "input_size, segment_size, normalize_segment_scale",
-    [
-        (16000, None, False),
-        (35000, 2.4, False),
-        (34000, 2.4, True),
-    ],
+    [(16000, None, False), (35000, 2.4, False), (34000, 2.4, True),],
 )
 @pytest.mark.parametrize("num_spk", [None, 2])
 def test_DiarizeSpeech2(

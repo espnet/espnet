@@ -66,7 +66,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Caclualte outputs and return the loss tensor.
+        """Calculate outputs and return the loss tensor.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).

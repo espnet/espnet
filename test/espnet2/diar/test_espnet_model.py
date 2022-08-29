@@ -8,12 +8,7 @@ from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.label_aggregation import LabelAggregate
 
-frontend = DefaultFrontend(
-    n_fft=32,
-    win_length=32,
-    hop_length=16,
-    n_mels=10,
-)
+frontend = DefaultFrontend(n_fft=32, win_length=32, hop_length=16, n_mels=10,)
 
 encoder = TransformerEncoder(
     input_size=10,
@@ -24,17 +19,11 @@ encoder = TransformerEncoder(
     attention_heads=2,
 )
 
-decoder = LinearDecoder(
-    num_spk=2,
-    encoder_output_size=encoder.output_size(),
-)
+decoder = LinearDecoder(num_spk=2, encoder_output_size=encoder.output_size(),)
 
 rnn_attractor = RnnAttractor(unit=16, encoder_output_size=encoder.output_size())
 
-label_aggregator = LabelAggregate(
-    win_length=32,
-    hop_length=16,
-)
+label_aggregator = LabelAggregate(win_length=32, hop_length=16,)
 
 
 @pytest.mark.parametrize(
@@ -44,12 +33,7 @@ label_aggregator = LabelAggregate(
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("attractor", [rnn_attractor, None])
 def test_single_channel_model(
-    label_aggregator,
-    frontend,
-    encoder,
-    decoder,
-    attractor,
-    training,
+    label_aggregator, frontend, encoder, decoder, attractor, training,
 ):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])

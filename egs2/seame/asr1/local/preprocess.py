@@ -115,16 +115,8 @@ def remove_repeated_noise(text, pattern="<noise>"):
 def normalize_text(text):
     """normalize a text sequence"""
 
-    rmtext = re.sub(
-        r"\(((pp)(\w)+)\)",
-        "<noise>",
-        text.lower(),
-    )
-    rmtext = re.sub(
-        r"\<((pp)(\w)+)\>",
-        "<noise>",
-        rmtext,
-    )
+    rmtext = re.sub(r"\(((pp)(\w)+)\)", "<noise>", text.lower(),)
+    rmtext = re.sub(r"\<((pp)(\w)+)\>", "<noise>", rmtext,)
     rmtext = rmtext.translate(pattern)
     rmtext = remove_control_chars(rmtext)
     output_text = ""
@@ -396,10 +388,8 @@ def write_f(pth, filename, data_dict):
                                             no_noise_text = normalized_text.replace(
                                                 "<noise>", ""
                                             ).replace("<unk>", "")
-                                            no_noise_text = (
-                                                remove_redundant_whitespaces(
-                                                    no_noise_text
-                                                )
+                                            no_noise_text = remove_redundant_whitespaces(
+                                                no_noise_text
                                             )
                                             normalized_text = normalized_text.replace(
                                                 "<unk>", "<UNK>"
@@ -522,10 +512,7 @@ if __name__ == "__main__":
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--out",
-        "-o",
-        type=str,
-        help="Path to output directory.",
+        "--out", "-o", type=str, help="Path to output directory.",
     )
     parser.add_argument("--data", "-d", type=str, help="Path to original corpus.")
     parser.add_argument(
@@ -639,6 +626,5 @@ if __name__ == "__main__":
     )
 
     write_bpe_train_text(
-        sorted_data_dict,
-        os.path.join(out_pth, "train", "text.eng.bpe"),
+        sorted_data_dict, os.path.join(out_pth, "train", "text.eng.bpe"),
     )

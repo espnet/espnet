@@ -328,27 +328,19 @@ class Phonemizer:
         from phonemizer.separator import Separator
 
         self.separator = Separator(
-            word=word_separator,
-            syllable=syllable_separator,
-            phone=phone_separator,
+            word=word_separator, syllable=syllable_separator, phone=phone_separator,
         )
 
         # define logger to suppress the warning in phonemizer
         logger = logging.getLogger("phonemizer")
         logger.setLevel(logging.ERROR)
-        self.phonemizer = BACKENDS[backend](
-            **phonemizer_kwargs,
-            logger=logger,
-        )
+        self.phonemizer = BACKENDS[backend](**phonemizer_kwargs, logger=logger,)
         self.strip = strip
         self.split_by_single_token = split_by_single_token
 
     def __call__(self, text) -> List[str]:
         tokens = self.phonemizer.phonemize(
-            [text],
-            separator=self.separator,
-            strip=self.strip,
-            njobs=1,
+            [text], separator=self.separator, strip=self.strip, njobs=1,
         )[0]
         if not self.split_by_single_token:
             return tokens.split()

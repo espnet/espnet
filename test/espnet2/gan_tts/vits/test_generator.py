@@ -116,14 +116,7 @@ def test_vits_generator_forward(model_dict):
 
     # check inference
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                2,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (2, 5,),),
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
     )
     if args["spk_embed_dim"] > 0:
@@ -140,14 +133,7 @@ def test_vits_generator_forward(model_dict):
 
     # check inference with predifined duration
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                1,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (1, 5,),),
         text_lengths=torch.tensor([5], dtype=torch.long),
         dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
     )
@@ -166,14 +152,7 @@ def test_vits_generator_forward(model_dict):
 
     # check inference with teacher forcing
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                1,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (1, 5,),),
         text_lengths=torch.tensor([5], dtype=torch.long),
         feats=torch.randn(1, odim, 16),
         feats_lengths=torch.tensor([16], dtype=torch.long),
@@ -253,14 +232,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
 
     # check inference
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                2,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (2, 5,),),
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
         sids=torch.randint(0, spks, (1,)),
     )
@@ -278,14 +250,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
 
     # check inference with predefined duration
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                1,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (1, 5,),),
         text_lengths=torch.tensor([5], dtype=torch.long),
         sids=torch.randint(0, spks, (1,)),
         dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
@@ -305,14 +270,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
 
     # check inference with teacher forcing
     inputs = dict(
-        text=torch.randint(
-            0,
-            idim,
-            (
-                1,
-                5,
-            ),
-        ),
+        text=torch.randint(0, idim, (1, 5,),),
         text_lengths=torch.tensor([5], dtype=torch.long),
         feats=torch.randn(1, odim, 16),
         feats_lengths=torch.tensor([16], dtype=torch.long),

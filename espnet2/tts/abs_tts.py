@@ -25,11 +25,7 @@ class AbsTTS(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def inference(
-        self,
-        text: torch.Tensor,
-        **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    def inference(self, text: torch.Tensor, **kwargs,) -> Dict[str, torch.Tensor]:
         """Return predicted output as a dict."""
         raise NotImplementedError
 
@@ -41,4 +37,4 @@ class AbsTTS(torch.nn.Module, ABC):
     @property
     def require_vocoder(self):
         """Return whether or not vocoder is required."""
-        return True
+        return False

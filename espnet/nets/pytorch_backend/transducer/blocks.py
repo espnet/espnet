@@ -32,9 +32,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 
 
 def verify_block_arguments(
-    net_part: str,
-    block: Dict[str, Any],
-    num_block: int,
+    net_part: str, block: Dict[str, Any], num_block: int,
 ) -> Tuple[int, int]:
     """Verify block arguments are valid.
 
@@ -146,10 +144,7 @@ def prepare_input_layer(
     return input_block
 
 
-def prepare_body_model(
-    net_part: str,
-    blocks: List[Dict[str, Any]],
-) -> Tuple[int]:
+def prepare_body_model(net_part: str, blocks: List[Dict[str, Any]],) -> Tuple[int]:
     """Prepare model body blocks.
 
     Args:
@@ -220,9 +215,7 @@ def get_pos_enc_and_att_class(
 
 
 def build_input_layer(
-    block: Dict[str, Any],
-    pos_enc_class: torch.nn.Module,
-    padding_idx: int,
+    block: Dict[str, Any], pos_enc_class: torch.nn.Module, padding_idx: int,
 ) -> Tuple[Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], int]:
     """Build input layer.
 
@@ -288,10 +281,7 @@ def build_input_layer(
 
 
 def build_transformer_block(
-    net_part: str,
-    block: Dict[str, Any],
-    pw_layer_type: str,
-    pw_activation_type: str,
+    net_part: str, block: Dict[str, Any], pw_layer_type: str, pw_activation_type: str,
 ) -> Union[EncoderLayer, TransformerDecoderLayer]:
     """Build function for transformer block.
 
@@ -497,9 +487,7 @@ def build_blocks(
     out_dim = prepare_body_model(net_part, blocks)
 
     input_layer, conv_subsampling_factor = build_input_layer(
-        input_block,
-        pos_enc_class,
-        padding_idx,
+        input_block, pos_enc_class, padding_idx,
     )
 
     for i in range(len(blocks)):

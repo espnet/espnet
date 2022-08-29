@@ -234,10 +234,7 @@ class LegacyRelPositionalEncoding(PositionalEncoding):
     def __init__(self, d_model, dropout_rate, max_len=5000):
         """Initialize class."""
         super().__init__(
-            d_model=d_model,
-            dropout_rate=dropout_rate,
-            max_len=max_len,
-            reverse=True,
+            d_model=d_model, dropout_rate=dropout_rate, max_len=max_len, reverse=True,
         )
 
     def forward(self, x):
@@ -325,8 +322,7 @@ class RelPositionalEncoding(torch.nn.Module):
         self.extend_pe(x)
         x = x * self.xscale
         pos_emb = self.pe[
-            :,
-            self.pe.size(1) // 2 - x.size(1) + 1 : self.pe.size(1) // 2 + x.size(1),
+            :, self.pe.size(1) // 2 - x.size(1) + 1 : self.pe.size(1) // 2 + x.size(1),
         ]
         return self.dropout(x), self.dropout(pos_emb)
 

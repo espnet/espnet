@@ -144,8 +144,7 @@ class StyleMelGANGenerator(torch.nn.Module):
         """
         if z is None:
             z = torch.randn(c.size(0), self.in_channels, 1).to(
-                device=c.device,
-                dtype=c.dtype,
+                device=c.device, dtype=c.dtype,
             )
         x = self.noise_upsample(z)
         for block in self.blocks:

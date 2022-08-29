@@ -9,7 +9,7 @@ def delta(feat, window):
         delta_feat[i:] += -i * feat[:-i]
         delta_feat[-i:] += i * feat[-1]
         delta_feat[:i] += -i * feat[0]
-    delta_feat /= 2 * sum(i**2 for i in range(1, window + 1))
+    delta_feat /= 2 * sum(i ** 2 for i in range(1, window + 1))
     return delta_feat
 
 

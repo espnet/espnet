@@ -343,36 +343,21 @@ class VITSGenerator(torch.nn.Module):
             s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
             # (B, 1, T_text)
             neg_x_ent_1 = torch.sum(
-                -0.5 * math.log(2 * math.pi) - logs_p,
-                [1],
-                keepdim=True,
+                -0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True,
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p**2).transpose(1, 2),
-                s_p_sq_r,
-            )
+            neg_x_ent_2 = torch.matmul(-0.5 * (z_p ** 2).transpose(1, 2), s_p_sq_r,)
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_3 = torch.matmul(
-                z_p.transpose(1, 2),
-                (m_p * s_p_sq_r),
-            )
+            neg_x_ent_3 = torch.matmul(z_p.transpose(1, 2), (m_p * s_p_sq_r),)
             # (B, 1, T_text)
-            neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p**2) * s_p_sq_r,
-                [1],
-                keepdim=True,
-            )
+            neg_x_ent_4 = torch.sum(-0.5 * (m_p ** 2) * s_p_sq_r, [1], keepdim=True,)
             # (B, T_feats, T_text)
             neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
             # (B, 1, T_feats, T_text)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
             # monotonic attention weight: (B, 1, T_feats, T_text)
             attn = (
-                self.maximum_path(
-                    neg_x_ent,
-                    attn_mask.squeeze(1),
-                )
+                self.maximum_path(neg_x_ent, attn_mask.squeeze(1),)
                 .unsqueeze(1)
                 .detach()
             )
@@ -390,9 +375,7 @@ class VITSGenerator(torch.nn.Module):
 
         # get random segments
         z_segments, z_start_idxs = get_random_segments(
-            z,
-            feats_lengths,
-            self.segment_size,
+            z, feats_lengths, self.segment_size,
         )
 
         # forward decoder with random segments
@@ -480,35 +463,20 @@ class VITSGenerator(torch.nn.Module):
             s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
             # (B, 1, T_text)
             neg_x_ent_1 = torch.sum(
-                -0.5 * math.log(2 * math.pi) - logs_p,
-                [1],
-                keepdim=True,
+                -0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True,
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p**2).transpose(1, 2),
-                s_p_sq_r,
-            )
+            neg_x_ent_2 = torch.matmul(-0.5 * (z_p ** 2).transpose(1, 2), s_p_sq_r,)
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_3 = torch.matmul(
-                z_p.transpose(1, 2),
-                (m_p * s_p_sq_r),
-            )
+            neg_x_ent_3 = torch.matmul(z_p.transpose(1, 2), (m_p * s_p_sq_r),)
             # (B, 1, T_text)
-            neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p**2) * s_p_sq_r,
-                [1],
-                keepdim=True,
-            )
+            neg_x_ent_4 = torch.sum(-0.5 * (m_p ** 2) * s_p_sq_r, [1], keepdim=True,)
             # (B, T_feats, T_text)
             neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
             # (B, 1, T_feats, T_text)
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
             # monotonic attention weight: (B, 1, T_feats, T_text)
-            attn = self.maximum_path(
-                neg_x_ent,
-                attn_mask.squeeze(1),
-            ).unsqueeze(1)
+            attn = self.maximum_path(neg_x_ent, attn_mask.squeeze(1),).unsqueeze(1)
             dur = attn.sum(2)  # (B, 1, T_text)
 
             # forward decoder with random segments
@@ -517,11 +485,7 @@ class VITSGenerator(torch.nn.Module):
             # duration
             if dur is None:
                 logw = self.duration_predictor(
-                    x,
-                    x_mask,
-                    g=g,
-                    inverse=True,
-                    noise_scale=noise_scale_dur,
+                    x, x_mask, g=g, inverse=True, noise_scale=noise_scale_dur,
                 )
                 w = torch.exp(logw) * x_mask * alpha
                 dur = torch.ceil(w)
@@ -532,15 +496,11 @@ class VITSGenerator(torch.nn.Module):
 
             # expand the length to match with the feature sequence
             # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            m_p = torch.matmul(
-                attn.squeeze(1),
-                m_p.transpose(1, 2),
-            ).transpose(1, 2)
+            m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2),).transpose(1, 2)
             # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            logs_p = torch.matmul(
-                attn.squeeze(1),
-                logs_p.transpose(1, 2),
-            ).transpose(1, 2)
+            logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2),).transpose(
+                1, 2
+            )
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale

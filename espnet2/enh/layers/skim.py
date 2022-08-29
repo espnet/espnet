@@ -136,11 +136,7 @@ class SegLSTM(nn.Module):
         self.num_direction = int(bidirectional) + 1
 
         self.lstm = nn.LSTM(
-            input_size,
-            hidden_size,
-            1,
-            batch_first=True,
-            bidirectional=bidirectional,
+            input_size, hidden_size, 1, batch_first=True, bidirectional=bidirectional,
         )
         self.dropout = nn.Dropout(p=dropout)
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)

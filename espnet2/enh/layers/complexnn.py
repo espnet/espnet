@@ -151,12 +151,8 @@ class ComplexConv2d(nn.Module):
             if isinstance(inputs, torch.Tensor):
                 real, imag = torch.chunk(inputs, 2, self.complex_axis)
 
-            real2real = self.real_conv(
-                real,
-            )
-            imag2imag = self.imag_conv(
-                imag,
-            )
+            real2real = self.real_conv(real,)
+            imag2imag = self.imag_conv(imag,)
 
             real2imag = self.imag_conv(real)
             imag2real = self.real_conv(imag)
@@ -236,12 +232,8 @@ class ComplexConvTranspose2d(nn.Module):
             if isinstance(inputs, torch.Tensor):
                 real, imag = torch.chunk(inputs, 2, self.complex_axis)
 
-            real2real = self.real_conv(
-                real,
-            )
-            imag2imag = self.imag_conv(
-                imag,
-            )
+            real2real = self.real_conv(real,)
+            imag2imag = self.imag_conv(imag,)
 
             real2imag = self.imag_conv(real)
             imag2real = self.real_conv(imag)

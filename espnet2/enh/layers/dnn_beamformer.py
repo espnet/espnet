@@ -360,14 +360,7 @@ class DNN_Beamformer(torch.nn.Module):
         return enhanced, ilens, masks
 
     def apply_beamforming(
-        self,
-        data,
-        ilens,
-        psd_n,
-        psd_speech,
-        psd_distortion=None,
-        rtf_mat=None,
-        spk=0,
+        self, data, ilens, psd_n, psd_speech, psd_distortion=None, rtf_mat=None, spk=0,
     ):
         """Beamforming with the provided statistics.
 
@@ -440,11 +433,7 @@ class DNN_Beamformer(torch.nn.Module):
                 index = enhanced.abs().argmin(dim=0, keepdims=True)
             enhanced = enhanced.gather(0, index).squeeze(0)
             ws = stack(ws, dim=0)
-        elif self.beamformer_type in (
-            "mpdr_souden",
-            "mvdr_souden",
-            "wmpdr_souden",
-        ):
+        elif self.beamformer_type in ("mpdr_souden", "mvdr_souden", "wmpdr_souden",):
             ws = get_mvdr_vector(
                 to_double(psd_speech),
                 to_double(psd_n),
@@ -610,7 +599,7 @@ class AttentionReference(torch.nn.Module):
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)
 
         # Calculate amplitude
-        psd_feat = (psd.real**2 + psd.imag**2 + self.eps) ** 0.5
+        psd_feat = (psd.real ** 2 + psd.imag ** 2 + self.eps) ** 0.5
 
         # (B, C, F) -> (B, C, F2)
         mlp_psd = self.mlp_psd(psd_feat)

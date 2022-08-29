@@ -50,7 +50,7 @@ class WarmupStepLR(_LRScheduler, AbsBatchStepScheduler):
         self.steps_per_epoch = steps_per_epoch
         self.warmup_epoch = warmup_steps // steps_per_epoch
 
-        self.lr_scale = warmup_steps**-1
+        self.lr_scale = warmup_steps ** -1
 
         # after warmup_steps, decrease lr by `gamma` every `step_size` epochs
         self.step_size = step_size

@@ -78,9 +78,7 @@ class TimeWarp(torch.nn.Module):
             ys = []
             for i in range(x.size(0)):
                 _y = time_warp(
-                    x[i][None, : x_lengths[i]],
-                    window=self.window,
-                    mode=self.mode,
+                    x[i][None, : x_lengths[i]], window=self.window, mode=self.mode,
                 )[0]
                 ys.append(_y)
             y = pad_list(ys, 0.0)

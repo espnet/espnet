@@ -7,10 +7,7 @@ class ConvDecoder(AbsDecoder):
     """Transposed Convolutional decoder for speech enhancement and separation"""
 
     def __init__(
-        self,
-        channel: int,
-        kernel_size: int,
-        stride: int,
+        self, channel: int, kernel_size: int, stride: int,
     ):
         super().__init__()
         self.convtrans1d = torch.nn.ConvTranspose1d(

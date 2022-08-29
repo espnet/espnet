@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 class VariancePredictor(torch.nn.Module):
     """Variance predictor module.
 
-    This is a module of variacne predictor described in `FastSpeech 2:
+    This is a module of variance predictor described in `FastSpeech 2:
     Fast and High-Quality End-to-End Text to Speech`_.
 
     .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
@@ -31,7 +31,7 @@ class VariancePredictor(torch.nn.Module):
         bias: bool = True,
         dropout_rate: float = 0.5,
     ):
-        """Initilize duration predictor module.
+        """Initialize duration predictor module.
 
         Args:
             idim (int): Input dimension.
