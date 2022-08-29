@@ -12,7 +12,8 @@ train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
 nlsyms_txt=data/nlsyms.txt
-asr_config=conf/train_asr.yaml
+monolingual_asr_config=conf/train_asr.yaml
+multilingual_asr_config=conf/tuning/train_asr_hubert_large_ll60k_transformer.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode.yaml
 
@@ -41,7 +42,7 @@ if [[ "all" == *"${lang}"* ]]; then
       --bpe_nlsyms "${nlsyms_txt}" \
       --feats_type raw \
       --speed_perturb_factors "0.9 1.0 1.1" \
-      --asr_config "${asr_config}" \
+      --asr_config "${multilingual_asr_config}" \
       --inference_config "${inference_config}" \
       --train_set "${train_set}" \
       --valid_set "${train_dev}" \
@@ -61,7 +62,7 @@ else
       --nbpe $nbpe \
       --feats_type raw \
       --speed_perturb_factors "0.9 1.0 1.1" \
-      --asr_config "${asr_config}" \
+      --asr_config "${monolingual_asr_config}" \
       --inference_config "${inference_config}" \
       --train_set "${train_set}" \
       --valid_set "${train_dev}" \
