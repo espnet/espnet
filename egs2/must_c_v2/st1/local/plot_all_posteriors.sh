@@ -1,0 +1,1 @@
+../../../mtedx/st1/local/plot_all_posteriors.sh

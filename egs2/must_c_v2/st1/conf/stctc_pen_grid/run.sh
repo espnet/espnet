@@ -1,0 +1,10 @@
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.1_pen0.2.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.1_pen0.4.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.2_pen0.2.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.2_pen0.4.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.3_pen0.0.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.3_pen0.2.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.3_pen0.4.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.4_pen0.0.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.4_pen0.2.yaml --inference_nj 96
+./run.sh --st_config conf/tuning/encdec_hier.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/stctc_pen_grid/stctc0.4_pen0.4.yaml --inference_nj 96

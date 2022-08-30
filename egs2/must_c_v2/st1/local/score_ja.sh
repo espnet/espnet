@@ -1,0 +1,1 @@
+/exp/byan/working/espnet-ml/egs2/must_c_v2/st1/local/score_ja.sh

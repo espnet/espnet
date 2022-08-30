@@ -1,0 +1,9 @@
+batch_size: 1
+beam_size: 40
+penalty: 0.6
+maxlenratio: 0.0
+minlenratio: 0.0
+lm_weight: 0.0
+st_ctc_weight: 0.5
+time_synchronous: True
+blank_penalty: 0.25

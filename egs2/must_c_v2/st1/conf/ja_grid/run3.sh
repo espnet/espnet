@@ -1,0 +1,8 @@
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen0.4.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen0.6.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen0.8.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen0.6.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen1.0.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen1.4.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen1.8.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_baseline_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/pen2.0.yaml --inference_nj 200 --test_sets dev.en-ja

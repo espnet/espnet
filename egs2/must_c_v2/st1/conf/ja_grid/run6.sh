@@ -1,0 +1,3 @@
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/timesync_stctc0.5_pen1.5_beam50.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/timesync_stctc0.5_pen1.6_beam50.yaml --inference_nj 200 --test_sets dev.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/timesync_stctc0.5_pen1.7_beam50.yaml --inference_nj 200 --test_sets dev.en-ja

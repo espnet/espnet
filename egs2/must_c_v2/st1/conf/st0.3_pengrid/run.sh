@@ -1,0 +1,8 @@
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen0.0.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen0.2.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen0.4.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen0.6.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen0.8.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen1.0.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen1.2.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/st0.3_pengrid/elasticity0.3_pen1.4.yaml --inference_nj 200 --test_sets dev.en-de

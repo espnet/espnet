@@ -47,8 +47,8 @@ if __name__ == '__main__':
     # plt.legend()
 
     plt.legend(loc='lower center', ncol=2, fontsize=14)
-    plt.title('Layer-wise Monotonicity of Decoder Source Attention', fontsize=19)
-    plt.xlabel('Decoder Layer', fontsize=19)
+    plt.title('Layer-wise Monotonicity of ST Decoder Source Attention', fontsize=19)
+    plt.xlabel('ST Decoder Layer', fontsize=19)
     plt.ylabel("Monotonicity", fontsize=19)
     plt.xticks(fontsize=14)
     plt.yticks(fontsize=14)

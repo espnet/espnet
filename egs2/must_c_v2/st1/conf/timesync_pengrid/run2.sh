@@ -1,0 +1,6 @@
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen0.6_beam40.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen0.8_beam40.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen1.0_beam40.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen0.6_beam50.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen0.8_beam50.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/timesync_pengrid/timesync0.5_pen1.0_beam50.yaml --inference_nj 200 --test_sets dev.en-de

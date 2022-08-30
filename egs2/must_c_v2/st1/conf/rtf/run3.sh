@@ -1,0 +1,3 @@
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/label_beamgrid_beam5_noctc.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/label_beamgrid_beam10_noctc.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/label_beamgrid_beam50_noctc.yaml --inference_nj 200 --test_sets dev.en-de

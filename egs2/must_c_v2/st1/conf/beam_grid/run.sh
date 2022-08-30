@@ -1,0 +1,8 @@
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam5.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam10.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam20.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam30.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam40.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam50.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam100.yaml --inference_nj 200 --test_sets dev.en-de
+./run.sh --st_config conf/tuning/encdec_hier_conformer.yaml --stage 12 --stop_stage 13 --use_hier_ctc true --inference_config conf/beam_grid/time_beamgrid_beam200.yaml --inference_nj 200 --test_sets dev.en-de

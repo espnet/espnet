@@ -1,0 +1,5 @@
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 13 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/stctc0.5_pen0.0.yaml --inference_nj 200 --test_sets tst-COMMON.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 13 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/stctc0.5_pen0.6.yaml --inference_nj 200 --test_sets tst-COMMON.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 13 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/stctc0.5_pen1.0.yaml --inference_nj 200 --test_sets tst-COMMON.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 13 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/stctc0.5_pen1.4.yaml --inference_nj 200 --test_sets tst-COMMON.en-ja
+./run_ja.sh --st_config conf/tuning/encdec_hier_conformer_ja.yaml --stage 13 --stop_stage 13 --use_hier_ctc true --inference_config conf/ja_grid/stctc0.5_pen1.8.yaml --inference_nj 200 --test_sets tst-COMMON.en-ja
