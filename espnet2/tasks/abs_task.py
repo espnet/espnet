@@ -1298,7 +1298,7 @@ class AbsTask(ABC):
                         entity=args.wandb_entity,
                         project=project,
                         name=name,
-                        dir=output_dir,
+                        dir=str(output_dir),
                         id=args.wandb_id,
                         resume=args.resume,
                     )
