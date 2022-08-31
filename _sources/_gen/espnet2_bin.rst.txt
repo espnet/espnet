@@ -2158,6 +2158,7 @@ enh_s2t_train.py
                             [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                             [--cleaner {None,tacotron,jaconv,vietnamese}]
                             [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}]
+                            [--text_name TEXT_NAME [TEXT_NAME ...]]
                             [--enh_encoder {stft,conv,same}]
                             [--enh_encoder_conf ENH_ENCODER_CONF]
                             [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube}]
@@ -2569,6 +2570,8 @@ enh_s2t_train.py
                             Apply text cleaning (default: None)
       --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
                             Specify g2p method if --token_type=phn (default: None)
+      --text_name TEXT_NAME [TEXT_NAME ...]
+                            Specify the text_name attribute used in the preprocessor (default: ['text'])
       --enh_encoder {stft,conv,same}
                             The enh_encoder type (default: stft)
       --enh_encoder_conf ENH_ENCODER_CONF

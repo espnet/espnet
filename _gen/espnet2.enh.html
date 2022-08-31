@@ -288,6 +288,26 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 <code class="sig-name descname">forward_loss</code><span class="sig-paren">(</span><em class="sig-param">speech_pre: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">feature_mix: torch.Tensor</em>, <em class="sig-param">feature_pre: torch.Tensor</em>, <em class="sig-param">others: OrderedDict</em>, <em class="sig-param">speech_ref: torch.Tensor</em>, <em class="sig-param">noise_ref: torch.Tensor = None</em>, <em class="sig-param">dereverb_speech_ref: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.forward_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward_loss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.sort_by_perm">
+<em class="property">static </em><code class="sig-name descname">sort_by_perm</code><span class="sig-paren">(</span><em class="sig-param">nn_output</em>, <em class="sig-param">perm</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.sort_by_perm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.sort_by_perm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort the input list of tensors by the specified permutation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nn_output</strong> – List[torch.Tensor(Batch, …)], len(nn_output) == num_spk</p></li>
+<li><p><strong>perm</strong> – (Batch, num_spk) or List[torch.Tensor(num_spk)]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List[torch.Tensor(Batch, …)]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>nn_output_new</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -298,6 +318,11 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_enh_s2t_model.</code><code class="sig-name descname">ESPnetEnhS2TModel</code><span class="sig-paren">(</span><em class="sig-param">enh_model: espnet2.enh.espnet_model.ESPnetEnhancementModel, s2t_model: Union[espnet2.asr.espnet_model.ESPnetASRModel, espnet2.st.espnet_model.ESPnetSTModel, espnet2.diar.espnet_model.ESPnetDiarizationModel], calc_enh_loss: bool = True, bypass_enh_prob: float = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>Joint model Enhancement and Speech to Text.</p>
+<dl class="method">
+<dt id="espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.asr_pit_loss">
+<code class="sig-name descname">asr_pit_loss</code><span class="sig-paren">(</span><em class="sig-param">speech</em>, <em class="sig-param">speech_lengths</em>, <em class="sig-param">text</em>, <em class="sig-param">text_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.asr_pit_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.asr_pit_loss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.batchify_nll">
 <code class="sig-name descname">batchify_nll</code><span class="sig-paren">(</span><em class="sig-param">encoder_out: torch.Tensor</em>, <em class="sig-param">encoder_out_lens: torch.Tensor</em>, <em class="sig-param">ys_pad: torch.Tensor</em>, <em class="sig-param">ys_pad_lens: torch.Tensor</em>, <em class="sig-param">batch_size: int = 100</em><span class="sig-paren">)</span><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.batchify_nll" title="Permalink to this definition">¶</a></dt>
@@ -317,7 +342,7 @@ GPU memory usage</p>
 
 <dl class="method">
 <dt id="espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -351,7 +376,7 @@ GPU memory usage</p>
 
 <dl class="method">
 <dt id="espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor = None</em>, <em class="sig-param">text: torch.Tensor = None</em>, <em class="sig-param">text_lengths: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Decoder + Calc loss</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -362,8 +387,18 @@ because the chunk-iterator does not
 have the speech_lengths returned.
 see in
 espnet2/iterators/chunk_iter_factory.py</p></li>
-<li><p><strong>text</strong> – (Batch, Length) default None just to keep the argument order</p></li>
-<li><p><strong>text_lengths</strong> – (Batch,) default None for the same reason as speech_lengths</p></li>
+<li><p><strong>Enh+ASR task</strong> (<em>For</em>) – text_spk1: (Batch, Length)
+text_spk2: (Batch, Length)
+…
+text_spk1_lengths: (Batch,)
+text_spk2_lengths: (Batch,)
+…</p></li>
+<li><p><strong>other tasks</strong> (<em>For</em>) – <p>text: (Batch, Length) default None just to keep the argument order
+text_lengths: (Batch,)</p>
+<blockquote>
+<div><p>default None for the same reason as speech_lengths</p>
+</div></blockquote>
+</p></li>
 </ul>
 </dd>
 </dl>
@@ -387,6 +422,24 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 <li><p><strong>ys_pad</strong> – (Batch, Length)</p></li>
 <li><p><strong>ys_pad_lens</strong> – (Batch,)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.permutation_invariant_training">
+<code class="sig-name descname">permutation_invariant_training</code><span class="sig-paren">(</span><em class="sig-param">losses: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_enh_s2t_model.html#ESPnetEnhS2TModel.permutation_invariant_training"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.permutation_invariant_training" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute  PIT loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>losses</strong> (<em>torch.Tensor</em>) – (batch, nref, nhyp)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list: (batch, n_spk)
+loss: torch.Tensor: (batch)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>perm</p>
 </dd>
 </dl>
 </dd></dl>

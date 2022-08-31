@@ -405,6 +405,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enh_s2t_task</span> <span class="o">=</span> <span class="n">enh_s2t_task</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
@@ -443,14 +444,40 @@
 
         <span class="c1"># b. Forward Encoder</span>
         <span class="n">enc</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">enc</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_s2t_task</span><span class="p">:</span>
+            <span class="c1"># Enh+ASR joint task</span>
+            <span class="c1"># NOTE (Wangyou): the return type in this case is List[default_return_type]</span>
+            <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">enh_model</span><span class="p">,</span> <span class="s2">&quot;num_spk&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">),</span> <span class="n">num_spk</span><span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">spk</span><span class="p">,</span> <span class="n">enc_spk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;=== [EnhASR] Speaker </span><span class="si">{}</span><span class="s2"> ===&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span><span class="p">))</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc_spk</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">enc_spk</span> <span class="o">=</span> <span class="n">enc_spk</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_spk</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_spk</span><span class="p">)</span>
 
-        <span class="c1"># c. Passed the encoder result and the beam search</span>
+                <span class="c1"># c. Passed the encoder result and the beam search</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_single_sample</span><span class="p">(</span><span class="n">enc_spk</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="c1"># Normal ASR</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">enc</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
+
+            <span class="c1"># c. Passed the encoder result and the beam search</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_single_sample</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">_decode_single_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;encoder output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;encoder output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
 
             <span class="n">best</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -462,7 +489,7 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span>
             <span class="p">)</span>
 
         <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span><span class="p">]</span>
@@ -490,7 +517,6 @@
                 <span class="n">text</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">))</span>
 
-        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span>
 
 <div class="viewcode-block" id="Speech2Text.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.Speech2Text.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
@@ -644,20 +670,45 @@
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Utterance </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">hyp</span> <span class="o">=</span> <span class="n">Hypothesis</span><span class="p">(</span><span class="n">score</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">scores</span><span class="o">=</span><span class="p">{},</span> <span class="n">states</span><span class="o">=</span><span class="p">{},</span> <span class="n">yseq</span><span class="o">=</span><span class="p">[])</span>
                 <span class="n">results</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">hyp</span><span class="p">]]</span> <span class="o">*</span> <span class="n">nbest</span>
+                <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+                    <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">speech2text</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">enh_model</span><span class="p">,</span> <span class="s2">&quot;num_spk&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">results</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)]</span>
 
             <span class="c1"># Only supporting batch_size==1</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span><span class="p">):</span>
-                <span class="c1"># Create a directory: outdir/{n}best_recog</span>
-                <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">best_recog&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+                <span class="c1"># Enh+ASR joint task</span>
+                <span class="k">for</span> <span class="n">spk</span><span class="p">,</span> <span class="n">ret</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                        <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ret</span>
+                    <span class="p">):</span>
+                        <span class="c1"># Create a directory: outdir/{n}best_recog_spk?</span>
+                        <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">best_recog_spk</span><span class="si">{</span><span class="n">spk</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
 
-                <span class="c1"># Write the result to each file</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token_int&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+                        <span class="c1"># Write the result to each file</span>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token_int&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span></div>
+                        <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="c1"># Normal ASR</span>
+                <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span>
+                <span class="p">):</span>
+                    <span class="c1"># Create a directory: outdir/{n}best_recog</span>
+                    <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">best_recog&quot;</span><span class="p">]</span>
+
+                    <span class="c1"># Write the result to each file</span>
+                    <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+                    <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token_int&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
+                    <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>

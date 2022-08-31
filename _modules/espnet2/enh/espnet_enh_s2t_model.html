@@ -158,8 +158,11 @@
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">linear_sum_assignment</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
@@ -204,12 +207,20 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span>
             <span class="p">)</span>
 
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="n">ESPnetASRModel</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_enh_loss</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;The permutation issue will be handled by the Enh loss&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;The permutation issue will be handled by the CTC loss&quot;</span><span class="p">)</span>
+
 <div class="viewcode-block" id="ESPnetEnhS2TModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
@@ -221,19 +232,72 @@
 <span class="sd">                                      have the speech_lengths returned.</span>
 <span class="sd">                                      see in</span>
 <span class="sd">                                      espnet2/iterators/chunk_iter_factory.py</span>
-<span class="sd">            text: (Batch, Length) default None just to keep the argument order</span>
-<span class="sd">            text_lengths: (Batch,) default None for the same reason as speech_lengths</span>
+<span class="sd">            For Enh+ASR task:</span>
+<span class="sd">                text_spk1: (Batch, Length)</span>
+<span class="sd">                text_spk2: (Batch, Length)</span>
+<span class="sd">                ...</span>
+<span class="sd">                text_spk1_lengths: (Batch,)</span>
+<span class="sd">                text_spk2_lengths: (Batch,)</span>
+<span class="sd">                ...</span>
+<span class="sd">            For other tasks:</span>
+<span class="sd">                text: (Batch, Length) default None just to keep the argument order</span>
+<span class="sd">                text_lengths: (Batch,)</span>
+<span class="sd">                    default None for the same reason as speech_lengths</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">text_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">if</span> <span class="n">speech_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">text_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;text&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+            <span class="n">text_ref_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_lengths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">text_length_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">ref_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">for</span> <span class="n">ref_lengths</span> <span class="ow">in</span> <span class="n">text_ref_lengths</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">text_length_max</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">text_ref</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;text_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">text_ref_lengths</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_spk</span><span class="si">{}</span><span class="s2">_lengths&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+            <span class="p">]</span>
+
+            <span class="c1"># for data-parallel</span>
+            <span class="k">if</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">text_length_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">ref_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="k">for</span> <span class="n">ref_lengths</span> <span class="ow">in</span> <span class="n">text_ref_lengths</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">text_length_max</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">text_ref</span><span class="p">)</span>
+            <span class="c1"># pad text sequences of different speakers to the same length</span>
+            <span class="n">ignore_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="s2">&quot;ignore_id&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">text_length_max</span> <span class="o">-</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">value</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">text_ref</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">ref_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ref_lengths</span> <span class="ow">in</span> <span class="n">text_ref_lengths</span><span class="p">),</span> <span class="p">(</span>
+                <span class="n">ref_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">ref_lengths</span> <span class="ow">in</span> <span class="n">text_ref_lengths</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">speech_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Check that batch_size is unified</span>
             <span class="k">assert</span> <span class="p">(</span>
                 <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="o">==</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="o">==</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="o">==</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="p">),</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="o">==</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">),</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
@@ -245,9 +309,11 @@
             <span class="k">if</span> <span class="n">src_text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span>
                 <span class="k">assert</span> <span class="p">(</span>
-                    <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="n">text_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">==</span> <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="o">==</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="p">),</span> <span class="p">(</span>
-                    <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                    <span class="n">text_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                     <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -268,6 +334,9 @@
         <span class="c1"># This is to handle flexible number of speakers.</span>
         <span class="c1"># Used only in &quot;enh + diar&quot; task for now.</span>
         <span class="n">num_spk</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># for compatibility with TCNSeparatorNomask in enh_diar</span>
+            <span class="k">assert</span> <span class="n">num_spk</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span><span class="n">num_spk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
 
         <span class="c1"># clean speech signal of each speaker</span>
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="kc">None</span>
@@ -289,21 +358,21 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="n">ESPnetDiarizationModel</span>
         <span class="p">):</span>
             <span class="c1"># TODO(xkc): to pass category info and use predefined category list</span>
-            <span class="k">if</span> <span class="n">utt_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;SIMU&quot;</span><span class="p">):</span>
-                <span class="c1"># For simulated single-/multi-speaker data</span>
-                <span class="c1"># feed it to Enhancement and calculate loss_enh</span>
-                <span class="n">bypass_enh_flag</span> <span class="o">=</span> <span class="kc">False</span>
-                <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">utt_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;CLEAN&quot;</span><span class="p">):</span>
+                <span class="c1"># For clean data</span>
+                <span class="c1"># feed it to Enhancement, without calculating loss_enh</span>
+                <span class="n">bypass_enh_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">elif</span> <span class="n">utt_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;REAL&quot;</span><span class="p">):</span>
                 <span class="c1"># For single-speaker real data</span>
                 <span class="c1"># feed it to Enhancement but without calculating loss_enh</span>
                 <span class="n">bypass_enh_flag</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># For clean data</span>
-                <span class="c1"># feed it to Enhancement, without calculating loss_enh</span>
-                <span class="n">bypass_enh_flag</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># For simulated single-/multi-speaker data</span>
+                <span class="c1"># feed it to Enhancement and calculate loss_enh</span>
+                <span class="n">bypass_enh_flag</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_enh_loss</span><span class="p">:</span>
             <span class="n">skip_enhloss_flag</span> <span class="o">=</span> <span class="kc">True</span>
@@ -318,6 +387,7 @@
         <span class="c1"># 1. Enhancement</span>
         <span class="c1"># model forward</span>
         <span class="n">loss_enh</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">bypass_enh_flag</span><span class="p">:</span>
             <span class="p">(</span>
                 <span class="n">speech_pre</span><span class="p">,</span>
@@ -329,7 +399,7 @@
             <span class="p">)</span>
             <span class="c1"># loss computation</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_enhloss_flag</span><span class="p">:</span>
-                <span class="n">loss_enh</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>
+                <span class="n">loss_enh</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>
                     <span class="n">speech_pre</span><span class="p">,</span>
                     <span class="n">speech_lengths</span><span class="p">,</span>
                     <span class="n">feature_mix</span><span class="p">,</span>
@@ -338,45 +408,60 @@
                     <span class="n">speech_ref</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">loss_enh</span> <span class="o">=</span> <span class="n">loss_enh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># resort the prediction audios with the obtained permutation</span>
+                <span class="k">if</span> <span class="n">perm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">speech_pre</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="o">.</span><span class="n">sort_by_perm</span><span class="p">(</span><span class="n">speech_pre</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">speech_pre</span> <span class="o">=</span> <span class="p">[</span><span class="n">speech</span><span class="p">]</span>
 
         <span class="c1"># for data-parallel</span>
-        <span class="k">if</span> <span class="n">text_lengths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span><span class="n">text_length_max</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">src_text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">src_text</span> <span class="o">=</span> <span class="n">src_text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
         <span class="c1"># 2. ASR or ST</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="n">ESPnetASRModel</span><span class="p">):</span>  <span class="c1"># ASR</span>
-            <span class="n">loss_asr</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
-                <span class="n">speech_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">loss_s2t</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_pit_loss</span><span class="p">(</span>
+                    <span class="n">speech_pre</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">text_ref_lengths</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss_s2t</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">speech_pre</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                    <span class="n">speech_lengths</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">speech_pre</span><span class="p">)),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">text_ref_lengths</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_asr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_s2t</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="n">ESPnetSTModel</span><span class="p">):</span>  <span class="c1"># ST</span>
-            <span class="n">loss_asr</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
+            <span class="n">loss_s2t</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
                 <span class="n">speech_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">speech_lengths</span><span class="p">,</span>
                 <span class="n">text</span><span class="p">,</span>
-                <span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">src_text</span><span class="p">,</span>
                 <span class="n">src_text_lengths</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_st&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_s2t</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">,</span> <span class="n">ESPnetDiarizationModel</span><span class="p">):</span>  <span class="c1"># DIAR</span>
-            <span class="n">loss_asr</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
+            <span class="n">loss_s2t</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
                 <span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
                 <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">,</span>
                 <span class="n">spk_labels</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-                <span class="n">spk_labels_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">spk_labels_lengths</span><span class="o">=</span><span class="n">text_ref_lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">bottleneck_feats</span><span class="o">=</span><span class="n">others</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bottleneck_feats&quot;</span><span class="p">),</span>
                 <span class="n">bottleneck_feats_lengths</span><span class="o">=</span><span class="n">others</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bottleneck_feats_lengths&quot;</span><span class="p">),</span>
             <span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_diar&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_s2t</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">)</span><span class="si">}</span><span class="s2"> is not supported yet.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">loss_enh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_enh</span> <span class="o">+</span> <span class="n">loss_asr</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_enh</span> <span class="o">+</span> <span class="n">loss_s2t</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_asr</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_s2t</span>
 
         <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_enh&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_enh</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_enh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
@@ -389,10 +474,15 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="s2">&quot;text&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+            <span class="n">text_lengths</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_lengths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;text_spk1&quot;</span><span class="p">]</span>
+            <span class="n">text_lengths</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text_spk1_lengths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span><span class="p">:</span>
             <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">collect_feats</span><span class="p">(</span>
                 <span class="n">speech</span><span class="p">,</span>
@@ -427,8 +517,11 @@
             <span class="n">feature_pre</span><span class="p">,</span>
             <span class="n">others</span><span class="p">,</span>
         <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_enhance</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
-        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-            <span class="n">speech_pre</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">speech_lengths</span>
+        <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">speech_pre</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_spk</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span><span class="n">num_spk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+
+        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="n">speech_pre</span><span class="p">]</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span></div>
@@ -483,6 +576,97 @@
         <span class="p">)</span></div>
 
     <span class="n">batchify_nll</span> <span class="o">=</span> <span class="n">ESPnetASRModel</span><span class="o">.</span><span class="n">batchify_nll</span>
+
+<div class="viewcode-block" id="ESPnetEnhS2TModel.asr_pit_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.asr_pit_loss">[docs]</a>    <span class="k">def</span> <span class="nf">asr_pit_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">ctc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;CTC must be used to determine the permutation&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="c1"># (B, n_ref, n_hyp)</span>
+            <span class="n">loss0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                        <span class="p">[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">_calc_batch_ctc_loss</span><span class="p">(</span>
+                                <span class="n">speech</span><span class="p">[</span><span class="n">h</span><span class="p">],</span>
+                                <span class="n">speech_lengths</span><span class="p">,</span>
+                                <span class="n">text</span><span class="p">[</span><span class="n">r</span><span class="p">],</span>
+                                <span class="n">text_lengths</span><span class="p">[</span><span class="n">r</span><span class="p">],</span>
+                            <span class="p">)</span>
+                            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                        <span class="p">],</span>
+                        <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">perm_detail</span><span class="p">,</span> <span class="n">min_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">permutation_invariant_training</span><span class="p">(</span><span class="n">loss0</span><span class="p">)</span>
+
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="o">.</span><span class="n">sort_by_perm</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">perm_detail</span><span class="p">)</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">speech_lengths</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">speech</span><span class="p">)),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">text_lengths</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+
+    <span class="k">def</span> <span class="nf">_permutation_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The basic permutation loss function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk</span>
+<span class="sd">            inf (List[torch.Tensor]): [(batch, ...), ...]</span>
+<span class="sd">            criterion (function): Loss function</span>
+<span class="sd">            perm: (batch)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: torch.Tensor: (batch)</span>
+<span class="sd">            perm: list[(num_spk)]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+
+        <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">criterion</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="n">r</span><span class="p">],</span> <span class="n">inf</span><span class="p">[</span><span class="n">h</span><span class="p">])</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>  <span class="c1"># (B, n_ref, n_hyp)</span>
+        <span class="n">perm_detail</span><span class="p">,</span> <span class="n">min_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">permutation_invariant_training</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">min_loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">perm_detail</span>
+
+<div class="viewcode-block" id="ESPnetEnhS2TModel.permutation_invariant_training"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.permutation_invariant_training">[docs]</a>    <span class="k">def</span> <span class="nf">permutation_invariant_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute  PIT loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            losses (torch.Tensor): (batch, nref, nhyp)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            perm: list: (batch, n_spk)</span>
+<span class="sd">            loss: torch.Tensor: (batch)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hyp_perm</span><span class="p">,</span> <span class="n">min_perm_loss</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">losses_cpu</span> <span class="o">=</span> <span class="n">losses</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">b_loss</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">losses_cpu</span><span class="p">):</span>
+            <span class="c1"># hungarian algorithm</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">row_ind</span><span class="p">,</span> <span class="n">col_ind</span> <span class="o">=</span> <span class="n">linear_sum_assignment</span><span class="p">(</span><span class="n">b_loss</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;cost matrix is infeasible&quot;</span><span class="p">:</span>
+                    <span class="c1"># random assignment since the cost is always inf</span>
+                    <span class="n">col_ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">min_perm_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">col_ind</span><span class="p">,</span> <span class="n">col_ind</span><span class="p">]))</span>
+                    <span class="n">hyp_perm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col_ind</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+            <span class="n">min_perm_loss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">row_ind</span><span class="p">,</span> <span class="n">col_ind</span><span class="p">]))</span>
+            <span class="n">hyp_perm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">col_ind</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">losses</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hyp_perm</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">min_perm_loss</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ESPnetEnhS2TModel.inherite_attributes"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">[docs]</a>    <span class="k">def</span> <span class="nf">inherite_attributes</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

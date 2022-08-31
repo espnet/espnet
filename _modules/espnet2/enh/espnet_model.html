@@ -314,7 +314,7 @@
         <span class="p">)</span>
 
         <span class="c1"># loss computation</span>
-        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>
             <span class="n">speech_pre</span><span class="p">,</span>
             <span class="n">speech_lengths</span><span class="p">,</span>
             <span class="n">feature_mix</span><span class="p">,</span>
@@ -391,6 +391,7 @@
         <span class="n">loss</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">o</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">loss_wrapper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span><span class="p">:</span>
             <span class="n">criterion</span> <span class="o">=</span> <span class="n">loss_wrapper</span><span class="o">.</span><span class="n">criterion</span>
             <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">criterion</span><span class="p">,</span> <span class="s2">&quot;only_for_test&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
@@ -479,6 +480,9 @@
             <span class="n">loss</span> <span class="o">+=</span> <span class="n">l</span> <span class="o">*</span> <span class="n">loss_wrapper</span><span class="o">.</span><span class="n">weight</span>
             <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
+            <span class="k">if</span> <span class="n">perm</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;perm&quot;</span> <span class="ow">in</span> <span class="n">o</span><span class="p">:</span>
+                <span class="n">perm</span> <span class="o">=</span> <span class="n">o</span><span class="p">[</span><span class="s2">&quot;perm&quot;</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
                 <span class="s2">&quot;At least one criterion must satisfy: only_for_test=False&quot;</span>
@@ -488,7 +492,7 @@
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">perm</span></div>
 
     <span class="k">def</span> <span class="nf">_align_ref_pre_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">pre</span><span class="p">,</span> <span class="n">ch_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">force_1ch</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">pre</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -602,6 +606,31 @@
                 <span class="n">noise_spec</span><span class="o">=</span><span class="n">noise_spec</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">masks_ref</span><span class="p">,</span> <span class="n">masks_pre</span>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.sort_by_perm"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.sort_by_perm">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">sort_by_perm</span><span class="p">(</span><span class="n">nn_output</span><span class="p">,</span> <span class="n">perm</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sort the input list of tensors by the specified permutation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            nn_output: List[torch.Tensor(Batch, ...)], len(nn_output) == num_spk</span>
+<span class="sd">            perm: (Batch, num_spk) or List[torch.Tensor(num_spk)]</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            nn_output_new: List[torch.Tensor(Batch, ...)]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nn_output</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nn_output</span>
+        <span class="c1"># (Batch, num_spk, ...)</span>
+        <span class="n">nn_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">nn_output</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="c1"># perm is a list or tuple</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">nn_output</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">perm</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">nn_output</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">perm</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">diff_dim</span> <span class="o">=</span> <span class="n">nn_output</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="n">perm</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">diff_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">perm</span> <span class="o">=</span> <span class="n">perm</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">*</span><span class="n">perm</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">diff_dim</span><span class="p">)])</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span>
+                <span class="n">nn_output</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">nn_output</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ESPnetEnhancementModel.collect_feats"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.collect_feats">[docs]</a>    <span class="k">def</span> <span class="nf">collect_feats</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech_mix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_mix_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
