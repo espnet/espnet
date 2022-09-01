@@ -61,7 +61,7 @@ from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
 )
 from espnet2.slu.postencoder.conformer_postencoder import ConformerPostEncoder
 from espnet2.slu.postencoder.transformer_postencoder import TransformerPostEncoder
-from espnet2.tasks.abs_task import AbsTask
+from espnet2.tasks.asr import ASRTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -185,7 +185,7 @@ postdecoder_choices = ClassChoices(
 )
 
 
-class SLUTask(AbsTask):
+class SLUTask(ASRTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -371,17 +371,6 @@ class SLUTask(AbsTask):
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
             class_choices.add_arguments(group)
-
-    @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
-        Tuple[List[str], Dict[str, torch.Tensor]],
-    ]:
-        assert check_argument_types()
-        # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
-        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
     def build_preprocess_fn(
