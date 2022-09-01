@@ -12,11 +12,11 @@ fi
 if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
-torch_17_plus=$(python3 <<EOF
+torch_18_plus=$(python3 <<EOF
 from packaging.version import parse as V
 import torch
 
-if V(torch.__version__) >= V("1.7"):
+if V(torch.__version__) >= V("1.8"):
     print("true")
 else:
     print("false")
@@ -46,17 +46,10 @@ EOF
 )
 echo "cuda_version=${cuda_version}"
 
-if "${torch_17_plus}" && "${python_36_plus}"; then
-
-    rm -rf s3prl
-
-    # S3PRL Commit id when making this PR: `commit e2db27b2fa87b09fc720264635dcc4515dc63825`
-    git clone https://github.com/s3prl/s3prl.git
-    cd s3prl
-    git checkout -b legacy_version e2db27b2fa87b09fc720264635dcc4515dc63825
-    cd ..
+if "${torch_18_plus}" && "${python_36_plus}"; then
+    python -m pip install s3prl
 
 else
-    echo "[WARNING] s3prl is not prepared for pytorch<1.7.0, python<3.6 now"
+    echo "[WARNING] s3prl is not prepared for pytorch<1.8.0, python<3.6 now"
 
 fi

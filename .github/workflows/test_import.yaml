@@ -31,8 +31,6 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
-        python3 -m pip install "numpy<=1.21.4"
-        python3 -m pip freeze
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
         python3 setup.py bdist_wheel
