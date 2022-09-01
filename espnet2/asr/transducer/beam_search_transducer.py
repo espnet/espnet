@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet.nets.pytorch_backend.transducer.utils import (
     is_prefix,
@@ -59,7 +59,7 @@ class BeamSearchTransducer:
         expansion_beta: int = 2,
         score_norm: bool = True,
         nbest: int = 1,
-        token_list: List[str] = None,
+        token_list: Optional[List[str]] = None,
     ):
         """Initialize Transducer search module.
 
@@ -100,18 +100,21 @@ class BeamSearchTransducer:
         elif search_type == "tsd":
             if isinstance(lm, TransformerLM):
                 raise NotImplementedError
+
             self.max_sym_exp = max_sym_exp
 
             self.search_algorithm = self.time_sync_decoding
         elif search_type == "alsd":
             if isinstance(lm, TransformerLM):
                 raise NotImplementedError
+
             self.u_max = u_max
 
             self.search_algorithm = self.align_length_sync_decoding
         elif search_type == "nsc":
             if isinstance(lm, TransformerLM):
                 raise NotImplementedError
+
             self.nstep = nstep
             self.prefix_alpha = prefix_alpha
 
@@ -119,10 +122,17 @@ class BeamSearchTransducer:
         elif search_type == "maes":
             if isinstance(lm, TransformerLM):
                 raise NotImplementedError
+
             self.nstep = nstep if nstep > 1 else 2
             self.prefix_alpha = prefix_alpha
             self.expansion_gamma = expansion_gamma
-            self.expansion_beta = expansion_beta
+
+            assert self.vocab_size >= beam_size + expansion_beta, (
+                "beam_size (%d) + expansion_beta (%d) "
+                "should be smaller or equal to vocabulary size (%d)."
+                % (beam_size, expansion_beta, self.vocab_size)
+            )
+            self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
         else:
@@ -279,6 +289,7 @@ class BeamSearchTransducer:
                         ]
                     )
                 )
+
             while True:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
@@ -774,15 +785,21 @@ class BeamSearchTransducer:
             beam_enc_out = enc_out_t.unsqueeze(0)
 
             list_b = []
+            duplication_check = [hyp.yseq for hyp in hyps]
+
             for n in range(self.nstep):
                 beam_dec_out = torch.stack([h.dec_out[-1] for h in hyps])
 
-                beam_logp = torch.log_softmax(
+                beam_logp, beam_idx = torch.log_softmax(
                     self.joint_network(beam_enc_out, beam_dec_out),
                     dim=-1,
-                )
+                ).topk(self.max_candidates, dim=-1)
+
                 k_expansions = select_k_expansions(
-                    hyps, beam_logp, beam, self.expansion_gamma, self.expansion_beta
+                    hyps,
+                    beam_idx,
+                    beam_logp,
+                    self.expansion_gamma,
                 )
 
                 list_exp = []
@@ -800,14 +817,15 @@ class BeamSearchTransducer:
                         if k == 0:
                             list_b.append(new_hyp)
                         else:
-                            new_hyp.yseq.append(int(k))
+                            if new_hyp.yseq + [int(k)] not in duplication_check:
+                                new_hyp.yseq.append(int(k))
 
-                            if self.use_lm:
-                                new_hyp.score += self.lm_weight * float(
-                                    hyp.lm_scores[k]
-                                )
+                                if self.use_lm:
+                                    new_hyp.score += self.lm_weight * float(
+                                        hyp.lm_scores[k]
+                                    )
 
-                            list_exp.append(new_hyp)
+                                list_exp.append(new_hyp)
 
                 if not list_exp:
                     kept_hyps = sorted(list_b, key=lambda x: x.score, reverse=True)[

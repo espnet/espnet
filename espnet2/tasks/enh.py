@@ -1,4 +1,5 @@
 import argparse
+import copy
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -26,6 +27,7 @@ from espnet2.enh.loss.criterions.tf_domain import (
 )
 from espnet2.enh.loss.criterions.time_domain import (
     CISDRLoss,
+    MultiResL1SpecLoss,
     SDRLoss,
     SISNRLoss,
     SNRLoss,
@@ -48,17 +50,20 @@ from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import EnhPreprocessor
+from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.preprocessor import DynamicMixingPreprocessor, EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -91,6 +96,7 @@ separator_choices = ClassChoices(
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         tcn_nomask=TCNSeparatorNomask,
+        ineube=iNeuBe,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -137,6 +143,7 @@ criterion_choices = ClassChoices(
         mse=FrequencyDomainMSE,
         mse_fd=FrequencyDomainMSE,
         mse_td=TimeDomainMSE,
+        mr_l1_tfd=MultiResL1SpecLoss,
     ),
     type_check=AbsEnhLoss,
     default=None,
@@ -292,6 +299,27 @@ class EnhancementTask(AbsTask):
             help="Whether to force all data to be single-channel.",
         )
 
+        group.add_argument(
+            "--dynamic_mixing",
+            type=str2bool,
+            default=False,
+            help="Apply dynamic mixing",
+        )
+
+        group.add_argument(
+            "--utt2spk",
+            type=str_or_none,
+            default=None,
+            help="The file path of utt2spk file. Only used in dynamic_mixing mode.",
+        )
+
+        group.add_argument(
+            "--dynamic_mixing_gain_db",
+            type=float,
+            default=0.0,
+            help="Random gain (in dB) for dynamic mixing sources",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -313,7 +341,25 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        if args.use_preprocessor:
+
+        dynamic_mixing = getattr(args, "dynamic_mixing", False)
+        use_preprocessor = getattr(args, "use_preprocessor", False)
+
+        assert (
+            dynamic_mixing and use_preprocessor
+        ) is not True, (
+            "'dynamic_mixing' and 'use_preprocessor' should not both be 'True'"
+        )
+
+        if dynamic_mixing and train:
+            retval = DynamicMixingPreprocessor(
+                train=train,
+                source_scp=args.train_data_path_and_name_and_type[0][0],
+                num_spk=args.separator_conf["num_spk"],
+                dynamic_mixing_gain_db=getattr(args, "dynamic_mixing_gain_db", 0.0),
+                utt2spk=getattr(args, "utt2spk", None),
+            )
+        elif use_preprocessor:
             retval = EnhPreprocessor(
                 train=train,
                 # NOTE(kamo): Check attribute existence for backward compatibility
@@ -356,7 +402,7 @@ class EnhancementTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech_mix", "speech_ref1")
+            retval = ("speech_ref1",)
         else:
             # Recognition mode
             retval = ("speech_mix",)
@@ -366,7 +412,8 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
+        retval = ["speech_mix"]
+        retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
@@ -420,3 +467,19 @@ class EnhancementTask(AbsTask):
 
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
+        kwargs: dict = None,
+    ) -> AbsIterFactory:
+
+        dynamic_mixing = getattr(args, "dynamic_mixing", False)
+        if dynamic_mixing and mode == "train":
+            args = copy.deepcopy(args)
+            args.fold_length = args.fold_length[0:1]
+
+        return super().build_iter_factory(args, distributed_option, mode, kwargs)

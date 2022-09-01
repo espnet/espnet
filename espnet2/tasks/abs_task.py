@@ -572,6 +572,12 @@ class AbsTask(ABC):
             help="Enable tensorboard logging",
         )
         group.add_argument(
+            "--create_graph_in_tensorboard",
+            type=str2bool,
+            default=False,
+            help="Whether to create graph in tensorboard",
+        )
+        group.add_argument(
             "--use_wandb",
             type=str2bool,
             default=False,
@@ -1292,7 +1298,7 @@ class AbsTask(ABC):
                         entity=args.wandb_entity,
                         project=project,
                         name=name,
-                        dir=output_dir,
+                        dir=str(output_dir),
                         id=args.wandb_id,
                         resume=args.resume,
                     )
@@ -1493,6 +1499,7 @@ class AbsTask(ABC):
                     "utt2category",
                 )
             )
+            logging.warning("Reading " + utt2category_file)
         else:
             utt2category_file = None
         batch_sampler = build_batch_sampler(

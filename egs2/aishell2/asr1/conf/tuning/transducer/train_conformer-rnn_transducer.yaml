@@ -1,3 +1,5 @@
+# Trained with Tesla V100 (32GB) x 8 GPUs. It takes about 4 days.
+
 # network architecture
 # encoder related
 encoder: conformer
