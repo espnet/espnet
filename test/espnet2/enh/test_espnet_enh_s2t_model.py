@@ -18,6 +18,8 @@ from espnet2.enh.espnet_enh_s2t_model import ESPnetEnhS2TModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
+from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.layers.label_aggregation import LabelAggregate
 
@@ -38,9 +40,11 @@ enh_rnn_separator = RNNSeparator(
     num_spk=1,
 )
 
+
 si_snr_loss = SISNRLoss()
 
 fix_order_solver = FixedOrderSolver(criterion=si_snr_loss)
+pit_solver = PITSolver(criterion=si_snr_loss)
 
 default_frontend = DefaultFrontend(
     fs=300,
@@ -130,8 +134,75 @@ def test_enh_asr_model(
         "speech": inputs,
         "speech_lengths": ilens,
         "speech_ref1": speech_ref,
-        "text": text,
-        "text_lengths": text_lengths,
+        "text_spk1": text,
+        "text_spk1_lengths": text_lengths,
+    }
+    loss, stats, weight = enh_s2t_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("calc_enh_loss", [True, False])
+def test_enh_asr_model_2spk(training, calc_enh_loss):
+    enh_beamformer_separator = NeuralBeamformer(
+        input_dim=17,
+        loss_type="spectrum",
+        num_spk=2,
+        use_wpe=True,
+        wlayers=2,
+        wunits=2,
+        wprojs=2,
+        use_dnn_mask_for_wpe=True,
+        multi_source_wpe=True,
+        use_beamformer=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        ref_channel=0,
+        use_noise_mask=False,
+        beamformer_type="mvdr_souden",
+    )
+
+    enh_model = ESPnetEnhancementModel(
+        encoder=enh_stft_encoder,
+        separator=enh_beamformer_separator,
+        decoder=enh_stft_decoder,
+        mask_module=None,
+        loss_wrappers=[pit_solver],
+    )
+    s2t_model = ESPnetASRModel(
+        vocab_size=len(token_list),
+        token_list=token_list,
+        frontend=default_frontend,
+        encoder=asr_transformer_encoder,
+        decoder=asr_transformer_decoder,
+        ctc=asr_ctc,
+        specaug=None,
+        normalize=None,
+        preencoder=None,
+        postencoder=None,
+        joint_network=None,
+    )
+    enh_s2t_model = ESPnetEnhS2TModel(
+        enh_model=enh_model,
+        s2t_model=s2t_model,
+        calc_enh_loss=calc_enh_loss,
+    )
+
+    if training:
+        enh_s2t_model.train()
+    else:
+        enh_s2t_model.eval()
+
+    kwargs = {
+        "speech": torch.randn(2, 300, 2),
+        "speech_lengths": torch.LongTensor([300, 200]),
+        "speech_ref1": torch.randn(2, 300),
+        "speech_ref2": torch.randn(2, 300),
+        "text_spk1": torch.LongTensor([[1, 2, 3, 4, 5], [5, 4, 3, 2, 1]]),
+        "text_spk2": torch.LongTensor([[3, 4, 2, 5], [2, 1, 3, 5]]),
+        "text_spk1_lengths": torch.LongTensor([5, 4]),
+        "text_spk2_lengths": torch.LongTensor([4, 4]),
     }
     loss, stats, weight = enh_s2t_model(**kwargs)
 
