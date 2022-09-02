@@ -1,41 +1,60 @@
-from distutils.version import LooseVersion
-import os
-
+import pytest
 import torch
+from packaging.version import parse as V
 
-is_torch_1_7_plus = LooseVersion(torch.__version__) >= LooseVersion("1.7.0")
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 
-if is_torch_1_7_plus:
-    from s3prl.upstream.interfaces import Featurizer
+is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+
+
+def test_frontend_init():
+    if not is_torch_1_8_plus:
+        return
+
+    frontend = S3prlFrontend(
+        fs=16000,
+        frontend_conf=dict(upstream="mel"),
+    )
+    assert frontend.frontend_type == "s3prl"
+    assert frontend.output_size() > 0
 
 
 def test_frontend_output_size():
     # Skip some testing cases
-    if not is_torch_1_7_plus:
+    if not is_torch_1_8_plus:
         return
 
-    s3prl_path = None
-    python_path_list = os.environ.get("PYTHONPATH", "(None)").split(":")
-    for p in python_path_list:
-        if p.endswith("s3prl"):
-            s3prl_path = p
-            break
-    assert s3prl_path is not None
-
-    s3prl_upstream = torch.hub.load(
-        s3prl_path,
-        "mel",
-        source="local",
-    ).to("cpu")
-
-    feature_selection = "last_hidden_state"
-    s3prl_featurizer = Featurizer(
-        upstream=s3prl_upstream,
-        feature_selection=feature_selection,
-        upstream_device="cpu",
+    frontend = S3prlFrontend(
+        fs=16000,
+        frontend_conf=dict(upstream="mel"),
+        download_dir="./hub",
     )
 
-    wavs = [torch.randn(1600)]
-    feats = s3prl_upstream(wavs)
-    feats = s3prl_featurizer(wavs, feats)
-    assert feats[0].shape[-1] == 80
+    wavs = torch.randn(2, 1600)
+    lengths = torch.LongTensor([1600, 1600])
+    feats, _ = frontend(wavs, lengths)
+    assert feats.shape[-1] == frontend.output_size()
+
+
+@pytest.mark.parametrize(
+    "fs, frontend_conf, multilayer_feature",
+    [
+        (16000, dict(upstream="mel"), True),
+        (16000, dict(upstream="mel"), False),
+        (16000, dict(upstream="mel", tile_factor=1), False),
+    ],
+)
+def test_frontend_backward(fs, frontend_conf, multilayer_feature):
+    if not is_torch_1_8_plus:
+        return
+
+    frontend = S3prlFrontend(
+        fs=fs,
+        frontend_conf=frontend_conf,
+        download_dir="./hub",
+        multilayer_feature=multilayer_feature,
+    )
+    wavs = torch.randn(2, 1600, requires_grad=True)
+    lengths = torch.LongTensor([1600, 1600])
+    feats, f_lengths = frontend(wavs, lengths)
+    feats.sum().backward()

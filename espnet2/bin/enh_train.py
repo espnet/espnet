@@ -12,7 +12,7 @@ def main(cmd=None):
 
     Example:
 
-        % python enh_train.py asr --print_config --optim adadelta \
+        % python enh_train.py enh --print_config --optim adadelta \
                 > conf/train_enh.yaml
         % python enh_train.py --config conf/train_enh.yaml
     """

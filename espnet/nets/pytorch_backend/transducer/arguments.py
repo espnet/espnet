@@ -1,7 +1,7 @@
 """Transducer model arguments."""
 
-from argparse import _ArgumentGroup
 import ast
+from argparse import _ArgumentGroup
 from distutils.util import strtobool
 
 

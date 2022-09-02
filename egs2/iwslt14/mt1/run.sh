@@ -10,9 +10,9 @@ tgt_lang=en
 
 train_set=train
 train_dev=valid
-test_set="test valid"
+test_sets="test valid"
 
-mt_config=conf/train_mt_transformer.yaml
+mt_config=conf/tuning/train_mt_branchformer_lr3e-3_warmup10k_share_enc_dec_input_dropout0.3.yaml
 inference_config=conf/decode_mt.yaml
 
 src_nbpe=1000
@@ -26,7 +26,6 @@ src_case=tc
 tgt_case=tc
 
 ./mt.sh \
-    --ignore_init_mismatch true \
     --use_lm false \
     --token_joint true \
     --ngpu 1 \
@@ -45,7 +44,7 @@ tgt_case=tc
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
-    --test_sets "${test_set}" \
+    --test_sets "${test_sets}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"

@@ -1,20 +1,16 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex
-from espnet2.enh.layers.complex_utils import new_complex_like
+from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
 from espnet2.enh.layers.dc_crn import DC_CRN
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
-
 EPS = torch.finfo(torch.get_default_dtype()).eps
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class DC_CRNSeparator(AbsSeparator):
@@ -22,6 +18,7 @@ class DC_CRNSeparator(AbsSeparator):
         self,
         input_dim: int,
         num_spk: int = 2,
+        predict_noise: bool = False,
         input_channels: List = [2, 16, 32, 64, 128, 256],
         enc_hid_channels: int = 8,
         enc_kernel_size: Tuple = (1, 3),
@@ -50,6 +47,7 @@ class DC_CRNSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
+            predict_noise: whether to output the estimated noise signal
             input_channels (list): number of input channels for the stacked
                 DenselyConnectedBlock layers
                 Its length should be (`number of DenselyConnectedBlock layers`).
@@ -88,11 +86,13 @@ class DC_CRNSeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
+        self.predict_noise = predict_noise
         self.mode = mode
         if mode not in ("mapping", "masking"):
             raise ValueError("mode=%s is not supported" % mode)
         self.ref_channel = ref_channel
 
+        num_outputs = self.num_spk + 1 if self.predict_noise else self.num_spk
         self.dc_crn = DC_CRN(
             input_dim=input_dim,
             input_channels=input_channels,
@@ -110,11 +110,14 @@ class DC_CRNSeparator(AbsSeparator):
             glstm_layers=glstm_layers,
             glstm_bidirectional=glstm_bidirectional,
             glstm_rearrange=glstm_rearrange,
-            output_channels=num_spk * 2,
+            output_channels=num_outputs * 2,
         )
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """DC-CRN Separator Forward.
 
@@ -143,6 +146,9 @@ class DC_CRNSeparator(AbsSeparator):
         masks = self.dc_crn(feature)
         masks = [new_complex_like(input, m.unbind(dim=1)) for m in masks.unbind(dim=2)]
 
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
         if self.mode == "masking":
             if is_multichannel:
                 masked = [input * m.unsqueeze(2) for m in masks]
@@ -158,6 +164,12 @@ class DC_CRNSeparator(AbsSeparator):
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )
+        if self.predict_noise:
+            mask_noise = mask_noise.unsqueeze(2) if is_multichannel else mask_noise
+            if self.mode == "masking":
+                others["noise1"] = input * mask_noise
+            else:
+                others["noise1"] = mask_noise
 
         return masked, ilens, others
 

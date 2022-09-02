@@ -1,17 +1,22 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+ACCENTED_FR=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
+AISHELL2=
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+AMERICASNLP22=downloads
 AN4=downloads
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DNS2=
+DNS3=
 DSING=downloads
 WSJ0=
 WSJ1=
@@ -20,6 +25,7 @@ REVERB=
 REVERB_OUT="${PWD}/REVERB"  # Output file path
 CHIME3=
 CHIME4=
+CHIME5=
 CSJDATATOP=
 CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ## Usage    :
@@ -38,17 +44,22 @@ HUI_ACG=downloads
 HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
-LIBRISPEECH=
+LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
+SLURP_S= # Output file path
+LIBRITRANS_S= # Output file path
 VOXCELEB=
+MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
+L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 MUSAN=
+MUST_C=downloads
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -66,6 +77,8 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+FLEURS=downloads
+MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
 BABEL_103=
@@ -130,10 +143,15 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+BURMESE=downloads
 MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+HARPERVALLEY=downloads
+TALROMUR=downloads
+DCASE=
+TEDX_SPANISH=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -169,6 +187,9 @@ if [[ "$(hostname)" == tir* ]]; then
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
     MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
+    AISHELL=/projects/tir5/data/speech_corpora/Aishell
+    LIBRISPEECH=/projects/tir5/data/speech_corpora/LibriSpeech
+    SLURP=/projects/tir5/data/speech_corpora/SLURP
 fi
 
 # For only JHU environment
@@ -211,6 +232,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     FSC=
     SNIPS= # smart-light-en-closed-field data path
     SLURP=
+    MEDIASPEECH=downloads
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads

@@ -4,8 +4,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import os
-from shutil import copyfile
 import sys
+from shutil import copyfile
 
 idir = sys.argv[1]
 

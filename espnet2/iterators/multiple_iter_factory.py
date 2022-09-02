@@ -1,7 +1,5 @@
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Iterator
+from typing import Callable, Collection, Iterator
 
 import numpy as np
 from typeguard import check_argument_types

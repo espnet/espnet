@@ -1,45 +1,39 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from distutils.version import LooseVersion
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
+import torch.quantization
+from typeguard import check_argument_types, check_return_type
 
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
-from espnet.nets.beam_search import BeamSearch
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.ctc import CTCPrefixScorer
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
-    ExtendedHypothesis as ExtTransHypothesis,  # noqa: H301
+    ExtendedHypothesis as ExtTransHypothesis,
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
+from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -77,15 +71,53 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
+        enh_s2t_task: bool = False,
+        quantize_asr_model: bool = False,
+        quantize_lm: bool = False,
+        quantize_modules: List[str] = ["Linear"],
+        quantize_dtype: str = "qint8",
     ):
         assert check_argument_types()
 
+        task = ASRTask if not enh_s2t_task else EnhS2TTask
+
+        if quantize_asr_model or quantize_lm:
+            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+                "1.5.0"
+            ):
+                raise ValueError(
+                    "float16 dtype for dynamic quantization is not supported with "
+                    "torch version < 1.5.0. Switch to qint8 dtype instead."
+                )
+
+        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype = getattr(torch, quantize_dtype)
+
         # 1. Build ASR model
         scorers = {}
-        asr_model, asr_train_args = ASRTask.build_model_from_file(
+        asr_model, asr_train_args = task.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
+        if enh_s2t_task:
+            asr_model.inherite_attributes(
+                inherite_s2t_attrs=[
+                    "ctc",
+                    "decoder",
+                    "eos",
+                    "joint_network",
+                    "sos",
+                    "token_list",
+                    "use_transducer_decoder",
+                ]
+            )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
+
+        if quantize_asr_model:
+            logging.info("Use quantized asr model for decoding.")
+
+            asr_model = torch.quantization.quantize_dynamic(
+                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+            )
 
         decoder = asr_model.decoder
 
@@ -102,6 +134,14 @@ class Speech2Text:
             lm, lm_train_args = LMTask.build_model_from_file(
                 lm_train_config, lm_file, device
             )
+
+            if quantize_lm:
+                logging.info("Use quantized lm for decoding.")
+
+                lm = torch.quantization.quantize_dynamic(
+                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                )
+
             scorers["lm"] = lm.lm
 
         # 3. Build ngram model
@@ -126,6 +166,7 @@ class Speech2Text:
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
+                token_list=token_list,
                 **transducer_conf,
             )
             beam_search = None
@@ -209,6 +250,7 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.enh_s2t_task = enh_s2t_task
 
     @torch.no_grad()
     def __call__(
@@ -240,22 +282,59 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
+        logging.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
-        if isinstance(enc, tuple):
-            enc = enc[0]
-        assert len(enc) == 1, len(enc)
+        if self.enh_s2t_task:
+            # Enh+ASR joint task
+            # NOTE (Wangyou): the return type in this case is List[default_return_type]
+            num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
+            assert len(enc) == num_spk, (len(enc), num_spk)
+            results = []
+            for spk, enc_spk in enumerate(enc, 1):
+                logging.info("=== [EnhASR] Speaker {} ===".format(spk))
+                if isinstance(enc_spk, tuple):
+                    enc_spk = enc_spk[0]
+                assert len(enc_spk) == 1, len(enc_spk)
 
-        # c. Passed the encoder result and the beam search
+                # c. Passed the encoder result and the beam search
+                ret = self._decode_single_sample(enc_spk[0])
+                assert check_return_type(ret)
+                results.append(ret)
+
+        else:
+
+            # Normal ASR
+            if isinstance(enc, tuple):
+                enc = enc[0]
+            assert len(enc) == 1, len(enc)
+
+            # c. Passed the encoder result and the beam search
+            results = self._decode_single_sample(enc[0])
+            assert check_return_type(results)
+
+        return results
+
+    def _decode_single_sample(self, enc: torch.Tensor):
         if self.beam_search_transducer:
-            nbest_hyps = self.beam_search_transducer(enc[0])
+            logging.info("encoder output length: " + str(enc.shape[0]))
+            nbest_hyps = self.beam_search_transducer(enc)
+
+            best = nbest_hyps[0]
+            logging.info(f"total log probability: {best.score:.2f}")
+            logging.info(
+                f"normalized log probability: {best.score / len(best.yseq):.2f}"
+            )
+            logging.info(
+                "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+            )
         else:
             nbest_hyps = self.beam_search(
-                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+                x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )
 
         nbest_hyps = nbest_hyps[: self.nbest]
@@ -283,7 +362,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -348,6 +426,11 @@ def inference(
     allow_variable_data_keys: bool,
     transducer_conf: Optional[dict],
     streaming: bool,
+    enh_s2t_task: bool,
+    quantize_asr_model: bool,
+    quantize_lm: bool,
+    quantize_modules: List[str],
+    quantize_dtype: str,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -391,6 +474,11 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+        enh_s2t_task=enh_s2t_task,
+        quantize_asr_model=quantize_asr_model,
+        quantize_lm=quantize_lm,
+        quantize_modules=quantize_modules,
+        quantize_dtype=quantize_dtype,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -427,20 +515,45 @@ def inference(
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
+                if enh_s2t_task:
+                    num_spk = getattr(speech2text.asr_model.enh_model, "num_spk", 1)
+                    results = [results for _ in range(num_spk)]
 
             # Only supporting batch_size==1
             key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-                # Create a directory: outdir/{n}best_recog
-                ibest_writer = writer[f"{n}best_recog"]
+            if enh_s2t_task:
+                # Enh+ASR joint task
+                for spk, ret in enumerate(results, 1):
+                    for n, (text, token, token_int, hyp) in zip(
+                        range(1, nbest + 1), ret
+                    ):
+                        # Create a directory: outdir/{n}best_recog_spk?
+                        ibest_writer = writer[f"{n}best_recog_spk{spk}"]
 
-                # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
+                        # Write the result to each file
+                        ibest_writer["token"][key] = " ".join(token)
+                        ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                        ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                        if text is not None:
+                            ibest_writer["text"][key] = text
+
+            else:
+
+                # Normal ASR
+                for n, (text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog"]
+
+                    # Write the result to each file
+                    ibest_writer["token"][key] = " ".join(token)
+                    ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                    ibest_writer["score"][key] = str(hyp.score)
+
+                    if text is not None:
+                        ibest_writer["text"][key] = text
 
 
 def get_parser():
@@ -531,6 +644,43 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
+    )
+
+    group = parser.add_argument_group("Quantization related")
+    group.add_argument(
+        "--quantize_asr_model",
+        type=str2bool,
+        default=False,
+        help="Apply dynamic quantization to ASR model.",
+    )
+    group.add_argument(
+        "--quantize_lm",
+        type=str2bool,
+        default=False,
+        help="Apply dynamic quantization to LM.",
+    )
+    group.add_argument(
+        "--quantize_modules",
+        type=str,
+        nargs="*",
+        default=["Linear"],
+        help="""List of modules to be dynamically quantized.
+        E.g.: --quantize_modules=[Linear,LSTM,GRU].
+        Each specified module should be an attribute of 'torch.nn', e.g.:
+        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
+    )
+    group.add_argument(
+        "--quantize_dtype",
+        type=str,
+        default="qint8",
+        choices=["float16", "qint8"],
+        help="Dtype for dynamic quantization.",
     )
 
     group = parser.add_argument_group("Beam-search related")

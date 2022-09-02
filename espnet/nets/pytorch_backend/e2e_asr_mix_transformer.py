@@ -16,9 +16,9 @@ It is a fusion of `e2e_asr_mix.py` and `e2e_asr_transformer.py`. Refer to:
 2. PIT is used in CTC to determine the permutation with minimum loss.
 """
 
-from argparse import Namespace
 import logging
 import math
+from argparse import Namespace
 
 import numpy
 import torch
@@ -31,13 +31,11 @@ from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_mix import E2E as E2EASRMIX
 from espnet.nets.pytorch_backend.e2e_asr_mix import PIT
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2EASR
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, th_accuracy
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.encoder_mix import EncoderMix
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask, target_mask
 
 
 class E2E(E2EASR, ASRInterface, torch.nn.Module):

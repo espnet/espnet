@@ -1,17 +1,14 @@
 """Beamformer module."""
-from distutils.version import LooseVersion
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Sequence, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-
 EPS = torch.finfo(torch.double).eps
-is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 def new_complex_like(
@@ -72,9 +69,12 @@ def complex_norm(
     if is_torch_complex_tensor(c):
         return torch.norm(c, dim=dim, keepdim=keepdim)
     else:
-        return torch.sqrt(
-            (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
-        )
+        if dim is None:
+            return torch.sqrt((c.real**2 + c.imag**2).sum() + EPS)
+        else:
+            return torch.sqrt(
+                (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
+            )
 
 
 def einsum(equation, *operands):

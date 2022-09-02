@@ -1,19 +1,16 @@
-from distutils.version import LooseVersion
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import torch
+from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
-from espnet.nets.pytorch_backend.rnn.encoders import RNNP
 from espnet2.enh.layers.complex_utils import is_complex
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class MaskEstimator(torch.nn.Module):
@@ -21,7 +18,7 @@ class MaskEstimator(torch.nn.Module):
         self, type, idim, layers, units, projs, dropout, nmask=1, nonlinear="sigmoid"
     ):
         super().__init__()
-        subsample = np.ones(layers + 1, dtype=np.int)
+        subsample = np.ones(layers + 1, dtype=np.int64)
 
         typ = type.lstrip("vgg").rstrip("p")
         if type[-1] == "p":

@@ -15,7 +15,7 @@ fi
 [ -f ./path.sh ] && . ./path.sh
 set -euo pipefail
 if [ $# -eq 1 ]; then
-    exp=$1
+    exp=$(realpath "$1")
 else
     exp=exp
 fi

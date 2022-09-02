@@ -1,15 +1,13 @@
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 class ESPnetLanguageModel(AbsESPnetModel):
@@ -114,7 +112,10 @@ class ESPnetLanguageModel(AbsESPnetModel):
         return nll, x_lengths
 
     def forward(
-        self, text: torch.Tensor, text_lengths: torch.Tensor
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         nll, y_lengths = self.nll(text, text_lengths)
         ntokens = y_lengths.sum()
@@ -126,6 +127,9 @@ class ESPnetLanguageModel(AbsESPnetModel):
         return loss, stats, weight
 
     def collect_feats(
-        self, text: torch.Tensor, text_lengths: torch.Tensor
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         return {}

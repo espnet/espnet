@@ -40,6 +40,7 @@ griffin_lim_iters=64  # the number of iterations of Griffin-Lim
 datadir=./downloads
 an4_root=${datadir}/an4
 data_url=http://www.speech.cs.cmu.edu/databases/an4/
+data_url2=https://huggingface.co/datasets/espnet/an4/resolve/main
 
 # exp tag
 tag="" # tag for managing experiments.
@@ -59,7 +60,10 @@ eval_set="test"
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     mkdir -p ${datadir}
-    local/download_and_untar.sh ${datadir} ${data_url}
+    if ! local/download_and_untar.sh ${datadir} ${data_url}; then
+        echo "Failed to download from the original site, try a backup site."
+        local/download_and_untar.sh ${datadir} ${data_url2}
+    fi
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

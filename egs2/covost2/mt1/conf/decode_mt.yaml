@@ -1,0 +1,5 @@
+beam_size: 5
+lm_weight: 0.0
+maxlenratio: 1.6
+minlenratio: 0.0
+penalty: 0.2

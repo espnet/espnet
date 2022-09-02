@@ -11,7 +11,6 @@ import json
 import logging
 import sys
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("jsons", type=str, nargs="+", help="json files")

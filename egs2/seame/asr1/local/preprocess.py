@@ -18,13 +18,13 @@
     [3] https://github.com/zengzp0912/SEAME-dev-set
 """
 
-import re
-import os
-import sys
 import argparse
-import itertools
 import collections
+import itertools
+import os
 import random as rd
+import re
+import sys
 
 rd.seed(531)
 

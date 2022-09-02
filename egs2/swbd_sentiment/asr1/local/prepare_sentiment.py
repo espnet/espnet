@@ -1,7 +1,7 @@
-import os
-import re
 import argparse
 import math
+import os
+import re
 
 
 def float2str(number, size=6):

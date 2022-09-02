@@ -1,0 +1,21 @@
+--- generate_isotropic_noise.old.py
++++ generate_isotropic_noise.new.py
+@@ -227,6 +227,7 @@
+ 
+ 
+ def run(args):
++    np.random.seed(args.seed)
+     if not os.path.exists(args.output_dir):
+         os.makedirs(args.output_dir)
+     mic_distance = 0.05
+@@ -256,5 +257,9 @@
+                         type=int,
+                         help="total number of simulated wavs",
+                         default=200)
++    parser.add_argument("--seed",
++                        type=int,
++                        help="random seed",
++                        default=1)
+     args = parser.parse_args()
+     run(args)
+\ No newline at end of file

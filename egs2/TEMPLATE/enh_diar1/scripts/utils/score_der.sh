@@ -1,0 +1,1 @@
+../../../diar1/scripts/utils/score_der.sh

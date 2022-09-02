@@ -1,0 +1,124 @@
+# minibatch related
+batch_type: folded
+batch_size: 16  # A6000 x 1
+accum_grad: 1
+grad_clip: 5
+max_epoch: 12
+patience: 10
+# The initialization method for model parameters
+init: xavier_uniform
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - train
+    - loss
+    - min
+keep_nbest_models: 10
+num_att_plot: 3
+unused_parameters: true
+freeze_param: [
+    "s2t_model.frontend.upstream",
+]
+init_param: [
+    "../enh1/exp/enh_train_enh_convtasnet_small_raw/valid.loss.ave_1best.pth:encoder:enh_model.encoder",
+    "../enh1/exp/enh_train_enh_convtasnet_small_raw/valid.loss.ave_1best.pth:separator:enh_model.separator",
+    "../enh1/exp/enh_train_enh_convtasnet_small_raw/valid.loss.ave_1best.pth:decoder:enh_model.decoder",
+    "../asr1/exp/asr_train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k_raw_en_char/valid.acc.ave.pth:frontend:s2t_model.frontend",
+    "../asr1/exp/asr_train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k_raw_en_char/valid.acc.ave.pth:preencoder:s2t_model.preencoder",
+    "../asr1/exp/asr_train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k_raw_en_char/valid.acc.ave.pth:encoder:s2t_model.encoder",
+    "../asr1/exp/asr_train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k_raw_en_char/valid.acc.ave.pth:ctc:s2t_model.ctc",
+    "../asr1/exp/asr_train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k_raw_en_char/valid.acc.ave.pth:decoder:s2t_model.decoder",
+]
+
+# network architecture
+enh_encoder: conv
+enh_encoder_conf:
+    channel: 256
+    kernel_size: 40
+    stride: 20
+enh_decoder: conv
+enh_decoder_conf:
+    channel: 256
+    kernel_size: 40
+    stride: 20
+enh_separator: tcn
+enh_separator_conf:
+    num_spk: 1
+    layer: 4
+    stack: 2
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: true
+
+asr_preencoder: linear
+asr_preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 128
+
+# encoder related
+asr_encoder: transformer
+asr_encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d2
+    normalize_before: true
+
+# decoder related
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+model_conf:
+    calc_enh_loss: false
+    bypass_enh_prob: 0.0
+
+optim: adam
+optim_conf:
+    lr: 0.0001
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+        apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 100
+    num_freq_mask: 4
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2

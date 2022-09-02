@@ -1,0 +1,73 @@
+batch_type: numel
+batch_bins: 200000
+accum_grad: 1
+max_epoch: 15
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - cer_ctc
+    - min
+keep_nbest_models: 1
+
+encoder: transformer
+encoder_conf:
+    input_layer: conv2d2
+    num_blocks: 1
+    linear_units: 2048
+    dropout_rate: 0.2
+    output_size: 256  # dimension of attention
+    attention_heads: 8
+    attention_dropout_rate: 0.2
+
+model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.0
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+optim: adamw
+optim_conf:
+    lr: 0.0001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 300
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wav2vec2_url  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
+    download_dir: ./hub
+    multilayer_feature: True
+
+freeze_param: [
+    "frontend.upstream.model.feature_extractor",
+    "frontend.upstream.model.encoder.layers.0",
+    "frontend.upstream.model.encoder.layers.1",
+    "frontend.upstream.model.encoder.layers.2",
+    "frontend.upstream.model.encoder.layers.3",
+    "frontend.upstream.model.encoder.layers.4",
+    "frontend.upstream.model.encoder.layers.5",
+    "frontend.upstream.model.encoder.layers.6",
+    "frontend.upstream.model.encoder.layers.7",
+    "frontend.upstream.model.encoder.layers.8",
+    "frontend.upstream.model.encoder.layers.9",
+    "frontend.upstream.model.encoder.layers.10",
+    "frontend.upstream.model.encoder.layers.11",
+    "frontend.upstream.model.encoder.layers.12",
+    "frontend.upstream.model.encoder.layers.13",
+    "frontend.upstream.model.encoder.layers.14",
+    "frontend.upstream.model.encoder.layers.15",
+    "frontend.upstream.model.encoder.layers.16",
+    "frontend.upstream.model.encoder.layers.17",
+    "frontend.upstream.model.encoder.layers.18",
+    "frontend.upstream.model.encoder.layers.19",
+    "frontend.upstream.model.encoder.layers.20",
+    "frontend.upstream.model.encoder.layers.21",
+]
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
