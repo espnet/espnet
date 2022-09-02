@@ -1,4 +1,3 @@
-# Trained with Nvidia 3090(24GB) x 4 GPUs. It takes about 2 days.
 batch_type: numel
 batch_bins: 14000000
 accum_grad: 1
