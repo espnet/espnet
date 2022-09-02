@@ -286,7 +286,8 @@ For more details on how use fusion of front-ends, you can refer to this [wiki](h
 - Git hash: `13db69d3befc3c82a5ff5a11e28bf79d5030603f`
   - Commit date: `Mon Aug 29 13:44:35 2022 +0000`
 
-## asr_train_asr_conformer5_raw_zh_TW_bpe2542_sp_lowlr
+## asr_train_asr_conformer5_raw_zh_TW_bpe2542_sp_lr1.0
+- **HuggingFace model URL: https://huggingface.co/espnet/shihlun-asr-commonvoice-zh-TW**
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
