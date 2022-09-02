@@ -407,7 +407,7 @@ def wiener_weights(Y, model, eps):
     Compute the Wiener weights using a noise model
     """
     mask = model(Y)
-    Y_pwr = Y.real ** 2 + Y.imag ** 2
+    Y_pwr = Y.real**2 + Y.imag**2
     noise_power = torch.mean(Y_pwr * mask, dim=-1, keepdim=True)
     signal_power = torch.mean(Y_pwr, dim=-1, keepdim=True)
     weights = 1.0 - noise_power / torch.clamp(signal_power, min=eps)

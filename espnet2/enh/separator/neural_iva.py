@@ -1,7 +1,5 @@
 from collections import OrderedDict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import List, Tuple, Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -94,7 +92,7 @@ class NeuralIVA(AbsSeparator):
 
         self.ref_channel = ref_channel
         if self.use_iva:
-            self.beamformer = DNN_IVA(
+            self.dnn_iva = DNN_IVA(
                 bidim=input_dim,
                 btype=bnet_type,
                 blayers=blayers,
@@ -114,7 +112,7 @@ class NeuralIVA(AbsSeparator):
                 use_wiener=use_wiener,
             )
         else:
-            self.beamformer = None
+            self.dnn_iva = None
 
     def forward(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
@@ -149,9 +147,7 @@ class NeuralIVA(AbsSeparator):
         if input.dim() == 3:
             # single-channel input (B, T, F)
             if self.use_wpe:
-                enhanced, ilens, mask_w, powers = self.wpe(
-                    input.unsqueeze(-2), ilens
-                )
+                enhanced, ilens, mask_w, powers = self.wpe(input.unsqueeze(-2), ilens)
                 if isinstance(enhanced, list):
                     # single-source WPE
                     enhanced = [enh.squeeze(-2) for enh in enhanced]
@@ -196,9 +192,7 @@ class NeuralIVA(AbsSeparator):
                     )
                 else:
                     # output of multi-source WPE
-                    enhanced, ilens, _ = self.beamformer(
-                        enhanced, ilens
-                    )
+                    enhanced, ilens, _ = self.dnn_iva(enhanced, ilens)
                 for spk in range(self.num_spk):
                     others["mask_spk{}".format(spk + 1)] = None
 

@@ -1,21 +1,15 @@
 """DNN beamformer module."""
-from distutils.version import LooseVersion
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
-
 import logging
+from distutils.version import LooseVersion
+from typing import List, Optional, Tuple, Union
+
 import torch
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.iva import auxiva_iss
-from espnet2.enh.layers.complex_utils import stack
-from espnet2.enh.layers.complex_utils import to_double
-from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
-
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
@@ -86,7 +80,7 @@ class DNN_IVA(torch.nn.Module):
         """
         X = X.permute(0, 2, 1, 3)  # -> (B, F, C, T)
 
-        X = torch.log1p(X.real ** 2 + X.imag ** 2)
+        X = torch.log1p(X.real**2 + X.imag**2)
 
         mask, *_ = self.mask(X, self.current_ilens)  # shape is (B, F, C, T)
         mask = mask[0]
@@ -121,7 +115,6 @@ class DNN_IVA(torch.nn.Module):
         """
         # data (B, T, C, F) -> (B, C, F, T)
         data = data.permute(0, 2, 3, 1)
-        # data_d = to_double(data)
 
         if iterations is None:
             if self.training:
