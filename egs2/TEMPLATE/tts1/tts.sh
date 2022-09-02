@@ -507,6 +507,7 @@ if ! "${skip_data_prep}"; then
             fi
             # shellcheck disable=SC2086
             utils/fix_data_dir.sh --utt_extra_files "${_utt_extra_files}" "${data_feats}/${dset}"
+
             # Filter x-vector
             if "${use_xvector}"; then
                 cp "${dumpdir}/xvector/${dset}"/xvector.{scp,scp.bak}
