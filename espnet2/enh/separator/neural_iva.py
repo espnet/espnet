@@ -44,6 +44,7 @@ class NeuralIVA(AbsSeparator):
         iva_train_iterations: int = None,
         iva_train_channels: int = None,
         use_dmc: bool = False,
+        use_wiener: bool = False,
         # For numerical stability
         diagonal_loading: bool = True,
         diag_eps_wpe: float = 1e-7,
@@ -110,6 +111,7 @@ class NeuralIVA(AbsSeparator):
                 iva_train_iterations=iva_train_iterations,
                 iva_train_channels=iva_train_channels,
                 use_dmc=use_dmc,
+                use_wiener=use_wiener,
             )
         else:
             self.beamformer = None
@@ -195,7 +197,7 @@ class NeuralIVA(AbsSeparator):
                 else:
                     # output of multi-source WPE
                     enhanced, ilens, _ = self.beamformer(
-                        enhanced, ilens, powers=None
+                        enhanced, ilens
                     )
                 for spk in range(self.num_spk):
                     others["mask_spk{}".format(spk + 1)] = None

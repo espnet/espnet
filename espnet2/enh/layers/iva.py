@@ -402,6 +402,18 @@ def auxiva_iss_one_step_dmc(W, A, model, eps, two_chan_ip2, X_original):
     return W, A
 
 
+def wiener_weights(Y, model, eps):
+    """
+    Compute the Wiener weights using a noise model
+    """
+    mask = model(Y)
+    Y_pwr = Y.real ** 2 + Y.imag ** 2
+    noise_power = torch.mean(Y_pwr * mask, dim=-1, keepdim=True)
+    signal_power = torch.mean(Y_pwr, dim=-1, keepdim=True)
+    weights = 1.0 - noise_power / torch.clamp(signal_power, min=eps)
+    return weights
+
+
 def auxiva_iss(
     X: torch.Tensor,
     n_iter: Optional[int] = 20,
@@ -411,6 +423,7 @@ def auxiva_iss(
     two_chan_ip2: Optional[bool] = True,
     proj_back_mic: Optional[bool] = 0,
     use_dmc: Optional[bool] = False,
+    use_wiener: Optional[bool] = False,
     checkpoints_iter: Optional[List[int]] = None,
     checkpoints_list: Optional[List] = None,
 ) -> torch.Tensor:
@@ -501,6 +514,10 @@ def auxiva_iss(
 
     if use_dmc:
         X = demix(W, X_original)
+
+    if use_wiener:
+        ww = wiener_weights(X, model, eps)
+        X = X * ww
 
     if proj_back_mic is not None:
         a = A[..., :, [proj_back_mic], :].moveaxis(-1, -3)

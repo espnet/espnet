@@ -47,6 +47,7 @@ class DNN_IVA(torch.nn.Module):
         iva_train_iterations: int = None,
         iva_train_channels: int = None,
         use_dmc: bool = False,
+        use_wiener: bool = False,
     ):
         super().__init__()
         self.mask = MaskEstimator(
@@ -76,6 +77,7 @@ class DNN_IVA(torch.nn.Module):
             self.train_iterations = iva_train_iterations
         self.train_channels = iva_train_channels
         self.use_dmc = use_dmc
+        self.use_wiener = use_wiener
 
     def compute_mask(self, X):
         """
@@ -84,7 +86,7 @@ class DNN_IVA(torch.nn.Module):
         """
         X = X.permute(0, 2, 1, 3)  # -> (B, F, C, T)
 
-        X = torch.log(1.0 + X.real ** 2 + X.imag ** 2)
+        X = torch.log1p(X.real ** 2 + X.imag ** 2)
 
         mask, *_ = self.mask(X, self.current_ilens)  # shape is (B, F, C, T)
         mask = mask[0]
@@ -99,8 +101,6 @@ class DNN_IVA(torch.nn.Module):
         self,
         data: Union[torch.Tensor, ComplexTensor],
         ilens: torch.LongTensor,
-        powers: Optional[List[torch.Tensor]] = None,
-        oracle_masks: Optional[List[torch.Tensor]] = None,
         iterations: Optional[int] = None,
     ) -> Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, torch.Tensor]:
         """DNN_IVA forward function.
@@ -114,9 +114,6 @@ class DNN_IVA(torch.nn.Module):
         Args:
             data (torch.complex64/ComplexTensor): (B, T, C, F)
             ilens (torch.Tensor): (B,)
-            powers (List[torch.Tensor] or None): used for wMPDR or WPD (B, F, T)
-            oracle_masks (List[torch.Tensor] or None): oracle masks (B, F, C, T)
-                if not None, oracle_masks will be used instead of self.mask
         Returns:
             enhanced (torch.complex64/ComplexTensor): (B, T, F)
             ilens (torch.Tensor): (B,)
@@ -132,12 +129,11 @@ class DNN_IVA(torch.nn.Module):
             else:
                 iterations = self.iterations
 
-
         data = torch.view_as_complex(torch.stack((data.real, data.imag), dim=-1))
 
-        if self.training: 
+        if self.training:
             if self.train_channels is not None and data.shape[-3] > self.train_channels:
-                data = data[..., :self.train_channels, :, :]
+                data = data[..., : self.train_channels, :, :]
 
         self.current_ilens = ilens
 
@@ -148,6 +144,8 @@ class DNN_IVA(torch.nn.Module):
             model=self.compute_mask,
             eps=self.eps,
             proj_back_mic=self.ref_channel,
+            use_dmc=self.use_dmc,
+            use_wiener=self.use_wiener,
         )
 
         enhanced = ComplexTensor(enhanced.real, enhanced.imag)

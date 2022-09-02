@@ -28,13 +28,13 @@ scheduler_conf:
     patience: 3
 encoder: stft
 encoder_conf:
-    n_fft: 512
-    hop_length: 128
+    n_fft: 2048
+    hop_length: 512
     use_builtin_complex: False
 decoder: stft
 decoder_conf:
-    n_fft: 512
-    hop_length: 128
+    n_fft: 2048
+    hop_length: 512
 separator: wpe_iva
 separator_conf:
     num_spk: 1
@@ -50,15 +50,16 @@ separator_conf:
     use_iva: True
     bnet_type: blstmp
     blayers: 3
-    bunits: 300
-    bprojs: 300
+    bunits: 150
+    bprojs: 150
     badim: 160
     ref_channel: 4
-    bdropout_rate: 0.0
+    bdropout_rate: 0.2
     iva_iterations: 3
     iva_train_iterations: 3
     iva_train_channels: 6
     use_dmc: False
+    use_wiener: False
 
 criterions: 
   # The first criterion

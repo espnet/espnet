@@ -1,3 +1,4 @@
+###
 #!/usr/bin/env python3
 import argparse
 import logging
@@ -5,9 +6,10 @@ import sys
 from typing import List
 from typing import Union
 
-from mir_eval.separation import bss_eval_sources
+from fast_bss_eval import bss_eval_sources
 import numpy as np
 from pystoi import stoi
+from pypesq import pesq
 import torch
 from typeguard import check_argument_types
 
@@ -67,18 +69,24 @@ def scoring(
             elif ref.ndim < inf.ndim:
                 # single-channel reference and multi-channel output
                 raise ValueError(
-                    "Reference must be multi-channel when the \
-                    network output is multi-channel."
+                    "Reference must be multi-channel when the                    "
+                    " network output is multi-channel."
                 )
             elif ref.ndim == inf.ndim == 3:
                 # multi-channel reference and output
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
 
-            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+            if abs(inf).max() == 0.0:
+                logging.warning(
+                    "Oups, the inference signal is all zero!! Replace with random noise"
+                )
+                inf = np.random.randn(*inf.shape)
 
+            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True, load_diag=1e-5, clamp_db=50)
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
+                pesq_score = pesq(ref[i], inf[int(perm[i])], sample_rate)
                 si_snr_score = -float(
                     si_snr_loss(
                         torch.from_numpy(ref[i][None, ...]),
@@ -86,6 +94,7 @@ def scoring(
                     )
                 )
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
+                writer[f"PESQ_spk{i + 1}"][key] = str(pesq_score)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
@@ -99,10 +108,8 @@ def get_parser():
         description="Frontend inference",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-
     # Note(kamo): Use '_' instead of '-' as separator.
     # '-' is confusing if written in yaml.
-
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
@@ -110,32 +117,22 @@ def get_parser():
         choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
-
     parser.add_argument("--output_dir", type=str, required=True)
-
     parser.add_argument(
         "--dtype",
         default="float32",
         choices=["float16", "float32", "float64"],
         help="Data type",
     )
-
     group = parser.add_argument_group("Input data related")
     group.add_argument(
-        "--ref_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--ref_scp", type=str, required=True, action="append",
     )
     group.add_argument(
-        "--inf_scp",
-        type=str,
-        required=True,
-        action="append",
+        "--inf_scp", type=str, required=True, action="append",
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)
-
     return parser
 
 
