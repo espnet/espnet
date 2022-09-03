@@ -29,8 +29,8 @@ We are planning a super major update, called `ESPnet2`. The developing status is
 You can find the new recipes in `egs2`:
 
 ```
-espnet/  # Python modules of epsnet1
-espnet2/ # Python modules of epsnet2
+espnet/  # Python modules of espnet1
+espnet2/ # Python modules of espnet2
 egs/     # espnet1 recipes
 egs2/    # espnet2 recipes
 ```
@@ -346,3 +346,309 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 ### FAQ
 1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
 3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
+
+## Real-Time-Factor and Latency
+
+In order to calculate real-time-factor and (non-streaming) latency the script `utils/calculate_rtf.py` has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see [Limitations](#limitations) section below) after the decoding stage has finished but can also be run as a stand-alone script:
+
+### Usage
+
+```
+usage: calculate_rtf.py [-h] [--log-dir LOG_DIR]
+                        [--log-name {decode,asr_inference}]
+                        [--input-shift INPUT_SHIFT]
+                        [--start-times-marker {input lengths,speech length}]
+                        [--end-times-marker {prediction,best hypo}]
+
+calculate real time factor (RTF)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log-dir LOG_DIR     path to logging directory
+  --log-name {decode,asr_inference}
+                        name of logfile, e.g., 'decode' (espnet1) and
+                        'asr_inference' (espnet2)
+  --input-shift INPUT_SHIFT
+                        shift of inputs in milliseconds
+  --start-times-marker {input lengths,speech length}
+                        String marking start of decoding in logfile, e.g.,
+                        'input lengths' (espnet1) and 'speech length'
+                        (espnet2)
+  --end-times-marker {prediction,best hypo}
+                        String marking end of decoding in logfile, e.g.,
+                        'prediction' (espnet1) and 'best hypo' (espnet2)
+```
+
+### Notes
+
+- Default settings still target ESPnet1 usage:
+  ```
+  --log-name 'decode'
+  --input-shift 10.0
+  --start-times-marker 'input lengths'
+  --end-times-marker 'prediction'
+  ```
+- For ESPnet2, other frame shifts than 10ms are possible via different front-end/feature configurations. So different to ESPnet1, which logs the input feature frames at a fixed 10ms frame shift, in ESPnet2 the number of speech samples is logged instead and the audio sample shift in milliseconds (1/sampleRate x 1000) needs to be specified for `--input-shift` parameter (see `--input-shift 0.0625` in example below for 16000 Hz sample rate).
+
+### Example
+
+From ```espnet/egs2/librispeech/asr1``` the following call runs the decoding stage with pretrained ESPnet2 model:
+
+```sh
+./run.sh --stage 12  --use_streaming false --skip_data_prep true --skip_train true --download_model byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
+```
+Results for latency and rtf calculation on Librispeech test_clean subset can then be found in ```espnet/egs2/librispeech/asr1/exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir/calculate_rtf.log``` file:
+```sh
+# ../../../utils/calculate_rtf.py --log-dir exp/byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp/decode_as
+r_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean/logdir --log-name asr_inference --input-shift 0.0625 --start-times-
+marker "speech length" --end-times-marker "best hypo"
+Total audio duration: 19452.481 [sec]
+Total decoding time: 137762.231 [sec]
+RTF: 7.082
+Latency: 52581.004 [ms/sentence]
+```
+
+### Limitations
+
+- Only non-streaming inference mode is supported currently
+- The decoding stage 12 in `asr.sh` automatically runs the rtf & latency calculation if `"asr_inference_tool == "espnet2.bin.asr_inference"`; other inference tools like k2 & maskctc are still left to do
+
+## Transducer ASR
+
+> ***Important***: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).
+
+ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. Currently, two versions of these models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention ASR models while the second is designed independently and purely for the Transducer task. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
+
+For the user, it means two things. First, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) may be missing in the standalone version until futher testing.
+
+***The following sections of this tutorial are dedicated to the introduction of the version under asr_transducer***. In that regards, the user should keep in mind that most features described here are not available in the first version.
+
+### General usage
+
+To enable Transducer model training or decoding in your experiments, the following option should be supplied to `asr.sh` in your `run.sh`:
+
+```sh
+asr.sh --asr_task asr_transducer [...]
+```
+
+For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
+
+**Note:** If you encounter any error related to this tool, please open an issue in ESPnet instead of the [original repository](https://github.com/HawkAaron/warp-transducer/issues).
+
+**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
+
+    model_conf:
+      fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+
+### Architecture
+
+The architecture is composed of three modules: encoder, decoder and joint network. Each module has one (or three)  config(s) with various parameters in order to configure the internal parts. The following sections describe the mandatory and optional parameters for each module.
+
+#### Encoder
+
+For the encoder, we propose a unique encoder type encapsulating the following blocks: Conformer and Conv 1D (other X-former such as Branchformer or Enformer will be supported soon).
+It is similar to the custom encoder in ESPnet1, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three configurations passed to `encoder_conf`:
+
+  1. `input_conf` (**Dict**): The configuration for the input block.
+  2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
+  3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
+
+The first and second configurations are optional. If needed, fhe following parameters can be modified in each configuration:
+
+    main_conf:
+      pos_wise_act_type: Position-wise activation type. (str, default = "swish")
+      conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
+      pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
+      simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
+      after_norm_type: Final normalization type. (str, default = "layer_norm")
+      after_norm_eps: Epsilon value for the final normalization. (float, default = None)
+      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = None)
+      dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+      short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
+      short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+      left_chunk_size: Number of frames in left context. (int, default = 0)
+      # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
+      ftswish_threshold: Threshold value for FTSwish activation formulation.
+      ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
+      hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
+      hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
+      leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
+      smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
+      smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
+      softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
+      softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
+      swish_beta: Beta value for E-Swish activation formulation. (float, default = 20)
+
+    input_conf:
+      block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
+      conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
+      subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
+
+The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
+
+    # Conv 1D
+    - block_type: conv1d
+      output_size: Output size. (int)
+      kernel_size: Size of the context window. (int or Tuple)
+      stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
+      dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
+      groups (optional): Number of blocked connections from input channels to output channels. (int, default = 1)
+      bias (optional): Whether to add a learnable bias to the output. (bool, default = True)
+      relu (optional): Whether to use a ReLU activation after convolution. (bool, default = True)
+      batch_norm: Whether to use batch normalization after convolution. (bool, default = False)
+      dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
+
+    # Conformer
+    - block_type: conformer
+      hidden_size: Hidden (and output) dimension. (int)
+      linear_size: Dimension of feed-forward module. (int)
+      conv_mod_kernel_size: Number of kernel in convolutional module. (int)
+      heads (optional): Number of heads in multi-head attention. (int, default = 4)
+      norm_eps (optional): Epsilon value for Conformer normalization. (float, default = None)
+      norm_partial (optional): Value for the Conformer normalization with RMSNorm. (float, default = None)
+      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = None)
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
+      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+      pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
+
+In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
+
+**Example 1: conv 2D + 2x Conv 1D + 14x Conformer.**
+
+```yaml
+encoder_conf:
+    main_conf:
+      pos_wise_act_type: swish
+      pos_enc_dropout_rate: 0.1
+      conv_mod_act_type: swish
+    input_conf:
+      block_type: conv2d
+      conv_size: 256
+      subsampling_factor: 4
+    body_conf:
+    - block_type: conv1d
+      output_size: 128
+      kernel_size: 3
+    - block_type: conv1d
+      output_size: 256
+      kernel_size: 2
+    - block_type: conformer
+      linear_size: 1024
+      hidden_size: 256
+      heads: 8
+      dropout_rate: 0.1
+      pos_wise_dropout_rate: 0.1
+      att_dropout_rate: 0.1
+      conv_mod_kernel_size: 31
+      num_blocks: 14
+```
+
+#### Decoder
+
+The type can be defined through `decoder` parameter by passing a string (either `rnn` or `stateless`) and the internal parts can be configured
+
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared accross the blocks, meaning we only define define only one block here.
+The type of the stack of blocks is by passing a string (either `rnn` or `stateless`) to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following (optional) parameters:
+
+    decoder_conf:
+      rnn_type (RNN only, optional): Type of RNN cells (int, default = "lstm").
+      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
+      embed_size: Size of the embedding layer (int, default = 256).
+      dropout_rate: Dropout rate for the RNN output nodes (float, default = 0.0).
+      embed_dropout_rate: Dropout rate for the embedding layer (float, default = 0.0).
+
+#### Joint network
+
+Currently, we only propose the standard joint network module composed of three linear layers and an activation function. The module definition is optional but the following parameters can be modified through the configuration parameter `joint_network_conf`:
+
+    joint_network_conf:
+      joint_space_size: Size of the joint space (int, default = 256).
+      joint_act_type: Type of activation in the joint network (str, default = "tanh").
+
+The options related to the activation functions can also be modified through the parameters introduced in the Encoder section (See `main_conf` description).
+
+### Multi-task learning
+
+We also support multi-task learning with two auxiliary tasks: CTC and cross-entropy w/ label smoothing option (called LM loss here). The auxiliary tasks contribute to the overal task defined as:
+
+**L_tot = (λ_trans x L_trans) + (λ_auxCTC x L_auxCTC) + (λ_auxLM x L_auxLM)**
+
+where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parameterized using the following options, passed to `model_conf`:
+
+    model_conf:
+      transducer_weight: Weight of the Transducer loss (float, default = 1.0)
+      auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
+      auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
+      auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
+      auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+
+**Note:** We do not support other auxiliary tasks in ESPnet2 yet.
+
+### Inference
+
+Various decoding algorithms are also available for Transducer by setting `search_type` parameter in your decode config:
+
+  - Beam search algorithm without prefix search [[Graves, 2012]](https://arxiv.org/pdf/1211.3711.pdf). (`search_type: default`)
+  - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search_type: tsd`)
+  - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search_type: alsd`)
+  - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and [[Boyer et al., 2021]](https://arxiv.org/pdf/2201.05420.pdf). (`search_type: maes`)
+
+The algorithms share two parameters to control the beam size (`beam_size`) and the final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
+
+    # Time-synchronous decoding
+    search_type: tsd
+    max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
+
+    # Alignement-Length Synchronous decoding
+    search_type: alsd
+    u_max: Maximum expected target sequence length. (int, default = 50)
+
+    # modified Adaptive Expansion Search
+    search_type: maes
+    nstep: Number of maximum expansion steps at each time step (int, default = 2)
+    expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
+    expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+
+***Note:*** Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
+
+***Note 2:*** The algorithms in the standalone version are the same as the one in the other version.. However, due to design choices, some parts were reworked and minor optimizations were added in the same time.
+
+### Streaming
+
+To enable streaming capabilities for Transducer models, we support dynamic chunk training and chunk-by-chunk decoding as proposed in [[Zhang et al., 2021]](https://arxiv.org/pdf/2012.05481.pdf). Our implementation is based on the version proposed in [Icefall](https://github.com/k2-fsa/icefall/), based itself on the original [WeNet](https://github.com/wenet-e2e/wenet/) one.
+
+For a complete explanation on the different procedure and parameters, we refer the reader to the corresponding paper.
+
+#### Training
+
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`.
+
+From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`). All these parameters can be configured through the `main_conf`. The Encoder section provides a short description of the parameters.
+
+#### Decoding
+
+To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration(otherwise, offline decoding will be performed). Three parameters are available to control the decoding process:
+
+    chunk_size: Number of frames in chunk. (int, default = 16)
+    left_context: Number of frames in the left context. (int, default = 32)
+    right_context: Number of frames in the right context. (int, default = 0)
+
+For each parameter, the number of frames is defined AFTER subsampling, meaning the input chunk will be bigger than the one provided. The input size is determined by the frontend and the input block's subsampling, given `chunk_size + right_context` defining the decoding window.
+
+***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
+***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
+
+### FAQ
+
+#### How to add a new block type to the custom encoder?
+
+***Provided paths are relative to the directory: `espnet2/asr_transducer/encoder/`***
+
+Adding support to a new block type can be achieved in three main steps:
+
+1) Write your need block class in `encoder/blocks/`. The class should have the following methods: `__init__(...)`, `forward(...)` (training + offline), `chunk_forward(...)` (online decoding), `reset_streaming_cache(...)` (online cache definition). For more details on implementing internal parts, we refer the user to the existing block definition and the Streaming section.
+2) In `building.py`, write a block constructor method and add a new condition in `build_body_blocks(...)` for your block type, calling the constructor method. If you need additional parameters to share  across blocks, you can add them in `build_main_parameters(...)` and pass `main_conf` to your constructor.
+3) In `validation.py`, add new conditions to `validate_block_arguments(...) in order to set and validate the mandatory block parameters before building (if not already covered).
+
+For additional information or examples, please refer to the named files. If you need to add other classes related to the new block, they should be added within the block class or in `modules/`.

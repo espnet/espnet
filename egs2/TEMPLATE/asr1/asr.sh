@@ -60,7 +60,7 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
+bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 
 # Ngram model related
@@ -83,6 +83,7 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ASR model related
+asr_task=asr   # ASR task mode. Either 'asr' or 'asr_transducer'.
 asr_tag=       # Suffix to the result dir for asr model training.
 asr_exp=       # Specify the directory path for ASR experiment.
                # If this option is specified, asr_tag is ignored.
@@ -186,7 +187,7 @@ Options:
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
+    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
 
     # Language model related
@@ -203,6 +204,7 @@ Options:
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ASR model related
+    --asr_task         # ASR task mode. Either 'asr' or 'asr_transducer'. (default="${asr_task}").
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the directory path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
@@ -643,7 +645,12 @@ if ! "${skip_data_prep}"; then
             cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
 
             if [ -n "${bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                if test -f "${bpe_nlsyms}"; then
+                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
+                else
+                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+                fi
             else
                 _opts_spm=""
             fi
@@ -969,7 +976,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.${asr_task}_train \
                 --collect_stats true \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
@@ -1096,7 +1103,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${asr_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.${asr_task}_train \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
@@ -1186,24 +1193,24 @@ if ! "${skip_eval}"; then
         # 2. Generate run.sh
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
-        if "${use_k2}"; then
-          # Now only _nj=1 is verified if using k2
-          asr_inference_tool="espnet2.bin.asr_inference_k2"
 
-          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
-          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
-          _opts+="--num_paths ${num_paths} "
-          _opts+="--nll_batch_size ${nll_batch_size} "
-          _opts+="--k2_config ${k2_config} "
-        else
-          if "${use_streaming}"; then
-              asr_inference_tool="espnet2.bin.asr_inference_streaming"
-          elif "${use_maskctc}"; then
-              asr_inference_tool="espnet2.bin.asr_inference_maskctc"
-          else
-              asr_inference_tool="espnet2.bin.asr_inference"
-          fi
-        fi
+	inference_bin_tag=""
+	if [ ${asr_task} == "asr" ]; then
+            if "${use_k2}"; then
+		# Now only _nj=1 is verified if using k2
+		inference_bin_tag="_k2"
+
+		_opts+="--is_ctc_decoding ${k2_ctc_decoding} "
+		_opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+		_opts+="--num_paths ${num_paths} "
+		_opts+="--nll_batch_size ${nll_batch_size} "
+		_opts+="--k2_config ${k2_config} "
+	    elif "${use_streaming}"; then
+		inference_bin_tag="_streaming"
+	    elif "${use_maskctc}"; then
+		inference_bin_tag="_maskctc"
+            fi
+	fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1242,9 +1249,10 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            rm -f "${_logdir}/*.log"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m ${asr_inference_tool} \
+                ${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag} \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
@@ -1254,7 +1262,22 @@ if ! "${skip_eval}"; then
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
-            # 3. Concatenates the output files from each jobs
+            # 3. Calculate and report RTF based on decoding logs
+            if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
+                log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
+                rm -f "${_logdir}"/calculate_rtf.log
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
+                ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
+                    ../../../utils/calculate_rtf.py \
+                        --log-dir ${_logdir} \
+                        --log-name "asr_inference" \
+                        --input-shift ${_sample_shift} \
+                        --start-times-marker "speech length" \
+                        --end-times-marker "best hypo"
+            fi
+
+            # 4. Concatenates the output files from each jobs
             for f in token token_int score text; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
                   for i in $(seq "${_nj}"); do

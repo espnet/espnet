@@ -10,4 +10,4 @@ set -o pipefail
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \
-    --lm_train_text "data/train_nodev/text" "$@"
+    --lm_train_text "data/train_nodev/text_spk1" "$@"

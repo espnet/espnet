@@ -23,8 +23,7 @@ fi
 # pycodestyle
 pycodestyle -r ${modules} --show-source --show-pep8
 
-LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" \
-    PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl" pytest -q
+LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" pytest -q
 
 echo "=== report ==="
 coverage report
