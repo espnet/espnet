@@ -67,7 +67,7 @@ bibliography: paper.bib
 
 ---
 
-![](https://i.imgur.com/mV3ukCX.png)
+![](graphics/espnet-SE++.png)
 
 # Summary
 This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit. 
@@ -333,9 +333,7 @@ espnet/
 ###  Unified Modeling Language Diagram for ESPNet-SE++ Enhancement-Only Task
 The code flow of ESPNet-SE++ for SSE task training and inference can be visualized in the following diagram.
 
-<!-- ![](https://i.imgur.com/siRALSp.png) -->
-<!-- ![](https://i.imgur.com/gmqhXnz.png) -->
-![](https://i.imgur.com/YPUERjy.png)
+![](graphics/UML_SSE.png)
 
 
 ### SSE Executable Code `bin/`
@@ -438,10 +436,8 @@ The design of the joint-task code follows the same design as SSE and other tasks
 
 ### Unified Modeling Language Diagram for ESPNet-SE++ Joint-Task
 The code flow of ESPNet-SE++ for joint-task training and inference can be visualized as the following diagram.
-<!-- ![](https://i.imgur.com/EFuUTcX.png) -->
 
-<!-- ![](https://i.imgur.com/miKZz49.jpg) -->
-![](https://i.imgur.com/qXxjwR5.png)
+![](graphics/UML_Joint.png)
 
 
 ### Joint-Task Executable Code `bin/`
