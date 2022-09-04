@@ -544,11 +544,8 @@ enh_asr1/
 - `spk2utt`: Mapping speaker-id to utterance-id.
 - `segments`: Specifying the start and end time of each utterance (Optional).
 
-Since the tasks share the same data pre-processing format, the data can be easily used for different tasks. The detailed instructions for data preparation and building new recipes in espnet2 are described in the following link:
-<!-- 
-1. https://github.com/shinjiwlab/lab_activities/wiki/How-to-make-a-ESPnet2-recipe-from-scratch -->
+Since the tasks share the same data pre-processing format, the data can be easily used for different tasks. The detailed instructions for data preparation and building new recipes in espnet2 are described in the [egs2/TEMPLATE](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE)
 
-https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE
 
 
 ###  Scoring metrics for challenges and benchmarks (optional)
@@ -625,7 +622,7 @@ This API allows the processing of both short audio samples and long audio sample
 
     text, *_ = nbests[0]
     print(text)
-The details for downloading models and inference are described in the following link: https://github.com/espnet/espnet_model_zoo
+The details for downloading models and inference are described in the [espnet_model_zoo](https://github.com/espnet/espnet_model_zoo).
 
 
 # Demonstrations
@@ -636,7 +633,7 @@ The demonstrations of ESPnet-SE can be found in the following google colab links
 
 
 # Development plan
-The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, the current joint-task design for the front-end task needs to be speech-to-speech transformation, and the back-end task needs to take speech as input to generate recognition, understanding, or translation results. In the future, we would like to extend to other type of combinations, such as using ASR as a front-end model and TTS as a back-end model to create a speech-to-speech conversion, making the selection of front-end and back-end modules more flexible. 
+The development plan of the ESPnet-SE++ can be found in [Development plan for ESPnet2 speech enhancement](https://github.com/espnet/espnet/issues/2200). In addition, the current joint-task design for the front-end task needs to be speech-to-speech transformation, and the back-end task needs to take speech as input to generate recognition, understanding, or translation results. In the future, we would like to extend to other type of combinations, such as using ASR as a front-end model and TTS as a back-end model to create a speech-to-speech conversion, making the selection of front-end and back-end modules more flexible. 
 
 <!-- the TTS module is unavailable within the current structure.  -->
 
