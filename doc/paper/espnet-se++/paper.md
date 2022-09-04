@@ -1,4 +1,3 @@
-# paper.md
 ---
 title: 'Software Design and User Interface of ESPnet-SE++: Speech Enhancement for Robust Speech Processing'
 tags:
