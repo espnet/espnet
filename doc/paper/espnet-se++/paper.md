@@ -643,5 +643,8 @@ The development plan of the ESPnet-SE++ can be found in https://github.com/espne
 # Conclusions
 In this paper, we introduce the software structure and the user interface of ESPnet-SE++, including the SSE task and joint-task models. ESPnet-SE++ provides the general recipes for training models on different corpus and a simple way for adding new recipes. The joint-task implementation further shows that the modularized design improves the flexibility of ESPnet.
 
+# Acknowledgement
+This work used the Extreme Science and Engineering Discovery Environment (XSEDE) [@Towns:2014], which is supported by NSF grant number ACI-1548562. Specifically, it used the Bridges system [@Nystrom:2015], which is supported by NSF award number ACI-1445606, at the Pittsburgh Supercomputing Center (PSC).
+
 
 # References
