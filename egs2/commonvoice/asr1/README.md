@@ -277,3 +277,34 @@ For more details on how use fusion of front-ends, you can refer to this [wiki](h
 |decode_valid_dev_kabdecode_lm_eval.loss.best_asr_model_valid.loss.best|17766|356649|83.9|10.5|5.6|2.9|18.9|76.1|
 |decode_valid_test_kabdecode_lm_eval.loss.best_asr_model_valid.loss.best|18221|350154|84.1|10.4|5.5|2.9|18.8|76.1|
 
+# RESULTS
+## Environments
+- date: `Thu Sep  1 16:16:04 UTC 2022`
+- python version: `3.9.12 (main, Jun  1 2022, 11:38:51)  [GCC 7.5.0]`
+- espnet version: `espnet 202207`
+- pytorch version: `pytorch 1.12.1+cu102`
+- Git hash: `13db69d3befc3c82a5ff5a11e28bf79d5030603f`
+  - Commit date: `Mon Aug 29 13:44:35 2022 +0000`
+
+## asr_train_asr_conformer5_raw_zh_TW_bpe2542_sp_lr1.0
+- **HuggingFace model URL: https://huggingface.co/espnet/shihlun-asr-commonvoice-zh-TW**
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.best/dev_zh_TW|2627|2627|90.5|9.5|0.0|0.0|9.5|9.5|
+|inference_asr_model_valid.acc.best/test_zh_TW|2627|2627|92.3|7.7|0.0|0.0|7.7|7.7|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.best/dev_zh_TW|2627|22200|97.7|2.1|0.2|0.0|2.4|9.5|
+|inference_asr_model_valid.acc.best/test_zh_TW|2627|21991|98.0|1.6|0.4|0.1|2.1|7.7|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.best/dev_zh_TW|2627|24827|98.6|1.2|0.2|0.0|1.5|4.0|
+|inference_asr_model_valid.acc.best/test_zh_TW|2627|24618|98.8|0.9|0.4|0.1|1.3|3.4|
