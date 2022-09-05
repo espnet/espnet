@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional, Dict
 
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -115,7 +115,10 @@ class NeuralIVA(AbsSeparator):
             self.dnn_iva = None
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
@@ -199,7 +202,7 @@ class NeuralIVA(AbsSeparator):
         if not isinstance(enhanced, list):
             enhanced = [enhanced]
 
-        return enhanced, ilens, None
+        return enhanced, ilens, {}
 
     @property
     def num_spk(self):
