@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.tasks.slu &mdash; ESPnet 202207 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202207
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>espnet2.tasks.slu</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.tasks.slu</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.mlm_decoder</span> <span class="kn">import</span> <span class="n">MLMDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transducer_decoder</span> <span class="kn">import</span> <span class="n">TransducerDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transformer_decoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DynamicConvolution2DTransformerDecoder</span><span class="p">,</span>
+    <span class="n">DynamicConvolutionTransformerDecoder</span><span class="p">,</span>
+    <span class="n">LightweightConvolution2DTransformerDecoder</span><span class="p">,</span>
+    <span class="n">LightweightConvolutionTransformerDecoder</span><span class="p">,</span>
+    <span class="n">TransformerDecoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.branchformer_encoder</span> <span class="kn">import</span> <span class="n">BranchformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_conformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContextualBlockConformerEncoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_transformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.hubert_encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FairseqHubertEncoder</span><span class="p">,</span>
+    <span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.longformer_encoder</span> <span class="kn">import</span> <span class="n">LongformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.rnn_encoder</span> <span class="kn">import</span> <span class="n">RNNEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.transformer_encoder</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.vgg_rnn_encoder</span> <span class="kn">import</span> <span class="n">VGGRNNEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.wav2vec2_encoder</span> <span class="kn">import</span> <span class="n">FairSeqWav2Vec2Encoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.fused</span> <span class="kn">import</span> <span class="n">FusedFrontends</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.windowing</span> <span class="kn">import</span> <span class="n">SlidingWindow</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.hugging_face_transformers_postencoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.linear</span> <span class="kn">import</span> <span class="n">LinearProjection</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.specaug.specaug</span> <span class="kn">import</span> <span class="n">SpecAug</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr_transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.utterance_mvn</span> <span class="kn">import</span> <span class="n">UtteranceMVN</span>
+<span class="kn">from</span> <span class="nn">espnet2.slu.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetSLUModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.slu.postdecoder.abs_postdecoder</span> <span class="kn">import</span> <span class="n">AbsPostDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.slu.postdecoder.hugging_face_transformers_postdecoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HuggingFaceTransformersPostDecoder</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.slu.postencoder.conformer_postencoder</span> <span class="kn">import</span> <span class="n">ConformerPostEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.slu.postencoder.transformer_postencoder</span> <span class="kn">import</span> <span class="n">TransformerPostEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">ASRTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">SLUPreprocessor</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">float_or_none</span><span class="p">,</span> <span class="n">int_or_none</span><span class="p">,</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
+
+<span class="n">frontend_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">DefaultFrontend</span><span class="p">,</span>
+        <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">,</span>
+        <span class="n">s3prl</span><span class="o">=</span><span class="n">S3prlFrontend</span><span class="p">,</span>
+        <span class="n">fused</span><span class="o">=</span><span class="n">FusedFrontends</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsFrontend</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">specaug_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;specaug&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">specaug</span><span class="o">=</span><span class="n">SpecAug</span><span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSpecAug</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">normalize_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;normalize&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">global_mvn</span><span class="o">=</span><span class="n">GlobalMVN</span><span class="p">,</span>
+        <span class="n">utterance_mvn</span><span class="o">=</span><span class="n">UtteranceMVN</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsNormalize</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;utterance_mvn&quot;</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">model_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">espnet</span><span class="o">=</span><span class="n">ESPnetSLUModel</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsESPnetModel</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;espnet&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">preencoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;preencoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">sinc</span><span class="o">=</span><span class="n">LightweightSincConvs</span><span class="p">,</span>
+        <span class="n">linear</span><span class="o">=</span><span class="n">LinearProjection</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPreEncoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">encoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;encoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerEncoder</span><span class="p">,</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerEncoder</span><span class="p">,</span>
+        <span class="n">contextual_block_transformer</span><span class="o">=</span><span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>
+        <span class="n">contextual_block_conformer</span><span class="o">=</span><span class="n">ContextualBlockConformerEncoder</span><span class="p">,</span>
+        <span class="n">vgg_rnn</span><span class="o">=</span><span class="n">VGGRNNEncoder</span><span class="p">,</span>
+        <span class="n">rnn</span><span class="o">=</span><span class="n">RNNEncoder</span><span class="p">,</span>
+        <span class="n">wav2vec2</span><span class="o">=</span><span class="n">FairSeqWav2Vec2Encoder</span><span class="p">,</span>
+        <span class="n">hubert</span><span class="o">=</span><span class="n">FairseqHubertEncoder</span><span class="p">,</span>
+        <span class="n">hubert_pretrain</span><span class="o">=</span><span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
+        <span class="n">longformer</span><span class="o">=</span><span class="n">LongformerEncoder</span><span class="p">,</span>
+        <span class="n">branchformer</span><span class="o">=</span><span class="n">BranchformerEncoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">postencoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;postencoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
+        <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerPostEncoder</span><span class="p">,</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerPostEncoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPostEncoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">deliberationencoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;deliberationencoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
+        <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerPostEncoder</span><span class="p">,</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerPostEncoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPostEncoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">decoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerDecoder</span><span class="p">,</span>
+        <span class="n">lightweight_conv</span><span class="o">=</span><span class="n">LightweightConvolutionTransformerDecoder</span><span class="p">,</span>
+        <span class="n">lightweight_conv2d</span><span class="o">=</span><span class="n">LightweightConvolution2DTransformerDecoder</span><span class="p">,</span>
+        <span class="n">dynamic_conv</span><span class="o">=</span><span class="n">DynamicConvolutionTransformerDecoder</span><span class="p">,</span>
+        <span class="n">dynamic_conv2d</span><span class="o">=</span><span class="n">DynamicConvolution2DTransformerDecoder</span><span class="p">,</span>
+        <span class="n">rnn</span><span class="o">=</span><span class="n">RNNDecoder</span><span class="p">,</span>
+        <span class="n">transducer</span><span class="o">=</span><span class="n">TransducerDecoder</span><span class="p">,</span>
+        <span class="n">mlm</span><span class="o">=</span><span class="n">MLMDecoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">postdecoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;postdecoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersPostDecoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPostDecoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="SLUTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask">[docs]</a><span class="k">class</span> <span class="nc">SLUTask</span><span class="p">(</span><span class="n">ASRTask</span><span class="p">):</span>
+    <span class="c1"># If you need more than one optimizers, change this value</span>
+    <span class="n">num_optimizers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># Add variable objects configurations</span>
+    <span class="n">class_choices_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># --frontend and --frontend_conf</span>
+        <span class="n">frontend_choices</span><span class="p">,</span>
+        <span class="c1"># --specaug and --specaug_conf</span>
+        <span class="n">specaug_choices</span><span class="p">,</span>
+        <span class="c1"># --normalize and --normalize_conf</span>
+        <span class="n">normalize_choices</span><span class="p">,</span>
+        <span class="c1"># --model and --model_conf</span>
+        <span class="n">model_choices</span><span class="p">,</span>
+        <span class="c1"># --preencoder and --preencoder_conf</span>
+        <span class="n">preencoder_choices</span><span class="p">,</span>
+        <span class="c1"># --encoder and --encoder_conf</span>
+        <span class="n">encoder_choices</span><span class="p">,</span>
+        <span class="c1"># --postencoder and --postencoder_conf</span>
+        <span class="n">postencoder_choices</span><span class="p">,</span>
+        <span class="c1"># --deliberationencoder and --deliberationencoder_conf</span>
+        <span class="n">deliberationencoder_choices</span><span class="p">,</span>
+        <span class="c1"># --decoder and --decoder_conf</span>
+        <span class="n">decoder_choices</span><span class="p">,</span>
+        <span class="c1"># --postdecoder and --postdecoder_conf</span>
+        <span class="n">postdecoder_choices</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span>
+
+<div class="viewcode-block" id="SLUTask.add_task_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.add_task_arguments">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">add_task_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Task related&quot;</span><span class="p">)</span>
+
+        <span class="c1"># NOTE(kamo): add_arguments(..., required=True) can&#39;t be used</span>
+        <span class="c1"># to provide --print_config mode. Instead of it, do as</span>
+        <span class="n">required</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">)</span>
+        <span class="n">required</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;token_list&quot;</span><span class="p">]</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--token_list&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;A text mapping int-id to token&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--transcript_token_list&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;A text mapping int-id to token for transcripts&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--two_pass&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run 2-pass SLU&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--pre_postencoder_norm&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;pre_postencoder_norm&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--init&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">str_or_none</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The initialization method&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;chainer&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;xavier_uniform&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;xavier_normal&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;kaiming_uniform&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;kaiming_normal&quot;</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+            <span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--input_size&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of input dimension of the feature&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--ctc_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">CTC</span><span class="p">),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for CTC class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--joint_net_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for joint network class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related&quot;</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--use_preprocessor&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply preprocessing to data or not&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--token_type&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;phn&quot;</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The text will be tokenized &quot;</span> <span class="s2">&quot;in the specified level token&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--bpemodel&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The model file of sentencepiece&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--non_linguistic_symbols&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;non_linguistic_symbols file path&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--cleaner&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;tacotron&quot;</span><span class="p">,</span> <span class="s2">&quot;jaconv&quot;</span><span class="p">,</span> <span class="s2">&quot;vietnamese&quot;</span><span class="p">],</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply text cleaning&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--g2p&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">g2p_choices</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--speech_volume_normalize&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">float_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scale the maximum amplitude to the given value.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--rir_scp&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of rir scp file.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--rir_apply_prob&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;THe probability for applying RIR convolution.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_scp&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of noise scp file.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_apply_prob&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability applying Noise adding.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_db_range&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The range of noise decibel level.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--short_noise_thres&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If len(noise) / len(speech) is smaller than this threshold during &quot;</span>
+            <span class="s2">&quot;dynamic mixing, a warning will be displayed.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">class_choices</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">class_choices_list</span><span class="p">:</span>
+            <span class="c1"># Append --&lt;name&gt; and --&lt;name&gt;_conf.</span>
+            <span class="c1"># e.g. --encoder and --encoder_conf</span>
+            <span class="n">class_choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SLUTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">SLUPreprocessor</span><span class="p">(</span>
+                <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                <span class="n">token_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_type</span><span class="p">,</span>
+                <span class="n">token_list</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span>
+                <span class="n">transcript_token_list</span><span class="o">=</span><span class="kc">None</span>
+                <span class="k">if</span> <span class="s2">&quot;transcript_token_list&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span>
+                <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span><span class="p">,</span>
+                <span class="n">bpemodel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">bpemodel</span><span class="p">,</span>
+                <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
+                <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>
+                <span class="n">g2p_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span>
+                <span class="c1"># NOTE(kamo): Check attribute existence for backward compatibility</span>
+                <span class="n">rir_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">rir_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_apply_prob</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">noise_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">noise_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_apply_prob</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_apply_prob&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">noise_db_range</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_db_range</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_db_range&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
+                <span class="n">short_noise_thres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">short_noise_thres</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;short_noise_thres&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">0.5</span><span class="p">,</span>
+                <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">speech_volume_normalize</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+<div class="viewcode-block" id="SLUTask.required_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.required_data_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">required_data_names</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Recognition mode</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech&quot;</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+<div class="viewcode-block" id="SLUTask.optional_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.optional_data_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">optional_data_names</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;transcript&quot;</span><span class="p">,)</span>
+        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+<div class="viewcode-block" id="SLUTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ESPnetSLUModel</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">token_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
+
+            <span class="c1"># Overwriting token_list to keep it as &quot;portable&quot;.</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">token_list</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">token_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;token_list must be str or list&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;transcript_token_list&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                        <span class="n">transcript_token_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">]</span>
+
+                    <span class="c1"># Overwriting token_list to keep it as &quot;portable&quot;.</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">transcript_token_list</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                    <span class="n">transcript_token_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot; Transcript token_list must be str or list&quot;</span><span class="p">)</span>
+        <span class="n">vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vocabulary size: </span><span class="si">{</span><span class="n">vocab_size</span> <span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># 1. frontend</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">input_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Extract features in the model</span>
+            <span class="n">frontend_class</span> <span class="o">=</span> <span class="n">frontend_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">frontend</span><span class="p">)</span>
+            <span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend_class</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">)</span>
+            <span class="n">input_size</span> <span class="o">=</span> <span class="n">frontend</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Give features from data-loader</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">input_size</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">input_size</span>
+
+        <span class="c1"># 2. Data augmentation for spectrogram</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">specaug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">specaug_class</span> <span class="o">=</span> <span class="n">specaug_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">specaug</span><span class="p">)</span>
+            <span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug_class</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">specaug_conf</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">specaug</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 3. Normalization layer</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalize_class</span> <span class="o">=</span> <span class="n">normalize_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">normalize</span><span class="p">)</span>
+            <span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize_class</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">normalize_conf</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">normalize</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 4. Pre-encoder input block</span>
+        <span class="c1"># NOTE(kan-bayashi): Use getattr to keep the compatibility</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;preencoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">preencoder_class</span> <span class="o">=</span> <span class="n">preencoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">preencoder</span><span class="p">)</span>
+            <span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder_class</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">preencoder_conf</span><span class="p">)</span>
+            <span class="n">input_size</span> <span class="o">=</span> <span class="n">preencoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">preencoder</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 4. Encoder</span>
+        <span class="n">encoder_class</span> <span class="o">=</span> <span class="n">encoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
+        <span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder_class</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">encoder_conf</span><span class="p">)</span>
+
+        <span class="c1"># 5. Post-encoder block</span>
+        <span class="c1"># NOTE(kan-bayashi): Use getattr to keep the compatibility</span>
+        <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;postencoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">postencoder_class</span> <span class="o">=</span> <span class="n">postencoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">postencoder</span><span class="p">)</span>
+            <span class="n">postencoder</span> <span class="o">=</span> <span class="n">postencoder_class</span><span class="p">(</span>
+                <span class="n">input_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">postencoder_conf</span>
+            <span class="p">)</span>
+            <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">postencoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">postencoder</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;deliberationencoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">deliberationencoder_class</span> <span class="o">=</span> <span class="n">deliberationencoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">deliberationencoder</span>
+            <span class="p">)</span>
+            <span class="n">deliberationencoder</span> <span class="o">=</span> <span class="n">deliberationencoder_class</span><span class="p">(</span>
+                <span class="n">input_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">deliberationencoder_conf</span>
+            <span class="p">)</span>
+            <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">deliberationencoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">deliberationencoder</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;postdecoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">postdecoder_class</span> <span class="o">=</span> <span class="n">postdecoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">postdecoder</span><span class="p">)</span>
+            <span class="n">postdecoder</span> <span class="o">=</span> <span class="n">postdecoder_class</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">postdecoder_conf</span><span class="p">)</span>
+            <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">encoder_output_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">postdecoder</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 5. Decoder</span>
+        <span class="n">decoder_class</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">decoder</span> <span class="o">==</span> <span class="s2">&quot;transducer&quot;</span><span class="p">:</span>
+            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">embed_pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">joint_network</span> <span class="o">=</span> <span class="n">JointNetwork</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
+                <span class="n">decoder</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">joint_net_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">joint_network</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># 6. CTC</span>
+        <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span>
+            <span class="n">odim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_conf</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 7. Build model</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="s2">&quot;espnet&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;transcript_token_list&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">[</span><span class="s2">&quot;transcript_token_list&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transcript_token_list</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">[</span><span class="s2">&quot;two_pass&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">two_pass</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">[</span><span class="s2">&quot;pre_postencoder_norm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pre_postencoder_norm</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span>
+            <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+            <span class="n">frontend</span><span class="o">=</span><span class="n">frontend</span><span class="p">,</span>
+            <span class="n">specaug</span><span class="o">=</span><span class="n">specaug</span><span class="p">,</span>
+            <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+            <span class="n">preencoder</span><span class="o">=</span><span class="n">preencoder</span><span class="p">,</span>
+            <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
+            <span class="n">postencoder</span><span class="o">=</span><span class="n">postencoder</span><span class="p">,</span>
+            <span class="n">deliberationencoder</span><span class="o">=</span><span class="n">deliberationencoder</span><span class="p">,</span>
+            <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
+            <span class="n">postdecoder</span><span class="o">=</span><span class="n">postdecoder</span><span class="p">,</span>
+            <span class="n">ctc</span><span class="o">=</span><span class="n">ctc</span><span class="p">,</span>
+            <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
+            <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># FIXME(kamo): Should be done in model?</span>
+        <span class="c1"># 8. Initialize</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

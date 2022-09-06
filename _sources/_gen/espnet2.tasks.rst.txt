@@ -146,3 +146,14 @@ espnet2.tasks.diar
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.tasks.slu:
+
+espnet2.tasks.slu
+-----------------
+
+.. automodule:: espnet2.tasks.slu
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
