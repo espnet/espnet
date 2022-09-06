@@ -30,7 +30,7 @@ jobs:
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: 3.8
-          TH_VERSION: 1.10.1
+          TH_VERSION: 1.12.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
           CC: gcc-7
