@@ -498,15 +498,15 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            _fix_opts=""
+            _utt_extra_files=""
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
-                _fix_opts="--utt_extra_files utt2sid "
+                _utt_extra_files+="utt2sid "
             fi
             if [ -e "${data_feats}/org/${dset}/utt2lid" ]; then
-                _fix_opts="--utt_extra_files utt2lid "
+                _utt_extra_files+="utt2lid "
             fi
             # shellcheck disable=SC2086
-            utils/fix_data_dir.sh ${_fix_opts} "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${_utt_extra_files}" "${data_feats}/${dset}"
 
             # Filter x-vector
             if "${use_xvector}"; then
