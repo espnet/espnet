@@ -126,7 +126,6 @@ class CommonPreprocessor(AbsPreprocessor):
         train: bool,
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
-        transcript_token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
         text_cleaner: Collection[str] = None,
         g2p_type: str = None,
@@ -170,20 +169,6 @@ class CommonPreprocessor(AbsPreprocessor):
                 token_list=token_list,
                 unk_symbol=unk_symbol,
             )
-            if transcript_token_list is not None:
-                print("using transcript")
-                self.transcript_tokenizer = build_tokenizer(
-                    token_type="word",
-                    bpemodel=bpemodel,
-                    delimiter=delimiter,
-                    space_symbol=space_symbol,
-                    non_linguistic_symbols=non_linguistic_symbols,
-                    g2p_type=g2p_type,
-                )
-                self.transcript_token_id_converter = TokenIDConverter(
-                    token_list=transcript_token_list,
-                    unk_symbol=unk_symbol,
-                )
         else:
             self.text_cleaner = None
             self.tokenizer = None
@@ -333,12 +318,6 @@ class CommonPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
-        if "transcript" in data and self.tokenizer is not None:
-            text = data["transcript"]
-            text = self.text_cleaner(text)
-            tokens = self.transcript_tokenizer.text2tokens(text)
-            text_ints = self.transcript_token_id_converter.tokens2ids(tokens)
-            data["transcript"] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
@@ -349,6 +328,88 @@ class CommonPreprocessor(AbsPreprocessor):
 
         data = self._speech_process(data)
         data = self._text_process(data)
+        return data
+
+
+class CommonPreprocessor_SLU(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        transcript_token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+    ):
+        super().__init__(
+            train=train,
+            token_type=token_type,
+            token_list=token_list,
+            bpemodel=bpemodel,
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+        )
+        if transcript_token_list is not None:
+            print("using transcript")
+            self.transcript_tokenizer = build_tokenizer(
+                token_type="word",
+                bpemodel=bpemodel,
+                delimiter=delimiter,
+                space_symbol=space_symbol,
+                non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
+            )
+            self.transcript_token_id_converter = TokenIDConverter(
+                token_list=transcript_token_list,
+                unk_symbol=unk_symbol,
+            )
+        else:
+            self.transcript_tokenizer = None
+            self.transcript_token_id_converter = None
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        if self.text_name in data and self.tokenizer is not None:
+            text = data[self.text_name]
+            text = self.text_cleaner(text)
+            tokens = self.tokenizer.text2tokens(text)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        if "transcript" in data and self.tokenizer is not None:
+            text = data["transcript"]
+            text = self.text_cleaner(text)
+            tokens = self.transcript_tokenizer.text2tokens(text)
+            text_ints = self.transcript_token_id_converter.tokens2ids(tokens)
+            data["transcript"] = np.array(text_ints, dtype=np.int64)
+        assert check_return_type(data)
         return data
 
 
