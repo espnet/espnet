@@ -9,7 +9,7 @@ def validate_block_arguments(
     configuration: Dict[str, Any],
     block_id: int,
     previous_block_output: int,
-) -> Tuple[Tuple[int, int], int]:
+) -> Tuple[int, int]:
     """Validate block arguments.
 
     Args:

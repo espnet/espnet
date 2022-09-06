@@ -12,7 +12,6 @@ class ConformerConvolution(torch.nn.Module):
         channels: The number of channels.
         kernel_size: Size of the convolving kernel.
         activation: Type of activation function.
-        norm_class: Normalization module class.
         norm_args: Normalization module arguments.
         causal: Whether to use causal convolution (set to True if streaming).
 
@@ -63,7 +62,6 @@ class ConformerConvolution(torch.nn.Module):
             kernel_size=1,
             stride=1,
             padding=0,
-            bias=True,
         )
 
         self.activation = activation
@@ -127,11 +125,12 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         size: int,
         kernel_size: int,
         activation: torch.nn.Module = torch.nn.ReLU(),
-        norm_class: torch.nn.Module = torch.nn.BatchNorm1d,
+        norm_class: torch.nn.Module = torch.nn.LayerNorm,
         norm_args: Dict = {},
         dropout_rate: float = 0.0,
         causal: bool = False,
     ) -> None:
+        """Construct a ConvolutionalSpatialGatingUnit object."""
         super().__init__()
 
         channels = size // 2

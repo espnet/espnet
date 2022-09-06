@@ -1,6 +1,6 @@
 """MultiBlocks for encoder architecture."""
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import torch
 
@@ -23,6 +23,7 @@ class MultiBlocks(torch.nn.Module):
         norm_class: torch.nn.Module = torch.nn.LayerNorm,
         norm_args: Optional[Dict] = None,
     ) -> None:
+        """Construct a MultiBlocks object."""
         super().__init__()
 
         self.blocks = torch.nn.ModuleList(block_list)
@@ -74,7 +75,7 @@ class MultiBlocks(torch.nn.Module):
         mask: torch.Tensor,
         left_context: int = 0,
         right_context: int = 0,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """Forward each block of the encoder architecture.
 
         Args:

@@ -464,7 +464,7 @@ The first and second configurations are optional. If needed, the following param
       norm_type: Normalization module type for X-former. (str, default = "layer_norm")
       conv_mod_norm_type: Normalization module type for Branchformer convolutional module. (str, default = "layer_norm")
       after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      after_norm_partial: Partial value for the final normalization module, if it's of the type RMSNorm. (float, default = -1.0)
+      after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
       # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
@@ -503,9 +503,9 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       norm_eps (optional): Epsilon value for the normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      norm_partial (optional): Partial value for the normalization module, if it's of the type RMSNorm. (float, default = -1.0)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
       conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
-      conv_mod_norm_partial (optional): Partial value for the convolutional module normalization, if it's of the type RMSNorm . (float, default = -1.0)
+      conv_mod_norm_partial (optional): Partial value for the convolutional module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
 
@@ -516,7 +516,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      norm_partial (optional): Partial value for the normalization module, if it's of the type RMSNorm. (float, default = -1.0)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
       conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in the convolutional module. (float, default = 1e-05)
       conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the convolutional module. (float, default = 0.1)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
