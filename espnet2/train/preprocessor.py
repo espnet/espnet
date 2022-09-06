@@ -331,7 +331,7 @@ class CommonPreprocessor(AbsPreprocessor):
         return data
 
 
-class CommonPreprocessor_SLU(CommonPreprocessor):
+class SLUPreprocessor(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
