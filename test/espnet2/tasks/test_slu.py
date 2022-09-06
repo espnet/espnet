@@ -42,6 +42,9 @@ def get_dummy_namespace():
     return Namespace(
         token_type="char",
         token_list=["<blank>", "a", "b", "c", "<space>", "<unk>"],
+        transcript_token_list=["<blank>", "a", "b", "c", "<space>", "<unk>"],
+        two_pass=False,
+        pre_postencoder_norm=False,
         input_size=40,
         frontend="frontend",
         frontend_conf={"n_fft": 51, "win_length": 40, "hop_length": 16},
