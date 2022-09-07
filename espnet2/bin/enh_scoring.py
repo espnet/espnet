@@ -108,7 +108,7 @@ def scoring(
                 inf = np.random.randn(*inf.shape)
 
             sdr, sir, sar, perm = bss_eval_sources(
-                ref, inf, compute_permutation=True, load_diag=1e-5, clamp_db=50
+                ref, inf, compute_permutation=True
             )
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
