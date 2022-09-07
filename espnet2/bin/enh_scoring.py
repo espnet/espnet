@@ -1,4 +1,3 @@
-###
 #!/usr/bin/env python3
 import argparse
 import logging
@@ -104,7 +103,7 @@ def scoring(
 
             if abs(inf).max() == 0.0:
                 logging.warning(
-                    "Oups, the inference signal is all zero!! Replace with random noise"
+                    "Oops, the inference signal is all zero!! Replace with random noise"
                 )
                 inf = np.random.randn(*inf.shape)
 

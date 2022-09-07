@@ -1,13 +1,10 @@
 """DNN beamformer module."""
-import logging
 from distutils.version import LooseVersion
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import torch
-from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.iva import auxiva_iss
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
@@ -18,8 +15,8 @@ class DNN_IVA(torch.nn.Module):
     """DNN mask based blind source separation using the AuxIVA-ISS algorithm.
 
     Citation:
-        Fast and Stable Blind Source Separation with Rank-1 Updates; R. Scheibler and N. Ono, 2020;
-        https://ieeexplore.ieee.org/document/9053556
+        Fast and Stable Blind Source Separation with Rank-1 Updates; R. Scheibler
+        and N. Ono, 2020; https://ieeexplore.ieee.org/document/9053556
     """
 
     def __init__(
@@ -113,6 +110,8 @@ class DNN_IVA(torch.nn.Module):
             ilens (torch.Tensor): (B,)
             masks (torch.Tensor): (B, T, C, F)
         """
+        assert is_torch_1_9_plus, "DNN_IVA requires torch>=1.9"
+
         # data (B, T, C, F) -> (B, C, F, T)
         data = data.permute(0, 2, 3, 1)
 
@@ -122,7 +121,9 @@ class DNN_IVA(torch.nn.Module):
             else:
                 iterations = self.iterations
 
-        data = torch.view_as_complex(torch.stack((data.real, data.imag), dim=-1))
+        is_ComplexTensor_type = isinstance(data, ComplexTensor)
+        if is_ComplexTensor_type:
+            data = torch.view_as_complex(torch.stack((data.real, data.imag), dim=-1))
 
         if self.training:
             if self.train_channels is not None and data.shape[-3] > self.train_channels:
@@ -141,7 +142,8 @@ class DNN_IVA(torch.nn.Module):
             use_wiener=self.use_wiener,
         )
 
-        enhanced = ComplexTensor(enhanced.real, enhanced.imag)
+        if is_ComplexTensor_type:
+            enhanced = ComplexTensor(enhanced.real, enhanced.imag)
 
         enhanced = [e.transpose(-2, -1) for e in enhanced.transpose(0, 1)]
 

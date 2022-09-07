@@ -249,7 +249,8 @@ def select_most_energetic(
 ):
     """Selects the `num` indices with most power.
     Args:
-        x (torch.Tensor/ComplexTensor): The input tensor of shape (n_batch, n_channels, n_samples).
+        x (torch.Tensor/ComplexTensor): The input tensor of shape
+            (n_batch, n_channels, n_samples).
         num (int): The number of signals to select.
         dim: The axis where the selection should occur.
         dim_reduc: The axis where to perform the reduction.
@@ -283,7 +284,8 @@ def spatial_model_update_iss(
         X (torch.Tensor/ComplexTensor): shape (..., n_channels, n_frequencies, n_frames)
             The input signal.
         weights (torch.Tensor): shape (..., n_channels, n_frequencies, n_frames)
-            The weights obtained from the source model to compute the weighted statistics.
+            The weights obtained from the source model to compute the weighted
+            statistics.
         W (torch.Tensor): shape (..., n_frequencies, n_channels, n_channels), optional
             The demixing matrix, it is updated if provided.
         A (torch.Tensor): shape (..., n_frequencies, n_channels, n_channels), optional
@@ -339,13 +341,13 @@ def spatial_model_update_ip2(
     """Apply the spatial model update via the generalized eigenvalue decomposition.
     This method is specialized for two channels.
     Args:
-        Xo (torch.Tensor/ComplexTensor): shape (..., n_frequencies, n_channels, n_frames)
+        Xo (torch.Tensor/ComplexTensor): shape (..., n_freq., n_channels, n_frames)
             The microphone input signal with n_chan == 2.
-        weights (torch.Tensor): shape (..., n_frequencies, n_channels, n_frames)
+        weights (torch.Tensor): shape (..., n_freq., n_channels, n_frames)
             The weights obtained from the source model to compute
             the weighted statistics.
     Returns:
-        X (torch.Tensor/ComplexTensor): shape (..., n_frequencies, n_channels, n_frames)
+        X (torch.Tensor/ComplexTensor): shape (..., n_freq., n_channels, n_frames)
             The updated source estimates.
     """
     assert Xo.shape[-3] == 2, "This method is specialized for two channels processing."
@@ -462,10 +464,11 @@ def auxiva_iss(
         eps (float):
             A small constant to make divisions and the like numerically stable.
         two_chan_ip2 (bool):
-            For the 2 channel case, use the more efficient IP2 algorithm (default: True).
-            Ignored when using more than 2 channels.
+            For the 2 channel case, use the more efficient IP2 algorithm
+            (default: True).  Ignored when using more than 2 channels.
         proj_back_mic (int):
-            The microphone index to use as a reference when adjusting the scale and delay.
+            The microphone index to use as a reference when adjusting the scale and
+            delay.
         use_dmc (bool): optional
             If True, use checkpointing of the demixing matrix to save memory
         checkpoints_iter (List[int]):
@@ -512,7 +515,7 @@ def auxiva_iss(
 
         if use_dmc:
             # use demixing matrix checkpointing
-            model_params = [p for p in self.model.parameters()]
+            model_params = [p for p in model.parameters()]
             W, A = torch.utils.checkpoint.checkpoint(
                 auxiva_iss_one_step_dmc,
                 W,

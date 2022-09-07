@@ -145,12 +145,11 @@ class NeuralIVA(AbsSeparator):
         enhanced = input
         others = OrderedDict()
 
-        powers = None
         # Performing both mask estimation and enhancement
         if input.dim() == 3:
             # single-channel input (B, T, F)
             if self.use_wpe:
-                enhanced, ilens, mask_w, powers = self.wpe(input.unsqueeze(-2), ilens)
+                enhanced, ilens, mask_w, _ = self.wpe(input.unsqueeze(-2), ilens)
                 if isinstance(enhanced, list):
                     # single-source WPE
                     enhanced = [enh.squeeze(-2) for enh in enhanced]
@@ -169,7 +168,7 @@ class NeuralIVA(AbsSeparator):
             # multi-channel input (B, T, C, F)
             # 1. WPE
             if self.use_wpe:
-                enhanced, ilens, mask_w, powers = self.wpe(input, ilens)
+                enhanced, ilens, mask_w, _ = self.wpe(input, ilens)
                 if mask_w is not None:
                     if isinstance(enhanced, list):
                         # single-source WPE
@@ -184,8 +183,6 @@ class NeuralIVA(AbsSeparator):
 
             # 2. Beamformer
             if self.use_iva:
-                powers = None
-
                 # enhanced: (B, T, C, F) -> (B, T, F)
                 if isinstance(enhanced, list):
                     # outputs of single-source WPE

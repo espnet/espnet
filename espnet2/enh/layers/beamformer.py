@@ -433,7 +433,8 @@ def get_sdw_mwf_vector(
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ):
-    """Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter) vector
+    """Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter)
+       vector
 
         h = (Spsd + mu * Npsd)^-1 @ Spsd @ u
 
