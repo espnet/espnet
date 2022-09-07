@@ -108,7 +108,9 @@ def scoring(
                 )
                 inf = np.random.randn(*inf.shape)
 
-            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True, load_diag=1e-5, clamp_db=50)
+            sdr, sir, sar, perm = bss_eval_sources(
+                ref, inf, compute_permutation=True, load_diag=1e-5, clamp_db=50
+            )
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
                 estoi_score = stoi(
@@ -154,10 +156,16 @@ def get_parser():
     )
     group = parser.add_argument_group("Input data related")
     group.add_argument(
-        "--ref_scp", type=str, required=True, action="append",
+        "--ref_scp",
+        type=str,
+        required=True,
+        action="append",
     )
     group.add_argument(
-        "--inf_scp", type=str, required=True, action="append",
+        "--inf_scp",
+        type=str,
+        required=True,
+        action="append",
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)

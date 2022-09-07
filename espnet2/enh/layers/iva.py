@@ -4,13 +4,13 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import (
+    cat,
+    einsum,
     is_complex,
     is_torch_complex_tensor,
-    stack,
     new_complex_like,
-    einsum,
-    cat,
     reverse,
+    stack,
 )
 
 
@@ -324,9 +324,7 @@ def spatial_model_update_iss(
             u = einsum("...fcd,...df->...fc", A, v) / torch.clamp(
                 1.0 - v_s[..., None], min=eps
             )
-            A = cat(
-                (A[..., :s], A[..., [s]] + u[..., None], A[..., s + 1 :]), dim=-1
-            )
+            A = cat((A[..., :s], A[..., [s]] + u[..., None], A[..., s + 1 :]), dim=-1)
 
     return X, W, A
 
@@ -368,12 +366,8 @@ def spatial_model_update_ip2(
     # reverse order of eigenvectors
     eigvec = reverse(eigvec, dim=-1)
 
-    scale_0 = abs(
-        (eigvec[..., None, :, 0]).conj() @ (V[0] @ eigvec[..., :, None, 0])
-    )
-    scale_1 = abs(
-        (eigvec[..., None, :, 1]).conj() @ (V[1] @ eigvec[..., :, None, 1])
-    )
+    scale_0 = abs((eigvec[..., None, :, 0]).conj() @ (V[0] @ eigvec[..., :, None, 0]))
+    scale_1 = abs((eigvec[..., None, :, 1]).conj() @ (V[1] @ eigvec[..., :, None, 1]))
     scale = torch.cat((scale_0, scale_1), dim=-1)
     scale = torch.clamp(torch.sqrt(torch.clamp(scale, min=1e-7)), min=eps)
     eigvec = eigvec / scale
@@ -431,7 +425,7 @@ def wiener_weights(Y, model, eps):
     Compute the Wiener weights using a noise model
     """
     mask = model(Y)
-    Y_pwr = Y.real ** 2 + Y.imag ** 2
+    Y_pwr = Y.real**2 + Y.imag**2
     noise_power = torch.mean(Y_pwr * mask, dim=-1, keepdim=True)
     signal_power = torch.mean(Y_pwr, dim=-1, keepdim=True)
     weights = 1.0 - noise_power / torch.clamp(signal_power, min=eps)
