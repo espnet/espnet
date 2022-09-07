@@ -112,7 +112,6 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
     Args:
         size: Initial size to determine the number of channels.
         kernel_size: Size of the convolving kernel.
-        activation: Type of activation function.
         norm_class: Normalization module class.
         norm_args: Normalization module arguments.
         dropout_rate: Dropout rate.
@@ -124,7 +123,6 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         self,
         size: int,
         kernel_size: int,
-        activation: torch.nn.Module = torch.nn.ReLU(),
         norm_class: torch.nn.Module = torch.nn.LayerNorm,
         norm_args: Dict = {},
         dropout_rate: float = 0.0,
@@ -154,7 +152,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         )
 
         self.norm = norm_class(channels, **norm_args)
-        self.activation = activation
+        self.activation = torch.nn.Identity()
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 

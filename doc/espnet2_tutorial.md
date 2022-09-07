@@ -456,13 +456,13 @@ It is similar to the custom encoder in ESPnet1, meaning we don't need to set the
 The first and second configurations are optional. If needed, the following parameters can be modified in each configuration:
 
     main_conf:
-      pos_wise_act_type: Position-wise activation type. (str, default = "swish")
-      conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
+      conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
       pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
       pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
       simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
-      norm_type: Normalization module type for X-former. (str, default = "layer_norm")
-      conv_mod_norm_type: Normalization module type for Branchformer convolutional module. (str, default = "layer_norm")
+      norm_type: X-former normalization module type. (str, default = "layer_norm")
+      conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
       after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
       after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
       # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
@@ -521,7 +521,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the convolutional module. (float, default = 0.1)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
-      pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
+      pos_wise_dropout_rate (optional): Dropout rate for the position-wise feed-forward module. (float, default = 0.0)
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 

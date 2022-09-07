@@ -43,13 +43,13 @@ def build_main_parameters(
     """Build encoder main parameters.
 
     Args:
-        pos_wise_act_type: Position-wise activation type.
-        conv_mod_act_type: Convolutional module activation type.
+        pos_wise_act_type: Conformer position-wise feed-forward activation type.
+        conv_mod_act_type: Conformer convolution module activation type.
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
         simplified_att_score: Whether to use simplified attention score computation.
-        norm_type: Normalization module type for X-former.
-        conv_mod_norm_type: Normalization module type for convolution modules.
+        norm_type: X-former normalization module type.
+        conv_mod_norm_type: Conformer convolution module normalization type.
         after_norm_eps: Epsilon value for the final normalization.
         after_norm_partial: Value for the final normalization with RMSNorm.
         dynamic_chunk_training: Whether to use dynamic chunk training.
@@ -165,7 +165,6 @@ def build_branchformer_block(
     conv_mod_args = (
         linear_size,
         configuration["conv_mod_kernel_size"],
-        main_params["conv_mod_act"],
         conv_mod_norm_class,
         conv_mod_norm_args,
         dropout_rate,
