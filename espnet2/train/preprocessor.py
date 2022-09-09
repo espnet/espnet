@@ -505,19 +505,25 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         self,
         train: bool,
         source_scp: str = None,
-        num_spk: int = 2,
+        ref_num: int = 2,
         dynamic_mixing_gain_db: float = 0.0,
         speech_name: str = "speech_mix",
         speech_ref_name_prefix: str = "speech_ref",
+        mixture_source_name: str = None,
         utt2spk: str = None,
     ):
 
         super().__init__(train)
         self.source_scp = source_scp
-        self.num_spk = num_spk
+        self.ref_num = ref_num
         self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
         self.speech_name = speech_name
         self.speech_ref_name_prefix = speech_ref_name_prefix
+        # mixture_source_name: the key to select source utterances from dataloader
+        if mixture_source_name is None:
+            self.mixture_source_name = f"{speech_ref_name_prefix}1"
+        else:
+            self.mixture_source_name = mixture_source_name
 
         self.sources = {}
         assert (
@@ -547,14 +553,14 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         self.source_keys = list(self.sources.keys())
 
     def _pick_source_utterances_(self, uid):
-        # return (num_spk - 1) uid of reference sources.
+        # return (ref_num - 1) uid of reference sources.
 
         source_keys = [uid]
 
         spk_ids = [self.utt2spk[uid]]
 
         retry_cnt = 0
-        while len(source_keys) < self.num_spk:
+        while len(source_keys) < self.ref_num:
             picked = random.choice(self.source_keys)
             spk_id = self.utt2spk[picked]
 
@@ -598,9 +604,9 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         source_keys = self._pick_source_utterances_(uid)
 
         # load audios
-        speech_length = data[f"{self.speech_ref_name_prefix}1"].shape[0]
+        speech_length = data[self.mixture_source_name].shape[0]
         ref_audios = [self._read_source_(key, speech_length) for key in source_keys]
-        ref_audios = [data[f"{self.speech_ref_name_prefix}1"]] + ref_audios
+        ref_audios = [data[self.mixture_source_name]] + ref_audios
 
         # apply random gain to speech sources
 
@@ -626,7 +632,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
 
         # TODO(Chenda): need to test for multi-channel data.
         assert (
-            len(data[f"{self.speech_ref_name_prefix}1"].shape) == 1
+            len(data[self.mixture_source_name].shape) == 1
         ), "Multi-channel input has not been tested"
 
         if self.train:
