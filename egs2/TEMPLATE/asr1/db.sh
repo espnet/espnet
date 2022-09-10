@@ -51,6 +51,7 @@ SLURP=
 SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
 VOXCELEB=
+MAGICDATA=
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
