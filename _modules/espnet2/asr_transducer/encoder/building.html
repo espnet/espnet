@@ -159,6 +159,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.activation</span> <span class="kn">import</span> <span class="n">get_activation</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.blocks.branchformer</span> <span class="kn">import</span> <span class="n">Branchformer</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.blocks.conformer</span> <span class="kn">import</span> <span class="n">Conformer</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.blocks.conv1d</span> <span class="kn">import</span> <span class="n">Conv1d</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.blocks.conv_input</span> <span class="kn">import</span> <span class="n">ConvInput</span>
@@ -167,6 +168,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.modules.convolution</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
     <span class="n">ConformerConvolution</span><span class="p">,</span>
+    <span class="n">ConvolutionalSpatialGatingUnit</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.modules.multi_blocks</span> <span class="kn">import</span> <span class="n">MultiBlocks</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.encoder.modules.normalization</span> <span class="kn">import</span> <span class="n">get_normalization</span>
@@ -185,7 +187,7 @@
     <span class="n">pos_enc_max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
     <span class="n">simplified_att_score</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;layer_norm&quot;</span><span class="p">,</span>
-    <span class="n">conv_mod_norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;batch_norm&quot;</span><span class="p">,</span>
+    <span class="n">conv_mod_norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;layer_norm&quot;</span><span class="p">,</span>
     <span class="n">after_norm_eps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">after_norm_partial</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">dynamic_chunk_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -197,13 +199,13 @@
     <span class="sd">&quot;&quot;&quot;Build encoder main parameters.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        pos_wise_act_type: Position-wise activation type.</span>
-<span class="sd">        conv_mod_act_type: Convolutional module activation type.</span>
+<span class="sd">        pos_wise_act_type: Conformer position-wise feed-forward activation type.</span>
+<span class="sd">        conv_mod_act_type: Conformer convolution module activation type.</span>
 <span class="sd">        pos_enc_dropout_rate: Positional encoding dropout rate.</span>
 <span class="sd">        pos_enc_max_len: Positional encoding maximum length.</span>
 <span class="sd">        simplified_att_score: Whether to use simplified attention score computation.</span>
-<span class="sd">        norm_type: Normalization module type for X-former.</span>
-<span class="sd">        conv_mod_norm_type: Normalization module type for convolution modules.</span>
+<span class="sd">        norm_type: X-former normalization module type.</span>
+<span class="sd">        conv_mod_norm_type: Conformer convolution module normalization type.</span>
 <span class="sd">        after_norm_eps: Epsilon value for the final normalization.</span>
 <span class="sd">        after_norm_partial: Value for the final normalization with RMSNorm.</span>
 <span class="sd">        dynamic_chunk_training: Whether to use dynamic chunk training.</span>
@@ -291,6 +293,64 @@
     <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="build_branchformer_block"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_branchformer_block">[docs]</a><span class="k">def</span> <span class="nf">build_branchformer_block</span><span class="p">(</span>
+    <span class="n">configuration</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">main_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Conformer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Build Branchformer block.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        configuration: Branchformer block configuration.</span>
+<span class="sd">        main_params: Encoder main parameters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        : Branchformer block function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">hidden_size</span> <span class="o">=</span> <span class="n">configuration</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">]</span>
+    <span class="n">linear_size</span> <span class="o">=</span> <span class="n">configuration</span><span class="p">[</span><span class="s2">&quot;linear_size&quot;</span><span class="p">]</span>
+
+    <span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dropout_rate&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+    <span class="n">conv_mod_norm_class</span><span class="p">,</span> <span class="n">conv_mod_norm_args</span> <span class="o">=</span> <span class="n">get_normalization</span><span class="p">(</span>
+        <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;conv_mod_norm_type&quot;</span><span class="p">],</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_eps&quot;</span><span class="p">),</span>
+        <span class="n">partial</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_partial&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">conv_mod_args</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">linear_size</span><span class="p">,</span>
+        <span class="n">configuration</span><span class="p">[</span><span class="s2">&quot;conv_mod_kernel_size&quot;</span><span class="p">],</span>
+        <span class="n">conv_mod_norm_class</span><span class="p">,</span>
+        <span class="n">conv_mod_norm_args</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="p">,</span>
+        <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;dynamic_chunk_training&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">mult_att_args</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;heads&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+        <span class="n">hidden_size</span><span class="p">,</span>
+        <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_dropout_rate&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;simplified_att_score&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">norm_class</span><span class="p">,</span> <span class="n">norm_args</span> <span class="o">=</span> <span class="n">get_normalization</span><span class="p">(</span>
+        <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;norm_type&quot;</span><span class="p">],</span>
+        <span class="n">eps</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;norm_eps&quot;</span><span class="p">),</span>
+        <span class="n">partial</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;norm_partial&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">Branchformer</span><span class="p">(</span>
+        <span class="n">hidden_size</span><span class="p">,</span>
+        <span class="n">linear_size</span><span class="p">,</span>
+        <span class="n">RelPositionMultiHeadedAttention</span><span class="p">(</span><span class="o">*</span><span class="n">mult_att_args</span><span class="p">),</span>
+        <span class="n">ConvolutionalSpatialGatingUnit</span><span class="p">(</span><span class="o">*</span><span class="n">conv_mod_args</span><span class="p">),</span>
+        <span class="n">norm_class</span><span class="o">=</span><span class="n">norm_class</span><span class="p">,</span>
+        <span class="n">norm_args</span><span class="o">=</span><span class="n">norm_args</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="build_conformer_block"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_conformer_block">[docs]</a><span class="k">def</span> <span class="nf">build_conformer_block</span><span class="p">(</span>
     <span class="n">configuration</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">main_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
@@ -315,18 +375,15 @@
         <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;pos_wise_act&quot;</span><span class="p">],</span>
     <span class="p">)</span>
 
-    <span class="n">conv_mod_norm_class</span><span class="p">,</span> <span class="n">conv_mod_norm_args</span> <span class="o">=</span> <span class="n">get_normalization</span><span class="p">(</span>
-        <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;conv_mod_norm_type&quot;</span><span class="p">],</span>
-        <span class="n">eps</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_eps&quot;</span><span class="p">),</span>
-        <span class="n">momentum</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_momentum&quot;</span><span class="p">),</span>
-        <span class="n">partial</span><span class="o">=</span><span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_partial&quot;</span><span class="p">),</span>
-    <span class="p">)</span>
+    <span class="n">conv_mod_norm_args</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;eps&quot;</span><span class="p">:</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_eps&quot;</span><span class="p">,</span> <span class="mf">1e-05</span><span class="p">),</span>
+        <span class="s2">&quot;momentum&quot;</span><span class="p">:</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_norm_momentum&quot;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+    <span class="p">}</span>
 
     <span class="n">conv_mod_args</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">hidden_size</span><span class="p">,</span>
         <span class="n">configuration</span><span class="p">[</span><span class="s2">&quot;conv_mod_kernel_size&quot;</span><span class="p">],</span>
         <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;conv_mod_act&quot;</span><span class="p">],</span>
-        <span class="n">conv_mod_norm_class</span><span class="p">,</span>
         <span class="n">conv_mod_norm_args</span><span class="p">,</span>
         <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;dynamic_chunk_training&quot;</span><span class="p">],</span>
     <span class="p">)</span>
@@ -414,10 +471,12 @@
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">extended_conf</span><span class="p">):</span>
         <span class="n">block_type</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="s2">&quot;block_type&quot;</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">:</span>
-            <span class="n">module</span> <span class="o">=</span> <span class="n">build_conv1d_block</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;dynamic_chunk_training&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;branchformer&quot;</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">build_branchformer_block</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">main_params</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;conformer&quot;</span><span class="p">:</span>
             <span class="n">module</span> <span class="o">=</span> <span class="n">build_conformer_block</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">main_params</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">build_conv1d_block</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;dynamic_chunk_training&quot;</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 

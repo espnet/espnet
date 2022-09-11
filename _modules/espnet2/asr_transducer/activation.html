@@ -220,6 +220,7 @@
             <span class="p">{</span><span class="s2">&quot;beta&quot;</span><span class="p">:</span> <span class="n">swish_beta</span><span class="p">,</span> <span class="s2">&quot;use_builtin&quot;</span><span class="p">:</span> <span class="n">torch_version</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.8&quot;</span><span class="p">)},</span>
         <span class="p">),</span>
         <span class="s2">&quot;tanh&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="s2">&quot;identity&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">,</span> <span class="p">{}),</span>
     <span class="p">}</span>
 
     <span class="n">act_func</span><span class="p">,</span> <span class="n">act_args</span> <span class="o">=</span> <span class="n">activations</span><span class="p">[</span><span class="n">activation_type</span><span class="p">]</span>

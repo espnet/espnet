@@ -175,7 +175,7 @@
 <span class="sd">        yseq: Label sequence as integer ID sequence.</span>
 <span class="sd">        dec_state: RNNDecoder or StatelessDecoder state.</span>
 <span class="sd">                     ((N, 1, D_dec), (N, 1, D_dec) or None) or None</span>
-<span class="sd">        lm_state: RNNLM state. ((N, D_lm), (N, D_lm))</span>
+<span class="sd">        lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -201,7 +201,26 @@
 
 
 <div class="viewcode-block" id="BeamSearchTransducer"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchTransducer</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Beam search implementation for Transducer.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Beam search implementation for Transducer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        decoder: Decoder module.</span>
+<span class="sd">        joint_network: Joint network module.</span>
+<span class="sd">        beam_size: Size of the beam.</span>
+<span class="sd">        lm: LM class.</span>
+<span class="sd">        lm_weight: LM weight for soft fusion.</span>
+<span class="sd">        search_type: Search algorithm to use during inference.</span>
+<span class="sd">        max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)</span>
+<span class="sd">        u_max: Maximum expected target sequence length. (ALSD)</span>
+<span class="sd">        nstep: Number of maximum expansion steps at each time step. (mAES)</span>
+<span class="sd">        expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)</span>
+<span class="sd">        expansion_beta:</span>
+<span class="sd">             Number of additional candidates for expanded hypotheses selection. (mAES)</span>
+<span class="sd">        score_norm: Normalize final scores by length.</span>
+<span class="sd">        nbest: Number of final hypothesis.</span>
+<span class="sd">        streaming: Whether to perform chunk-by-chunk beam search.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -219,27 +238,10 @@
         <span class="n">score_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Transducer search module.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Construct a BeamSearchTransducer object.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            decoder: Decoder module.</span>
-<span class="sd">            joint_network: Joint network module.</span>
-<span class="sd">            beam_size: Beam size.</span>
-<span class="sd">            lm: LM class.</span>
-<span class="sd">            lm_weight: LM weight for soft fusion.</span>
-<span class="sd">            search_type: Search algorithm to use during inference.</span>
-<span class="sd">            max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)</span>
-<span class="sd">            u_max: Maximum expected target sequence length. (ALSD)</span>
-<span class="sd">            nstep: Number of maximum expansion steps at each time step. (mAES)</span>
-<span class="sd">            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)</span>
-<span class="sd">            expansion_beta:</span>
-<span class="sd">              Number of additional candidates for expanded hypotheses selection. (mAES)</span>
-<span class="sd">            score_norm: Normalize final scores by length.</span>
-<span class="sd">            nbest: Number of final hypothesis.</span>
-<span class="sd">            streaming: Whether to perform chunk-by-chunk beam search.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span> <span class="o">=</span> <span class="n">joint_network</span>
 
@@ -330,7 +332,7 @@
 
         <span class="k">return</span> <span class="n">hyps</span>
 
-<div class="viewcode-block" id="BeamSearchTransducer.reset_inference_cache"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.reset_inference_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_inference_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BeamSearchTransducer.reset_inference_cache"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.reset_inference_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_inference_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Reset cache for decoder scoring and streaming.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">score_cache</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">search_cache</span> <span class="o">=</span> <span class="kc">None</span></div>

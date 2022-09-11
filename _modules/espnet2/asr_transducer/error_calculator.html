@@ -156,7 +156,7 @@
   <h1>Source code for espnet2.asr_transducer.error_calculator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Error Calculator module for Transducer.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -165,7 +165,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr_transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
 
 
-<div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.error_calculator.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Calculate CER and WER for transducer models.</span>
 
 <span class="sd">    Args:</span>
@@ -188,8 +188,8 @@
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">report_cer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculatorTransducer.&quot;&quot;&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculatorTransducer object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearchTransducer</span><span class="p">(</span>
@@ -209,8 +209,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="o">=</span> <span class="n">report_cer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span> <span class="o">=</span> <span class="n">report_wer</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER/CER score for Transducer model.</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER or/and CER score for Transducer model.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            encoder_out: Encoder output sequences. (B, T, D_enc)</span>

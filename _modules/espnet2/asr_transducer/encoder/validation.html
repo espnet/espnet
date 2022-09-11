@@ -165,7 +165,7 @@
     <span class="n">configuration</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">block_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">previous_block_output</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Validate block arguments.</span>
 
 <span class="sd">    Args:</span>
@@ -185,15 +185,15 @@
             <span class="s2">&quot;Block </span><span class="si">%d</span><span class="s2"> in encoder doesn&#39;t have a type assigned. &quot;</span> <span class="o">%</span> <span class="n">block_id</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;conformer&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">block_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;branchformer&quot;</span><span class="p">,</span> <span class="s2">&quot;conformer&quot;</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;linear_size&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Missing &#39;linear_size&#39; argument for Conformer block (ID: </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">block_id</span>
+                <span class="s2">&quot;Missing &#39;linear_size&#39; argument for X-former block (ID: </span><span class="si">%d</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">block_id</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conv_mod_kernel_size&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Missing &#39;conv_mod_kernel_size&#39; argument for Conformer block (ID: </span><span class="si">%d</span><span class="s2">)&quot;</span>
+                <span class="s2">&quot;Missing &#39;conv_mod_kernel_size&#39; argument for X-former block (ID: </span><span class="si">%d</span><span class="s2">)&quot;</span>
                 <span class="o">%</span> <span class="n">block_id</span>
             <span class="p">)</span>
 
@@ -236,8 +236,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">vgg_like</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;vgg_like&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">next_block_type</span> <span class="o">=</span> <span class="n">body_first_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;block_type&quot;</span><span class="p">)</span>
+    <span class="n">allowed_next_block_type</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;branchformer&quot;</span><span class="p">,</span> <span class="s2">&quot;conformer&quot;</span><span class="p">,</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">next_block_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">next_block_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;conv1d&quot;</span><span class="p">,</span> <span class="s2">&quot;conformer&quot;</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="n">next_block_type</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">next_block_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_next_block_type</span><span class="p">):</span>
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
 
     <span class="k">if</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subsampling_factor&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

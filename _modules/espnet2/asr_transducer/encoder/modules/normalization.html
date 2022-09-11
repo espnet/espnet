@@ -164,18 +164,14 @@
 <div class="viewcode-block" id="get_normalization"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.get_normalization">[docs]</a><span class="k">def</span> <span class="nf">get_normalization</span><span class="p">(</span>
     <span class="n">normalization_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">momentum</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">partial</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">scale</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Return normalization module.</span>
+    <span class="sd">&quot;&quot;&quot;Get normalization module and arguments given parameters.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        normalization_type: Normalization module type.</span>
 <span class="sd">        eps: Value added to the denominator.</span>
-<span class="sd">        momentum: Value for the running_mean and running_var computation (BatchNorm1d).</span>
 <span class="sd">        partial: Value defining the part of the input used for RMS stats (RMSNorm).</span>
-<span class="sd">        scale: Value for L2 normalization (ScaleNorm).</span>
 
 <span class="sd">    Return:</span>
 <span class="sd">        : Normalization module class</span>
@@ -186,13 +182,6 @@
         <span class="s2">&quot;basic_norm&quot;</span><span class="p">:</span> <span class="p">(</span>
             <span class="n">BasicNorm</span><span class="p">,</span>
             <span class="p">{</span><span class="s2">&quot;eps&quot;</span><span class="p">:</span> <span class="n">eps</span> <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">0.25</span><span class="p">},</span>
-        <span class="p">),</span>
-        <span class="s2">&quot;batch_norm&quot;</span><span class="p">:</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">,</span>
-            <span class="p">{</span>
-                <span class="s2">&quot;eps&quot;</span><span class="p">:</span> <span class="n">eps</span> <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1e-05</span><span class="p">,</span>
-                <span class="s2">&quot;momentum&quot;</span><span class="p">:</span> <span class="n">momentum</span> <span class="k">if</span> <span class="n">momentum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">0.1</span><span class="p">,</span>
-            <span class="p">},</span>
         <span class="p">),</span>
         <span class="s2">&quot;layer_norm&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;eps&quot;</span><span class="p">:</span> <span class="n">eps</span> <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1e-12</span><span class="p">}),</span>
         <span class="s2">&quot;rms_norm&quot;</span><span class="p">:</span> <span class="p">(</span>

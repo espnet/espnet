@@ -1204,8 +1204,7 @@ Text converter related:
                                [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                                [--scheduler_conf SCHEDULER_CONF]
                                [--token_list TOKEN_LIST]
-                               [--input_size INPUT_SIZE]
-                               [--init {chainer,chainer_espnet1,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
+                               [--input_size INPUT_SIZE] [--init INIT]
                                [--model_conf MODEL_CONF]
                                [--encoder_conf ENCODER_CONF]
                                [--joint_network_conf JOINT_NETWORK_CONF]
@@ -1235,22 +1234,22 @@ base parser
 optional arguments:
   --config CONFIG       Give config file in yaml format (default: None)
   --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                        non_linguistic_symbols file path (default: None)
+                        The &#39;non_linguistic_symbols&#39; file path. (default: None)
   --cleaner {None,tacotron,jaconv,vietnamese}
-                        Apply text cleaning (default: None)
+                        Text cleaner to use. (default: None)
   --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
+                        g2p method to use if --token_type=phn. (default: None)
   --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
-                        Scale the maximum amplitude to the given value. (default: None)
-  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
+                        Normalization value for maximum amplitude scaling. (default: None)
+  --rir_scp RIR_SCP     The RIR SCP file path. (default: None)
   --rir_apply_prob RIR_APPLY_PROB
-                        The probability for applying RIR convolution. (default: 1.0)
+                        The probability of the applied RIR convolution. (default: 1.0)
   --noise_scp NOISE_SCP
-                        The file path of noise scp file. (default: None)
+                        The path of noise SCP file. (default: None)
   --noise_apply_prob NOISE_APPLY_PROB
-                        The probability applying Noise adding. (default: 1.0)
+                        The probability of the applied noise addition. (default: 1.0)
   --noise_db_range NOISE_DB_RANGE
-                        The range of noise decibel level. (default: 13_15)
+                        The range of the noise decibel level. (default: 13_15)
 
 Common configuration:
   --print_config        Print the config file and exit (default: False)
@@ -1562,28 +1561,27 @@ Optimizer related:
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
 
-  Task related
+  Task related.
 
   --token_list TOKEN_LIST
-                        A text mapping int-id to token (default: None)
+                        Integer-string mapper for tokens. (default: None)
   --input_size INPUT_SIZE
-                        The number of input dimension of the feature (default: None)
-  --init {chainer,chainer_espnet1,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
-                        The initialization method (default: None)
+                        The number of dimensions for input features. (default: None)
+  --init INIT           Type of model initialization to use. (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;transducer_weight&#39;: 1.0, &#39;fastemit_lambda&#39;: 0.0, &#39;auxiliary_ctc_weight&#39;: 0.0, &#39;auxiliary_ctc_dropout_rate&#39;: 0.0, &#39;auxiliary_lm_loss_weight&#39;: 0.0, &#39;auxiliary_lm_loss_smoothing&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;report_cer&#39;: False, &#39;report_wer&#39;: False, &#39;extract_feats_in_collect_stats&#39;: True})
+                        The keyword arguments for the model class. (default: {&#39;transducer_weight&#39;: 1.0, &#39;fastemit_lambda&#39;: 0.0, &#39;auxiliary_ctc_weight&#39;: 0.0, &#39;auxiliary_ctc_dropout_rate&#39;: 0.0, &#39;auxiliary_lm_loss_weight&#39;: 0.0, &#39;auxiliary_lm_loss_smoothing&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;report_cer&#39;: False, &#39;report_wer&#39;: False, &#39;extract_feats_in_collect_stats&#39;: True})
   --encoder_conf ENCODER_CONF
-                        The keyword arguments for encoder class. (default: {})
+                        The keyword arguments for the encoder class. (default: {})
   --joint_network_conf JOINT_NETWORK_CONF
-                        The keyword arguments for joint network class. (default: {})
+                        The keyword arguments for the joint network class. (default: {})
 
-  Preprocess related
+  Preprocess related.
 
   --use_preprocessor USE_PREPROCESSOR
-                        Apply preprocessing to data or not (default: True)
+                        Whether to apply preprocessing to input data. (default: True)
   --token_type {bpe,char,word,phn}
-                        The text will be tokenized in the specified level token (default: bpe)
-  --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
+                        The type of tokens to use during tokenization. (default: bpe)
+  --bpemodel BPEMODEL   The path of the sentencepiece model. (default: None)
   --frontend {default,sliding_window}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF

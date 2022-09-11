@@ -250,7 +250,7 @@
 <span class="sd">            parser: Transducer arguments parser.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Task related&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Task related.&quot;</span><span class="p">)</span>
 
         <span class="n">required</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">)</span>
         <span class="n">required</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;token_list&quot;</span><span class="p">]</span>
@@ -259,121 +259,112 @@
             <span class="s2">&quot;--token_list&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;A text mapping int-id to token&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Integer-string mapper for tokens.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--input_size&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of input dimension of the feature&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of dimensions for input features.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--init&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">str_or_none</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The initialization method&quot;</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
-                <span class="s2">&quot;chainer&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;chainer_espnet1&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;xavier_uniform&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;xavier_normal&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;kaiming_uniform&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;kaiming_normal&quot;</span><span class="p">,</span>
-                <span class="kc">None</span><span class="p">,</span>
-            <span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type of model initialization to use.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--model_conf&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">ESPnetASRTransducerModel</span><span class="p">),</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for model class.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for the model class.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--encoder_conf&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="p">{},</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for encoder class.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for the encoder class.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--joint_network_conf&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="p">{},</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for joint network class.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for the joint network class.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related&quot;</span><span class="p">)</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related.&quot;</span><span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--use_preprocessor&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply preprocessing to data or not&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to apply preprocessing to input data.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--token_type&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span>
             <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;phn&quot;</span><span class="p">],</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The text will be tokenized &quot;</span> <span class="s2">&quot;in the specified level token&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The type of tokens to use during tokenization.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--bpemodel&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The model file of sentencepiece&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The path of the sentencepiece model.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--non_linguistic_symbols&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;non_linguistic_symbols file path&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The &#39;non_linguistic_symbols&#39; file path.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--cleaner&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;tacotron&quot;</span><span class="p">,</span> <span class="s2">&quot;jaconv&quot;</span><span class="p">,</span> <span class="s2">&quot;vietnamese&quot;</span><span class="p">],</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply text cleaning&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Text cleaner to use.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--g2p&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">choices</span><span class="o">=</span><span class="n">g2p_choices</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;g2p method to use if --token_type=phn.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--speech_volume_normalize&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">float_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scale the maximum amplitude to the given value.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Normalization value for maximum amplitude scaling.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--rir_scp&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of rir scp file.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The RIR SCP file path.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--rir_apply_prob&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability for applying RIR convolution.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability of the applied RIR convolution.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--noise_scp&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of noise scp file.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The path of noise SCP file.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--noise_apply_prob&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability applying Noise adding.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability of the applied noise addition.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--noise_db_range&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The range of noise decibel level.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The range of the noise decibel level.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">class_choices</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">class_choices_list</span><span class="p">:</span>
@@ -577,11 +568,11 @@
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># 8. Initialize</span>
+        <span class="c1"># 8. Initialize model</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
                 <span class="s2">&quot;Currently not supported.&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;Initialization will be reworked in a short future.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Initialization part will be reworked in a short future.&quot;</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>

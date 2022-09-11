@@ -1586,14 +1586,6 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asr_transducer_inference.</code><code class="sig-name descname">Speech2Text</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">asr_model_file: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">beam_search_config: Optional[Dict[str</em>, <em class="sig-param">Any]] = None</em>, <em class="sig-param">lm_train_config: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">lm_file: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">token_type: Optional[str] = None</em>, <em class="sig-param">bpemodel: Optional[str] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">beam_size: int = 5</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">lm_weight: float = 1.0</em>, <em class="sig-param">quantize_asr_model: bool = False</em>, <em class="sig-param">quantize_modules: Optional[List[str]] = None</em>, <em class="sig-param">quantize_dtype: str = 'qint8'</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">streaming: bool = False</em>, <em class="sig-param">chunk_size: int = 16</em>, <em class="sig-param">left_context: int = 32</em>, <em class="sig-param">right_context: int = 0</em>, <em class="sig-param">display_partial_hypotheses: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_transducer_inference.html#Speech2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_transducer_inference.Speech2Text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Speech2Text class for Transducer models.</p>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="p">(</span><span class="s2">&quot;asr_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;asr.pth&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
-<span class="go">[(text, token, token_int, hypothesis object), ...]</span>
-</pre></div>
-</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1620,6 +1612,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 </ul>
 </dd>
 </dl>
+<p>Construct a Speech2Text object.</p>
 <dl class="method">
 <dt id="espnet2.bin.asr_transducer_inference.Speech2Text.apply_frontend">
 <code class="sig-name descname">apply_frontend</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">is_final: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/bin/asr_transducer_inference.html#Speech2Text.apply_frontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_transducer_inference.Speech2Text.apply_frontend" title="Permalink to this definition">¶</a></dt>

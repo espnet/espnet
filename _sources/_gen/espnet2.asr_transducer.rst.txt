@@ -136,6 +136,17 @@ espnet2.asr_transducer.encoder.blocks.conformer
     :show-inheritance:
 
 
+.. _espnet2.asr_transducer.encoder.blocks.branchformer:
+
+espnet2.asr_transducer.encoder.blocks.branchformer
+--------------------------------------------------
+
+.. automodule:: espnet2.asr_transducer.encoder.blocks.branchformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr_transducer.encoder.blocks.__init__:
 
 espnet2.asr_transducer.encoder.blocks.__init__

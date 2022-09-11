@@ -154,7 +154,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.asr_transducer.encoder.modules.convolution</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Convolution for X-former block.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;Convolution modules for X-former blocks.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
@@ -165,10 +165,9 @@
     <span class="sd">&quot;&quot;&quot;ConformerConvolution module definition.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        channels: The number of channels of conv layers.</span>
-<span class="sd">        kernel_size: Kernel size of conv layers.</span>
+<span class="sd">        channels: The number of channels.</span>
+<span class="sd">        kernel_size: Size of the convolving kernel.</span>
 <span class="sd">        activation: Type of activation function.</span>
-<span class="sd">        norm_class: Normalization module class.</span>
 <span class="sd">        norm_args: Normalization module arguments.</span>
 <span class="sd">        causal: Whether to use causal convolution (set to True if streaming).</span>
 
@@ -179,7 +178,6 @@
         <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">activation</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
-        <span class="n">norm_class</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">,</span>
         <span class="n">norm_args</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -213,14 +211,13 @@
             <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
             <span class="n">groups</span><span class="o">=</span><span class="n">channels</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm_class</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="o">**</span><span class="n">norm_args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="o">**</span><span class="n">norm_args</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pointwise_conv2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
             <span class="n">channels</span><span class="p">,</span>
             <span class="n">channels</span><span class="p">,</span>
             <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span>
@@ -261,6 +258,96 @@
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointwise_conv2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">cache</span></div></div>
+
+
+<div class="viewcode-block" id="ConvolutionalSpatialGatingUnit"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConvolutionalSpatialGatingUnit">[docs]</a><span class="k">class</span> <span class="nc">ConvolutionalSpatialGatingUnit</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convolutional Spatial Gating Unit module definition.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        size: Initial size to determine the number of channels.</span>
+<span class="sd">        kernel_size: Size of the convolving kernel.</span>
+<span class="sd">        norm_class: Normalization module class.</span>
+<span class="sd">        norm_args: Normalization module arguments.</span>
+<span class="sd">        dropout_rate: Dropout rate.</span>
+<span class="sd">        causal: Whether to use causal convolution (set to True if streaming).</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">norm_class</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">,</span>
+        <span class="n">norm_args</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
+        <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Construct a ConvolutionalSpatialGatingUnit object.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">channels</span> <span class="o">=</span> <span class="n">size</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">kernel_size</span>
+
+        <span class="k">if</span> <span class="n">causal</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lorder</span> <span class="o">=</span> <span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">padding</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lorder</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
+            <span class="n">channels</span><span class="p">,</span>
+            <span class="n">channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="n">channels</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">norm_class</span><span class="p">(</span><span class="n">channels</span><span class="p">,</span> <span class="o">**</span><span class="n">norm_args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ConvolutionalSpatialGatingUnit.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConvolutionalSpatialGatingUnit.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Compute convolution module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x: ConvolutionalSpatialGatingUnit input sequences. (B, T, D_hidden)</span>
+<span class="sd">            cache: ConvolutionalSpationGatingUnit input cache.</span>
+<span class="sd">                   (1, conv_kernel, D_hidden)</span>
+<span class="sd">            right_context: Number of frames in right context.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            x: ConvolutionalSpatialGatingUnit output sequences. (B, T, D_hidden // 2)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x_r</span><span class="p">,</span> <span class="n">x_g</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lorder</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">x_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x_g</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lorder</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cache</span><span class="p">,</span> <span class="n">x_g</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">cache</span> <span class="o">=</span> <span class="n">x_g</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lorder</span> <span class="o">+</span> <span class="n">right_context</span><span class="p">)</span> <span class="p">:</span> <span class="o">-</span><span class="n">right_context</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cache</span> <span class="o">=</span> <span class="n">x_g</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">lorder</span> <span class="p">:]</span>
+
+        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x_r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">(</span><span class="n">x_g</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">cache</span></div></div>
 </pre></div>

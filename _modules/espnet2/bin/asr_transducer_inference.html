@@ -192,13 +192,6 @@
 <div class="viewcode-block" id="Speech2Text"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text">[docs]</a><span class="k">class</span> <span class="nc">Speech2Text</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Speech2Text class for Transducer models.</span>
 
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; import soundfile</span>
-<span class="sd">        &gt;&gt;&gt; speech2text = Speech2Text(&quot;asr_config.yml&quot;, &quot;asr.pth&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; audio, rate = soundfile.read(&quot;speech.wav&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; speech2text(audio)</span>
-<span class="sd">        [(text, token, token_int, hypothesis object), ...]</span>
-
 <span class="sd">    Args:</span>
 <span class="sd">        asr_train_config: ASR model training config path.</span>
 <span class="sd">        asr_model_file: ASR model path.</span>
@@ -246,6 +239,9 @@
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">display_partial_hypotheses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Construct a Speech2Text object.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">asr_model</span><span class="p">,</span> <span class="n">asr_train_args</span> <span class="o">=</span> <span class="n">ASRTransducerTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
