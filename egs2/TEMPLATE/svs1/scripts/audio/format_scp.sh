@@ -29,6 +29,7 @@ EOF
 )
 
 out_wavfilename=wav.scp
+out_xmlfilename=xml.scp
 cmd=utils/run.pl
 nj=30
 fs=none
@@ -57,6 +58,11 @@ if [ ! -f "${scp_dir}/wav.scp" ]; then
     echo "$0: Error: No such file: ${scp_dir}/wav.scp"
     exit 1
 fi
+if [ ! -d "xml_dump" ]; then
+    log "${help_message}"
+    echo "$0: Error: No such folder: xml_dump"
+    exit 1
+fi
 dir=$2
 
 
@@ -77,6 +83,7 @@ fi
 mkdir -p ${logdir}
 
 rm -f "${dir}/${out_wavfilename}"
+rm -f "${dir}/${out_xmlfilename}"
 
 opts=
 if [ -n "${utt2ref_channels}" ]; then
@@ -107,8 +114,16 @@ if [ -n "${segments}" ]; then
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
             "${scp_dir}/wav.scp" "${outdir}/format_wav.JOB"
+    
+    ${cmd} "JOB=1:${nj}" "${logdir}/format_xml_scp.JOB.log" \
+        pyscripts/audio/format_xml_scp.py \
+            ${opts} \
+            "--segment=${logdir}/segments.JOB" \
+            "${scp_dir}/xml.scp" "${outdir}/format_xml.JOB"
+
 
 else
+    # TODO(Yuning): xml_scp without segments needs to be finished
     log "[info]: without segments"
     nutt=$(<${scp_dir}/wav.scp wc -l)
     nj=$((nj<nutt?nj:nutt))
@@ -119,21 +134,33 @@ else
     done
 
     utils/split_scp.pl "${scp_dir}/wav.scp" ${split_scps}
+    utils/split_scp.pl "${scp_dir}/xml.scp" ${split_xml_scps}
     ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
         pyscripts/audio/format_wav_scp.py \
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
         "${logdir}/wav.JOB.scp" "${outdir}/format_wav.JOB"
+    
+    ${cmd} "JOB=1:${nj}" "${logdir}/format_xml_scp.JOB.log" \
+        pyscripts/audio/format_xml_scp.py \
+        ${opts} \
+        "--segment=${logdir}/segments.JOB" \
+        "${scp_dir}/xml.scp" "${outdir}/format_xml.JOB"
 fi
 
 # Workaround for the NFS problem
 ls ${outdir}/format_wav.* > /dev/null
+ls ${outdir}/format_xml.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
     cat "${outdir}/format_wav.${n}/wav.scp" || exit 1;
 done > "${dir}/${out_wavfilename}" || exit 1
+
+for n in $(seq ${nj}); do
+    cat "${outdir}/format_xml.${n}/xml.scp" || exit 1;
+done > "${dir}/${out_xmlfilename}" || exit 1
 
 if "${write_utt2num_samples}"; then
     for n in $(seq ${nj}); do

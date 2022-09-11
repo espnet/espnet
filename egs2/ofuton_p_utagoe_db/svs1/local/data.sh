@@ -51,7 +51,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Prepare segments"
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
-        local/prep_segments.py --silence pau --silence sil ${src_data} 10000 # in ms
+        local/prep_segments.py --silence pau --silence sil --silence br ${src_data} 10000 # in ms
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
         mv ${src_data}/text.tmp ${src_data}/text
