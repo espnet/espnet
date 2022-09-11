@@ -87,6 +87,7 @@ def get_parser():
     )
     parser.add_argument(
         "--xml_dump", type=str, default="xml_dump", help="xml dump directory")
+        # TODO (Yuning): update xml prepare scheme
     
     args = parser.parse_args()
     if not os.path.exists(args.xml_dump):
