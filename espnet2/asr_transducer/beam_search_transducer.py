@@ -19,7 +19,7 @@ class Hypothesis:
         yseq: Label sequence as integer ID sequence.
         dec_state: RNNDecoder or StatelessDecoder state.
                      ((N, 1, D_dec), (N, 1, D_dec) or None) or None
-        lm_state: RNNLM state. ((N, D_lm), (N, D_lm))
+        lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None
 
     """
 
@@ -45,7 +45,26 @@ class ExtendedHypothesis(Hypothesis):
 
 
 class BeamSearchTransducer:
-    """Beam search implementation for Transducer."""
+    """Beam search implementation for Transducer.
+
+    Args:
+        decoder: Decoder module.
+        joint_network: Joint network module.
+        beam_size: Size of the beam.
+        lm: LM class.
+        lm_weight: LM weight for soft fusion.
+        search_type: Search algorithm to use during inference.
+        max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
+        u_max: Maximum expected target sequence length. (ALSD)
+        nstep: Number of maximum expansion steps at each time step. (mAES)
+        expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
+        expansion_beta:
+             Number of additional candidates for expanded hypotheses selection. (mAES)
+        score_norm: Normalize final scores by length.
+        nbest: Number of final hypothesis.
+        streaming: Whether to perform chunk-by-chunk beam search.
+
+    """
 
     def __init__(
         self,
@@ -63,27 +82,10 @@ class BeamSearchTransducer:
         score_norm: bool = False,
         nbest: int = 1,
         streaming: bool = False,
-    ):
-        """Initialize Transducer search module.
+    ) -> None:
+        """Construct a BeamSearchTransducer object."""
+        super().__init__()
 
-        Args:
-            decoder: Decoder module.
-            joint_network: Joint network module.
-            beam_size: Beam size.
-            lm: LM class.
-            lm_weight: LM weight for soft fusion.
-            search_type: Search algorithm to use during inference.
-            max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
-            u_max: Maximum expected target sequence length. (ALSD)
-            nstep: Number of maximum expansion steps at each time step. (mAES)
-            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
-            expansion_beta:
-              Number of additional candidates for expanded hypotheses selection. (mAES)
-            score_norm: Normalize final scores by length.
-            nbest: Number of final hypothesis.
-            streaming: Whether to perform chunk-by-chunk beam search.
-
-        """
         self.decoder = decoder
         self.joint_network = joint_network
 
@@ -174,7 +176,7 @@ class BeamSearchTransducer:
 
         return hyps
 
-    def reset_inference_cache(self):
+    def reset_inference_cache(self) -> None:
         """Reset cache for decoder scoring and streaming."""
         self.decoder.score_cache = {}
         self.search_cache = None

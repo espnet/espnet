@@ -27,9 +27,10 @@ class StatelessDecoder(AbsDecoder):
         embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
     ) -> None:
-        assert check_argument_types()
-
+        """Construct a StatelessDecoder object."""
         super().__init__()
+
+        assert check_argument_types()
 
         self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
         self.embed_dropout_rate = torch.nn.Dropout(p=embed_dropout_rate)
