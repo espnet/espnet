@@ -38,7 +38,9 @@ utils/filter_scp.pl -f 1 $tmp/utt.list $tmp/tmp_wav.scp | sort -k 1 | uniq > $tm
 
 # text
 awk -F'\t' '{printf("%s\t%s\n",$1,$3)}' $corpus/TRANS.txt > $tmp/tmp_text
-utils/filter_scp.pl -f 1 $tmp/utt.list $tmp/tmp_text | sort -k 1 | uniq > $tmp/text
+utils/filter_scp.pl -f 1 $tmp/utt.list $tmp/tmp_text | sort -k 1 | uniq > $tmp/text.raw
+# remove unicode whitespaces
+perl -CSDA -plE 's/[^\S\t]/ /g' $tmp/text.raw > $tmp/text
 
 # utt2spk & spk2utt
 awk -F'\t' '{printf("%s\t%s\n",$1,$2)}' $corpus/TRANS.txt > $tmp/tmp_utt2spk
@@ -50,8 +52,6 @@ mkdir -p $dir
 for f in wav.scp text spk2utt utt2spk; do
   cp $tmp/$f $dir/$f || exit 1;
 done
-
-utils/fix_data_dir.sh $dir
 
 echo "local/prepare_data.sh succeeded"
 exit 0;
