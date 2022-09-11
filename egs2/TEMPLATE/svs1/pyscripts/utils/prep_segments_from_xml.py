@@ -26,6 +26,7 @@ class LabelInfo(object):
 
 class SegInfo(object):
     def __init__(self):
+    # TODO(Yuning): add examples
         self.segs = []
         self.start = -1
         self.end = -1
