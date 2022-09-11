@@ -1,4 +1,4 @@
-#!/root/anaconda3/bin/python3
+#!/usr/bin/env python3
 import argparse
 import math
 import os
@@ -26,6 +26,7 @@ class LabelInfo(object):
 
 class SegInfo(object):
     def __init__(self):
+    # TODO(Yuning): add examples
         self.segs = []
         self.start = -1
         self.end = -1
@@ -83,10 +84,8 @@ def get_parser():
         "threshold", type=int, help="threshold for silence identification."
     )
     parser.add_argument(
-        "--silence", action="append", help="silence_phone", default=["pau"]
-    )
-    parser.add_argument(
         "--xml_dump", type=str, default="xml_dump", help="xml dump directory")
+        # TODO (Yuning): update xml prepare scheme
     
     args = parser.parse_args()
     if not os.path.exists(args.xml_dump):
@@ -99,12 +98,18 @@ def make_segment(file_id, labels, threshold=13.5):
     segments = []
     segment = SegInfo()
     for label in labels:
+        # Split by rest note
         if label.isNote == "Rest":
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
         segment.add(label.start, label.end, label.label_id, label.note)
+        # Split by breath mark
+        for arti in label.note.articulations:
+            if arti.name == "breath mark":
+                segments.extend(segment.split(threshold=threshold))
+                segment = SegInfo()
 
     if len(segment.segs) > 0:
         segments.extend(segment.split(threshold=threshold))
