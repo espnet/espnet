@@ -9,7 +9,7 @@ def validate_block_arguments(
     configuration: Dict[str, Any],
     block_id: int,
     previous_block_output: int,
-) -> Tuple[Tuple[int, int], int]:
+) -> Tuple[int, int]:
     """Validate block arguments.
 
     Args:
@@ -29,15 +29,15 @@ def validate_block_arguments(
             "Block %d in encoder doesn't have a type assigned. " % block_id
         )
 
-    if block_type == "conformer":
+    if block_type in ["branchformer", "conformer"]:
         if configuration.get("linear_size") is None:
             raise ValueError(
-                "Missing 'linear_size' argument for Conformer block (ID: %d)" % block_id
+                "Missing 'linear_size' argument for X-former block (ID: %d)" % block_id
             )
 
         if configuration.get("conv_mod_kernel_size") is None:
             raise ValueError(
-                "Missing 'conv_mod_kernel_size' argument for Conformer block (ID: %d)"
+                "Missing 'conv_mod_kernel_size' argument for X-former block (ID: %d)"
                 % block_id
             )
 
@@ -80,8 +80,9 @@ def validate_input_block(
     """
     vgg_like = configuration.get("vgg_like", False)
     next_block_type = body_first_conf.get("block_type")
+    allowed_next_block_type = ["branchformer", "conformer", "conv1d"]
 
-    if next_block_type is None or (next_block_type not in ["conv1d", "conformer"]):
+    if next_block_type is None or (next_block_type not in allowed_next_block_type):
         return -1
 
     if configuration.get("subsampling_factor") is None:
