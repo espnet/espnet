@@ -61,4 +61,13 @@ for x in dir_dict:
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + fsc_root + "/" + row[2] + "\n")
             utt2spk_f.write(utt_id + " " + row[3] + "\n")
-            transcript_f.write(utt_id + " " + row[4].encode("ascii", "ignore").decode().lower().translate(str.maketrans("", "", string.punctuation)) + "\n")
+            transcript_f.write(
+                utt_id
+                + " "
+                + row[4]
+                .encode("ascii", "ignore")
+                .decode()
+                .lower()
+                .translate(str.maketrans("", "", string.punctuation))
+                + "\n"
+            )

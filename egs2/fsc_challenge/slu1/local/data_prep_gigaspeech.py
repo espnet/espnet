@@ -24,7 +24,8 @@ dir_dict = {
 
 
 for x in dir_dict:
-    # Download gigaspeech ASR model https://github.com/espnet/espnet/tree/master/egs2/gigaspeech/asr1 to exp and run inference
+    # Download gigaspeech ASR model https://zenodo.org/record/4630406 to exp
+    # and then run inference on FSC dataset
     asr_transcript_file = open(
         "exp/asr_train_asr_raw_en_bpe5000/inference_asr_model_valid.acc.ave_10best/"
         + x
