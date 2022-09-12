@@ -1,5 +1,3 @@
-# Trained with Tesla V100 (32GB) x 8 GPUs. It takes about 4 days.
-
 # network architecture
 # encoder related
 encoder: conformer
@@ -39,7 +37,7 @@ model_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 20000000
+batch_bins: 10000000
 num_workers: 4
 
 # optimization related
