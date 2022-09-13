@@ -89,11 +89,7 @@ packaging.done: activate_python.sh
 	touch packaging.done
 
 numba.done: activate_python.sh
-ifeq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && python3 -m pip install numba
-else
-	. ./activate_python.sh && conda install -y numba
-endif
+	. ./activate_python.sh && python3 -m pip install -U numba
 	touch numba.done
 
 # NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
