@@ -13,6 +13,8 @@
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug_deliberation_transformer_gt.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug_deliberation_transformer_gt.yaml)
 - token_type: word
 - local_data_opts: "--gt true"
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/fsc_challenge_slu_2pass_transformer_gt
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -24,6 +26,8 @@
 - ASR config: [conf/train_asr.yaml](conf/train_asr.yaml)
 - token_type: word
 - local_data_opts: "--gt false"
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/fsc_challenge_slu_2pass_transformer
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -35,6 +39,8 @@
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug_deliberation.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug_deliberation.yaml)
 - token_type: word
 - local_data_opts: "--gt false"
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/fsc_challenge_slu_2pass_conformer
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
