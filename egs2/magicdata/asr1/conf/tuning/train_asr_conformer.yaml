@@ -41,8 +41,8 @@ batch_bins: 10000000
 num_workers: 4
 
 # optimization related
-accum_grad: 4
-grad_clip: 5
+accum_grad: 1
+grad_clip: 3
 max_epoch: 50
 val_scheduler_criterion:
     - valid
