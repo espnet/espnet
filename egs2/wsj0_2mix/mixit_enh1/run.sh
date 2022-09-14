@@ -9,20 +9,19 @@ min_or_max=min # "min" or "max". This is to determine how the mixtures are gener
 sample_rate=8k
 
 
-train_set=tr_mix_both_min_8k
-valid_set=cv_mix_both_min_8k
-test_sets="tt_mix_both_min_8k"
+train_set="tr_${min_or_max}_${sample_rate}_w_1spk_utt"
+valid_set="cv_${min_or_max}_${sample_rate}"
+test_sets="tt_${min_or_max}_${sample_rate} "
 
 ./enh.sh \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --fs ${sample_rate} \
-    --ngpu 2 \
-    --ref_num 2 \
+    --fs "${sample_rate}" \
+    --lang en \
+    --ngpu 1 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config ./conf/train.yaml\
-    --use_dereverb_ref false \
-    --use_noise_ref true \
-    --inference_model "valid.loss.best.pth" \
+    --enh_config conf/tuning/train_enh_mixit_conv_tasnet.yaml \
+    --ref_num 2 \
+    --inf_num 4 \
     "$@"

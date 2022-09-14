@@ -1,0 +1,74 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+# When dynamic mixing is enabled, the actual batch_size will
+# be (batch_size / num_utt)
+batch_size: 8 # batch_size 8 can be trained on 1 A5000
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+encoder: conv
+encoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+decoder: conv
+decoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+separator: tcn
+separator_conf:
+    num_spk: 4
+    layer: 8
+    stack: 4
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+
+# dynamic_mixing related
+# dynamic_mixing_gain_db:
+# The maximum random gain (in dB) for each source before the mixing.
+# The gain (in dB) of each source is unifromly sampled in
+# [-dynamic_mixing_gain_db, dynamic_mixing_gain_db]
+preprocessor: dynamic_mixing
+preprocessor_conf:
+    ref_num: 2
+    dynamic_mixing_gain_db: 0.0
+    source_scp_name: "wav.scp"
+    mixture_source_name: "speech_mix"
+
+criterions:
+  # The first criterion
+  - name: snr
+    conf:
+      eps: 1.0e-7
+    wrapper: mixit
+    wrapper_conf:
+      weight: 1.0
