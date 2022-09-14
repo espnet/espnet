@@ -7,6 +7,7 @@ from espnet2.enh.layers.dnn_beamformer import BEAMFORMER_TYPES
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 random_speech = torch.tensor(
     [
         [
@@ -127,7 +128,12 @@ def test_neural_beamformer_forward_backward(
 
     # ensures reproducibility and reversibility in the matrix inverse computation
     torch.random.manual_seed(0)
-    stft = STFTEncoder(n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+    stft = STFTEncoder(
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        use_builtin_complex=is_torch_1_12_1_plus,
+    )
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -177,7 +183,7 @@ def test_neural_beamformer_wpe_output(
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
     inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
-    stft = STFTEncoder(n_fft=8, hop_length=2)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -240,7 +246,7 @@ def test_neural_beamformer_bf_output(
     ilens = torch.LongTensor([16, 12])
 
     torch.random.manual_seed(0)
-    stft = STFTEncoder(n_fft=8, hop_length=2)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,

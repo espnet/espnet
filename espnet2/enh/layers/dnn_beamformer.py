@@ -7,26 +7,45 @@ from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.beamformer import (
-    apply_beamforming_vector,
-    blind_analytic_normalization,
-    get_gev_vector,
-    get_lcmv_vector_with_rtf,
-    get_mvdr_vector,
-    get_mvdr_vector_with_rtf,
-    get_mwf_vector,
-    get_rank1_mwf_vector,
-    get_rtf_matrix,
-    get_sdw_mwf_vector,
-    get_WPD_filter_v2,
-    get_WPD_filter_with_rtf,
-    perform_WPD_filtering,
-    prepare_beamformer_stats,
-)
 from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
+if is_torch_1_12_1_plus:
+    from espnet2.enh.layers.beamformer_th import (
+        apply_beamforming_vector,
+        blind_analytic_normalization,
+        get_gev_vector,
+        get_lcmv_vector_with_rtf,
+        get_mvdr_vector,
+        get_mvdr_vector_with_rtf,
+        get_mwf_vector,
+        get_rank1_mwf_vector,
+        get_rtf_matrix,
+        get_sdw_mwf_vector,
+        get_WPD_filter_v2,
+        get_WPD_filter_with_rtf,
+        perform_WPD_filtering,
+        prepare_beamformer_stats,
+    )
+else:
+    from espnet2.enh.layers.beamformer import (
+        apply_beamforming_vector,
+        blind_analytic_normalization,
+        get_gev_vector,
+        get_lcmv_vector_with_rtf,
+        get_mvdr_vector,
+        get_mvdr_vector_with_rtf,
+        get_mwf_vector,
+        get_rank1_mwf_vector,
+        get_rtf_matrix,
+        get_sdw_mwf_vector,
+        get_WPD_filter_v2,
+        get_WPD_filter_with_rtf,
+        perform_WPD_filtering,
+        prepare_beamformer_stats,
+    )
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
@@ -161,6 +180,11 @@ class DNN_Beamformer(torch.nn.Module):
         self.mask_flooring = mask_flooring
         self.flooring_thres = flooring_thres
         self.use_torch_solver = use_torch_solver
+        if not use_torch_solver:
+            logging.warning(
+                "The `use_torch_solver` argument has been deprecated. "
+                "Now it will always be true in DNN_Beamformer"
+            )
 
     def forward(
         self,
@@ -280,7 +304,6 @@ class DNN_Beamformer(torch.nn.Module):
                     diagonal_loading=self.diagonal_loading,
                     ref_channel=self.ref_channel,
                     rtf_iterations=self.rtf_iterations,
-                    use_torch_solver=self.use_torch_solver,
                     diag_eps=self.diag_eps,
                 )
 
@@ -413,8 +436,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_distortion),
                 iterations=self.rtf_iterations,
                 reference_vector=u,
-                normalize_ref_channel=self.ref_channel,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -428,8 +449,6 @@ class DNN_Beamformer(torch.nn.Module):
                     to_double(psd_distortion),
                     iterations=self.rtf_iterations,
                     reference_vector=u,
-                    normalize_ref_channel=self.ref_channel,
-                    use_torch_solver=self.use_torch_solver,
                     diagonal_loading=self.diagonal_loading,
                     diag_eps=self.diag_eps,
                 )
@@ -449,7 +468,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -461,7 +479,6 @@ class DNN_Beamformer(torch.nn.Module):
                     to_double(psd_speech),
                     to_double(psd_n_i),
                     u,
-                    use_torch_solver=self.use_torch_solver,
                     diagonal_loading=self.diagonal_loading,
                     diag_eps=self.diag_eps,
                 )
@@ -479,8 +496,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_distortion),
                 iterations=self.rtf_iterations,
                 reference_vector=u,
-                normalize_ref_channel=self.ref_channel,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -503,7 +518,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -514,7 +528,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_n),
                 u,
                 denoising_weight=self.mwf_mu,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -525,7 +538,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_n),
                 u,
                 denoising_weight=self.mwf_mu,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
@@ -535,7 +547,6 @@ class DNN_Beamformer(torch.nn.Module):
                 to_double(psd_n),
                 to_double(rtf_mat),
                 reference_vector=spk,
-                use_torch_solver=self.use_torch_solver,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
