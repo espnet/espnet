@@ -37,6 +37,7 @@ def prepare(model, input_size, vocab_size, batch_size):
         ("swish", {}),
         ("swish", {"swish_beta": 1.125}),
         ("tanh", {}),
+        ("identity", {}),
     ],
 )
 def test_activation(act_type, act_params):
