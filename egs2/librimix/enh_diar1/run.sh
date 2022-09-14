@@ -32,6 +32,6 @@ num_spk=2 # 2, 3
     --inference_nj 32 \
     --audio_format wav \
     --local_data_opts "--num_spk ${num_spk}" \
-    --spk_num "${num_spk}"\
+    --ref_num "${num_spk}"\
     --frame_shift 64 \
     "$@"
