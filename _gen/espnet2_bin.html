@@ -2927,7 +2927,6 @@ Input data related:
                     [--scheduler_conf SCHEDULER_CONF]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--model_conf MODEL_CONF] [--criterions CRITERIONS]
-                    [--use_preprocessor USE_PREPROCESSOR]
                     [--speech_volume_normalize SPEECH_VOLUME_NORMALIZE]
                     [--rir_scp RIR_SCP] [--rir_apply_prob RIR_APPLY_PROB]
                     [--noise_scp NOISE_SCP]
@@ -2946,6 +2945,8 @@ Input data related:
                     [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
                     [--mask_module {multi_mask}]
                     [--mask_module_conf MASK_MODULE_CONF]
+                    [--preprocessor {dynamic_mixing,enh,None}]
+                    [--preprocessor_conf PREPROCESSOR_CONF]
 
 base parser
 
@@ -3273,8 +3274,6 @@ Optimizer related:
 
   Preprocess related
 
-  --use_preprocessor USE_PREPROCESSOR
-                        Whether to apply preprocessing to data or not (default: False)
   --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
                         Scale the maximum amplitude to the given value or range. e.g. --speech_volume_normalize 1.0 scales it to 1.0.
                         --speech_volume_normalize 0.5_1.0 scales it to a random number in the range [0.5, 1.0) (default: None)
@@ -3319,6 +3318,10 @@ Optimizer related:
                         The mask_module type (default: multi_mask)
   --mask_module_conf MASK_MODULE_CONF
                         The keyword arguments for mask_module (default: {})
+  --preprocessor {dynamic_mixing,enh,None}
+                        The preprocessor type (default: None)
+  --preprocessor_conf PREPROCESSOR_CONF
+                        The keyword arguments for preprocessor (default: {})
 </pre></div>
 </div>
 </section>

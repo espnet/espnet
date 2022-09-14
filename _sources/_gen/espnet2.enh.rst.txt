@@ -620,6 +620,17 @@ espnet2.enh.loss.criterions.__init__
     :show-inheritance:
 
 
+.. _espnet2.enh.loss.wrappers.mixit_solver:
+
+espnet2.enh.loss.wrappers.mixit_solver
+--------------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.mixit_solver
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.loss.wrappers.fixed_order:
 
 espnet2.enh.loss.wrappers.fixed_order

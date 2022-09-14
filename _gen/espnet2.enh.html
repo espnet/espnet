@@ -172,6 +172,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-criterions-time-domain">espnet2.enh.loss.criterions.time_domain</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-criterions-abs-loss">espnet2.enh.loss.criterions.abs_loss</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-criterions-init">espnet2.enh.loss.criterions.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-wrappers-mixit-solver">espnet2.enh.loss.wrappers.mixit_solver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-wrappers-fixed-order">espnet2.enh.loss.wrappers.fixed_order</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-wrappers-multilayer-pit-solver">espnet2.enh.loss.wrappers.multilayer_pit_solver</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-loss-wrappers-abs-wrapper">espnet2.enh.loss.wrappers.abs_wrapper</a></li>
@@ -5092,8 +5093,54 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-enh-loss-criterions-init">
 <span id="id56"></span><h2>espnet2.enh.loss.criterions.__init__<a class="headerlink" href="#espnet2-enh-loss-criterions-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.criterions.__init__"></span></section>
+<section id="espnet2-enh-loss-wrappers-mixit-solver">
+<span id="id57"></span><h2>espnet2.enh.loss.wrappers.mixit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-mixit-solver" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.loss.wrappers.mixit_solver"></span><dl class="class">
+<dt id="espnet2.enh.loss.wrappers.mixit_solver.MixITSolver">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.mixit_solver.</code><code class="sig-name descname">MixITSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight: float = 1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/mixit_solver.html#MixITSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.mixit_solver.MixITSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper" title="espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper</span></code></a></p>
+<p>Mixture Invariant Training Solver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>criterion</strong> (<a class="reference internal" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss" title="espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss"><em>AbsEnhLoss</em></a>) – an instance of AbsEnhLoss</p></li>
+<li><p><strong>weight</strong> (<em>float</em>) – weight (between 0 and 1) of current loss
+for multi-task learning.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.loss.wrappers.mixit_solver.MixITSolver.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ref: Union[List[torch.Tensor], List[torch_complex.tensor.ComplexTensor]], inf: Union[List[torch.Tensor], List[torch_complex.tensor.ComplexTensor]], others: Dict = {}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/mixit_solver.html#MixITSolver.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.mixit_solver.MixITSolver.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>MixIT solver.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(batch, …), …] x n_spk</p></li>
+<li><p><strong>inf</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(batch, …), …] x n_est</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(torch.Tensor): minimum loss with the best permutation
+stats: dict, for collecting training status
+others: dict, in this PIT solver, permutation order will be returned</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.loss.wrappers.mixit_solver.MixITSolver.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.wrappers.mixit_solver.MixITSolver.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-enh-loss-wrappers-fixed-order">
-<span id="id57"></span><h2>espnet2.enh.loss.wrappers.fixed_order<a class="headerlink" href="#espnet2-enh-loss-wrappers-fixed-order" title="Permalink to this headline">¶</a></h2>
+<span id="id58"></span><h2>espnet2.enh.loss.wrappers.fixed_order<a class="headerlink" href="#espnet2-enh-loss-wrappers-fixed-order" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.fixed_order"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.fixed_order.FixedOrderSolver">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.fixed_order.</code><code class="sig-name descname">FixedOrderSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/fixed_order.html#FixedOrderSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.fixed_order.FixedOrderSolver" title="Permalink to this definition">¶</a></dt>
@@ -5124,7 +5171,7 @@ others: reserved</p>
 
 </section>
 <section id="espnet2-enh-loss-wrappers-multilayer-pit-solver">
-<span id="id58"></span><h2>espnet2.enh.loss.wrappers.multilayer_pit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-multilayer-pit-solver" title="Permalink to this headline">¶</a></h2>
+<span id="id59"></span><h2>espnet2.enh.loss.wrappers.multilayer_pit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-multilayer-pit-solver" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.multilayer_pit_solver"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.multilayer_pit_solver.MultiLayerPITSolver">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.multilayer_pit_solver.</code><code class="sig-name descname">MultiLayerPITSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em>, <em class="sig-param">independent_perm=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/multilayer_pit_solver.html#MultiLayerPITSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.multilayer_pit_solver.MultiLayerPITSolver" title="Permalink to this definition">¶</a></dt>
@@ -5172,7 +5219,7 @@ others: dict, in this PIT solver, permutation order will be returned</p>
 
 </section>
 <section id="espnet2-enh-loss-wrappers-abs-wrapper">
-<span id="id59"></span><h2>espnet2.enh.loss.wrappers.abs_wrapper<a class="headerlink" href="#espnet2-enh-loss-wrappers-abs-wrapper" title="Permalink to this headline">¶</a></h2>
+<span id="id60"></span><h2>espnet2.enh.loss.wrappers.abs_wrapper<a class="headerlink" href="#espnet2-enh-loss-wrappers-abs-wrapper" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.abs_wrapper"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.abs_wrapper.</code><code class="sig-name descname">AbsLossWrapper</code><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/abs_wrapper.html#AbsLossWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper" title="Permalink to this definition">¶</a></dt>
@@ -5202,7 +5249,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-loss-wrappers-pit-solver">
-<span id="id60"></span><h2>espnet2.enh.loss.wrappers.pit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-pit-solver" title="Permalink to this headline">¶</a></h2>
+<span id="id61"></span><h2>espnet2.enh.loss.wrappers.pit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-pit-solver" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.pit_solver"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.pit_solver.PITSolver">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.pit_solver.</code><code class="sig-name descname">PITSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em>, <em class="sig-param">independent_perm=True</em>, <em class="sig-param">flexible_numspk=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/pit_solver.html#PITSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.pit_solver.PITSolver" title="Permalink to this definition">¶</a></dt>
@@ -5253,10 +5300,10 @@ others: dict, in this PIT solver, permutation order will be returned</p>
 
 </section>
 <section id="espnet2-enh-loss-wrappers-init">
-<span id="id61"></span><h2>espnet2.enh.loss.wrappers.__init__<a class="headerlink" href="#espnet2-enh-loss-wrappers-init" title="Permalink to this headline">¶</a></h2>
+<span id="id62"></span><h2>espnet2.enh.loss.wrappers.__init__<a class="headerlink" href="#espnet2-enh-loss-wrappers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.__init__"></span></section>
 <section id="espnet2-enh-loss-wrappers-dpcl-solver">
-<span id="id62"></span><h2>espnet2.enh.loss.wrappers.dpcl_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-dpcl-solver" title="Permalink to this headline">¶</a></h2>
+<span id="id63"></span><h2>espnet2.enh.loss.wrappers.dpcl_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-dpcl-solver" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.dpcl_solver"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.dpcl_solver.DPCLSolver">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.dpcl_solver.</code><code class="sig-name descname">DPCLSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/dpcl_solver.html#DPCLSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.dpcl_solver.DPCLSolver" title="Permalink to this definition">¶</a></dt>

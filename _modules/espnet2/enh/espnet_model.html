@@ -240,10 +240,14 @@
 <span class="sd">                            espnet2/iterators/chunk_iter_factory.py</span>
 <span class="sd">            kwargs: &quot;utt_id&quot; is among the input.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="c1"># clean speech signal of each speaker</span>
+        <span class="c1"># reference speech signal of each speaker</span>
+        <span class="k">assert</span> <span class="s2">&quot;speech_ref1&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">,</span> <span class="s2">&quot;At least 1 reference signal input is required.&quot;</span>
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;speech_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;speech_ref</span><span class="si">{</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;speech_ref1&quot;</span><span class="p">]),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="c1"># (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)</span>
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
