@@ -12,13 +12,11 @@ test_sets="test devel"
 local_data_opts="--gt false"
 # Make gt true to run using ground truth text as transcript
 
-slu_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
+slu_config=conf/tuning/train_asr_bert_conformer_deliberation_transcript.yaml
 
 ./slu.sh \
     --lang en \
     --ngpu 1 \
-    --stage 1 \
-    --stop_stage 1\
     --use_transcript true \
     --use_lm false \
     --nbpe 5000 \
@@ -27,8 +25,8 @@ slu_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
     --max_wav_duration 30 \
     --feats_normalize utterance_mvn\
     --inference_nj 12 \
-    --nj 12\
-    --inference_slu_model 1epoch.pth\
+    --pretrained_model ../../slurp_new/asr1/exp/asr_train_asr_conformer_raw_en_word/valid.acc.ave_10best.pth:encoder:encoder\
+    --inference_slu_model valid.acc.ave_10best.pth\
     --slu_config "${slu_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
