@@ -26,7 +26,7 @@
 - token_type: word
 - local_data_opts: "--gt false"
 - Pretrained Model
-  - Hugging Face : https://huggingface.co/espnet/slurp_slu_2pass_gt
+  - Hugging Face : https://huggingface.co/espnet/slurp_slu_2pass/
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
