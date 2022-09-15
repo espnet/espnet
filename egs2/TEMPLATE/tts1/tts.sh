@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2019 Tomoki Hayashi
+# Copyright 2021 Massa Baali
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Set bash to 'debug' mode, it will exit on :
