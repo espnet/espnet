@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Massa Baali
+# Copyright 2019 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 download_dir=$1
@@ -12,19 +12,16 @@ if [ $# != 1 ]; then
 fi
 
 set -euo pipefail
-echo $download_dir
-cwd=$(pwd)
 
-if [ ! -d "${download_dir}/qasr_tts-1.0" ] && [ -f "qasr_tts-1.0.zip" ]; then
+cwd=$(pwd)
+if [ ! -e "${download_dir}/LJSpeech-1.1" ]; then
     mkdir -p "${download_dir}"
     cd "${download_dir}"
-    unzip "${cwd}/qasr_tts-1.0"
+    wget http://data.keithito.com/data/speech/LJSpeech-1.1.tar.bz2
+    tar -vxf ./*.tar.bz2
+    rm ./*.tar.bz2
     cd "${cwd}"
     echo "successfully prepared data."
-    
 else
-    echo "Go to this link https://arabicspeech.org/qasr_tts "
-    exit 1
+    echo "already exists. skipped."
 fi
-
-exit 0 
