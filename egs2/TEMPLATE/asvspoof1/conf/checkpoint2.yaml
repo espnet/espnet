@@ -1,0 +1,54 @@
+# Frontend
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# Encoder
+encoder: conformer
+encoder_conf:
+    output_size: 128
+    attention_heads: 4
+    linear_units: 512
+    num_blocks: 1
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
+
+# Decoder
+decoder: linear
+
+# Loss
+losses:
+    - name: binary_loss
+      conf:
+        weight: 1.0
+
+# Training
+batch_type: sorted
+batch_size: 32
+accum_grad: 1
+max_epoch: 10
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 2
+num_att_plot: 0
+
+# Optimizer
+optim: adam
+optim_conf:
+    lr: 0.001
