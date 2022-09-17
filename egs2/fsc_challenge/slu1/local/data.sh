@@ -27,37 +27,34 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [ -z "${SLURP}" ]; then
-    log "Fill the value of 'SLURP' of db.sh"
+if [ -z "${FSC}" ]; then
+    log "Fill the value of 'FSC' of db.sh"
     exit 1
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${SLURP}/LICENSE.txt" ]; then
-	echo "stage 1: Download data to ${SLURP}"
+    if [ ! -e "${FSC}/Fluent Speech Commands Public License.pdf" ]; then
+	echo "stage 1: Download data to ${FSC}"
     else
-        log "stage 1: ${SLURP}/LICENSE.txt is already existing. Skip data downloading"
+        log "stage 1: ${FSC}/Fluent Speech Commands Public License.pdf is already existing. Skip data downloading"
     fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    mkdir -p data/{train,valid,test}
+    mkdir -p data/{train,valid,utt_test,spk_test}
     if ${gt}; then
-        python3 local/prepare_slurp_data_gold_transcript.py ${SLURP}
+        python3 local/data_prep_gt.py ${FSC}
     else
-        python3 local/prepare_slurp_data_transcript.py ${SLURP}
+        python3 local/data_prep_gigaspeech.py ${FSC}
     fi
-    for x in test devel train; do
-        for f in text transcript wav.scp utt2spk; do
+    for x in utt_test spk_test valid train; do
+        for f in text wav.scp transcript utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
-    local/run_spm.sh
-    mv data data_old
-    mv data_bpe_500 data
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
