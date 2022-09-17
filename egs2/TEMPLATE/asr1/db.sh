@@ -10,6 +10,7 @@ AISHELL4=downloads
 ALFFA=downloads
 AMERICASNLP22=downloads
 AN4=downloads
+ASVTutorial=espnet_tutorial_asvspoof
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
