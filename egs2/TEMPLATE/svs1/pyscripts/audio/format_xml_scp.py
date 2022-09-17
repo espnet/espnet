@@ -43,7 +43,7 @@ def main():
                 utt_id, _, _, _ = line.strip().split(" ")
                 xml_path = Path(args.outdir) / f"{utt_id}.{args.name}"
                 xml_path.parent.mkdir(parents=True, exist_ok=True)
-                os.system("cp xml_dump/{}.musicxml {}".format(utt_id, xml_path))
+                os.system("cp {}/{}.musicxml {}".format(args.scp, utt_id, xml_path))
                 fscp.write(f"{utt_id} {xml_path}\n")
         fscp.close()
 

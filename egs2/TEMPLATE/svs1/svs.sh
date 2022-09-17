@@ -348,66 +348,12 @@ if ! "${skip_data_prep}"; then
                     _opts+="--segments data/${dset}/segments "
                 fi
                 # shellcheck disable=SC2086
-                scripts/audio/format_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}" "${data_feats}${_suf}/${dset}"
-                echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
-            done
-
-        elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
-            log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
-
-            # Generate the fbank features; by default 80-dimensional fbanks on each frame
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
-                fi
-                # 1. Copy datadir
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
-                # expand the utt_extra_files for multi-references
-                expand_utt_extra_files=""
-                for extra_file in ${utt_extra_files}; do
-                    for single_file in $(ls data/"${dset}"/${extra_file}); do
-                        cp ${single_file} "${data_feats}${_suf}/${dset}"
-                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done
-                done
-                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
-                for extra_file in ${expand_utt_extra_files}; do
-                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
-                done
-
-                # 2. Feature extract
-                # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-                _nj=$(min "${nj}" "$(<${data_feats}${_suf}/${dset}/utt2spk wc -l)")
-                _opts=
-                if [ "${feats_type}" = fbank ] ; then
-                    _opts+="--fmax ${fmax} "
-                    _opts+="--fmin ${fmin} "
-                    _opts+="--n_mels ${n_mels} "
-                fi
-
-                # shellcheck disable=SC2086
-                scripts/feats/make_"${feats_type}".sh --cmd "${train_cmd}" --nj "${_nj}" \
-                    --fs "${fs}" \
-                    --n_fft "${n_fft}" \
-                    --n_shift "${n_shift}" \
-                    --win_length "${win_length}" \
+                    "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
+                scripts/audio/format_xml_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     ${_opts} \
-                    "${data_feats}${_suf}/${dset}"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-
-                # 3. Derive the the frame length and feature dimension
-                scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
-
-                # 4. Write feats_dim
-                head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
-                    | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
-
-                # 5. Write feats_type
+                    "xml_dump" "${data_feats}${_suf}/${dset}"
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
         fi
@@ -491,30 +437,6 @@ if ! "${skip_data_prep}"; then
                 <"${data_feats}/org/${dset}/wav.scp" \
                     utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                     >"${data_feats}/${dset}/wav.scp"
-            else
-                # Get frame shift in ms from conf/fbank.conf
-                _frame_shift=
-                if [ -f conf/fbank.conf ] && [ "$(<conf/fbank.conf grep -c frame-shift)" -gt 0 ]; then
-                    # Assume using conf/fbank.conf for feature extraction
-                    _frame_shift="$(<conf/fbank.conf grep frame-shift | sed -e 's/[-a-z =]*\([0-9]*\)/\1/g')"
-                fi
-                if [ -z "${_frame_shift}" ]; then
-                    # If not existing, use the default number in Kaldi (=10ms).
-                    # If you are using different number, you have to change the following value manually.
-                    _frame_shift=10
-                fi
-
-                _min_length=$(python3 -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
-                _max_length=$(python3 -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
-
-                cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
-                <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
-                    | awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                        '{ if ($2 > min_length && $2 < max_length) print $0; }' \
-                        >"${data_feats}/${dset}/feats_shape"
-                <"${data_feats}/org/${dset}/feats.scp" \
-                    utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
-                    >"${data_feats}/${dset}/feats.scp"
             fi
 
             # Remove empty text
@@ -522,7 +444,7 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
 
         done
 
@@ -656,7 +578,6 @@ if ! "${skip_train}"; then
         log "Generate '${svs_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
         mkdir -p "${svs_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${svs_stats_dir}/run.sh"; chmod +x "${svs_stats_dir}/run.sh"
 
-
         # 3. Submit jobs
         log "SVS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
@@ -687,6 +608,7 @@ if ! "${skip_train}"; then
                 --fs ${fs} \
                 ${_opts} ${train_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
+        exit 1
         # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
