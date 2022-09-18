@@ -18,7 +18,7 @@ cwd=$(pwd)
 if [ ! -d "${download_dir}/qasr_tts-1.0" ] && [ -f "qasr_tts-1.0.zip" ]; then
     mkdir -p "${download_dir}"
     cd "${download_dir}"
-    unzip "${cwd}/qasr_tts-1.0"
+    unzip "${cwd}/qasr_tts-1.0.zip"
     cd "${cwd}"
     echo "successfully prepared data."
     
