@@ -358,6 +358,7 @@ if ! "${skip_data_prep}"; then
             done
         fi
     fi
+    # TODO(Yuning): Introducing a single new stage for conditional token generation
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if "${use_sid}"; then
             log "Stage 2+: sid extract: data/ -> ${data_feats}/"
@@ -596,11 +597,11 @@ if ! "${skip_train}"; then
                 --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
                 --train_data_path_and_name_and_type "${_train_dir}/label,label,duration" \
-                --train_data_path_and_name_and_type "${_train_dir}/midi.scp,midi,midi" \
+                --train_data_path_and_name_and_type "${_train_dir}/xml.scp,midi,midi" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},singing,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/label,label,duration" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/midi.scp,midi,midi" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/xml.scp,midi,midi" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},singing,${_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
@@ -703,7 +704,7 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},singing,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/midi.scp,midi,midi "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/xml.scp,midi,midi "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
@@ -714,7 +715,7 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/label,label,duration "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/midi.scp,midi,midi "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/xml.scp,midi,midi "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
@@ -973,7 +974,7 @@ if ! "${skip_eval}"; then
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type "${_data}/label,label,duration" \
-                    --data_path_and_name_and_type "${_data}/midi.scp,midi,midi" \
+                    --data_path_and_name_and_type "${_data}/xml.scp,midi,midi" \
                     --data_path_and_name_and_type "${_data}/${_scp},singing,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${svs_exp}"/"${inference_model}" \
