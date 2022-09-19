@@ -609,12 +609,12 @@ if ! "${skip_train}"; then
                 --fs ${fs} \
                 ${_opts} ${train_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
-        exit 1
         # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${svs_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
