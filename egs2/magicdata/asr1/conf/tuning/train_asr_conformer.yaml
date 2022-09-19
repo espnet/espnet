@@ -55,7 +55,7 @@ keep_nbest_models: 10
 
 optim: adam
 optim_conf:
-   lr: 0.001
+   lr: 0.0005
 scheduler: warmuplr
 scheduler_conf:
    warmup_steps: 30000
