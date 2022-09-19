@@ -33,4 +33,4 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
     cm_eer = cal_eer_from_textfiles(args.gt_file, args.pred_file)
-    print("EER = %0.3f %%" % (100 * cm_eer))
+    print("{} {:0.3f}".format(args.pred_file, 100 * cm_eer))

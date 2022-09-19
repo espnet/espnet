@@ -59,4 +59,4 @@ class ASVSpoofAMSoftmaxLoss(AbsASVSpoofLoss):
         norms_c = torch.norm(self.centers, p=2, dim=-1, keepdim=True)
         ncenters = torch.div(self.centers, norms_c)
         logits = torch.matmul(nfeat, torch.transpose(ncenters, 0, 1))
-        return self.sigmoid(logits[:, 0])
+        return logits[:, 0]

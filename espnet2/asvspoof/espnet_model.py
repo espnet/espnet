@@ -83,17 +83,18 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
 
         if "oc_softmax_loss" in self.losses:
             loss = (
-                self.losses["oc_softmax_loss"](pred, label, encoder_out) * self.losses["oc_softmax_loss"].weight
+                self.losses["oc_softmax_loss"](label, encoder_out) * self.losses["oc_softmax_loss"].weight
             )
+            pred = self.losses["am_softmax_loss"].score(encoder_out)
         elif "am_softmax_loss" in self.losses:
             loss = (
-                self.losses["am_softmax_loss"](pred, label, encoder_out) * self.losses["am_softmax_loss"].weight
+                self.losses["am_softmax_loss"](label, encoder_out) * self.losses["am_softmax_loss"].weight
             )
+            pred = self.losses["am_softmax_loss"].score(encoder_out)
         else:
             loss = (
                 self.losses["binary_loss"](pred, label) * self.losses["binary_loss"].weight
             )
-
         acc = torch.sum(((pred.view(-1) > 0.0) == (label.view(-1) > 0.5))) / batch_size
 
         stats = dict(

@@ -36,7 +36,6 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
         x = torch.nn.functional.normalize(emb, p=2, dim=1)
 
         # TODO1 (exercise 2): compute scores based on w and x
-        scores = x @ w.transpose(0,1)
 
         # TODO2 (exercise 2): calculate the score bias based on m_real and m_fake
 

@@ -24,11 +24,12 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asvspoof.espnet_model import ESPnetASVSpoofModel
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
 from espnet2.asvspoof.loss.binary_loss import ASVSpoofBinaryLoss
+from espnet2.asvspoof.loss.am_softmax_loss import ASVSpoofAMSoftmaxLoss
+from espnet2.asvspoof.loss.oc_softmax_loss import ASVSpoofOCSoftmaxLoss
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -98,6 +99,8 @@ losses_choices = ClassChoices(
     name="losses",
     classes=dict(
         binary_loss=ASVSpoofBinaryLoss,
+        am_softmax_loss=ASVSpoofAMSoftmaxLoss,
+        oc_softmax_loss=ASVSpoofOCSoftmaxLoss,
     ),
     type_check=AbsASVSpoofLoss,
     default=None,
@@ -282,7 +285,10 @@ class ASVSpoofTask(AbsTask):
             # This check is for the compatibility when load models
             # that packed by older version
             for ctr in args.losses:
-                loss = losses_choices.get_class(ctr["name"])(**ctr["conf"])
+                if "softmax" in ctr["name"]:
+                    loss = losses_choices.get_class(ctr["name"])(enc_dim=encoder_output_size, **ctr["conf"])
+                else:
+                    loss = losses_choices.get_class(ctr["name"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
 
         # 7. Build model

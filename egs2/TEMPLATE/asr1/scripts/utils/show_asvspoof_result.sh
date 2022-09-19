@@ -45,17 +45,15 @@ EOF
 
 while IFS= read -r expdir; do
     
-    if ls "${expdir}"/*/*/score/eer &> /dev/null; then
+    if ls "${expdir}"/*/scoring/eer &> /dev/null; then
         echo "## $(basename ${expdir})"
                 	cat << EOF
-### ${type^^}
-
 |dataset|EER|
 |---|---|
 EOF
-        if ls "${expdir}"/*/*/score/eer &> /dev/null; then
-                    cat "${expdir}"/*/*/score/eer \
-                        | sed -e "s#${expdir}/\([^/]*/[^/]*\)/score/eer:#|\1#g" \
+        if ls "${expdir}"/*/scoring/eer &> /dev/null; then
+                    cat "${expdir}"/*/scoring/eer \
+                        | sed -e "s#${expdir}/\([^/]*/[^/]*\)/scoring/eer:#|\1#g" \
                         | sed -e 's#^##g' | tr '|' ' ' | tr -s ' ' '|'
                     echo
         fi
