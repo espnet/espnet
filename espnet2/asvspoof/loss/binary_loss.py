@@ -16,7 +16,7 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
         self.sigmoid = torch.nn.Sigmoid()
         self.loss = torch.nn.BCELoss(reduction="mean")
 
-    def forward(self, pred: torch.Tensor, label: torch.Tensor):
+    def forward(self, pred: torch.Tensor, label: torch.Tensor, **kwargs):
         """Forward.
         Args:
             pred  (torch.Tensor): prediction probability [Batch, 2]
@@ -24,3 +24,6 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
         """
         loss = self.loss(self.sigmoid(pred.view(-1)), label.view(-1).float())
         return loss
+    
+    def score(self, pred: torch.Tensor):
+        return pred

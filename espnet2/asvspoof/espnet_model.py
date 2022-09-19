@@ -81,9 +81,18 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
         # 2. Decoder (baiscally a predction layer after encoder_out)
         pred = self.decoder(encoder_out, encoder_out_lens)
 
-        loss = (
-            self.losses["binary_loss"](pred, label) + self.losses["binary_loss"].weight
-        )
+        if "oc_softmax_loss" in self.losses:
+            loss = (
+                self.losses["oc_softmax_loss"](pred, label, encoder_out) * self.losses["oc_softmax_loss"].weight
+            )
+        elif "am_softmax_loss" in self.losses:
+            loss = (
+                self.losses["am_softmax_loss"](pred, label, encoder_out) * self.losses["am_softmax_loss"].weight
+            )
+        else:
+            loss = (
+                self.losses["binary_loss"](pred, label) * self.losses["binary_loss"].weight
+            )
 
         acc = torch.sum(((pred.view(-1) > 0.0) == (label.view(-1) > 0.5))) / batch_size
 

@@ -30,7 +30,7 @@ skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
-nj=4                # The number of parallel jobs.
+nj=32                # The number of parallel jobs.
 dumpdir=dump         # Directory to dump features.
 inference_nj=4      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
@@ -403,10 +403,9 @@ if ! "${skip_eval}"; then
             _dir="${asvspoof_exp}/asvspoof_${dset}/scoring"
             mkdir -p "${_dir}"
 
-            scripts/utils/score.sh # TODO(jiatong)
+            python3 pyscripts/utils/asvspoof_score.py -g "${_data}/text" -p "${_inf_dir}/score" > "${_dir}"/eer
         done
 
-        # Show results in Markdown syntax # TODO(Jiatong)
         scripts/utils/show_asvspoof_result.sh "${asvspoof_exp}" > "${asvspoof_exp}"/RESULTS.md
         cat "${asvspoof_exp}"/RESULTS.md
 
