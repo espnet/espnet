@@ -79,7 +79,7 @@ class SpeechAntiSpoof:
 
         # TODO1 (checkpoint 4): Forward Encoder
 
-        if "oc_softmax_loss" in self.asvspoof_model.loss:
+        if "oc_softmax_loss" in self.asvspoof_model.losses:
             pass # TODO1 (exercise2): use loss score function to estimate score
         else:
             pass # TODO2 (checkpoint 4): Pass the encoder result to decoder
