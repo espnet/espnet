@@ -1,7 +1,7 @@
-# This configuration is for ESPnet2 to train Tacotron 2. Compared to the
+# This configuration is for ESPnet2 to finetune Tacotron 2. Compared to the
 # original paper, this configuration additionally use the guided attention
 # loss to accelerate the learning of the diagonal attention. It requires
-# only a single GPU with 12 GB memory and it takes ~3 days to finish the
+# only a single GPU with 12 GB memory and it takes ~1 days to finish the
 # training on Titan V.
 
 ##########################################################
@@ -46,20 +46,20 @@ tts_conf:                        # keyword arguments for the selected model
 ##########################################################
 optim: adam           # optimizer type
 optim_conf:           # keyword arguments for selected optimizer
-    lr: 1.0e-03       # learning rate
+    lr: 1.0e-04       # learning rate
     eps: 1.0e-06      # epsilon
     weight_decay: 0.0 # weight decay coefficient
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 500    # number of iterations per epoch
-max_epoch: 200              # number of epochs
+num_iters_per_epoch: 200    # number of iters per epoch
+max_epoch: 100              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
-# batch_bins: 1600000       # batch bins (for feats_type=fbank)
-batch_bins: 5120000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
+# batch_bins: 1000000       # batch bins (for feats_type=fbank)
+batch_bins: 3750000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
 batch_type: numel           # how to make batch
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
