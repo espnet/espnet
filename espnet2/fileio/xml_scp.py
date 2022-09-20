@@ -11,6 +11,8 @@ from espnet2.fileio.read_text import read_2column_text
 
 
 class XMLScpReader(collections.abc.Mapping):
+    # TODO(Yuning): It is designed for sub xmls after segmentation.
+
     """Reader class for 'xml.scp'.
 
     Examples:
@@ -85,3 +87,8 @@ class XMLScpReader(collections.abc.Mapping):
 
     def keys(self):
         return self.data.keys()
+
+
+# TODO(Yuning): Add XMLScpWriter
+# The present XMLScpReader extract note info and ignore rest_note. 
+# For XMLWriter, additional information (eg. offset, <br>, instrument, etc) might be required.

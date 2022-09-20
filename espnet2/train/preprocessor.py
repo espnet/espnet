@@ -877,9 +877,6 @@ class SVSPreprocessor(AbsPreprocessor):
         delimiter: str = None,
         rir_scp: str = None,
         rir_apply_prob: float = 1.0,
-        noise_scp: str = None,
-        noise_apply_prob: float = 1.0,
-        noise_db_range: str = "3_10",
         singing_volume_normalize: float = None,
         singing_name: str = "singing",
         text_name: str = "text",
@@ -896,7 +893,6 @@ class SVSPreprocessor(AbsPreprocessor):
         self.fs = fs
         self.singing_volume_normalize = singing_volume_normalize
         self.rir_apply_prob = rir_apply_prob
-        self.noise_apply_prob = noise_apply_prob
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -930,26 +926,7 @@ class SVSPreprocessor(AbsPreprocessor):
         else:
             self.rirs = None
 
-        if train and noise_scp is not None:
-            self.noises = []
-            with open(noise_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.noises.append(sps[0])
-                    else:
-                        self.noises.append(sps[1])
-            sps = noise_db_range.split("_")
-            if len(sps) == 1:
-                self.noise_db_low, self.noise_db_high = float(sps[0])
-            elif len(sps) == 2:
-                self.noise_db_low, self.noise_db_high = float(sps[0]), float(sps[1])
-            else:
-                raise ValueError(
-                    "Format error: '{noise_db_range}' e.g. -3_4 -> [-3db,4db]"
-                )
-        else:
-            self.noises = None
+        self.noises = None
 
     def __call__(
         self,
@@ -1060,50 +1037,7 @@ class SVSPreprocessor(AbsPreprocessor):
                         # Reverse mean power to the original power
                         power2 = (singing[detect_non_silence(singing)] ** 2).mean()
                         singing = np.sqrt(power / max(power2, 1e-10)) * singing
-
-                # 2. Add Noise
-                if (
-                    self.noises is not None
-                    and self.rir_apply_prob >= np.random.random()
-                ):
-                    noise_path = np.random.choice(self.noises)
-                    if noise_path is not None:
-                        noise_db = np.random.uniform(
-                            self.noise_db_low, self.noise_db_high
-                        )
-                        with soundfile.SoundFile(noise_path) as f:
-                            if f.frames == nsamples:
-                                noise = f.read(dtype=np.float64, always_2d=True)
-                            elif f.frames < nsamples:
-                                offset = np.random.randint(0, nsamples - f.frames)
-                                # noise: (Time, Nmic)
-                                noise = f.read(dtype=np.float64, always_2d=True)
-                                # Repeat noise
-                                noise = np.pad(
-                                    noise,
-                                    [(offset, nsamples - f.frames - offset), (0, 0)],
-                                    mode="wrap",
-                                )
-                            else:
-                                offset = np.random.randint(0, f.frames - nsamples)
-                                f.seek(offset)
-                                # noise: (Time, Nmic)
-                                noise = f.read(
-                                    nsamples, dtype=np.float64, always_2d=True
-                                )
-                                if len(noise) != nsamples:
-                                    raise RuntimeError(f"Something wrong: {noise_path}")
-                        # noise: (Nmic, Time)
-                        noise = noise.T
-
-                        noise_power = (noise**2).mean()
-                        scale = (
-                            10 ** (-noise_db / 20)
-                            * np.sqrt(power)
-                            / np.sqrt(max(noise_power, 1e-10))
-                        )
-                        singing = singing + scale * noise
-
+                
                 singing = singing.T
                 ma = np.max(np.abs(singing))
                 if ma > 1.0:
