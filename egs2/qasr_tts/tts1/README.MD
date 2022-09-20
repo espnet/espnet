@@ -15,3 +15,5 @@ autoregressive (AR) model finetuned on top of a pre-trained model.
 - Step 5: Use the finetuned model as a teacher model to train the Non-AR model FastSpeech2 
 
 - Step 6: Train Parallel Wav GAN model to produce better wav samples 
+
+Go to this link to download the dataset: https://arabicspeech.org/qasr_tts
