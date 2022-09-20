@@ -17,10 +17,6 @@ log "$0 $*"
 . utils/parse_options.sh
 
 
-#if [ $# -ne 0 ]; then
-#    log "Error: No positional arguments are required."
-#    exit 2
-#fi
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
