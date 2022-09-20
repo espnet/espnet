@@ -477,7 +477,7 @@ else
 fi
 
 # ========================== Data preparation is done here. ==========================
-# TODO(Yuning): belows need to be modified
+
 if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_dir="${data_feats}/${train_set}"
@@ -1035,18 +1035,36 @@ if ! "${skip_eval}"; then
 
             mkdir -p "${_dir}/MCD_res"
             ${python} pyscripts/utils/evaluate_mcd.py \
-                --gen_wavdir_or_wavscp ${_gen_wavdir} \
-                --gt_wavdir_or_wavscp ${_gt_wavscp} \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
                 --outdir "${_dir}/MCD_res"
             
-            # Objective Evaluation - log-F0 RMSE & Semitone ACC & VUV Error Rate
+            # Objective Evaluation - log-F0 RMSE
             log "Begin Scoring for F0 related metrics on ${dset}, results are written under ${_dir}/F0_res"
 
             mkdir -p "${_dir}/F0_res"
             ${python} pyscripts/utils/evaluate_f0.py \
-                --gen_wavdir_or_wavscp ${_gen_wavdir} \
-                --gt_wavdir_or_wavscp ${_gt_wavscp} \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
                 --outdir "${_dir}/F0_res"
+
+            # Objective Evaluation - semitone ACC
+            log "Begin Scoring for SEMITONE related metrics on ${dset}, results are written under ${_dir}/SEMITONE_res"
+
+            mkdir -p "${_dir}/SEMITONE_res"
+            ${python} pyscripts/utils/evaluate_semitone.py \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
+                --outdir "${_dir}/SEMITONE_res"
+
+             # Objective Evaluation - VUV error
+            log "Begin Scoring for VUV related metrics on ${dset}, results are written under ${_dir}/VUV_res"
+
+            mkdir -p "${_dir}/VUV_res"
+            ${python} pyscripts/utils/evaluate_vuv.py \
+                ${_gen_wavdir} \
+                ${_gt_wavscp} \
+                --outdir "${_dir}/VUV_res"
 
         done
     fi
