@@ -123,7 +123,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             # score : 128 midi pitch
             # tempo : bpm
             # duration :
-            #   input-> phone-id seqence | output -> frame level(取众数 from window) or syllable level
+            #   input-> phone-id seqence | output -> frame level(take mode from window) or syllable level
             ds = None
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
