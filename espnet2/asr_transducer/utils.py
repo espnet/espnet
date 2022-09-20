@@ -129,7 +129,7 @@ def get_transducer_task_io(
     encoder_out_lens: torch.Tensor,
     ignore_id: int = -1,
     blank_id: int = 0,
-):
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Get Transducer loss I/O.
 
     Args:
