@@ -63,8 +63,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         <(cut -d "|" -f 1 < ${db_root}/qasr_tts-1.0/metadata.csv) \
         <(cut -d "|" -f 2 < ${db_root}/qasr_tts-1.0/metadata.csv) \
         > ${text}
-
-    #bash -x utils/validate_data_dir.sh --no-feats data/train
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
