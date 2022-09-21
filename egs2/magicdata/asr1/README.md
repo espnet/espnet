@@ -8,6 +8,7 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `9d0f3b3e1be6650d38cc5008518f445308fe06d9`
     - Commit date: `Mon Sep 19 20:27:41 2022 -0400`
+- Pretrained model: https://huggingface.co/espnet/jiyangtang_magicdata_asr_conformer_lm_transformer
 
 ## [Conformer](conf/tuning/train_asr_conformer.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml)
 
