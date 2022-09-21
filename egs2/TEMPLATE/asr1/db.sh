@@ -17,6 +17,7 @@ DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
 DNS2=
 DNS3=
+DNS4="${PWD}/data_dns4_raw"
 DSING=downloads
 WSJ0=
 WSJ1=
