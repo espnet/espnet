@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 1
+max_epoch: 100
 batch_type: folded
 batch_size:  32
 num_workers: 4
@@ -29,13 +29,13 @@ scheduler_conf:
 encoder: conv
 encoder_conf:
     channel: 512
-    kernel_size: 320
-    stride: 160
+    kernel_size: 960   # 20ms for 48k sample rate
+    stride: 480        # 10ms for 48k sample rate
 decoder: conv
 decoder_conf:
     channel: 512
-    kernel_size: 320
-    stride: 160
+    kernel_size: 960   # 20ms for 48k sample rate
+    stride: 480        # 10ms for 48k sample rate
 separator: tcn
 separator_conf:
     num_spk: 1

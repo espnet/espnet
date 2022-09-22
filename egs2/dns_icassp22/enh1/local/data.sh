@@ -10,13 +10,14 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--total_hours <total_hours>] [--nj <nj>]
+Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--total_hours <total_hours>] [--nj <nj>] [--fs] <fs>
   optional argument:
     [--stage]: 0 (default), or 1, or 2
     [--stop_stage]: 0, or 1, or 2 (default)
     [--total_hours]: amount (in hours) of synthetic noisy speech to generate (default=150, DNS4-en read speech has ~600 hours, 
                      set this somewhat below that to avoid duplicate data)
     [--nj] number of jobs created to synthesize noisy data (default=1)
+    [--fs] sample rate of synthesized noisy data (default=48000)
     NOTE:
         stage 0: Download dataset with the script from DNS-Challenge official repo
         stage 1: Create the Data Mixture from the DNS scripts. You can skip this step when you already have the audio mixture for training.
@@ -32,6 +33,7 @@ stage=0
 stop_stage=2
 total_hours=150
 nj=1
+fs=48k
 
 dns_wav=${DNS4}/dns_wav
 
@@ -54,7 +56,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data simulation: mix clean speech with noise clips"
-    local/dns_create_mixture.sh ${DNS4} ${dns_wav} ${total_hours} ${nj} || exit 1;
+    local/dns_create_mixture.sh ${DNS4} ${dns_wav} ${total_hours} ${nj} ${fs} || exit 1;
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-sample_rate=16k
+sample_rate=48k
 
 
 train_set=tr_synthetic
@@ -20,7 +20,7 @@ test_sets="cv_synthetic tt_synthetic"
     --fs ${sample_rate} \
     --ngpu 1 \
     --ref_num 1 \
-    --local_data_opts "--total_hours 150 --nj 8" \
+    --local_data_opts "--total_hours 150 --nj 8 --fs ${sample_rate}" \
     --enh_config ./conf/tuning/train.yaml \
     --use_dereverb_ref false \
     --use_noise_ref false \
