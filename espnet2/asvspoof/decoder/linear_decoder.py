@@ -24,5 +24,5 @@ class LinearDecoder(AbsDecoder):
         
         # TODO3 (checkpoint3): apply the projection layer
 
-        # TODO4 (checkpoint3): change the return value accordingly
+        # TODO4 (checkpoint3): change the return value with sigmoid function accordingly
         return None

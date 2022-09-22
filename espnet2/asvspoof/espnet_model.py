@@ -95,7 +95,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
             loss = (
                 self.losses["binary_loss"](pred, label) * self.losses["binary_loss"].weight
             )
-        acc = torch.sum(((pred.view(-1) > 0.0) == (label.view(-1) > 0.5))) / batch_size
+        acc = torch.sum(((pred.view(-1) > 0.5) == (label.view(-1) > 0.5))) / batch_size
 
         stats = dict(
             loss=loss.detach(),

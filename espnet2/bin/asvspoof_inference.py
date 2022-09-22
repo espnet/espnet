@@ -54,7 +54,7 @@ class SpeechAntiSpoof:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> Tuple[float]:
+    ) -> float:
         """Inference
         Args:
             data: Input speech data
@@ -77,7 +77,7 @@ class SpeechAntiSpoof:
         # To device
         batch = to_device(batch, device=self.device)
 
-        # TODO1 (checkpoint 4): Forward Encoder
+        # TODO1 (checkpoint 4): Forward feature extraction and encoder etc.
 
         if "oc_softmax_loss" in self.asvspoof_model.losses:
             pass # TODO1 (exercise2): use loss score function to estimate score
