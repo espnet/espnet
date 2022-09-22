@@ -4,12 +4,13 @@
 . path.sh
 . cmd.sh
 
-if [ $# -ne 4 ]; then
-  echo "Usage: $0 <dns> <dns_wav> <total_hours> <nj>"
+if [ $# -ne 5 ]; then
+  echo "Usage: $0 <dns> <dns_wav> <total_hours> <nj> <sample_rate>"
   echo " where <dns> is dns downloaded data directory,"
   echo " <dns_wav> is wav generation directory."
   echo " <total_hours> is the duration (in hours) of synthetic noisy data to generate."
   echo " <nj> is the number of jobs created to synthesize noisy data."
+  echo " <sample_rate> sample rate of synthesize noisy data."
   exit 1;
 fi
 
@@ -17,6 +18,8 @@ dns=$1
 dns_wav=$2
 total_hours=$3
 nj=$4
+fs_string=$5
+sample_rate=$(numfmt --from=si ${fs_string^^})
 
 rm -r data/ 2>/dev/null || true
 mkdir -p data/
@@ -66,6 +69,7 @@ sed -e "/^noisy_destination/s#.*#noisy_destination:${noisy_wav}#g"  \
     -e "/^clean_emotion/s#.*#clean_emotion:${clean_emotion}#g"  \
     -e "/^clean_mandarin/s#.*#clean_mandarin:${clean_mandarin}#g"  \
     -e "/^total_hours/s#.*#total_hours:${total_hours}#g"  \
+    -e "/^sampling_rate:/s#.*#sampling_rate:${sample_rate}#g" \
     -e "/^log_dir/s#.*#log_dir:${log_dir}#g" ${configure} \
   > ${train_cfg}
 

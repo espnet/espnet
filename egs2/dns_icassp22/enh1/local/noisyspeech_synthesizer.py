@@ -173,26 +173,6 @@ def main_gen_single_process(params, proc_idx, st_idx, ed_idx, total_procs):
         clean, clean_sf, clean_cf, clean_laf, clean_index = \
             gen_audio(True, params, clean_index)
 
-        # add reverb with selected RIR (Shih-Lun: deemed deprecated by Issue #80: https://github.com/microsoft/DNS-Challenge/issues/80)
-        # rir_index = random.randint(0,len(params['myrir'])-1)
-        
-        # my_rir = os.path.normpath(os.path.join(params['data_root_dir'], 'impulse_responses', params['myrir'][rir_index]))
-        # (fs_rir,samples_rir) = wavfile.read(my_rir)
-
-        # my_channel = int(params['mychannel'][rir_index])
-        
-        # if samples_rir.ndim==1:
-        #     samples_rir_ch = np.array(samples_rir)
-            
-        # elif my_channel > 1:
-        #     samples_rir_ch = samples_rir[:, my_channel -1]
-        # else:
-        #     samples_rir_ch = samples_rir[:, my_channel -1]
-        #     #print(samples_rir.shape)
-        #     #print(my_channel)
-
-        # clean = add_pyreverb(clean, samples_rir_ch)
-
         # generate noise
         noise, noise_sf, noise_cf, noise_laf, noise_index = \
             gen_audio(False, params, noise_index, len(clean))
@@ -475,84 +455,6 @@ def main_body():
         shuffle(noisedirs)
         params['noisedirs'] = noisedirs
 
-    # rir (Shih-Lun: deemed deprecated by Issue #80: https://github.com/microsoft/DNS-Challenge/issues/80)
-    # temp = pd.read_csv(params['rir_table_csv'], skiprows=[1], sep=',', header=None,  names=['wavfile','channel','T60_WB','C50_WB','isRealRIR'])
-    # temp.keys()
-    #temp.wavfile
-
-    # rir_wav = temp['wavfile'][1:] # 115413
-    # rir_channel = temp['channel'][1:] 
-    # rir_t60 = temp['T60_WB'][1:] 
-    # rir_isreal= temp['isRealRIR'][1:]  
-
-    # rir_wav2 = [w.replace('\\', '/') for w in rir_wav]
-    # rir_channel2 = [w for w in rir_channel]
-    # rir_t60_2 = [w for w in rir_t60]
-    # rir_isreal2= [w for w in rir_isreal]
-    
-    # myrir =[]
-    # mychannel=[]
-    # myt60=[]
-
-    # lower_t60=  params['lower_t60']
-    # upper_t60=  params['upper_t60']
-
-    # if params['rir_choice']==1: # real 3076 IRs
-    #     real_indices= [i for i, x in enumerate(rir_isreal2) if x == "1"]
-
-    #     chosen_i = []
-    #     for i in real_indices:
-    #         if (float(rir_t60_2[i]) >= lower_t60) and (float(rir_t60_2[i]) <= upper_t60):
-    #             chosen_i.append(i)
-
-    #     myrir= [rir_wav2[i] for i in chosen_i]
-    #     mychannel = [rir_channel2[i] for i in chosen_i]
-    #     myt60 = [rir_t60_2[i] for i in chosen_i]
-
-
-    # elif params['rir_choice']==2: # synthetic 112337 IRs
-    #     synthetic_indices= [i for i, x in enumerate(rir_isreal2) if x == "0"]
-
-    #     chosen_i = []
-    #     for i in synthetic_indices:
-    #         if (float(rir_t60_2[i]) >= lower_t60) and (float(rir_t60_2[i]) <= upper_t60):
-    #             chosen_i.append(i)
-
-    #     myrir= [rir_wav2[i] for i in chosen_i]
-    #     mychannel = [rir_channel2[i] for i in chosen_i]
-    #     myt60 = [rir_t60_2[i] for i in chosen_i]
-
-    # elif params['rir_choice']==3: # both real and synthetic
-    #     all_indices= [i for i, x in enumerate(rir_isreal2)]
-
-    #     chosen_i = []
-    #     for i in all_indices:
-    #         if (float(rir_t60_2[i]) >= lower_t60) and (float(rir_t60_2[i]) <= upper_t60):
-    #             chosen_i.append(i)
-
-    #     myrir= [rir_wav2[i] for i in chosen_i]
-    #     mychannel = [rir_channel2[i] for i in chosen_i]
-    #     myt60 = [rir_t60_2[i] for i in chosen_i]
-
-    # else:  # default both real and synthetic
-    #     all_indices= [i for i, x in enumerate(rir_isreal2)]
-
-    #     chosen_i = []
-    #     for i in all_indices:
-    #         if (float(rir_t60_2[i]) >= lower_t60) and (float(rir_t60_2[i]) <= upper_t60):
-    #             chosen_i.append(i)
-
-    #     myrir= [rir_wav2[i] for i in chosen_i]
-    #     mychannel = [rir_channel2[i] for i in chosen_i]
-    #     myt60 = [rir_t60_2[i] for i in chosen_i]
-
-    # params['myrir'] = myrir
-    # params['mychannel'] = mychannel
-    # params['myt60'] = myt60
-
-    params['myrir'] = None
-    params['mychannel'] = None
-    params['myt60'] = None
 
     # Call main_gen() to generate audio
     clean_source_files, clean_clipped_files, clean_low_activity_files, \
