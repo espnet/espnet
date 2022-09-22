@@ -69,7 +69,7 @@ if "${torch_17_plus}"; then
 
 elif "${torch_11_plus}"; then
 
-    warpctc_version=0.2.2
+    warpctc_version=0.2.1
     release_page_url=https://github.com/espnet/warp-ctc/releases/tag/v${warpctc_version}
     if [ -z "${cuda_version}" ]; then
         python3 -m pip install warpctc-pytorch==${warpctc_version}+torch"${torch_version}".cpu -f ${release_page_url}
