@@ -9,17 +9,12 @@ from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 
 
-@pytest.mark.parametrize("ctc_type", ["warpctc", "builtin", "gtnctc", "cudnnctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "cudnnctc"])
 @pytest.mark.parametrize(
     "in_length,out_length", [([11, 17, 15], [4, 2, 3]), ([4], [1])]
 )
 def test_ctc_loss(in_length, out_length, ctc_type):
-    if ctc_type == "warpctc":
-        pytest.importorskip("warpctc_pytorch")
-        import warpctc_pytorch
-
-        torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
-    elif ctc_type == "builtin" or ctc_type == "cudnnctc":
+    if ctc_type == "builtin" or ctc_type == "cudnnctc":
         _ctcloss_sum = torch.nn.CTCLoss(reduction="sum")
 
         def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
@@ -112,8 +107,7 @@ def test_attn_loss():
     print(ch_loss)
     print(th_loss)
 
-    # NOTE: warpctc_pytorch.CTCLoss does not normalize itself by batch-size
-    # while chainer's default setting does
+    # NOTE: chainer's default setting are normalized by batch-size
     loss_data = float(th_loss)
     numpy.testing.assert_allclose(loss_data, ch_loss.data, 0.05)
 
