@@ -64,6 +64,7 @@ def get_activation(
             {"beta": swish_beta, "use_builtin": torch_version >= V("1.8")},
         ),
         "tanh": (torch.nn.Tanh, {}),
+        "identity": (torch.nn.Identity, {}),
     }
 
     act_func, act_args = activations[activation_type]

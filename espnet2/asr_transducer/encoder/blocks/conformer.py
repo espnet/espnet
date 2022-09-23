@@ -1,6 +1,6 @@
 """Conformer block for Transducer encoder."""
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -32,7 +32,6 @@ class Conformer(torch.nn.Module):
         dropout_rate: float = 0.0,
     ) -> None:
         """Construct a Conformer object."""
-
         super().__init__()
 
         self.self_att = self_att
@@ -84,7 +83,7 @@ class Conformer(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         chunk_mask: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Encode input sequences.
 
         Args:
@@ -143,7 +142,7 @@ class Conformer(torch.nn.Module):
         mask: torch.Tensor,
         left_context: int = 0,
         right_context: int = 0,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode chunk of input sequence.
 
         Args:
