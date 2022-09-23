@@ -1,10 +1,7 @@
-import logging
-
 import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-from chainer import cuda
 
 
 class CTC(chainer.Chain):
