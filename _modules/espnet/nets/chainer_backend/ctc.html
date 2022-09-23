@@ -160,7 +160,6 @@
 <span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span>
 
 
 <div class="viewcode-block" id="CTC"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.ctc.CTC">[docs]</a><span class="k">class</span> <span class="nc">CTC</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
@@ -240,83 +239,6 @@
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="WarpCTC"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.ctc.WarpCTC">[docs]</a><span class="k">class</span> <span class="nc">WarpCTC</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Chainer implementation of warp-ctc layer.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        odim (int): The output dimension.</span>
-<span class="sd">        eproj (int | None): Dimension of input vector from encoder.</span>
-<span class="sd">        dropout_rate (float): Dropout rate.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">WarpCTC</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
-
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">odim</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Core function of the Warp-CTC layer.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            hs (iterable of chainer.Variable | N-dimension array):</span>
-<span class="sd">                Input variable from encoder.</span>
-<span class="sd">            ys (iterable of chainer.Variable | N-dimension array):</span>
-<span class="sd">                Input variable of decoder.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">           chainer.Variable: A variable holding a scalar value of the CTC loss.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">ilens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hs</span><span class="p">]</span>
-        <span class="n">olens</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">]</span>
-
-        <span class="c1"># zero padding for hs</span>
-        <span class="n">y_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span>
-            <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">hs</span><span class="p">),</span> <span class="n">ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">),</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span>
-        <span class="p">)</span>
-        <span class="n">y_hat</span> <span class="o">=</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># batch x frames x hdim</span>
-
-        <span class="c1"># get length info</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; input lengths:  &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ilens</span><span class="p">))</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; output lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">olens</span><span class="p">))</span>
-
-        <span class="c1"># get ctc loss</span>
-        <span class="kn">from</span> <span class="nn">chainer_ctc.warpctc</span> <span class="kn">import</span> <span class="n">ctc</span> <span class="k">as</span> <span class="n">warp_ctc</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">warp_ctc</span><span class="p">(</span><span class="n">y_hat</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="p">[</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_cpu</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ctc loss:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span>
-
-<div class="viewcode-block" id="WarpCTC.log_softmax"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.ctc.WarpCTC.log_softmax">[docs]</a>    <span class="k">def</span> <span class="nf">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Log_softmax of frame activations.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            hs (list of chainer.Variable | N-dimension array):</span>
-<span class="sd">                Input variable from encoder.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            chainer.Variable: A n-dimension float array.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">y_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">hs</span><span class="p">),</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="WarpCTC.argmax"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.ctc.WarpCTC.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;argmax of frame activations</span>
-
-<span class="sd">        :param chainer variable hs_pad: 3d tensor (B, Tmax, eprojs)</span>
-<span class="sd">        :return: argmax applied 2d tensor (B, Tmax)</span>
-<span class="sd">        :rtype: chainer.Variable</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">),</span> <span class="n">n_batch_axes</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div></div>
-
-
 <div class="viewcode-block" id="ctc_for"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.ctc.ctc_for">[docs]</a><span class="k">def</span> <span class="nf">ctc_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">odim</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return the CTC layer corresponding to the args.</span>
 
@@ -332,11 +254,8 @@
     <span class="k">if</span> <span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using chainer CTC implementation&quot;</span><span class="p">)</span>
         <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using warpctc CTC implementation&quot;</span><span class="p">)</span>
-        <span class="n">ctc</span> <span class="o">=</span> <span class="n">WarpCTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;warpctc&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ctc_type</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;ctc_type must be &quot;builtin&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ctc_type</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">ctc</span></div>
 </pre></div>
 

@@ -3259,56 +3259,6 @@ float (optional): Accuracy.</p>
 
 </dd></dl>
 
-<dl class="class">
-<dt id="espnet.nets.chainer_backend.ctc.WarpCTC">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.ctc.</code><code class="sig-name descname">WarpCTC</code><span class="sig-paren">(</span><em class="sig-param">odim</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">dropout_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/ctc.html#WarpCTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.ctc.WarpCTC" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
-<p>Chainer implementation of warp-ctc layer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>odim</strong> (<em>int</em>) – The output dimension.</p></li>
-<li><p><strong>eproj</strong> (<em>int | None</em>) – Dimension of input vector from encoder.</p></li>
-<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="method">
-<dt id="espnet.nets.chainer_backend.ctc.WarpCTC.argmax">
-<code class="sig-name descname">argmax</code><span class="sig-paren">(</span><em class="sig-param">hs_pad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/ctc.html#WarpCTC.argmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.ctc.WarpCTC.argmax" title="Permalink to this definition">¶</a></dt>
-<dd><p>argmax of frame activations</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>variable hs_pad</strong> (<em>chainer</em>) – 3d tensor (B, Tmax, eprojs)</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>argmax applied 2d tensor (B, Tmax)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>chainer.Variable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.nets.chainer_backend.ctc.WarpCTC.log_softmax">
-<code class="sig-name descname">log_softmax</code><span class="sig-paren">(</span><em class="sig-param">hs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/ctc.html#WarpCTC.log_softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.ctc.WarpCTC.log_softmax" title="Permalink to this definition">¶</a></dt>
-<dd><p>Log_softmax of frame activations.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>hs</strong> (<em>list of chainer.Variable | N-dimension array</em>) – Input variable from encoder.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A n-dimension float array.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>chainer.Variable</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
 <dl class="function">
 <dt id="espnet.nets.chainer_backend.ctc.ctc_for">
 <code class="sig-prename descclassname">espnet.nets.chainer_backend.ctc.</code><code class="sig-name descname">ctc_for</code><span class="sig-paren">(</span><em class="sig-param">args</em>, <em class="sig-param">odim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/ctc.html#ctc_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.ctc.ctc_for" title="Permalink to this definition">¶</a></dt>
@@ -3953,77 +3903,6 @@ chainer.Variable: Batch of lengths of each encoder outputs.</p>
 <dl class="method">
 <dt id="espnet.nets.chainer_backend.transformer.ctc.CTC.log_softmax">
 <code class="sig-name descname">log_softmax</code><span class="sig-paren">(</span><em class="sig-param">hs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/transformer/ctc.html#CTC.log_softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.transformer.ctc.CTC.log_softmax" title="Permalink to this definition">¶</a></dt>
-<dd><p>Log_softmax of frame activations.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>hs</strong> (<em>list of chainer.Variable | N-dimension array</em>) – Input variable from encoder.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A n-dimension float array.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>chainer.Variable</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet.nets.chainer_backend.transformer.ctc.WarpCTC">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.transformer.ctc.</code><code class="sig-name descname">WarpCTC</code><span class="sig-paren">(</span><em class="sig-param">odim</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">dropout_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/transformer/ctc.html#WarpCTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.transformer.ctc.WarpCTC" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
-<p>Chainer implementation of warp-ctc layer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>odim</strong> (<em>int</em>) – The output dimension.</p></li>
-<li><p><strong>eproj</strong> (<em>int | None</em>) – Dimension of input vector from encoder.</p></li>
-<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Initialize WarpCTC.</p>
-<dl class="method">
-<dt id="espnet.nets.chainer_backend.transformer.ctc.WarpCTC.argmax">
-<code class="sig-name descname">argmax</code><span class="sig-paren">(</span><em class="sig-param">hs_pad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/transformer/ctc.html#WarpCTC.argmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.transformer.ctc.WarpCTC.argmax" title="Permalink to this definition">¶</a></dt>
-<dd><p>Argmax of frame activations.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>variable hs_pad</strong> (<em>chainer</em>) – 3d tensor (B, Tmax, eprojs)</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>argmax applied 2d tensor (B, Tmax)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>chainer.Variable.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.nets.chainer_backend.transformer.ctc.WarpCTC.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/transformer/ctc.html#WarpCTC.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.transformer.ctc.WarpCTC.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Core function of the Warp-CTC layer.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>hs</strong> (<em>iterable of chainer.Variable | N-dimension array</em>) – Input variable from encoder.</p></li>
-<li><p><strong>ys</strong> (<em>iterable of N-dimension array</em>) – Input variable of decoder.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A variable holding a scalar value of the CTC loss.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>chainer.Variable</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.nets.chainer_backend.transformer.ctc.WarpCTC.log_softmax">
-<code class="sig-name descname">log_softmax</code><span class="sig-paren">(</span><em class="sig-param">hs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/transformer/ctc.html#WarpCTC.log_softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.transformer.ctc.WarpCTC.log_softmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Log_softmax of frame activations.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -8333,7 +8212,7 @@ dtype=torch.bool in PyTorch 1.2+ (including 1.2)</p>
 <span id="id63"></span><h2>espnet.nets.pytorch_backend.ctc<a class="headerlink" href="#espnet-nets-pytorch-backend-ctc" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.pytorch_backend.ctc"></span><dl class="class">
 <dt id="espnet.nets.pytorch_backend.ctc.CTC">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.ctc.</code><code class="sig-name descname">CTC</code><span class="sig-paren">(</span><em class="sig-param">odim</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">ctc_type='warpctc'</em>, <em class="sig-param">reduce=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/ctc.html#CTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.ctc.CTC" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.ctc.</code><code class="sig-name descname">CTC</code><span class="sig-paren">(</span><em class="sig-param">odim</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">ctc_type='builtin'</em>, <em class="sig-param">reduce=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/ctc.html#CTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.ctc.CTC" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>CTC module</p>
 <dl class="field-list simple">
@@ -8342,7 +8221,7 @@ dtype=torch.bool in PyTorch 1.2+ (including 1.2)</p>
 <li><p><strong>odim</strong> (<em>int</em>) – dimension of outputs</p></li>
 <li><p><strong>eprojs</strong> (<em>int</em>) – number of encoder projection units</p></li>
 <li><p><strong>dropout_rate</strong> (<em>float</em>) – dropout rate (0.0 ~ 1.0)</p></li>
-<li><p><strong>ctc_type</strong> (<em>str</em>) – builtin or warpctc</p></li>
+<li><p><strong>ctc_type</strong> (<em>str</em>) – builtin</p></li>
 <li><p><strong>reduce</strong> (<em>bool</em>) – reduce the CTC loss into a scalar</p></li>
 </ul>
 </dd>

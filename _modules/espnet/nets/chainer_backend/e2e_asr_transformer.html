@@ -339,14 +339,9 @@
                 <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span><span class="p">:</span>
                     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using chainer CTC implementation&quot;</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">CTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">:</span>
-                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using warpctc CTC implementation&quot;</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">WarpCTC</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;warpctc&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                            <span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span>
-                        <span class="p">)</span>
+                        <span class="s1">&#39;ctc_type must be &quot;builtin&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span><span class="p">)</span>
                     <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>

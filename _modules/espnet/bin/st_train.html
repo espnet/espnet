@@ -285,9 +285,9 @@
     <span class="c1"># loss related</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--ctc_type&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;warpctc&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;builtin&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;builtin&quot;</span><span class="p">,</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">,</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">,</span> <span class="s2">&quot;cudnnctc&quot;</span><span class="p">],</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;builtin&quot;</span><span class="p">,</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">,</span> <span class="s2">&quot;cudnnctc&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type of CTC implementation to calculate loss.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>

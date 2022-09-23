@@ -777,7 +777,7 @@ torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, …</p>
                     <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">interval</span><span class="o">-</span><span class="n">iters</span> <span class="n">SAVE_INTERVAL_ITERS</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">train</span><span class="o">-</span><span class="n">json</span> <span class="n">TRAIN_JSON</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">valid</span><span class="o">-</span><span class="n">json</span> <span class="n">VALID_JSON</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="n">module</span> <span class="n">MODEL_MODULE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">num</span><span class="o">-</span><span class="n">encs</span> <span class="n">NUM_ENCS</span><span class="p">]</span>
-                    <span class="p">[</span><span class="o">--</span><span class="n">ctc_type</span> <span class="p">{</span><span class="n">builtin</span><span class="p">,</span><span class="n">warpctc</span><span class="p">,</span><span class="n">gtnctc</span><span class="p">,</span><span class="n">cudnnctc</span><span class="p">}]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">ctc_type</span> <span class="p">{</span><span class="n">builtin</span><span class="p">,</span><span class="n">gtnctc</span><span class="p">,</span><span class="n">cudnnctc</span><span class="p">}]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">mtlalpha</span> <span class="n">MTLALPHA</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lsm</span><span class="o">-</span><span class="n">weight</span> <span class="n">LSM_WEIGHT</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">report</span><span class="o">-</span><span class="n">cer</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">report</span><span class="o">-</span><span class="n">wer</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">nbest</span> <span class="n">NBEST</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">beam</span><span class="o">-</span><span class="n">size</span> <span class="n">BEAM_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">penalty</span> <span class="n">PENALTY</span><span class="p">]</span>
@@ -909,9 +909,9 @@ torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, …</p>
 <p>Default: 1</p>
 </dd>
 <dt><kbd>--ctc_type</kbd></dt>
-<dd><p>Possible choices: builtin, warpctc, gtnctc, cudnnctc</p>
+<dd><p>Possible choices: builtin, gtnctc, cudnnctc</p>
 <p>Type of CTC implementation to calculate loss.</p>
-<p>Default: “warpctc”</p>
+<p>Default: “builtin”</p>
 </dd>
 <dt><kbd>--mtlalpha</kbd></dt>
 <dd><p>Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss</p>
@@ -1763,7 +1763,7 @@ to automatically find maximum hypothesis lengths</p>
                    <span class="p">[</span><span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="n">interval</span><span class="o">-</span><span class="n">iters</span> <span class="n">SAVE_INTERVAL_ITERS</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">train</span><span class="o">-</span><span class="n">json</span> <span class="n">TRAIN_JSON</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">valid</span><span class="o">-</span><span class="n">json</span> <span class="n">VALID_JSON</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">model</span><span class="o">-</span><span class="n">module</span> <span class="n">MODEL_MODULE</span><span class="p">]</span>
-                   <span class="p">[</span><span class="o">--</span><span class="n">ctc_type</span> <span class="p">{</span><span class="n">builtin</span><span class="p">,</span><span class="n">warpctc</span><span class="p">,</span><span class="n">gtnctc</span><span class="p">,</span><span class="n">cudnnctc</span><span class="p">}]</span>
+                   <span class="p">[</span><span class="o">--</span><span class="n">ctc_type</span> <span class="p">{</span><span class="n">builtin</span><span class="p">,</span><span class="n">gtnctc</span><span class="p">,</span><span class="n">cudnnctc</span><span class="p">}]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">mtlalpha</span> <span class="n">MTLALPHA</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">asr</span><span class="o">-</span><span class="n">weight</span> <span class="n">ASR_WEIGHT</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">mt</span><span class="o">-</span><span class="n">weight</span> <span class="n">MT_WEIGHT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lsm</span><span class="o">-</span><span class="n">weight</span> <span class="n">LSM_WEIGHT</span><span class="p">]</span>
                    <span class="p">[</span><span class="o">--</span><span class="n">report</span><span class="o">-</span><span class="n">cer</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">report</span><span class="o">-</span><span class="n">wer</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">report</span><span class="o">-</span><span class="n">bleu</span><span class="p">]</span>
@@ -1874,9 +1874,9 @@ to automatically find maximum hypothesis lengths</p>
 <dd><p>model defined module (default: espnet.nets.xxx_backend.e2e_st:E2E)</p>
 </dd>
 <dt><kbd>--ctc_type</kbd></dt>
-<dd><p>Possible choices: builtin, warpctc, gtnctc, cudnnctc</p>
+<dd><p>Possible choices: builtin, gtnctc, cudnnctc</p>
 <p>Type of CTC implementation to calculate loss.</p>
-<p>Default: “warpctc”</p>
+<p>Default: “builtin”</p>
 </dd>
 <dt><kbd>--mtlalpha</kbd></dt>
 <dd><p>Multitask learning coefficient, alpha:                                 alpha*ctc_loss + (1-alpha)*att_loss</p>

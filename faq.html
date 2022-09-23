@@ -49,7 +49,7 @@
 <li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-build-espnet-on-a-cloud-machine-such-as-gcp-aws-etc">How to build espnet on a cloud machine such as GCP, AWS, etc.?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#modulenotfounderror-no-module-named-espnet-warpctc-pytorch-or-etc">ModuleNotFoundError: No module named ‘espnet’, ‘warpctc_pytorch’, or etc.</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#modulenotfounderror-no-module-named-espnet-or-etc">ModuleNotFoundError: No module named ‘espnet’, or etc.</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#to-detect-the-installation-problem-with-a-normal-installation">To detect the installation problem with a normal installation</a></li>
 </ul>
 </li>
@@ -194,15 +194,15 @@
 <p>Our documentation, <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a>, assumes that some basic tools are already installed in your machine, gcc, make, etc.,
 so you need to also install them if you don’t have. They are undocumented, but the configuration of our CI may help you because it also build the environment from scratch:  https://github.com/espnet/espnet/blob/master/.circleci/config.yml</p>
 </section>
-<section id="modulenotfounderror-no-module-named-espnet-warpctc-pytorch-or-etc">
-<h2>ModuleNotFoundError: No module named ‘espnet’, ‘warpctc_pytorch’, or etc.<a class="headerlink" href="#modulenotfounderror-no-module-named-espnet-warpctc-pytorch-or-etc" title="Permalink to this headline">¶</a></h2>
+<section id="modulenotfounderror-no-module-named-espnet-or-etc">
+<h2>ModuleNotFoundError: No module named ‘espnet’, or etc.<a class="headerlink" href="#modulenotfounderror-no-module-named-espnet-or-etc" title="Permalink to this headline">¶</a></h2>
 <p>Firstly, you definitely missed some installation processes. Please read <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> again before posting an issue. If you still have a problem, then please try to manual installation.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>. tools/activate_python.sh
 pip install &lt;some-tools&gt;
 conda install &lt;some-tools&gt;
 </pre></div>
 </div>
-<p>If you need to install some packages not distributed in pypi, e.g. <code class="docutils literal notranslate"><span class="pre">warp_transducer</span></code>, try to use the installer scripts in espnet.</p>
+<p>If you need to install some packages not distributed in pypi, e.g. <code class="docutils literal notranslate"><span class="pre">k2</span></code>, try to use the installer scripts in espnet.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">tools</span>
 <span class="o">./</span><span class="n">installers</span><span class="o">/</span><span class="n">install_warp</span><span class="o">-</span><span class="n">transducer</span><span class="o">.</span><span class="n">sh</span>
 </pre></div>
@@ -219,7 +219,6 @@ $ which python  <span class="c1"># Normally, it should point to &lt;espnet-root&
 <li><p>Check the installation of espnet</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ python
 &gt;&gt;&gt; import espnet
-&gt;&gt;&gt; import warpctc_pytorch   <span class="c1"># If you&#39;ll use warpctc</span>
 </pre></div>
 </div>
 </li>

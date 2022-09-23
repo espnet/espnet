@@ -171,11 +171,11 @@
 <span class="sd">    :param int odim: dimension of outputs</span>
 <span class="sd">    :param int eprojs: number of encoder projection units</span>
 <span class="sd">    :param float dropout_rate: dropout rate (0.0 ~ 1.0)</span>
-<span class="sd">    :param str ctc_type: builtin or warpctc</span>
+<span class="sd">    :param str ctc_type: builtin</span>
 <span class="sd">    :param bool reduce: reduce the CTC loss into a scalar</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">ctc_type</span><span class="o">=</span><span class="s2">&quot;warpctc&quot;</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">ctc_type</span><span class="o">=</span><span class="s2">&quot;builtin&quot;</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
@@ -197,17 +197,13 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;cudnnctc&quot;</span><span class="p">:</span>
             <span class="n">reduction_type</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span> <span class="k">if</span> <span class="n">reduce</span> <span class="k">else</span> <span class="s2">&quot;none&quot;</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction_type</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">warpctc_pytorch</span> <span class="k">as</span> <span class="nn">warp_ctc</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">warp_ctc</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span><span class="n">size_average</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="n">reduce</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.gtn_ctc</span> <span class="kn">import</span> <span class="n">GTNCTCLossFunction</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">GTNCTCLossFunction</span><span class="o">.</span><span class="n">apply</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;warpctc&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span><span class="p">)</span>
+                <span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;gtnctc&quot;: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
@@ -223,8 +219,6 @@
             <span class="c1"># Batch-size average</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">loss</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="n">th_olen</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
             <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">th_target</span><span class="p">]</span>
             <span class="n">log_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -266,10 +260,6 @@
             <span class="c1"># get ctc loss</span>
             <span class="c1"># expected shape of seqLength x batchSize x alphabet_size</span>
             <span class="n">dtype</span> <span class="o">=</span> <span class="n">ys_hat</span><span class="o">.</span><span class="n">dtype</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;warpctc&quot;</span> <span class="ow">or</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">:</span>
-                <span class="c1"># warpctc only supports float32</span>
-                <span class="c1"># torch.ctc does not support float16 (#1751)</span>
-                <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">ys_hat</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;cudnnctc&quot;</span><span class="p">:</span>
                 <span class="c1"># use GPU when using the cuDNN implementation</span>
                 <span class="n">ys_true</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">ys_true</span><span class="p">)</span>
@@ -293,9 +283,6 @@
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce</span><span class="p">:</span>
-            <span class="c1"># NOTE: sum() is needed to keep consistency</span>
-            <span class="c1"># since warpctc return as tensor w/ shape (1,)</span>
-            <span class="c1"># but builtin return as tensor w/o shape (scalar).</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ctc loss:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">)))</span>
 
