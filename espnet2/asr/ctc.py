@@ -47,9 +47,7 @@ class CTC(torch.nn.Module):
 
             self.ctc_loss = GTNCTCLossFunction.apply
         else:
-            raise ValueError(
-                f'ctc_type must be "builtin" or "gtnctc": {self.ctc_type}'
-            )
+            raise ValueError(f'ctc_type must be "builtin" or "gtnctc": {self.ctc_type}')
 
         self.reduce = reduce
 

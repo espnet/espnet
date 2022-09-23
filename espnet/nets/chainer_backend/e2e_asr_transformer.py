@@ -185,9 +185,7 @@ class E2E(ChainerASRInterface):
                     self.ctc = ctc.CTC(odim, args.adim, args.dropout_rate)
                 else:
                     raise ValueError(
-                        'ctc_type must be "builtin": {}'.format(
-                            args.ctc_type
-                        )
+                        'ctc_type must be "builtin": {}'.format(args.ctc_type)
                     )
             else:
                 self.ctc = None
