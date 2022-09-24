@@ -37,7 +37,7 @@ def make_arg(**kwargs):
         bunits=300,
         char_list=["a", "i", "u", "e", "o"],
         context_residual=False,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         ctc_weight=0.2,
         dlayers=1,
         dropout_rate=0.0,
