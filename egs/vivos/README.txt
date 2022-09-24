@@ -1,1 +1,1 @@
-VIVOS is a small open Vietnamese speech corpus (15 hours) prepared by AILAB - VNUHCM University of Science for testing speech recognition. Speech data are sampled at 16kHz. It is available for downloading at https://ailab.hcmus.edu.vn/vivos/
+VIVOS is a small open Vietnamese speech corpus (15 hours) prepared by AILAB - VNUHCM University of Science for testing speech recognition. Speech data are sampled at 16kHz. It is available for downloading at https://doi.org/10.5281/zenodo.7068130 (The old url, https://ailab.hcmus.edu.vn/vivos/, is no longer maintained)
