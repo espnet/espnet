@@ -16,14 +16,20 @@ stop_stage=2
 log "$0 $*"
 . utils/parse_options.sh
 
-
+if [ $# -ne 0 ]; then
+    log "Error: No positional arguments are required."
+    exit 2
+fi
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-
-db_root="downloads" 
+if [ -z "${QASR_TTS}" ]; then
+   log "Fill the value of 'QASR_TTS' of db.sh"
+   exit 1
+fi
+db_root=${QASR_TTS}
 
 train_set=tr_no_dev
 train_dev=dev
@@ -63,6 +69,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         <(cut -d "|" -f 1 < ${db_root}/qasr_tts-1.0/metadata.csv) \
         <(cut -d "|" -f 2 < ${db_root}/qasr_tts-1.0/metadata.csv) \
         > ${text}
+
+    utils/validate_data_dir.sh --no-feats data/train
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

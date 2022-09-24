@@ -67,6 +67,7 @@ JSUT=downloads
 JTUBESPEECH=downloads
 JVS=downloads
 KSS=
+QASR_TTS=downloads
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SWBD=
