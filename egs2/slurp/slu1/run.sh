@@ -9,8 +9,10 @@ set -o pipefail
 train_set="train"
 valid_set="devel"
 test_sets="test devel"
+local_data_opts="--gt false"
+# Make gt true to run using ground truth text as transcript
 
-slu_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
+slu_config=conf/tuning/train_asr_bert_conformer_deliberation_transcript.yaml
 
 ./slu.sh \
     --lang en \
@@ -28,4 +30,5 @@ slu_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
     --slu_config "${slu_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
-    --test_sets "${test_sets}" "$@"
+    --test_sets "${test_sets}" \
+    --local_data_opts "${local_data_opts}" "$@"
