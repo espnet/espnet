@@ -92,7 +92,7 @@ asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
-feats_normalize=global_mvn # Normalizaton layer type.
+feats_normalize= # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
 # Upload model related
