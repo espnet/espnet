@@ -10,7 +10,7 @@
 shopt -s extglob
 
 # general configuration
-stage=2       # start from 0 if you need to start from data preparation
+stage=1       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 # missing tig because of only 6 utt in cv
@@ -533,15 +533,15 @@ for lang in ${langs}; do
                 mkdir -p ${target_dir}
 
                 awk -v lang="${lang}" -F '[_\t]' \
-                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " $1 "_" $2}' \
+                    '{print $1 "_" $2 "_" $3 "-" lang "_openslr " $1 "_" $2}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
 
                 awk -v lang="${lang}" -F '[\t]' \
-                    '{print $1 "-" lang_id "_openslr " $2}' \
+                    '{print $1 "-" lang "_openslr " $2}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/text
 
                 awk -v lang="${lang}" -v src_dir="${data_folder}" -F '[_\t]' \
-                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3 ".wav"}' \
+                    '{print $1 "_" $2 "_" $3 "-" lang "_openslr " src_dir "/wavs/" $1 "_" $2 "_" $3 ".wav"}' \
                     ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
 
                 sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
@@ -668,10 +668,9 @@ for lang in ${extra_langs}; do
 done
 
 # Full test set for reference
-'''
 test_set="test_ab_commonvoice test_fy_NL_commonvoice test_or_commonvoice \
 test_af_openslr32 test_ga_IE_commonvoice test_pa_IN_commonvoice \
-test_ar_commonvoice test_gl_commonvoice test_pl \
+test_ar_commonvoice test_gl_commonvoice \
 test_as_commonvoice test_gl_openslr77 test_pl_commonvoice \
 test_az_commonvoice test_gn_commonvoice test_pl_mls \
 test_ba_commonvoice test_gu_openslr78 test_pl_voxpopuli \
@@ -724,7 +723,6 @@ test_fr_commonvoice test_nl_mls test_zh_CN_commonvoice \
 test_fr_mls test_nl_voxforge test_zh_HK_commonvoice \
 test_fr_voxforge test_nl_voxpopuli test_zh_TW_commonvoice \
 test_fr_voxpopuli test_nn_NO_commonvoice"
-'''
 
 log "Using test sets: ${test_set}"
 
@@ -775,6 +773,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
 fi
+
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Add Language ID"
@@ -829,7 +828,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
     log "save non-linguistic symbols in ${nlsyms_txt}"
 fi
-
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
