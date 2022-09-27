@@ -3,15 +3,16 @@
 @author: chkarada
 """
 
-# Copied from DNS-Challenge official repo file: https://github.com/microsoft/DNS-Challenge/edit/master/audiolib.py
-# Original License: CC-BY 4.0 International: https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
+# Copied from DNS-Challenge official repo file:
+# https://github.com/microsoft/DNS-Challenge/edit/master/audiolib.py
+
+# Original License: CC-BY 4.0 International
+# https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
 # Retrieved on Sep. 7th, 2022, by Shih-Lun Wu (summer7sean@gmail.com)
 
 import glob
 import os
-import random
 import subprocess
-import tempfile
 
 import librosa
 import numpy as np
@@ -122,10 +123,13 @@ def add_clipping(audio, max_thresh_perc=0.8):
 
 def adsp_filter(Adspvqe, nearEndInput, nearEndOutput, farEndInput):
 
-    command_adsp_clean = "{0} --breakOnErrors 0 --sampleRate 16000 --useEchoCancellation 0 \
+    command_adsp_clean = "{0} --breakOnErrors 0 --sampleRate 16000 \
+                    --useEchoCancellation 0 \
                     --operatingMode 2 --useDigitalAgcNearend 0 --useDigitalAgcFarend 0 \
-                    --useVirtualAGC 0 --useComfortNoiseGenerator 0 --useAnalogAutomaticGainControl 0 \
-                    --useNoiseReduction 0 --loopbackInputFile {1} --farEndInputFile {2} \
+                    --useVirtualAGC 0 --useComfortNoiseGenerator 0 \
+                    --useAnalogAutomaticGainControl 0 \
+                    --useNoiseReduction 0 --loopbackInputFile {1} \
+                    --farEndInputFile {2} \
                     --nearEndInputFile {3} --nearEndOutputFile {4}".format(
         Adspvqe, farEndInput, farEndInput, nearEndInput, nearEndOutput
     )
@@ -134,7 +138,6 @@ def adsp_filter(Adspvqe, nearEndInput, nearEndOutput, farEndInput):
 
 def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.99):
     """Function to mix clean speech and noise at various SNR levels"""
-    cfg = params["cfg"]
     if len(clean) > len(noise):
         noise = np.append(noise, np.zeros(len(clean) - len(noise)))
     else:
@@ -156,8 +159,10 @@ def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.
     # Mix noise and clean speech
     noisyspeech = clean + noisenewlevel
 
-    # Randomly select RMS value between -15 dBFS and -35 dBFS and normalize noisyspeech with that value
-    # There is a chance of clipping that might happen with very less probability, which is not a major issue.
+    # Randomly select RMS value between -15 dBFS and -35 dBFS and
+    # normalize noisyspeech with that value
+    # There is a chance of clipping that might happen with very less probability,
+    # which is not a major issue.
     noisy_rms_level = np.random.randint(
         params["target_level_lower"], params["target_level_upper"]
     )
@@ -167,7 +172,8 @@ def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.
     clean = clean * scalarnoisy
     noisenewlevel = noisenewlevel * scalarnoisy
 
-    # Final check to see if there are any amplitudes exceeding +/- 1. If so, normalize all the signals accordingly
+    # Final check to see if there are any amplitudes exceeding +/- 1.
+    # If so, normalize all the signals accordingly
     if is_clipped(noisyspeech):
         noisyspeech_maxamplevel = max(abs(noisyspeech)) / (clipping_threshold - EPS)
         noisyspeech = noisyspeech / noisyspeech_maxamplevel
@@ -184,7 +190,6 @@ def segmental_snr_mixer(
     params, clean, noise, snr, target_level=-25, clipping_threshold=0.99
 ):
     """Function to mix clean speech and noise at various segmental SNR levels"""
-    cfg = params["cfg"]
     if len(clean) > len(noise):
         noise = np.append(noise, np.zeros(len(clean) - len(noise)))
     else:
@@ -200,8 +205,10 @@ def segmental_snr_mixer(
 
     # Mix noise and clean speech
     noisyspeech = clean + noisenewlevel
-    # Randomly select RMS value between -15 dBFS and -35 dBFS and normalize noisyspeech with that value
-    # There is a chance of clipping that might happen with very less probability, which is not a major issue.
+    # Randomly select RMS value between -15 dBFS and -35 dBFS and
+    # normalize noisyspeech with that value
+    # There is a chance of clipping that might happen with very less probability,
+    # which is not a major issue.
     noisy_rms_level = np.random.randint(
         params["target_level_lower"], params["target_level_upper"]
     )
@@ -210,7 +217,8 @@ def segmental_snr_mixer(
     noisyspeech = noisyspeech * scalarnoisy
     clean = clean * scalarnoisy
     noisenewlevel = noisenewlevel * scalarnoisy
-    # Final check to see if there are any amplitudes exceeding +/- 1. If so, normalize all the signals accordingly
+    # Final check to see if there are any amplitudes exceeding +/- 1.
+    # If so, normalize all the signals accordingly
     if is_clipped(noisyspeech):
         noisyspeech_maxamplevel = max(abs(noisyspeech)) / (clipping_threshold - EPS)
         noisyspeech = noisyspeech / noisyspeech_maxamplevel
@@ -224,7 +232,8 @@ def segmental_snr_mixer(
 
 
 def active_rms(clean, noise, fs=16000, energy_thresh=-50):
-    """Returns the clean and noise RMS of the noise calculated only in the active portions"""
+    """Returns the clean and noise RMS of the noise
+    calculated only in the active portions """
     window_size = 100  # in ms
     window_samples = int(fs * window_size / 1000)
     sample_start = 0
@@ -256,7 +265,8 @@ def active_rms(clean, noise, fs=16000, energy_thresh=-50):
 
 
 def activitydetector(audio, fs=16000, energy_thresh=0.13, target_level=-25):
-    """Return the percentage of the time the audio signal is above an energy threshold"""
+    """Return the percentage of the time the audio signal
+    is above an energy threshold"""
 
     audio = normalize(audio, target_level)
     window_size = 50  # in ms
@@ -305,7 +315,8 @@ def resampler(input_dir, target_sr=16000, ext="*.wav"):
             audio, fs = audioread(pathname)
             audio_resampled = librosa.core.resample(audio, fs, target_sr)
             audiowrite(pathname, audio_resampled, target_sr)
-        except:
+        except Exception as ex:
+            print("[WARNING (audiolib.py)] error in resampler():", ex)
             continue
 
 
