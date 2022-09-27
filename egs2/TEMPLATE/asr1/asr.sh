@@ -1270,7 +1270,7 @@ if ! "${skip_eval}"; then
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
                 _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
                 ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                    ../../../utils/calculate_rtf.py \
+                    calculate_rtf.py \
                         --log-dir ${_logdir} \
                         --log-name "asr_inference" \
                         --input-shift ${_sample_shift} \
