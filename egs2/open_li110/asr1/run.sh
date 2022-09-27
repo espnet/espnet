@@ -53,7 +53,7 @@ test_eo_commonvoice test_lt_commonvoice test_ta_commonvoice \
 test_es_commonvoice test_lt_voxpopuli test_ta_openslr65 \
 test_es_mls test_lv_commonvoice test_te_openslr66 \
 test_es_openslr61 test_mdf_commonvoice test_th_commonvoice \
-test_es_openslr71 test_mhr_commonvoice test_tig_commonvoice \
+test_es_openslr71 test_mhr_commonvoice \
 test_es_openslr72 test_tn_openslr32 \
 test_es_openslr73 test_mk_commonvoice test_tok_commonvoice \
 test_es_openslr74 test_ml_commonvoice test_tr_commonvoice \
@@ -72,17 +72,17 @@ test_fr_mls test_nl_voxforge test_zh_HK_commonvoice \
 test_fr_voxforge test_nl_voxpopuli test_zh_TW_commonvoice \
 test_fr_voxpopuli test_nn_NO_commonvoice"
 
-# test_set="test_ab_commonvoice_lid test_fy_NL_commonvoice_lid test_or_commonvoice_lid \
-# test_af_openslr32_lid test_ga_IE_commonvoice_lid test_pa_IN_commonvoice_lid \
-# test_ar_commonvoice_lid test_gl_commonvoice_lid test_as_commonvoice_lid \
-# test_gl_openslr77_lid test_pl_commonvoice_lid \
-# test_az_commonvoice_lid test_gn_commonvoice_lid test_pl_mls_lid \
-# test_ba_commonvoice_lid test_gu_openslr78_lid test_pl_voxpopuli_lid \
-# test_bas_commonvoice_lid test_ha_commonvoice_lid test_pt_commonvoice_lid \
-# test_be_commonvoice_lid test_hi_commonvoice_lid test_pt_mls_lid \
-# test_bg_commonvoice_lid test_hr_voxpopuli_lid test_pt_voxforge_lid \
-# test_bn_commonvoice_lid test_hsb_commonvoice_lid test_rm_sursilv_commonvoice_lid \
-test_set="test_bn_openslr37_lid test_hu_commonvoice_lid \
+test_set="test_ab_commonvoice_lid test_fy_NL_commonvoice_lid test_or_commonvoice_lid \
+test_af_openslr32_lid test_ga_IE_commonvoice_lid test_pa_IN_commonvoice_lid \
+test_ar_commonvoice_lid test_gl_commonvoice_lid test_as_commonvoice_lid \
+test_gl_openslr77_lid test_pl_commonvoice_lid \
+test_az_commonvoice_lid test_gn_commonvoice_lid test_pl_mls_lid \
+test_ba_commonvoice_lid test_gu_openslr78_lid test_pl_voxpopuli_lid \
+test_bas_commonvoice_lid test_ha_commonvoice_lid test_pt_commonvoice_lid \
+test_be_commonvoice_lid test_hi_commonvoice_lid test_pt_mls_lid \
+test_bg_commonvoice_lid test_hr_voxpopuli_lid test_pt_voxforge_lid \
+test_bn_commonvoice_lid test_hsb_commonvoice_lid test_rm_sursilv_commonvoice_lid \
+test_bn_openslr37_lid test_hu_commonvoice_lid \
 test_bn_openslr53_lid test_hu_voxpopuli_lid test_rm_vallader_commonvoice_lid \
 test_br_commonvoice_lid test_hy_AM_commonvoice_lid \
 test_ca_commonvoice_lid test_ia_commonvoice_lid test_ro_commonvoice_lid \
@@ -109,7 +109,7 @@ test_eo_commonvoice_lid test_lt_commonvoice_lid test_ta_commonvoice_lid \
 test_es_commonvoice_lid test_lt_voxpopuli_lid test_ta_openslr65_lid \
 test_es_mls_lid test_lv_commonvoice_lid test_te_openslr66_lid \
 test_es_openslr61_lid test_mdf_commonvoice_lid test_th_commonvoice_lid \
-test_es_openslr71_lid test_mhr_commonvoice_lid test_tig_commonvoice_lid \
+test_es_openslr71_lid test_mhr_commonvoice_lid \
 test_es_openslr72_lid test_tn_openslr32_lid \
 test_es_openslr73_lid test_mk_commonvoice_lid test_tok_commonvoice_lid \
 test_es_openslr74_lid test_ml_commonvoice_lid test_tr_commonvoice_lid \
