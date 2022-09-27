@@ -38,7 +38,6 @@ class Conv1d(torch.nn.Module):
         dropout_rate: float = 0.0,
     ) -> None:
         """Construct a Conv1d object."""
-
         super().__init__()
 
         if causal:
@@ -99,7 +98,7 @@ class Conv1d(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
         chunk_mask: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Encode input sequences.
 
         Args:
@@ -144,7 +143,7 @@ class Conv1d(torch.nn.Module):
         mask: torch.Tensor,
         left_context: int = 0,
         right_context: int = 0,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode chunk of input sequence.
 
         Args:
