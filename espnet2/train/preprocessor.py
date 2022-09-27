@@ -938,6 +938,8 @@ class SVSPreprocessor(AbsPreprocessor):
             data.pop(self.label_name)
             
             # Load xml info
+            # TODO(Yuning): It can only work on Japanese dataset now.
+            # Syllable2phoneme mismatch and more languags settings need to be settled. 
             syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
             midis = []
             xml_timeseq = []
