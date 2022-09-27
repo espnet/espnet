@@ -947,8 +947,6 @@ class SVSPreprocessor(AbsPreprocessor):
                 # NOTE: Some phonemes are tagged differently
                 if syllables[i] == "へ":
                     phn = ["h", "e"]
-                #elif syllables[i] == "でぇ":
-                #    phn = ["dy", "e"]
                 else:
                     phn = pyopenjtalk.g2p(syllables[i]).split(' ')
                     #if syllables[i][0] == "ヴ" and len(syllables[i]) == 2:
