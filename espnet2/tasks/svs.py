@@ -27,9 +27,9 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
+from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
-# from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 # from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
 # from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
@@ -99,7 +99,7 @@ svs_choices = ClassChoices(
         # glu_transformer=GLU_Transformer,
         # bytesing=ByteSing,
         naive_rnn=NaiveRNN,
-        # naive_rnn_dp=NaiveRNNDP,
+        naive_rnn_dp=NaiveRNNDP,
         # mlp=MLPSinger,
         # xiaoice=XiaoiceSing,
         # xiaoice_noDP=XiaoiceSing_noDP,
@@ -264,6 +264,7 @@ class SVSTask(AbsTask):
         # assert check_return_type(retval)
         return retval
 
+    # TODO(Yuning): check new names
     @classmethod
     def required_data_names(
         cls, train: bool = True, inference: bool = False
@@ -395,9 +396,10 @@ class SVSTask(AbsTask):
             text_extract=score_feats_extract,
             feats_extract=feats_extract,
             score_feats_extract=score_feats_extract,
-            durations_extract=score_feats_extract,
+            label_extract=score_feats_extract,
             pitch_extract=pitch_extract,
             tempo_extract=score_feats_extract,
+            beat_extract=score_feats_extract,
             energy_extract=energy_extract,
             normalize=normalize,
             pitch_normalize=pitch_normalize,

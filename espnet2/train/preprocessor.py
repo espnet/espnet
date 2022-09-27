@@ -875,14 +875,13 @@ class SVSPreprocessor(AbsPreprocessor):
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: str = None,
-        rir_scp: str = None,
-        rir_apply_prob: float = 1.0,
         singing_volume_normalize: float = None,
         singing_name: str = "singing",
         text_name: str = "text",
         label_name: str = "label",
         midi_name: str = "midi",
         fs: np.int32 = 0,
+        align: list = ["singing", "label_lab", "midi_lab", "tempo_lab", "beat_lab"],  # TODO(Tao): add to args
     ):
         super().__init__(train)
         self.train = train
@@ -892,7 +891,7 @@ class SVSPreprocessor(AbsPreprocessor):
         self.midi_name = midi_name
         self.fs = fs
         self.singing_volume_normalize = singing_volume_normalize
-        self.rir_apply_prob = rir_apply_prob
+        self.align = align
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -914,19 +913,6 @@ class SVSPreprocessor(AbsPreprocessor):
             self.text_cleaner = None
             self.tokenizer = None
             self.token_id_converter = None
-        if train and rir_scp is not None:
-            self.rirs = []
-            with open(rir_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.rirs.append(sps[0])
-                    else:
-                        self.rirs.append(sps[1])
-        else:
-            self.rirs = None
-
-        self.noises = None
 
     def __call__(
         self,
@@ -935,7 +921,14 @@ class SVSPreprocessor(AbsPreprocessor):
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
 
-        if self.label_name in data and self.tokenizer is not None:
+        if self.singing_name in data:
+            if self.singing_volume_normalize is not None:
+                singing = data[self.singing_name]
+                ma = np.max(np.abs(singing))
+                data[self.singing_name] = singing * self.singing_volume_normalize / ma
+
+        if self.midi_name in data and self.label_name in data and self.tokenizer is not None:
+            # Load label info
             lab_timeseq, text = data[self.label_name]
             lab_len = len(text)
             text = " ".join(text)
@@ -943,111 +936,116 @@ class SVSPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data.pop(self.label_name)
+            
+            # Load xml info
+            syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
+            midis = []
+            xml_timeseq = []
+            phn_cnt = 0
+            vowel = ["a", "i", "u", "e", "o"]
+            for i in range(len(syllables)):
+                # NOTE: Some phonemes are tagged differently
+                if syllables[i] == "へ":
+                    phn = ["h", "e"]
+                #elif syllables[i] == "でぇ":
+                #    phn = ["dy", "e"]
+                else:
+                    phn = pyopenjtalk.g2p(syllables[i]).split(' ')
+                    #if syllables[i][0] == "ヴ" and len(syllables[i]) == 2:
+                    #    phn.remove("u")
+                phn_num = len(phn)
+                vowel_num = 0
+                for p in phn:
+                    if p in vowel:
+                        vowel_num += 1
+                if vowel_num == 2 and phn[0] != "k" and phn[0] != "g":
+                    phn_num -= 1
+                assert vowel_num <= 2
+                phn_cnt += phn_num
+                for _ in range(phn_num):
+                    midis.append(notemidis[i])
+                if phn_num == 1:
+                    xml_timeseq.append([notetimeseq[i][0], notetimeseq[i][1]])
+                elif phn_num == 2:
+                    t = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
+                    xml_timeseq.append([notetimeseq[i][0], t])
+                    xml_timeseq.append([t, notetimeseq[i][1]])
+                elif phn_num == 3:
+                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    xml_timeseq.append([notetimeseq[i][0], t1])
+                    xml_timeseq.append([t1, t2])
+                    xml_timeseq.append([t2, notetimeseq[i][1]])
+                elif phn_num == 4:
+                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
+                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    t3 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    xml_timeseq.append([notetimeseq[i][0], t1])
+                    xml_timeseq.append([t1, t2])
+                    xml_timeseq.append([t2, t3])
+                    xml_timeseq.append([t3, notetimeseq[i][1]])
+                else:
+                    raise ValueError("Syllable to phoneme conversion error!")
+            assert phn_cnt == lab_len
+            data.pop(self.midi_name)
+
+            # Calculate feature according to label time sequence
             timeseq = lab_timeseq
             nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
 
-            labelseq = np.zeros((nsamples))
-            offset = timeseq[0, 0]
-            for i in range(timeseq.shape[0]):
-                start = int((timeseq[i, 0] - offset) * self.fs)
-                end = int((timeseq[i, 1] - offset) * self.fs) + 1
+            labelseq_lab = np.zeros((nsamples))
+            temposeq_lab = np.full(nsamples, tempo)
+            beatseq_lab = np.zeros((nsamples))
+            midiseq_lab = np.zeros((nsamples))
+            offset = timeseq[0][0]
+            for i in range(len(timeseq)):
+                start = int((timeseq[i][0] - offset) * self.fs)
+                end = int((timeseq[i][1] - offset) * self.fs) + 1
                 if end > nsamples:
-                    end = nsamples - 1
-                labelseq[start:end] = text_ints[i]
+                    end = nsamples
+                labelseq_lab[start:end] = text_ints[i]
+                midiseq_lab[start:end] = midis[i]
+                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beatseq_lab[start:end] = int(beat_num * tempo + 0.5)
 
-            labelseq.astype(np.int64)
-            data["durations"] = labelseq
+            labelseq_lab.astype(np.int64)
+            midiseq_lab.astype(np.int64)
+            temposeq_lab.astype(np.int64)
+            beatseq_lab.astype(np.int64)
 
-        if self.midi_name in data and self.tokenizer is not None:
-            syllableseq, pitchs, xml_timeseq, tempo = data[self.midi_name]
-            timeseq = lab_timeseq
-            temposeq = np.full(nsamples, tempo)
-            pitchseq = np.zeros((nsamples))
+            data["midi_lab"] = midiseq_lab
+            data["tempo_lab"] = temposeq_lab
+            data["beat_lab"] = beatseq_lab
+            data["label_lab"] = labelseq_lab
 
-            single = ["あ", "い", "う", "え", "お", "ん"]
-            index = 0
-            offset = timeseq[0, 0]
-            cnt = 0
-
-            # TODO(Yuning): Tokenizer could be used here for syllable-phoneme translate
-            for i in range(len(syllableseq)):
-                # NOTE: Some phonemes are tagged differently
-                if syllableseq[i] == "へ":
-                    phn = ["h", "e"]
-                elif syllableseq[i] == "は":
-                    phn = ["h", "a"]
-                elif syllableseq[i] == "でぇ":
-                    phn = ["dy", "e"]
-                elif syllableseq[i] == "ヴぉ":
-                    phn = ["v", "o"]
-                else:
-                    phn = pyopenjtalk.g2p(syllableseq[i]).split(' ')
-                    if syllableseq[i][0] == "ヴ" and len(syllableseq[i]) == 2:
-                        phn.remove("u")
-                phn_num = len(phn)
-                cnt += phn_num
-
-                assert index < len(timeseq) 
-                assert index + phn_num -1 < len(timeseq)
-                start = int((timeseq[index, 0] - offset) * self.fs)
-                end = int((timeseq[index + phn_num - 1, 1] - offset) * self.fs) + 1
+            # Calculate feature according to XML time sequence
+            timeseq = xml_timeseq
+            nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
+            
+            labelseq_xml = np.zeros((nsamples))
+            midiseq_xml = np.zeros((nsamples))
+            temposeq_xml = np.full(nsamples, tempo)
+            beatseq_xml = np.zeros((nsamples))
+            offset = timeseq[0][0]
+            for i in range(len(timeseq)):
+                start = int((timeseq[i][0] - offset) * self.fs)
+                end = int((timeseq[i][1] - offset) * self.fs) + 1
                 if end > nsamples:
-                    end = nsamples - 1
-                index += phn_num
-                pitchseq[start:end] = pitchs[i]
-            assert cnt == lab_len
+                    end = nsamples
+                labelseq_xml[start:end] = text_ints[i]
+                midiseq_xml[start:end] = midis[i]
+                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beatseq_xml[start:end] = int(beat_num * tempo + 0.5)
 
-            pitchseq.astype(np.int64)
-            temposeq.astype(np.int64)
-            data.pop(self.midi_name)
+            labelseq_xml.astype(np.int64)
+            midiseq_xml.astype(np.int64)
+            temposeq_xml.astype(np.int64)
+            beatseq_xml.astype(np.int64)
 
-            data["score"] = pitchseq
-            data["tempo"] = temposeq
-
-        if self.singing_name in data:
-
-            if self.train and self.rirs is not None and self.noises is not None:
-                singing = data[self.singing_name]
-                nsamples = len(singing)
-
-                # singing: (Nmic, Time)
-                if singing.ndim == 1:
-                    singing = singing[None, :]
-                else:
-                    singing = singing.T
-                # Calc power on non shlence region
-                power = (singing[detect_non_silence(singing)] ** 2).mean()
-
-                # 1. Convolve RIR
-                if self.rirs is not None and self.rir_apply_prob >= np.random.random():
-                    rir_path = np.random.choice(self.rirs)
-                    if rir_path is not None:
-                        rir, _ = soundfile.read(
-                            rir_path, dtype=np.float64, always_2d=True
-                        )
-
-                        # rir: (Nmic, Time)
-                        rir = rir.T
-
-                        # singing: (Nmic, Time)
-                        # Note that this operation doesn't change the signal length
-                        singing = scipy.signal.convolve(singing, rir, mode="full")[
-                            :, : singing.shape[1]
-                        ]
-                        # Reverse mean power to the original power
-                        power2 = (singing[detect_non_silence(singing)] ** 2).mean()
-                        singing = np.sqrt(power / max(power2, 1e-10)) * singing
-                
-                singing = singing.T
-                ma = np.max(np.abs(singing))
-                if ma > 1.0:
-                    singing /= ma
-                data[self.singing_name] = singing
-
-            if self.singing_volume_normalize is not None:
-                singing = data[self.singing_name]
-                ma = np.max(np.abs(singing))
-                data[self.singing_name] = singing * self.singing_volume_normalize / ma
+            data["midi_xml"] = midiseq_xml
+            data["tempo_xml"] = temposeq_xml
+            data["label_xml"] = labelseq_xml
+            data["beat_xml"] = beatseq_xml
 
         if self.text_name in data and self.tokenizer is not None:
             text = data[self.text_name]
@@ -1059,4 +1057,13 @@ class SVSPreprocessor(AbsPreprocessor):
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
         # TODO allow the tuple type
+
+        # align frame length with singing
+        length = min(
+            [len(data[key]) for key in data.keys() if key in self.align]
+        )
+        for key in self.align:
+            if key in data:
+                data[key] = data[key][:length]
+
         return data
