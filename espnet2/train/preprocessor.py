@@ -969,7 +969,13 @@ class SVSPreprocessor(AbsPreprocessor):
         label_name: str = "label",
         midi_name: str = "midi",
         fs: np.int32 = 0,
-        align: list = ["singing", "label_lab", "midi_lab", "tempo_lab", "beat_lab"],  # TODO(Tao): add to args
+        align: list = [
+            "singing",
+            "label_lab",
+            "midi_lab",
+            "tempo_lab",
+            "beat_lab",
+        ],  # TODO(Tao): add to args
     ):
         super().__init__(train)
         self.train = train
@@ -1015,7 +1021,11 @@ class SVSPreprocessor(AbsPreprocessor):
                 ma = np.max(np.abs(singing))
                 data[self.singing_name] = singing * self.singing_volume_normalize / ma
 
-        if self.midi_name in data and self.label_name in data and self.tokenizer is not None:
+        if (
+            self.midi_name in data
+            and self.label_name in data
+            and self.tokenizer is not None
+        ):
             # Load label info
             lab_timeseq, text = data[self.label_name]
             lab_len = len(text)
@@ -1024,10 +1034,10 @@ class SVSPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data.pop(self.label_name)
-            
+
             # Load xml info
             # TODO(Yuning): It can only work on Japanese dataset now.
-            # Syllable2phoneme mismatch and more languags settings need to be settled. 
+            # Syllable2phoneme mismatch and more languags settings need to be settled.
             syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
             midis = []
             xml_timeseq = []
@@ -1038,7 +1048,7 @@ class SVSPreprocessor(AbsPreprocessor):
                 if syllables[i] == "へ":
                     phn = ["h", "e"]
                 else:
-                    phn = pyopenjtalk.g2p(syllables[i]).split(' ')
+                    phn = pyopenjtalk.g2p(syllables[i]).split(" ")
                 phn_num = len(phn)
                 vowel_num = 0
                 for p in phn:
@@ -1053,19 +1063,37 @@ class SVSPreprocessor(AbsPreprocessor):
                 if phn_num == 1:
                     xml_timeseq.append([notetimeseq[i][0], notetimeseq[i][1]])
                 elif phn_num == 2:
-                    t = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
+                    t = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t])
                     xml_timeseq.append([t, notetimeseq[i][1]])
                 elif phn_num == 3:
-                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    t1 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    )
+                    t2 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t1])
                     xml_timeseq.append([t1, t2])
                     xml_timeseq.append([t2, notetimeseq[i][1]])
                 elif phn_num == 4:
-                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
-                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    t3 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    t1 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
+                    )
+                    t2 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    )
+                    t3 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t1])
                     xml_timeseq.append([t1, t2])
                     xml_timeseq.append([t2, t3])
@@ -1077,7 +1105,7 @@ class SVSPreprocessor(AbsPreprocessor):
 
             # Calculate feature according to label time sequence
             timeseq = lab_timeseq
-            nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
+            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
 
             labelseq_lab = np.zeros((nsamples))
             temposeq_lab = np.full(nsamples, tempo)
@@ -1091,7 +1119,7 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_lab[start:end] = text_ints[i]
                 midiseq_lab[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
                 beatseq_lab[start:end] = int(beat_num * tempo + 0.5)
 
             labelseq_lab.astype(np.int64)
@@ -1106,8 +1134,8 @@ class SVSPreprocessor(AbsPreprocessor):
 
             # Calculate feature according to XML time sequence
             timeseq = xml_timeseq
-            nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
-            
+            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
+
             labelseq_xml = np.zeros((nsamples))
             midiseq_xml = np.zeros((nsamples))
             temposeq_xml = np.full(nsamples, tempo)
@@ -1120,7 +1148,7 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_xml[start:end] = text_ints[i]
                 midiseq_xml[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
                 beatseq_xml[start:end] = int(beat_num * tempo + 0.5)
 
             labelseq_xml.astype(np.int64)
@@ -1145,9 +1173,7 @@ class SVSPreprocessor(AbsPreprocessor):
         # TODO allow the tuple type
 
         # align frame length with singing
-        length = min(
-            [len(data[key]) for key in data.keys() if key in self.align]
-        )
+        length = min([len(data[key]) for key in data.keys() if key in self.align])
         for key in self.align:
             if key in data:
                 data[key] = data[key][:length]

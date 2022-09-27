@@ -30,7 +30,7 @@ from torch.distributions import Beta
 
 class NaiveRNNDP(AbsSVS):
     """NaiveRNNDP-SVS module
-    This is an implementation of naive RNN with duration prediction 
+    This is an implementation of naive RNN with duration prediction
     for singing voice synthesis
     The features are processed directly over time-domain from music score and
     predict the singing voice features
@@ -319,12 +319,12 @@ class NaiveRNNDP(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
-        
+
         GS Fix:
             arguements from forward func. V.S. **batch from muskit_model.py
             label == durations ｜ phone sequence
             midi -> pitch sequence
-        
+
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
@@ -420,7 +420,7 @@ class NaiveRNNDP(AbsSVS):
         else:
             ys = feats
             olens = feats_lengths
-        
+
         # calculate loss values
         ilens = label_lengths
         l1_loss, duration_loss = self.criterion(
@@ -429,9 +429,7 @@ class NaiveRNNDP(AbsSVS):
         loss = l1_loss + duration_loss
 
         stats = dict(
-            loss=loss.item(),
-            l1_loss=l1_loss.item(),
-            duration_loss=duration_loss.item()
+            loss=loss.item(), l1_loss=l1_loss.item(), duration_loss=duration_loss.item()
         )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -470,7 +468,7 @@ class NaiveRNNDP(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
-        
+
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
@@ -513,7 +511,6 @@ class NaiveRNNDP(AbsSVS):
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
         zs, (_, _) = self.decoder(hs)
 
-
         zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
 
         # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
@@ -537,7 +534,7 @@ class NaiveRNNDP(AbsSVS):
         Args:
             hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
             spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
-        
+
         Returns:
             Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).
         """
@@ -553,4 +550,4 @@ class NaiveRNNDP(AbsSVS):
         else:
             raise NotImplementedError("support only add or concat.")
 
-        return 
+        return

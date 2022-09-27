@@ -317,7 +317,9 @@ def main():
         semitone_acc_dict = manager.dict()
         processes = []
         for f in file_lists:
-            p = mp.Process(target=calculate, args=(f, gt_files, args, semitone_acc_dict))
+            p = mp.Process(
+                target=calculate, args=(f, gt_files, args, semitone_acc_dict)
+            )
             p.start()
             processes.append(p)
 

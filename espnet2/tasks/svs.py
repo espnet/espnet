@@ -28,6 +28,7 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
+
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
 # from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
@@ -281,23 +282,10 @@ class SVSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = (
-                "spembs", 
-                "durations", 
-                "pitch", 
-                "energy", 
-                "sids", 
-                "lids"
-            )
+            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = (
-                "spembs", 
-                "singing", 
-                "durations", 
-                "sids", 
-                "lids"
-            )
+            retval = ("spembs", "singing", "durations", "sids", "lids")
         return retval
 
     @classmethod
