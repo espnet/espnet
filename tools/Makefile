@@ -22,11 +22,11 @@ CPU_ONLY := 0
 CUDA_VERSION :=
 CUDA_VERSION_WITHOUT_DOT :=
 endif
-
+WITH_OMP=ON
 
 .PHONY: all clean
 
-all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
+all: kaldi showenv python conda_packages.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
 extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done
@@ -48,6 +48,7 @@ endif
 	@echo PYTHON_VERSION=$(shell . ./activate_python.sh && python3 --version)
 	@echo USE_CONDA=$(USE_CONDA)
 	@echo TH_VERSION=$(TH_VERSION)
+	@echo WITH_OMP=$(WITH_OMP)
 
 #########################################
 
@@ -76,13 +77,13 @@ conda_packages.done:
 endif
 	touch conda_packages.done
 
-
-sctk.done:
+sctk: sctk/bin/sclite
+sctk/bin/sclite:
 	./installers/install_sctk.sh
-	touch sctk.done
-sph2pipe.done:
+
+sph2pipe: sph2pipe/sph2pipe
+sph2pipe/sph2pipe:
 	./installers/install_sph2pipe.sh
-	touch sph2pipe.done
 
 packaging.done: activate_python.sh
 	. ./activate_python.sh && python3 -m pip install packaging
@@ -116,18 +117,15 @@ chainer.done: espnet.done
 warp-transducer.done: pytorch.done conda_packages.done
 ifeq ($(strip $(CPU_ONLY)),)
 	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
-	. ./activate_python.sh && ./installers/install_warp-transducer.sh
-	touch warp-transducer.done
-else
-	. ./activate_python.sh && ./installers/install_warp-transducer.sh
-	touch warp-transducer.done
 endif
+	. ./activate_python.sh && ./installers/install_warp-transducer.sh ${WITH_OMP}
+	touch warp-transducer.done
 
 chainer_ctc.done: chainer.done
 ifeq ($(strip $(CPU_ONLY)),)
 	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 endif
-	. ./activate_python.sh && ./installers/install_chainer_ctc.sh
+	. ./activate_python.sh && ./installers/install_chainer_ctc.sh ${WITH_OMP}
 	touch chainer_ctc.done
 
 nkf.done:
@@ -139,8 +137,13 @@ pyopenjtalk.done: espnet.done conda_packages.done
 	touch pyopenjtalk.done
 
 phonemizer.done: espnet.done conda_packages.done
+ifeq ($(WITH_OMP)),ON)
 	. ./activate_python.sh && ./installers/install_phonemizer.sh
 	touch phonemizer.done
+else
+	# FIXME(kamo): I don't know how to avoid "-fopenmp" option
+	echo "Warning: ./installers/install_phonemizer.sh requires WITH_OMP=ON"
+endif
 
 speechbrain.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_speechbrain.sh
