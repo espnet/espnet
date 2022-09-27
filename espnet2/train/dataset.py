@@ -20,7 +20,11 @@ from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
 )
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text, read_label
+from espnet2.fileio.read_text import (
+    load_num_sequence_text,
+    read_2column_text,
+    read_label,
+)
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.fileio.xml_scp import XMLScpReader
@@ -117,12 +121,24 @@ class AdapterForXMLScpReader(collections.abc.Mapping):
         retval = self.loader[key]
 
         assert len(retval) == 4, len(retval)
-        if isinstance(retval[0], list) and isinstance(retval[1], np.ndarray) and isinstance(retval[2], np.ndarray) and isinstance(retval[3], float):
+        if (
+            isinstance(retval[0], list)
+            and isinstance(retval[1], np.ndarray)
+            and isinstance(retval[2], np.ndarray)
+            and isinstance(retval[3], float)
+        ):
             lyrics, notes, segs, tempo = retval
         else:
-            raise RuntimeError(f"Unexpected type: {type(retval[0])}, {type(retval[1])}, {type(retval[2])}, {type(retval[3])}")
+            raise RuntimeError(
+                f"Unexpected type: {type(retval[0])}, {type(retval[1])}, {type(retval[2])}, {type(retval[3])}"
+            )
 
-        assert isinstance(lyrics, list) and isinstance(notes, np.ndarray) and isinstance(segs, np.ndarray) and isinstance(tempo, float)
+        assert (
+            isinstance(lyrics, list)
+            and isinstance(notes, np.ndarray)
+            and isinstance(segs, np.ndarray)
+            and isinstance(tempo, float)
+        )
         return lyrics, notes, segs, tempo
 
 
@@ -171,8 +187,7 @@ def sound_loader(path, float_dtype=None):
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
-def xml_loader(
-    path, float_dtype=None):
+def xml_loader(path, float_dtype=None):
     # The file is as follows:
     #   utterance_id_A /some/where/a.mid
     #   utterance_id_B /some/where/b.midi

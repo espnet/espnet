@@ -72,7 +72,7 @@ class XMLScpReader(collections.abc.Mapping):
             lyrics.append(notes_list[i].lyric)
 
         return lyrics, notes, segs, tempo
-        
+
     def get_path(self, key):
         return self.data[key]
 
@@ -90,5 +90,5 @@ class XMLScpReader(collections.abc.Mapping):
 
 
 # TODO(Yuning): Add XMLScpWriter
-# The present XMLScpReader extract note info and ignore rest_note. 
+# The present XMLScpReader extract note info and ignore rest_note.
 # For XMLWriter, additional information (eg. offset, <br>, instrument, etc) might be required.

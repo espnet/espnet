@@ -7,6 +7,7 @@ import music21 as m21
 
 """Divide songs into segments according to structured musicXML."""
 
+
 class LabelInfo(object):
     def __init__(self, start, end, label_id, isNote, note):
         self.label_id = label_id
@@ -14,7 +15,7 @@ class LabelInfo(object):
         self.end = end
         self.isNote = isNote
         self.note = note
-    
+
     def extend(self, start, end, label_id):
         if self.start == self.end:
             self.label_id = label_id
@@ -26,7 +27,7 @@ class LabelInfo(object):
 
 class SegInfo(object):
     def __init__(self):
-    # TODO(Yuning): add examples
+        # TODO(Yuning): add examples
         self.segs = []
         self.start = -1
         self.end = -1
@@ -84,9 +85,10 @@ def get_parser():
         "threshold", type=int, help="threshold for silence identification."
     )
     parser.add_argument(
-        "--xml_dump", type=str, default="xml_dump", help="xml dump directory")
-        # TODO (Yuning): update xml prepare scheme
-    
+        "--xml_dump", type=str, default="xml_dump", help="xml dump directory"
+    )
+    # TODO (Yuning): update xml prepare scheme
+
     args = parser.parse_args()
     if not os.path.exists(args.xml_dump):
         os.makedirs(args.xml_dump)
@@ -132,9 +134,7 @@ if __name__ == "__main__":
     update_segments = open(
         os.path.join(args.scp, "segments_from_xml.tmp"), "w", encoding="utf-8"
     )
-    update_xmlnote = open(
-        os.path.join(args.scp, "xmlnote.tmp"), "w", encoding="utf-8"
-    )
+    update_xmlnote = open(os.path.join(args.scp, "xmlnote.tmp"), "w", encoding="utf-8")
 
     for xml_line in musicxmlscp:
         xmlline = xml_line.strip().split(" ")
@@ -162,9 +162,7 @@ if __name__ == "__main__":
         if rest.start != rest.end:
             temp_info.append(rest)
 
-        segments.append(
-            make_segment(recording_id, temp_info, tempo, args.threshold)
-        )
+        segments.append(make_segment(recording_id, temp_info, tempo, args.threshold))
 
     for file in segments:
         for key, (val, tempo) in file.items():
@@ -182,6 +180,6 @@ if __name__ == "__main__":
             for v in val:
                 update_xmlnote.write(" {}".format(v[2]))
                 new_stream.insert(v[3].offset, v[3])
-                 
+
             update_xmlnote.write("\n")
-            new_stream.write('xml', fp = os.path.join(args.xml_dump, key + ".musicxml"))
+            new_stream.write("xml", fp=os.path.join(args.xml_dump, key + ".musicxml"))

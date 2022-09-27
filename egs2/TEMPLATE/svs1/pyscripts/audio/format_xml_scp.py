@@ -6,6 +6,7 @@ import os
 
 from espnet.utils.cli_utils import get_commandline_args
 
+
 def main():
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=logfmt)
@@ -28,7 +29,7 @@ def main():
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     out_midiscp = Path(args.outdir) / f"{args.name}.scp"
 
-    # TODO(Yuning): use sub xmls copied from origin musicxml 
+    # TODO(Yuning): use sub xmls copied from origin musicxml
     # More details need to be completed
     # NOTE(Yuning): naXmls are read and written in stage 1: prep_segment_from_xml
     # Option: add XMLScpReader and XMLScpWriter in fileio/xml_scp.py

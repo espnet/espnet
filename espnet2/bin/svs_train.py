@@ -11,7 +11,7 @@ def main(cmd=None):
     """SVS training
 
     Example:
-    
+
         % python svs_train.py svs --print_config --optim adadelta
         % python svs_train.py --config conf/train_svs.yaml
     """
