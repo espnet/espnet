@@ -2,17 +2,19 @@
 @author: chkarada
 """
 
-# Adapted from DNS-Challenge official repo file: https://github.com/microsoft/DNS-Challenge/blob/master/noisyspeech_synthesizer_singleprocess.py
-# Original License: CC-BY 4.0 International: https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
+# Adapted from DNS-Challenge official repo file:
+# https://github.com/microsoft/DNS-Challenge/blob/master/noisyspeech_synthesizer_singleprocess.py
+
+# Original License: CC-BY 4.0 International:
+# https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
+
 # Retrieved on Sep. 7th, 2022, by Shih-Lun Wu (summer7sean@gmail.com)
 
 import argparse
-import ast
 import configparser as CP
 import glob
 import multiprocessing
 import os
-import random
 import sys
 from pathlib import Path
 from random import shuffle
@@ -22,22 +24,17 @@ import numpy as np
 import pandas as pd
 from audiolib import (
     activitydetector,
-    add_clipping,
     audioread,
     audiowrite,
     is_clipped,
     segmental_snr_mixer,
 )
 from scipy import signal
-from scipy.io import wavfile
 
 import utils
 
 MAXTRIES = 50
 MAXFILELEN = 100
-
-# np.random.seed(5)
-# random.seed(5)
 
 
 def add_pyreverb(clean_speech, rir):
@@ -70,7 +67,8 @@ def build_audio(is_clean, params, index, audio_samples_length=-1):
         if "noisefilenames" in params.keys():
             source_files = params["noisefilenames"]
             idx = index
-        # if noise files are organized into individual subdirectories, pick a directory randomly
+        # if noise files are organized into individual subdirectories,
+        # pick a directory randomly
         else:
             noisedirs = params["noisedirs"]
             # pick a noise category randomly
@@ -184,7 +182,8 @@ def main_gen_single_process(params, proc_idx, st_idx, ed_idx, total_procs):
     while file_num < ed_idx:
         if (file_num - st_idx) % 10 == 9:
             print(
-                "[INFO] (noisyspeech_synthesizer.py, process {}) generating wav mixture no. {} / {}".format(
+                "[INFO] (noisyspeech_synthesizer.py, \
+                 process {}) generating wav mixture no. {} / {}".format(
                     proc_idx, file_num - st_idx + 1, ed_idx - st_idx
                 ),
                 file=sys.stderr,
@@ -217,11 +216,13 @@ def main_gen_single_process(params, proc_idx, st_idx, ed_idx, total_procs):
         clean_snr, noise_snr, noisy_snr, target_level = segmental_snr_mixer(
             params=params, clean=clean, noise=noise, snr=snr
         )
-        # Uncomment the below lines if you need segmental SNR and comment the above lines using snr_mixer
-        # clean_snr, noise_snr, noisy_snr, target_level = segmental_snr_mixer(params=params,
-        #                                                         clean=clean,
-        #                                                          noise=noise,
-        #                                                         snr=snr)
+        # Uncomment the below lines if you need segmental SNR
+        # and comment the above lines using snr_mixer
+        # clean_snr, noise_snr, noisy_snr, target_level = \
+        #      segmental_snr_mixer(params=params,
+        #                           clean=clean,
+        #                           noise=noise,
+        #                           snr=snr)
         # unexpected clipping
         if is_clipped(clean_snr) or is_clipped(noise_snr) or is_clipped(noisy_snr):
             print(
@@ -282,8 +283,8 @@ def main_gen_single_process(params, proc_idx, st_idx, ed_idx, total_procs):
 
 
 def main_gen(params):
-    """Calls main_gen_single_process() to generate the audio signals, verifies that they meet
-    the requirements, and writes the files to storage"""
+    """Calls main_gen_single_process() to generate the audio signals, verifies
+    that they meet the requirements, and writes the files to storage"""
     clean_source_files = []
     clean_clipped_files = []
     clean_low_activity_files = []
@@ -492,7 +493,8 @@ def main_body():
     params["cleanfilenames"] = all_cleanfiles
     params["num_cleanfiles"] = len(params["cleanfilenames"])
     # If there are .wav files in noise_dir directory, use those
-    # If not, that implies that the noise files are organized into subdirectories by type,
+    # If not, that implies that the noise files are organized into
+    # subdirectories by type,
     # so get the names of the non-excluded subdirectories
     if "noise_csv" in cfg.keys() and cfg["noise_csv"] != "None":
         noisefilenames = pd.read_csv(cfg["noise_csv"])
@@ -522,7 +524,8 @@ def main_body():
         noise_low_activity_files,
     ) = main_gen(params)
 
-    # Create log directory if needed, and write log files of clipped and low activity files
+    # Create log directory if needed,
+    # and write log files of clipped and low activity files
     log_dir = utils.get_dir(cfg, "log_dir", "Logs")
 
     utils.write_log_file(

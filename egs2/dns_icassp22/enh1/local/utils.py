@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Copied from DNS-Challenge official repo file: https://github.com/microsoft/DNS-Challenge/edit/master/utils.py
-# Original License: CC-BY 4.0 International: https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
+# Copied from DNS-Challenge official repo file:
+# https://github.com/microsoft/DNS-Challenge/edit/master/utils.py
+
+# Original License: CC-BY 4.0 International:
+# https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
+
 # Retrieved on Sep. 7th, 2022, by Shih-Lun Wu (summer7sean@gmail.com)
 
 """
