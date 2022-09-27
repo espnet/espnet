@@ -949,8 +949,6 @@ class SVSPreprocessor(AbsPreprocessor):
                     phn = ["h", "e"]
                 else:
                     phn = pyopenjtalk.g2p(syllables[i]).split(' ')
-                    #if syllables[i][0] == "ヴ" and len(syllables[i]) == 2:
-                    #    phn.remove("u")
                 phn_num = len(phn)
                 vowel_num = 0
                 for p in phn:
