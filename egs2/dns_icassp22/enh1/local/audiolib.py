@@ -233,7 +233,7 @@ def segmental_snr_mixer(
 
 def active_rms(clean, noise, fs=16000, energy_thresh=-50):
     """Returns the clean and noise RMS of the noise
-    calculated only in the active portions """
+    calculated only in the active portions"""
     window_size = 100  # in ms
     window_samples = int(fs * window_size / 1000)
     sample_start = 0
