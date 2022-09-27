@@ -18,7 +18,7 @@ class MaskEstimator(torch.nn.Module):
         self, type, idim, layers, units, projs, dropout, nmask=1, nonlinear="sigmoid"
     ):
         super().__init__()
-        subsample = np.ones(layers + 1, dtype=np.int)
+        subsample = np.ones(layers + 1, dtype=np.int64)
 
         typ = type.lstrip("vgg").rstrip("p")
         if type[-1] == "p":

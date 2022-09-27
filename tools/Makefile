@@ -1,5 +1,5 @@
-# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1 and 1.11.0 are tested.
-TH_VERSION := 1.11.0
+# PyTorch version: 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1, 1.11.0 and 1.12.1 are tested.
+TH_VERSION := 1.12.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -88,21 +88,29 @@ packaging.done: activate_python.sh
 	. ./activate_python.sh && python3 -m pip install packaging
 	touch packaging.done
 
-pytorch.done: activate_python.sh packaging.done
+numba.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
-	# NOTE(kan-bayashi): Temporary fixed numpy version
-	. ./activate_python.sh && pip install "numpy<=1.21.3"
+	. ./activate_python.sh && python3 -m pip install numba
+else
+	. ./activate_python.sh && conda install -y numba
+endif
+	touch numba.done
+
+# NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
+# (Pytorch is not related to numba directly)
+pytorch.done: packaging.done numba.done
+ifeq ($(strip $(USE_CONDA)),)
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
-	# NOTE(kan-bayashi): Temporary fixed numpy version
-	. ./activate_python.sh && conda install -y "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
+	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
+	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	touch espnet.done
 
 chainer.done: espnet.done

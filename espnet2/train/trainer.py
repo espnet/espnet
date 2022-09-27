@@ -33,6 +33,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.utils.kwargs2args import kwargs2args
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -80,6 +81,7 @@ class TrainerOptions:
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
     wandb_model_log_interval: int
+    create_graph_in_tensorboard: bool
 
 
 class Trainer:
@@ -432,7 +434,7 @@ class Trainer:
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
                 logging.warning(
-                    f"The gradients at all steps are invalid in this epoch. "
+                    "The gradients at all steps are invalid in this epoch. "
                     f"Something seems wrong. This training was stopped at {iepoch}epoch"
                 )
                 break
@@ -481,6 +483,7 @@ class Trainer:
         no_forward_run = options.no_forward_run
         ngpu = options.ngpu
         use_wandb = options.use_wandb
+        create_graph_in_tensorboard = options.create_graph_in_tensorboard
         distributed = distributed_option.distributed
 
         if log_interval is None:
@@ -512,6 +515,41 @@ class Trainer:
             if no_forward_run:
                 all_steps_are_invalid = False
                 continue
+
+            if (
+                create_graph_in_tensorboard
+                and iiter == 1
+                and summary_writer is not None
+            ):
+                if distributed:
+                    _model = getattr(model, "module")
+                else:
+                    _model = model
+                    if _model is not None:
+                        try:
+                            _args = kwargs2args(_model.forward, batch)
+                        except (ValueError, TypeError):
+                            logging.warning(
+                                "inpect.signature() is failed for the model. "
+                                "The graph can't be added for tensorboard."
+                            )
+                        else:
+                            try:
+                                summary_writer.add_graph(
+                                    _model, _args, use_strict_trace=False
+                                )
+                            except Exception:
+                                logging.warning(
+                                    "summary_writer.add_graph() "
+                                    "is failed for the model. "
+                                    "The graph can't be added for tensorboard."
+                                )
+                            del _args
+                    else:
+                        logging.warning(
+                            "model.module is not found (This should be a bug.)"
+                        )
+                del _model
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"):

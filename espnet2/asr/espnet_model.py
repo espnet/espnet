@@ -14,7 +14,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
-from espnet2.asr.transducer.utils import get_transducer_task_io
+from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -558,3 +558,36 @@ class ESPnetASRModel(AbsESPnetModel):
             )
 
         return loss_transducer, cer_transducer, wer_transducer
+
+    def _calc_batch_ctc_loss(
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+    ):
+        if self.ctc is None:
+            return
+        assert text_lengths.dim() == 1, text_lengths.shape
+        # Check that batch_size is unified
+        assert (
+            speech.shape[0]
+            == speech_lengths.shape[0]
+            == text.shape[0]
+            == text_lengths.shape[0]
+        ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+
+        # for data-parallel
+        text = text[:, : text_lengths.max()]
+
+        # 1. Encoder
+        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        if isinstance(encoder_out, tuple):
+            encoder_out = encoder_out[0]
+
+        # Calc CTC loss
+        do_reduce = self.ctc.reduce
+        self.ctc.reduce = False
+        loss_ctc = self.ctc(encoder_out, encoder_out_lens, text, text_lengths)
+        self.ctc.reduce = do_reduce
+        return loss_ctc

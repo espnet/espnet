@@ -42,6 +42,9 @@ def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     if ref_spec[0].ndim < mix_spec.ndim:
         # (B, T, F) -> (B, T, 1, F)
         ref_spec = [r.unsqueeze(2).expand_as(mix_spec.real) for r in ref_spec]
+    if noise_spec is not None and noise_spec.ndim < mix_spec.ndim:
+        # (B, T, F) -> (B, T, 1, F)
+        noise_spec = noise_spec.unsqueeze(2).expand_as(mix_spec.real)
     for idx, r in enumerate(ref_spec):
         mask = None
         if mask_type == "IBM":
@@ -105,6 +108,38 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
     def mask_type() -> str:
         pass
 
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def only_for_test(self) -> bool:
+        return self._only_for_test
+
+    @property
+    def is_noise_loss(self) -> bool:
+        return self._is_noise_loss
+
+    @property
+    def is_dereverb_loss(self) -> bool:
+        return self._is_dereverb_loss
+
+    def __init__(
+        self, name, only_for_test=False, is_noise_loss=False, is_dereverb_loss=False
+    ):
+        super().__init__()
+        self._name = name
+        # only used during validation
+        self._only_for_test = only_for_test
+        # only used to calculate the noise-related loss
+        self._is_noise_loss = is_noise_loss
+        # only used to calculate the dereverberation-related loss
+        self._is_dereverb_loss = is_dereverb_loss
+        if is_noise_loss and is_dereverb_loss:
+            raise ValueError(
+                "`is_noise_loss` and `is_dereverb_loss` cannot be True at the same time"
+            )
+
     def create_mask_label(self, mix_spec, ref_spec, noise_spec=None):
         return _create_mask_label(
             mix_spec=mix_spec,
@@ -115,17 +150,30 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
 
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
-        super().__init__()
+    def __init__(
+        self,
+        compute_on_mask=False,
+        mask_type="IBM",
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
+        if name is not None:
+            _name = name
+        elif compute_on_mask:
+            _name = f"MSE_on_{mask_type}"
+        else:
+            _name = "MSE_on_Spec"
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
+
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
-
-        if name is not None:
-            self._name = name
-        elif self.compute_on_mask:
-            self._name = f"MSE_on_{self.mask_type}"
-        else:
-            self._name = "MSE_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -134,10 +182,6 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency MSE loss.
@@ -167,17 +211,30 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
 
 class FrequencyDomainL1(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
-        super().__init__()
+    def __init__(
+        self,
+        compute_on_mask=False,
+        mask_type="IBM",
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
+        if name is not None:
+            _name = name
+        elif compute_on_mask:
+            _name = f"L1_on_{mask_type}"
+        else:
+            _name = "L1_on_Spec"
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
+
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
-
-        if name is not None:
-            self._name = name
-        elif self.compute_on_mask:
-            self._name = f"L1_on_{self.mask_type}"
-        else:
-            self._name = "L1_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -186,10 +243,6 @@ class FrequencyDomainL1(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency L1 loss.
@@ -223,13 +276,25 @@ class FrequencyDomainL1(FrequencyDomainLoss):
 
 class FrequencyDomainDPCL(FrequencyDomainLoss):
     def __init__(
-        self, compute_on_mask=False, mask_type="IBM", loss_type="dpcl", name=None
+        self,
+        compute_on_mask=False,
+        mask_type="IBM",
+        loss_type="dpcl",
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
-        super().__init__()
+        _name = "dpcl" if name is None else name
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
         self._loss_type = loss_type
-        self._name = "dpcl" if name is None else name
 
     @property
     def compute_on_mask(self) -> bool:
@@ -238,10 +303,6 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency Deep Clustering loss.
@@ -320,12 +381,25 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
 
 
 class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
-        super().__init__()
+    def __init__(
+        self,
+        compute_on_mask=False,
+        mask_type=None,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
+        _name = "Coherence_on_Spec" if name is None else name
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
+
         self._compute_on_mask = False
         self._mask_type = None
-
-        self._name = "Coherence_on_Spec" if name is None else name
 
     @property
     def compute_on_mask(self) -> bool:
@@ -334,10 +408,6 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency absolute coherence loss.
@@ -374,17 +444,35 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
 
 
 class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
-        super().__init__()
-        self._compute_on_mask = False
-        self._mask_type = None
-
+    def __init__(
+        self,
+        compute_on_mask=False,
+        mask_type=None,
+        ignore_id=-100,
+        name=None,
+        only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
+    ):
         if name is not None:
-            self._name = name
-        elif self.compute_on_mask:
-            self._name = f"CE_on_{self.mask_type}"
+            _name = name
+        elif compute_on_mask:
+            _name = f"CE_on_{mask_type}"
         else:
-            self._name = "CE_on_Spec"
+            _name = "CE_on_Spec"
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
+
+        self._compute_on_mask = compute_on_mask
+        self._mask_type = mask_type
+        self.cross_entropy = torch.nn.CrossEntropyLoss(
+            ignore_index=ignore_id, reduction="none"
+        )
+        self.ignore_id = ignore_id
 
     @property
     def compute_on_mask(self) -> bool:
@@ -393,10 +481,6 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency cross-entropy loss.
@@ -413,13 +497,9 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
         )
 
         if ref.dim() == 2:
-            loss = torch.nn.functional.cross_entropy(
-                inf.permute(0, 2, 1), ref, reduction="none"
-            ).mean(dim=1)
+            loss = self.cross_entropy(inf.permute(0, 2, 1), ref).mean(dim=1)
         elif ref.dim() == 3:
-            loss = torch.nn.functional.cross_entropy(
-                inf.permute(0, 3, 1, 2), ref, reduction="none"
-            ).mean(dim=[1, 2])
+            loss = self.cross_entropy(inf.permute(0, 3, 1, 2), ref).mean(dim=[1, 2])
         else:
             raise ValueError(
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
@@ -427,11 +507,12 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
 
         with torch.no_grad():
             pred = inf.argmax(-1)
-            acc = (pred == ref).float()
+            mask = ref != self.ignore_id
+            numerator = (pred == ref).masked_fill(~mask, 0).float()
             if ref.dim() == 2:
-                acc = acc.mean(dim=1)
+                acc = numerator.sum(dim=1) / mask.sum(dim=1).float()
             elif ref.dim() == 3:
-                acc = acc.mean(dim=[1, 2])
+                acc = numerator.sum(dim=[1, 2]) / mask.sum(dim=[1, 2]).float()
             self.stats = {"acc": acc.cpu() * 100}
 
         return loss

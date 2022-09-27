@@ -166,6 +166,7 @@ class Speech2Text:
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
+                token_list=token_list,
                 **transducer_conf,
             )
             beam_search = None
@@ -249,6 +250,7 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.enh_s2t_task = enh_s2t_task
 
     @torch.no_grad()
     def __call__(
@@ -280,22 +282,59 @@ class Speech2Text:
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
+        logging.info("speech length: " + str(speech.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
-        if isinstance(enc, tuple):
-            enc = enc[0]
-        assert len(enc) == 1, len(enc)
+        if self.enh_s2t_task:
+            # Enh+ASR joint task
+            # NOTE (Wangyou): the return type in this case is List[default_return_type]
+            num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
+            assert len(enc) == num_spk, (len(enc), num_spk)
+            results = []
+            for spk, enc_spk in enumerate(enc, 1):
+                logging.info("=== [EnhASR] Speaker {} ===".format(spk))
+                if isinstance(enc_spk, tuple):
+                    enc_spk = enc_spk[0]
+                assert len(enc_spk) == 1, len(enc_spk)
 
-        # c. Passed the encoder result and the beam search
+                # c. Passed the encoder result and the beam search
+                ret = self._decode_single_sample(enc_spk[0])
+                assert check_return_type(ret)
+                results.append(ret)
+
+        else:
+
+            # Normal ASR
+            if isinstance(enc, tuple):
+                enc = enc[0]
+            assert len(enc) == 1, len(enc)
+
+            # c. Passed the encoder result and the beam search
+            results = self._decode_single_sample(enc[0])
+            assert check_return_type(results)
+
+        return results
+
+    def _decode_single_sample(self, enc: torch.Tensor):
         if self.beam_search_transducer:
-            nbest_hyps = self.beam_search_transducer(enc[0])
+            logging.info("encoder output length: " + str(enc.shape[0]))
+            nbest_hyps = self.beam_search_transducer(enc)
+
+            best = nbest_hyps[0]
+            logging.info(f"total log probability: {best.score:.2f}")
+            logging.info(
+                f"normalized log probability: {best.score / len(best.yseq):.2f}"
+            )
+            logging.info(
+                "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+            )
         else:
             nbest_hyps = self.beam_search(
-                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+                x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )
 
         nbest_hyps = nbest_hyps[: self.nbest]
@@ -323,7 +362,6 @@ class Speech2Text:
                 text = None
             results.append((text, token, token_int, hyp))
 
-        assert check_return_type(results)
         return results
 
     @staticmethod
@@ -477,20 +515,45 @@ def inference(
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
+                if enh_s2t_task:
+                    num_spk = getattr(speech2text.asr_model.enh_model, "num_spk", 1)
+                    results = [results for _ in range(num_spk)]
 
             # Only supporting batch_size==1
             key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
-                # Create a directory: outdir/{n}best_recog
-                ibest_writer = writer[f"{n}best_recog"]
+            if enh_s2t_task:
+                # Enh+ASR joint task
+                for spk, ret in enumerate(results, 1):
+                    for n, (text, token, token_int, hyp) in zip(
+                        range(1, nbest + 1), ret
+                    ):
+                        # Create a directory: outdir/{n}best_recog_spk?
+                        ibest_writer = writer[f"{n}best_recog_spk{spk}"]
 
-                # Write the result to each file
-                ibest_writer["token"][key] = " ".join(token)
-                ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                ibest_writer["score"][key] = str(hyp.score)
+                        # Write the result to each file
+                        ibest_writer["token"][key] = " ".join(token)
+                        ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                        ibest_writer["score"][key] = str(hyp.score)
 
-                if text is not None:
-                    ibest_writer["text"][key] = text
+                        if text is not None:
+                            ibest_writer["text"][key] = text
+
+            else:
+
+                # Normal ASR
+                for n, (text, token, token_int, hyp) in zip(
+                    range(1, nbest + 1), results
+                ):
+                    # Create a directory: outdir/{n}best_recog
+                    ibest_writer = writer[f"{n}best_recog"]
+
+                    # Write the result to each file
+                    ibest_writer["token"][key] = " ".join(token)
+                    ibest_writer["token_int"][key] = " ".join(map(str, token_int))
+                    ibest_writer["score"][key] = str(hyp.score)
+
+                    if text is not None:
+                        ibest_writer["text"][key] = text
 
 
 def get_parser():
