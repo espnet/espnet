@@ -112,7 +112,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
-GOOGLEI18N=downloads
+GOOGLEI18N=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -141,6 +141,9 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+MLS=downloads
+VOXFORGE=downloads
+VOXPOPULI=downloads
 HARPERVALLEY=downloads
 
 # For only CMU TIR environment
