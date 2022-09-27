@@ -27,9 +27,6 @@ asr_align.py
 
 .. code-block:: none
 
-    The cache for model files in Transformers v4.22.0 has been updated. Migrating your old cache. This is a one-time only operation. You can interrupt this and resume the migration later on by calling `transformers.utils.move_cache()`.
-    Moving 0 files to the new cache system
-    0it [00:00, ?it/s]0it [00:00, ?it/s]
     [nltk_data] Downloading package averaged_perceptron_tagger to
     [nltk_data]     /home/runner/nltk_data...
     [nltk_data]   Unzipping taggers/averaged_perceptron_tagger.zip.
