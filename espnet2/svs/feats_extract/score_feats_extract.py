@@ -113,12 +113,14 @@ class FrameScoreFeats(AbsFeatsExtract):
 
     def forward(
         self,
-        durations: Optional[torch.Tensor] = None,
-        durations_lengths: Optional[torch.Tensor] = None,
-        score: Optional[torch.Tensor] = None,
-        score_lengths: Optional[torch.Tensor] = None,
+        label: Optional[torch.Tensor] = None,
+        label_lengths: Optional[torch.Tensor] = None,
+        midi: Optional[torch.Tensor] = None,
+        midi_lengths: Optional[torch.Tensor] = None,
         tempo: Optional[torch.Tensor] = None,
         tempo_lengths: Optional[torch.Tensor] = None,
+        beat: Optional[torch.Tensor] = None,
+        beat_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -130,28 +132,29 @@ class FrameScoreFeats(AbsFeatsExtract):
         """FrameScoreFeats forward function.
 
         Args:
-            durations: (Batch, Nsamples)
-            durations_lengths: (Batch)
-            score: (Batch, Nsamples)
-            score_lengths: (Batch)
+            label: (Batch, Nsamples)
+            label_lengths: (Batch)
+            midi: (Batch, Nsamples)
+            midi_lengths: (Batch)
             tempo: (Batch, Nsamples)
             tempo_lengths: (Batch)
 
         Returns:
             output: (Batch, Frames)
         """
-        durations, durations_lengths = self.label_aggregate(
-            durations, durations_lengths
-        )
-        score, score_lengths = self.label_aggregate(score, score_lengths)
+        label, label_lengths = self.label_aggregate(label, label_lengths)
+        midi, midi_lengths = self.label_aggregate(midi, midi_lengths)
         tempo, tempo_lengths = self.label_aggregate(tempo, tempo_lengths)
+        beat, beat_lengths = self.label_aggregate(beat, beat_lengths)
         return (
-            durations,
-            durations_lengths,
-            score,
-            score_lengths,
+            label,
+            label_lengths,
+            midi,
+            midi_lengths,
             tempo,
             tempo_lengths,
+            beat,
+            beat_lengths,
         )
 
 
@@ -197,53 +200,62 @@ class SyllableScoreFeats(AbsFeatsExtract):
 
     def get_segments(
         self,
-        durations: Optional[torch.Tensor] = None,
-        durations_lengths: Optional[torch.Tensor] = None,
-        score: Optional[torch.Tensor] = None,
-        score_lengths: Optional[torch.Tensor] = None,
+        label: Optional[torch.Tensor] = None,
+        label_lengths: Optional[torch.Tensor] = None,
+        midi: Optional[torch.Tensor] = None,
+        midi_lengths: Optional[torch.Tensor] = None,
         tempo: Optional[torch.Tensor] = None,
         tempo_lengths: Optional[torch.Tensor] = None,
+        beat: Optional[torch.Tensor] = None,
+        beat_lengths: Optional[torch.Tensor] = None,
     ):
         seq = [0]
-        for i in range(durations_lengths):
-            if durations[seq[-1]] != durations[i]:
+        for i in range(label_lengths):
+            if label[seq[-1]] != label[i]:
                 seq.append(i)
-        seq.append(durations_lengths.item())
+        seq.append(label_lengths.item())
 
         seq.append(0)
-        for i in range(score_lengths):
-            if score[seq[-1]] != score[i]:
+        for i in range(midi_lengths):
+            if midi[seq[-1]] != midi[i]:
                 seq.append(i)
-        seq.append(score_lengths.item())
+        seq.append(midi_lengths.item())
         seq = list(set(seq))
         seq.sort()
 
         lengths = len(seq) - 1
-        seg_duartion = []
-        seg_score = []
+        seg_label = []
+        seg_midi = []
         seg_tempo = []
+        seg_beat = []
         for i in range(lengths):
             l, r = seq[i], seq[i + 1]
 
-            tmp_duartion = durations[l:r][(r - l) // 2]
-            tmp_score = score[l:r][(r - l) // 2]
+            tmp_label = label[l:r][(r - l) // 2]
+            tmp_midi = midi[l:r][(r - l) // 2]
             tmp_tempo = tempo[l:r][(r - l) // 2]
+            tmp_beat = beat[l:r][(r - l) // 2]
 
-            seg_duartion.append(tmp_duartion.item())
-            seg_score.append(tmp_score.item())
+            seg_label.append(tmp_label.item())
+            seg_midi.append(tmp_midi.item())
             seg_tempo.append(tmp_tempo.item())
+            seg_beat.append(tmp_beat.item())
 
-        return seg_duartion, lengths, seg_score, lengths, seg_tempo, lengths
+        return seg_label, lengths, seg_midi, lengths, seg_tempo, lengths, seg_beat, lengths
 
     def forward(
         self,
-        durations: Optional[torch.Tensor] = None,
-        durations_lengths: Optional[torch.Tensor] = None,
-        score: Optional[torch.Tensor] = None,
-        score_lengths: Optional[torch.Tensor] = None,
+        label: Optional[torch.Tensor] = None,
+        label_lengths: Optional[torch.Tensor] = None,
+        midi: Optional[torch.Tensor] = None,
+        midi_lengths: Optional[torch.Tensor] = None,
         tempo: Optional[torch.Tensor] = None,
         tempo_lengths: Optional[torch.Tensor] = None,
+        beat: Optional[torch.Tensor] = None,
+        beat_lengths: Optional[torch.Tensor] = None,
     ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
         torch.Tensor,
         torch.Tensor,
         torch.Tensor,
@@ -254,59 +266,72 @@ class SyllableScoreFeats(AbsFeatsExtract):
         """SyllableScoreFeats forward function.
 
         Args:
-            durations: (Batch, Nsamples)
-            durations_lengths: (Batch)
-            score: (Batch, Nsamples)
-            score_lengths: (Batch)
+            label: (Batch, Nsamples)
+            label_lengths: (Batch)
+            midi: (Batch, Nsamples)
+            midi_lengths: (Batch)
             tempo: (Batch, Nsamples)
             tempo_lengths: (Batch)
+            beat: (Batch, Nsamples)
+            beat_lengths: (Batch)
+            
 
         Returns:
             output: (Batch, Frames)
         """
-        assert durations.shape == score.shape and score.shape == tempo.shape
+        assert label.shape == midi.shape and midi.shape == tempo.shape and tempo.shape == beat.shape
         assert (
-            durations_lengths.shape == score_lengths.shape
-            and score_lengths.shape == tempo_lengths.shape
+            label_lengths.shape == midi_lengths.shape
+            and midi_lengths.shape == tempo_lengths.shape
+            and tempo_lengths.shape == beat_lengths.shape
         )
 
-        bs = durations.size(0)
-        seg_durations, seg_durations_lengths = [], []
-        seg_score, seg_score_lengths = [], []
+        bs = label.size(0)
+        seg_label, seg_label_lengths = [], []
+        seg_midi, seg_midi_lengths = [], []
         seg_tempo, seg_tempo_lengths = [], []
+        seg_beat, seg_beat_lengths = [], []
 
         for i in range(bs):
             seg = self.get_segments(
-                durations=durations[i],
-                durations_lengths=durations_lengths[i],
-                score=score[i],
-                score_lengths=score_lengths[i],
+                label=label[i],
+                label_lengths=label_lengths[i],
+                midi=midi[i],
+                midi_lengths=midi_lengths[i],
                 tempo=tempo[i],
                 tempo_lengths=tempo_lengths[i],
+                beat=beat[i],
+                beat_lengths=beat_lengths[i],
             )
-            seg_durations.append(seg[0])
-            seg_durations_lengths.append(seg[1])
-            seg_score.append(seg[2])
-            seg_score_lengths.append(seg[3])
+            seg_label.append(seg[0])
+            seg_label_lengths.append(seg[1])
+            seg_midi.append(seg[2])
+            seg_midi_lengths.append(seg[3])
             seg_tempo.append(seg[4])
             seg_tempo_lengths.append(seg[5])
+            seg_beat.append(seg[6])
+            seg_beat_lengths.append(seg[7])
 
-        seg_durations = torch.LongTensor(ListsToTensor(seg_durations)).to(
-            durations.device
+        seg_label = torch.LongTensor(ListsToTensor(seg_label)).to(
+            label.device
         )
-        seg_durations_lengths = torch.LongTensor(seg_durations_lengths).to(
-            durations.device
+        seg_label_lengths = torch.LongTensor(seg_label_lengths).to(
+            label.device
         )
-        seg_score = torch.LongTensor(ListsToTensor(seg_score)).to(durations.device)
-        seg_score_lengths = torch.LongTensor(seg_score_lengths).to(durations.device)
-        seg_tempo = torch.LongTensor(ListsToTensor(seg_tempo)).to(durations.device)
-        seg_tempo_lengths = torch.LongTensor(seg_tempo_lengths).to(durations.device)
+        seg_midi = torch.LongTensor(ListsToTensor(seg_midi)).to(label.device)
+        seg_midi_lengths = torch.LongTensor(seg_midi_lengths).to(label.device)
+        seg_tempo = torch.LongTensor(ListsToTensor(seg_tempo)).to(label.device)
+        seg_tempo_lengths = torch.LongTensor(seg_tempo_lengths).to(label.device)
+        seg_beat = torch.LongTensor(ListsToTensor(seg_beat)).to(label.device)
+        seg_beat_lengths = torch.LongTensor(seg_beat_lengths).to(label.device)
 
         return (
-            seg_durations,
-            seg_durations_lengths,
-            seg_score,
-            seg_score_lengths,
+            seg_label,
+            seg_label_lengths,
+            seg_midi,
+            seg_midi_lengths,
             seg_tempo,
             seg_tempo_lengths,
+            seg_beat,
+            seg_beat_lengths,
         )

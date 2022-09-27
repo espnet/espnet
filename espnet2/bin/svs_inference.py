@@ -23,6 +23,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
+from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 # from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
@@ -94,11 +95,16 @@ class SingingGenerate:
     def __call__(
         self,
         text: torch.Tensor,
-        score: Optional[torch.Tensor],
-        durations: Union[torch.Tensor, np.ndarray] = None,
         singing: torch.Tensor = None,
+        label_lab: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
-        tempo: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Optional[torch.Tensor] = None,
@@ -117,14 +123,25 @@ class SingingGenerate:
 
         batch = dict(
             text=text,
-            score=score,
         )
-        if durations is not None:
-            batch.update(durations=durations)
+        if label_lab is not None:
+            batch.update(label_lab=label_lab)
+        if label_xml is not None:
+            batch.update(label_xml=label_xml)
+        if midi_lab is not None:
+            batch.update(midi_lab=midi_lab)
+        if midi_xml is not None:
+            batch.update(midi_xml=midi_xml)
         if pitch is not None:
             batch.update(pitch=pitch)
-        if tempo is not None:
-            batch.update(tempo=tempo)
+        if tempo_lab is not None:
+            batch.update(tempo_lab=tempo_lab)
+        if tempo_xml is not None:
+            batch.update(tempo_xml=tempo_xml)
+        if beat_lab is not None:
+            batch.update(beat_lab=beat_lab)
+        if beat_xml is not None:
+            batch.update(beat_xml=beat_xml)
         if energy is not None:
             batch.update(energy=energy)
         if spembs is not None:

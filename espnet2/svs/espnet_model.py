@@ -40,9 +40,10 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_extract: Optional[AbsFeatsExtract],
         feats_extract: Optional[AbsFeatsExtract],
         score_feats_extract: Optional[AbsFeatsExtract],
-        durations_extract: Optional[AbsFeatsExtract],
+        label_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
         tempo_extract: Optional[AbsFeatsExtract],
+        beat_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
@@ -55,9 +56,10 @@ class ESPnetSVSModel(AbsESPnetModel):
         self.text_extract = text_extract
         self.feats_extract = feats_extract
         self.score_feats_extract = score_feats_extract
-        self.durations_extract = durations_extract
+        self.label_extract = label_extract
         self.pitch_extract = pitch_extract
         self.tempo_extract = tempo_extract
+        self.beat_extract = beat_extract
         self.energy_extract = energy_extract
         self.normalize = normalize
         self.pitch_normalize = pitch_normalize
@@ -70,14 +72,24 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        durations: Optional[torch.Tensor] = None,
-        durations_lengths: Optional[torch.Tensor] = None,
-        score: Optional[torch.Tensor] = None,
-        score_lengths: Optional[torch.Tensor] = None,
+        label_lab: Optional[torch.Tensor] = None,
+        label_lab_lengths: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        label_xml_lengths: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        midi_lab_lengths: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        midi_xml_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
-        tempo: Optional[torch.Tensor] = None,
-        tempo_lengths: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        tempo_lab_lengths: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        tempo_xml_lengths: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        beat_lab_lengths: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
+        beat_xml_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -87,23 +99,37 @@ class ESPnetSVSModel(AbsESPnetModel):
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Caclualte outputs and return the loss tensor.
+
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Tensor]): Duration tensor. - phone id sequence
-            duration_lengths (Optional[Tensor]): Duration length tensor (B,).
-            score (Optional[Tensor]): Duration tensor.
-            score_lengths (Optional[Tensor]): Duration length tensor (B,).
+            label_lab (Optional[Tensor]): Label tensor. - phone id sequence
+            label_lab_lengths (Optional[Tensor]): Label length tensor (B,).
+            label_xml (Optional[Tensor]): Label tensor. - phone id sequence
+            label_xml_lengths (Optional[Tensor]): Label length tensor (B,).
+            midi_lab (Optional[Tensor]): Midi tensor.
+            midi_lab_lengths (Optional[Tensor]): Midi length tensor (B,).
+            midi_xml (Optional[Tensor]): Midi tensor.
+            midi_xml_lengths (Optional[Tensor]): Midi length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor.
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
+            tempo_lab (Optional[Tensor]): Tempo tensor.
+            tempo_lab_lengths (Optional[Tensor]): Tempo length tensor (B,).
+            tempo_xml (Optional[Tensor]): Tempo tensor.
+            tempo_xml_lengths (Optional[Tensor]): Tempo length tensor (B,).
+            beat_lab (Optional[Tensor]): Beat tensor.
+            beat_lab_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_xml (Optional[Tensor]): Beat tensor.
+            beat_xml_lengths (Optional[Tensor]): Beat length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             kwargs: "utt_id" is among the input.
+        
         Returns:
             Tensor: Loss scalar tensor.
             Dict[str, float]: Statistics to be monitored.
@@ -127,22 +153,25 @@ class ESPnetSVSModel(AbsESPnetModel):
             ds = None
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
-                    label,
-                    label_lengths,
-                    score,
-                    score_lengths,
-                    tempo,
-                    tempo_lengths,
+                    label_lab_after,
+                    label_lab_lengths_after,
+                    midi_lab_after,
+                    midi_lab_lengths_after,
+                    tempo_lab_after,
+                    tempo_lab_lengths_after,
+                    beat_lab_after,
+                    beat_lab_lengths_after,
                 ) = self.score_feats_extract(
-                    durations=durations.unsqueeze(-1),
-                    durations_lengths=durations_lengths,
-                    score=score.unsqueeze(-1),
-                    score_lengths=score_lengths,
-                    tempo=tempo.unsqueeze(-1),
-                    tempo_lengths=tempo_lengths,
+                    label=label_lab.unsqueeze(-1),
+                    label_lengths=label_lab_lengths,
+                    midi=midi_lab.unsqueeze(-1),
+                    midi_lengths=midi_lab_lengths,
+                    tempo=tempo_lab.unsqueeze(-1),
+                    tempo_lengths=tempo_lab_lengths,
+                    beat=beat_lab.unsqueeze(-1),
+                    beat_lengths=beat_lab_lengths,
                 )
-
-                label = label[:, : label_lengths.max()]  # for data-parallel
+                label_lab_after = label_lab_after[:, : label_lab_lengths_after.max()]  # for data-parallel
 
                 # calculate durations, new text & text_length
                 # Syllable Level duration info needs phone
@@ -155,8 +184,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                 _text_cal = []
                 _text_length_cal = []
                 ds = []
-                for i, _ in enumerate(label_lengths):
-                    _phone = label[i, : label_lengths[i]]
+                for i, _ in enumerate(label_lab_lengths_after):
+                    _phone = label_lab_after[i, : label_lab_lengths_after[i]]
 
                     _output, counts = torch.unique_consecutive(
                         _phone, return_counts=True
@@ -171,6 +200,26 @@ class ESPnetSVSModel(AbsESPnetModel):
                 )
                 text_lengths = torch.tensor(_text_length_cal).to(text.device)
 
+                (
+                    label_xml_after,
+                    label_xml_lengths_after,
+                    midi_xml_after,
+                    midi_xml_lengths_after,
+                    tempo_xml_after,
+                    tempo_xml_lengths_after,
+                    beat_xml_after,
+                    beat_xml_lengths_after,
+                ) = self.score_feats_extract(
+                    label=label_xml.unsqueeze(-1),
+                    label_lengths=label_xml_lengths,
+                    midi=midi_xml.unsqueeze(-1),
+                    midi_lengths=midi_xml_lengths,
+                    tempo=tempo_xml.unsqueeze(-1),
+                    tempo_lengths=tempo_xml_lengths,
+                    beat=beat_xml.unsqueeze(-1),
+                    beat_lengths=beat_xml_lengths,
+                )
+
             elif isinstance(self.score_feats_extract, SyllableScoreFeats):
                 extractMethod_frame = FrameScoreFeats(
                     fs=self.score_feats_extract.fs,
@@ -182,55 +231,111 @@ class ESPnetSVSModel(AbsESPnetModel):
                 )
 
                 (
-                    labelFrame,
-                    labelFrame_lengths,
-                    scoreFrame,
-                    scoreFrame_lengths,
-                    tempoFrame,
-                    tempoFrame_lengths,
+                    labelFrame_lab,
+                    labelFrame_lab_lengths,
+                    midiFrame_lab,
+                    midiFrame_lab_lengths,
+                    tempoFrame_lab,
+                    tempoFrame_lab_lengths,
+                    beatFrame_lab,
+                    beatFrame_lab_lengths,
                 ) = extractMethod_frame(
-                    durations=durations.unsqueeze(-1),
-                    durations_lengths=durations_lengths,
-                    score=score.unsqueeze(-1),
-                    score_lengths=score_lengths,
-                    tempo=tempo.unsqueeze(-1),
-                    tempo_lengths=tempo_lengths,
+                    label=label_lab.unsqueeze(-1),
+                    label_lengths=label_lab_lengths,
+                    midi=midi_lab.unsqueeze(-1),
+                    midi_lengths=midi_lab_lengths,
+                    tempo=tempo_lab.unsqueeze(-1),
+                    tempo_lengths=tempo_lab_lengths,
+                    beat=beat_lab.unsqueeze(-1),
+                    beat_lengths=beat_lab_lengths,
                 )
 
-                labelFrame = labelFrame[
-                    :, : labelFrame_lengths.max()
+                labelFrame_lab = labelFrame_lab[
+                    :, : labelFrame_lab_lengths.max()
                 ]  # for data-parallel
-                scoreFrame = scoreFrame[
-                    :, : scoreFrame_lengths.max()
+                midiFrame_lab = midiFrame_lab[
+                    :, : midiFrame_lab_lengths.max()
                 ]  # for data-parallel
 
-                # Extract Syllable Level label, score, tempo information from Frame Level
+                # Extract Syllable Level label, midi, tempo, beat information from Frame Level
                 (
-                    label,
-                    label_lengths,
-                    score,
-                    score_lengths,
-                    tempo,
-                    tempo_lengths,
+                    label_lab_after,
+                    label_lab_lengths_after,
+                    midi_lab_after,
+                    midi_lab_lengths_after,
+                    tempo_lab_after,
+                    tempo_lab_lengths_after,
+                    beat_lab_after,
+                    beat_lab_lengths_after,
                 ) = self.score_feats_extract(
-                    durations=labelFrame,
-                    durations_lengths=labelFrame_lengths,
-                    score=scoreFrame,
-                    score_lengths=scoreFrame_lengths,
-                    tempo=tempoFrame,
-                    tempo_lengths=tempoFrame_lengths,
+                    label=labelFrame_lab,
+                    label_lengths=labelFrame_lab_lengths,
+                    midi=midiFrame_lab,
+                    midi_lengths=midiFrame_lab_lengths,
+                    tempo=tempoFrame_lab,
+                    tempo_lengths=tempoFrame_lab_lengths,
+                    beat=beatFrame_lab,
+                    beat_lengths=beatFrame_lab_lengths,
+                )
+
+                (
+                    labelFrame_xml,
+                    labelFrame_xml_lengths,
+                    midiFrame_xml,
+                    midiFrame_xml_lengths,
+                    tempoFrame_xml,
+                    tempoFrame_xml_lengths,
+                    beatFrame_xml,
+                    beatFrame_xml_lengths,
+                ) = extractMethod_frame(
+                    label=label_xml.unsqueeze(-1),
+                    label_lengths=label_xml_lengths,
+                    midi=midi_xml.unsqueeze(-1),
+                    midi_lengths=midi_xml_lengths,
+                    tempo=tempo_xml.unsqueeze(-1),
+                    tempo_lengths=tempo_xml_lengths,
+                    beat=beat_xml.unsqueeze(-1),
+                    beat_lengths=beat_xml_lengths,
+                )
+
+                labelFrame_xml = labelFrame_xml[
+                    :, : labelFrame_xml_lengths.max()
+                ]  # for data-parallel
+                midiFrame_xml = midiFrame_xml[
+                    :, : midiFrame_xml_lengths.max()
+                ]  # for data-parallel
+                
+                # Extract Syllable Level label, midi, tempo, beat information from Frame Level
+                (
+                    label_xml_after,
+                    label_xml_lengths_after,
+                    midi_xml_after,
+                    midi_xml_lengths_after,
+                    tempo_xml_after,
+                    tempo_xml_lengths_after,
+                    beat_xml_after,
+                    beat_xml_lengths_after,
+                ) = self.score_feats_extract(
+                    label=labelFrame_xml,
+                    label_lengths=labelFrame_xml_lengths,
+                    midi=midiFrame_xml,
+                    midi_lengths=midiFrame_xml_lengths,
+                    tempo=tempoFrame_xml,
+                    tempo_lengths=tempoFrame_xml_lengths,
+                    beat=beatFrame_xml,
+                    beat_lengths=beatFrame_xml_lengths,
                 )
 
                 # calculate durations, represent syllable encoder outputs to feats mapping
                 # Syllable Level duration info needs phone & midi
                 ds = []
-                for i, _ in enumerate(labelFrame_lengths):
-                    assert labelFrame_lengths[i] == scoreFrame_lengths[i]
-                    assert label_lengths[i] == score_lengths[i]
+                for i, _ in enumerate(labelFrame_lab_lengths):
+                    assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
+                    assert label_lab_lengths[i] == midi_lab_lengths[i]
 
-                    frame_length = labelFrame_lengths[i]
-                    _phoneFrame = labelFrame[i, :frame_length]
-                    _midiFrame = scoreFrame[i, :frame_length]
+                    frame_length = labelFrame_lab_lengths[i]
+                    _phoneFrame = labelFrame_lab[i, :frame_length]
+                    _midiFrame = midiFrame_lab[i, :frame_length]
 
                     # Clean _phoneFrame & _midiFrame
                     for index in range(frame_length):
@@ -238,9 +343,9 @@ class ESPnetSVSModel(AbsESPnetModel):
                             frame_length -= 1
                             feats_lengths[i] -= 1
 
-                    syllable_length = label_lengths[i]
-                    _phoneSyllable = label[i, :syllable_length]
-                    _midiSyllable = score[i, :syllable_length]
+                    syllable_length = label_lab_lengths_after[i]
+                    _phoneSyllable = label_lab_after[i, :syllable_length]
+                    _midiSyllable = midi_lab_after[i, :syllable_length]
 
                     start_index = 0
                     ds_tmp = []
@@ -250,14 +355,43 @@ class ESPnetSVSModel(AbsESPnetModel):
                         _findMidi = _midiSyllable[index]
                         _length = 0
                         if flag_finish == 1:
+                        # Remove unused note(label = 0, midi = 0)
+                            for xml_index in range(index, label_xml_lengths_after[i]):
+                                assert label_xml_after[i][xml_index] == 0
+                                assert midi_xml_after[i][xml_index] == 0
+                                tempo_xml_after[i][xml_index] = 0
+                                beat_xml_after[i][xml_index] = 0
                             # Fix error in _phoneSyllable & _midiSyllable
-                            label[i, index] = 0
-                            score[i, index] = 0
-                            tempo[i, index] = 0
-                            label_lengths[i] -= 1
-                            score_lengths[i] -= 1
-                            tempo_lengths[i] -= 1
+                            assert label_lab_after[i, index] == 0
+                            assert midi_lab_after[i, index] == 0
+                            tempo_lab_after[i, index] = 0
+                            beat_lab_after[i, index] = 0
+                            label_lab_lengths_after[i] -= 1
+                            midi_lab_lengths_after[i] -= 1
+                            tempo_lab_lengths_after[i] -= 1
+                            beat_lab_lengths_after[i] -= 1
+                            label_xml_lengths_after[i] = label_lab_lengths_after[i]
+                            midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
+                            tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
+                            beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
                         else:
+                            if _findPhone != label_xml_after[i][index] or _findMidi != midi_xml_after[i][index]:
+                                for xml_start in range(index + 1, label_xml_lengths_after[i] - 1):
+                                    if _findPhone == label_xml_after[i][xml_start] and _findMidi == midi_xml_after[i][xml_start]:
+                                        delta = xml_start - index
+                                        for xml_index in range(index, label_xml_lengths_after[i] - delta):
+                                            label_xml_after[i][xml_index] = label_xml_after[i][xml_index + delta]
+                                            midi_xml_after[i][xml_index] = midi_xml_after[i][xml_index + delta]
+                                            tempo_xml_after[i][xml_index] = tempo_xml_after[i][xml_index + delta]
+                                            beat_xml_after[i][xml_index] = beat_xml_after[i][xml_index + delta]
+                                        for xml_index in range(label_xml_lengths_after[i] - delta, label_xml_lengths_after[i]):
+                                            label_xml_after[i][xml_index] = 0
+                                            midi_xml_after[i][xml_index] = 0
+                                            tempo_xml_after[i][xml_index] = 0
+                                            beat_xml_after[i][xml_index] = 0
+                                        break
+                                assert _findPhone == label_xml_after[i][index]
+                                assert _findMidi == midi_xml_after[i][index]
                             for indexFrame in range(start_index, frame_length):
                                 if (
                                     _phoneFrame[indexFrame] == _findPhone
@@ -272,15 +406,26 @@ class ESPnetSVSModel(AbsESPnetModel):
                                     flag_finish = 1
                                     ds_tmp.append(_length)
                                     start_index = indexFrame
+                                    if syllable_length < label_xml_lengths_after[i]:
+                                        for xml_index in range(syllable_length, label_xml_lengths_after[i]):
+                                            assert label_xml_after[i][xml_index] == 0
+                                            assert midi_xml_after[i][xml_index] == 0
+                                            tempo_xml_after[i][xml_index] == 0
+                                            beat_xml_after[i][xml_index] == 0
+                                        label_xml_lengths_after[i] = label_lab_lengths_after[i]
+                                        midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
+                                        tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
+                                        beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
                                     break
-
                     assert (
                         sum(ds_tmp) == frame_length and sum(ds_tmp) == feats_lengths[i]
                     )
 
                     ds.append(torch.tensor(ds_tmp))
-                ds = pad_list(ds, pad_value=0).to(label.device)
+                ds = pad_list(ds, pad_value=0).to(label_lab_after.device)
 
+                
+            #
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
                     input=singing,
@@ -293,8 +438,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                     singing,
                     singing_lengths,
                     feats_lengths=feats_lengths,
-                    durations=durations,
-                    durations_lengths=durations_lengths,
+                    durations=label_lab,
+                    durations_lengths=label_lab_lengths,
                 )
 
             # Normalize
@@ -320,15 +465,30 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
-        if label is not None:
-            label = label.to(dtype=torch.long)
-            batch.update(label=label, label_lengths=label_lengths)
-        if score is not None and pitch is None:
-            score = score.to(dtype=torch.long)
-            batch.update(midi=score, midi_lengths=score_lengths)
-        if tempo is not None:
-            tempo = tempo.to(dtype=torch.long)
-            batch.update(tempo=tempo, tempo_lengths=tempo_lengths)
+        if midi_lab_after is not None and pitch is None:
+            midi_lab = midi_lab_after.to(dtype=torch.long)
+            batch.update(midi_lab=midi_lab, midi_lab_lengths=midi_lab_lengths_after)
+        if midi_xml_after is not None and pitch is None:
+            midi_xml = midi_xml_after.to(dtype=torch.long)
+            batch.update(midi_xml=midi_xml, midi_xml_lengths=midi_xml_lengths_after)
+        if label_lab_after is not None:
+            label_lab = label_lab_after.to(dtype=torch.long)
+            batch.update(label_lab=label_lab, label_lab_lengths=label_lab_lengths_after)
+        if label_xml_after is not None:
+            label_xml = label_xml_after.to(dtype=torch.long)
+            batch.update(label_xml=label_xml, label_xml_lengths=label_xml_lengths_after)
+        if tempo_lab_after is not None:
+            tempo_lab = tempo_lab_after.to(dtype=torch.long)
+            batch.update(tempo_lab=tempo_lab, tempo_lab_lengths=tempo_lab_lengths_after)
+        if tempo_xml_after is not None:
+            tempo_xml = tempo_xml_after.to(dtype=torch.long)
+            batch.update(tempo_xml=tempo_xml, tempo_xml_lengths=tempo_xml_lengths_after)
+        if beat_lab_after is not None:
+            beat_lab = beat_lab_after.to(dtype=torch.long)
+            batch.update(beat_lab=beat_lab, beat_lab_lengths=beat_lab_lengths_after)
+        if beat_xml_after is not None:
+            beat_xml = beat_xml_after.to(dtype=torch.long)
+            batch.update(beat_xml=beat_xml, beat_xml_lengths=beat_xml_lengths_after)
         if ds is not None:
             batch.update(ds=ds)
         if self.pitch_extract is not None and pitch is not None:
@@ -345,14 +505,24 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        durations: Optional[torch.Tensor] = None,
-        durations_lengths: Optional[torch.Tensor] = None,
-        score: Optional[torch.Tensor] = None,
-        score_lengths: Optional[torch.Tensor] = None,
+        label_lab: Optional[torch.Tensor] = None,
+        label_lab_lengths: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        label_xml_lengths: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        midi_lab_lengths: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        midi_xml_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
-        tempo: Optional[torch.Tensor] = None,
-        tempo_lengths: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        tempo_lab_lengths: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        tempo_xml_lengths: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        beat_lab_lengths: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
+        beat_xml_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -367,14 +537,24 @@ class ESPnetSVSModel(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            durations (Optional[Tensor): Duration tensor.
-            durations_lengths (Optional[Tensor): Duration length tensor (B,).
-            score (Optional[Tensor): Duration tensor.
-            score_lengths (Optional[Tensor): Duration length tensor (B,).
-            pitch (Optional[Tensor): Pitch tensor.
-            pitch_lengths (Optional[Tensor): Pitch length tensor (B,).
-            tempo (Optional[Tensor): Tempo tensor.
-            tempo_lengths (Optional[Tensor): Tempo length tensor (B,).
+            label_lab (Optional[Tensor]): Label tensor. - phone id sequence
+            label_lab_lengths (Optional[Tensor]): Label length tensor (B,).
+            label_xml (Optional[Tensor]): Label tensor. - phone id sequence
+            label_xml_lengths (Optional[Tensor]): Label length tensor (B,).
+            midi_lab (Optional[Tensor]): Midi tensor.
+            midi_lab_lengths (Optional[Tensor]): Midi length tensor (B,).
+            midi_xml (Optional[Tensor]): Midi tensor.
+            midi_xml_lengths (Optional[Tensor]): Midi length tensor (B,).
+            pitch (Optional[Tensor]): Pitch tensor.
+            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
+            tempo_lab (Optional[Tensor]): Tempo tensor.
+            tempo_lab_lengths (Optional[Tensor]): Tempo length tensor (B,).
+            tempo_xml (Optional[Tensor]): Tempo tensor.
+            tempo_xml_lengths (Optional[Tensor]): Tempo length tensor (B,).
+            beat_lab (Optional[Tensor]): Beat tensor.
+            beat_lab_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_xml (Optional[Tensor]): Beat tensor.
+            beat_xml_lengths (Optional[Tensor]): Beat length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
@@ -389,22 +569,47 @@ class ESPnetSVSModel(AbsESPnetModel):
         else:
             # Use precalculated feats (feats_type != raw case)
             feats, feats_lengths = singing, singing_lengths
+    
         if self.score_feats_extract is not None:
             (
-                durations,
-                durations_lengths,
-                score,
-                score_lengths,
-                tempo,
-                tempo_lengths,
+                label_lab_after,
+                label_lab_lengths_after,
+                midi_lab_after,
+                midi_lab_lengths_after,
+                tempo_lab_after,
+                tempo_lab_lengths_after,
+                beat_lab_after,
+                beat_lab_lengths_after,
             ) = self.score_feats_extract(
-                durations=durations.unsqueeze(-1),
-                durations_lengths=durations_lengths,
-                score=score.unsqueeze(-1),
-                score_lengths=score_lengths,
-                tempo=tempo.unsqueeze(-1),
-                tempo_lengths=tempo_lengths,
+                label=label_lab.unsqueeze(-1),
+                label_lengths=label_lab_lengths,
+                midi=midi_lab.unsqueeze(-1),
+                midi_lengths=midi_lab_lengths,
+                tempo=tempo_lab.unsqueeze(-1),
+                tempo_lengths=tempo_lab_lengths,
+                beat=beat_lab.unsqueeze(-1),
+                beat_lengths=beat_lab_lengths,
             )
+            (
+                label_xml_after,
+                label_xml_lengths_after,
+                midi_xml_after,
+                midi_xml_lengths_after,
+                tempo_xml_after,
+                tempo_xml_lengths_after,
+                beat_xml_after,
+                beat_xml_lengths_after,
+            ) = self.score_feats_extract(
+                label=label_xml.unsqueeze(-1),
+                label_lengths=label_xml_lengths,
+                midi=midi_xml.unsqueeze(-1),
+                midi_lengths=midi_xml_lengths,
+                tempo=tempo_xml.unsqueeze(-1),
+                tempo_lengths=tempo_xml_lengths,
+                beat=beat_xml.unsqueeze(-1),
+                beat_lengths=beat_xml_lengths,
+            )
+
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 input=pitch.unsqueeze(-1),
@@ -415,8 +620,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                 singing,
                 singing_lengths,
                 feats_lengths=feats_lengths,
-                durations=durations,
-                durations_lengths=durations_lengths,
+                durations=label_lab,
+                durations_lengths=label_lab_lengths,
             )
 
         # store in dict
@@ -431,11 +636,16 @@ class ESPnetSVSModel(AbsESPnetModel):
     def inference(
         self,
         text: torch.Tensor,
-        durations: torch.Tensor,
-        score: torch.Tensor,
         singing: Optional[torch.Tensor] = None,
+        label_lab: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
-        tempo: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -450,24 +660,47 @@ class ESPnetSVSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            durations (Optional[Tensor): Duration tensor.
+            label (Optional[Tensor): Duration tensor.
             pitch (Optional[Tensor): Pitch tensor.
+            tempo (Optional[Tensor): Tempo tensor.
+            beat (Optional[Tensor): Beat tensor.
             energy (Optional[Tensor): Energy tensor.
         
         Returns:
             Dict[str, Tensor]: Dict of outputs.
         """
-        durations_lengths = torch.tensor([len(durations)])
-        score_lengths = torch.tensor([len(score)])
-        tempo_lengths = torch.tensor([len(tempo)])
-
-        assert durations_lengths == score_lengths and durations_lengths == tempo_lengths
+        label_lab_lengths = torch.tensor([len(label_lab)])
+        midi_lab_lengths = torch.tensor([len(midi_lab)])
+        tempo_lab_lengths = torch.tensor([len(tempo_lab)])
+        beat_lab_lengths = torch.tensor([len(beat_lab)])   
+        assert (
+            label_lab_lengths == midi_lab_lengths and 
+            label_lab_lengths == tempo_lab_lengths and 
+            tempo_lab_lengths == beat_lab_lengths 
+        )
+        
+        label_xml_lengths = torch.tensor([len(label_xml)])
+        midi_xml_lengths = torch.tensor([len(midi_xml)])
+        tempo_xml_lengths = torch.tensor([len(tempo_xml)])
+        beat_xml_lengths = torch.tensor([len(beat_xml)])        
+        assert (
+            label_xml_lengths == midi_xml_lengths and 
+            label_xml_lengths == tempo_xml_lengths and 
+            tempo_xml_lengths == beat_xml_lengths 
+        )
 
         # unsqueeze of singing must be here, or it'll cause error in the return dim of STFT
-        text = text.unsqueeze(0)  # for data-parallel
-        durations = durations.unsqueeze(0)  # for data-parallel
-        score = score.unsqueeze(0)  # for data-parallel
-        tempo = tempo.unsqueeze(0)  # for data-parallel
+        # for data-parallel
+        text = text.unsqueeze(0)
+        label_lab = label_lab.unsqueeze(0)
+        midi_lab = midi_lab.unsqueeze(0)
+        tempo_lab = tempo_lab.unsqueeze(0)
+        beat_lab = beat_lab.unsqueeze(0)
+
+        label_xml = label_xml.unsqueeze(0)
+        midi_xml = midi_xml.unsqueeze(0)
+        tempo_xml = tempo_xml.unsqueeze(0)
+        beat_xml = beat_xml.unsqueeze(0)
 
         # Extract auxiliary features
         # score : 128 midi pitch
@@ -479,19 +712,23 @@ class ESPnetSVSModel(AbsESPnetModel):
         assert batch_size == 1
         if isinstance(self.score_feats_extract, FrameScoreFeats):
             (
-                label,
-                label_lengths,
-                score,
-                score_lengths,
-                tempo,
-                tempo_lengths,
+                label_lab_after,
+                label_lab_lengths_after,
+                midi_lab_after,
+                midi_lab_lengths_after,
+                tempo_lab_after,
+                tempo_lab_lengths_after,
+                beat_lab_after,
+                beat_lab_lengths_after,
             ) = self.score_feats_extract(
-                durations=durations.unsqueeze(-1),
-                durations_lengths=durations_lengths,
-                score=score.unsqueeze(-1),
-                score_lengths=score_lengths,
-                tempo=tempo.unsqueeze(-1),
-                tempo_lengths=tempo_lengths,
+                label=label_lab.unsqueeze(-1),
+                label_lengths=label_lab_lengths,
+                midi=midi_lab.unsqueeze(-1),
+                midi_lengths=midi_lab_lengths,
+                tempo=tempo_lab.unsqueeze(-1),
+                tempo_lengths=tempo_lab_lengths,
+                beat=beat_lab.unsqueeze(-1),
+                beat_lengths=beat_lab_lengths,
             )
 
             # calculate durations, new text & text_length
@@ -506,7 +743,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             _text_length_cal = []
             ds = []
             for i in range(batch_size):
-                _phone = label[i]
+                _phone = label_lab_after[i]
 
                 _output, counts = torch.unique_consecutive(_phone, return_counts=True)
 
@@ -516,6 +753,26 @@ class ESPnetSVSModel(AbsESPnetModel):
             ds = pad_list(ds, pad_value=0).to(text.device)
             text = pad_list(_text_cal, pad_value=0).to(text.device, dtype=torch.long)
             text_lengths = torch.tensor(_text_length_cal).to(text.device)
+
+            (
+                label_xml_after,
+                label_xml_lengths_after,
+                midi_xml_after,
+                midi_xml_lengths_after,
+                tempo_xml_after,
+                tempo_xml_lengths_after,
+                beat_xml_after,
+                beat_xml_lengths_after,
+            ) = self.score_feats_extract(
+                label=label_xml.unsqueeze(-1),
+                label_lengths=label_xml_lengths,
+                midi=midi_xml.unsqueeze(-1),
+                midi_lengths=midi_xml_lengths,
+                tempo=tempo_xml.unsqueeze(-1),
+                tempo_lengths=tempo_xml_lengths,
+                beat=beat_xml.unsqueeze(-1),
+                beat_lengths=beat_xml_lengths,
+            )
 
         elif isinstance(self.score_feats_extract, SyllableScoreFeats):
             extractMethod_frame = FrameScoreFeats(
@@ -528,60 +785,120 @@ class ESPnetSVSModel(AbsESPnetModel):
             )
 
             (
-                labelFrame,
-                labelFrame_lengths,
-                scoreFrame,
-                scoreFrame_lengths,
-                tempoFrame,
-                tempoFrame_lengths,
+                labelFrame_lab,
+                labelFrame_lab_lengths,
+                midiFrame_lab,
+                midiFrame_lab_lengths,
+                tempoFrame_lab,
+                tempoFrame_lab_lengths,
+                beatFrame_lab,
+                beatFrame_lab_lengths,
             ) = extractMethod_frame(
-                durations=durations.unsqueeze(-1),
-                durations_lengths=durations_lengths,
-                score=score.unsqueeze(-1),
-                score_lengths=score_lengths,
-                tempo=tempo.unsqueeze(-1),
-                tempo_lengths=tempo_lengths,
+                label=label_lab.unsqueeze(-1),
+                label_lengths=label_lab_lengths,
+                midi=midi_lab.unsqueeze(-1),
+                midi_lengths=midi_lab_lengths,
+                tempo=tempo_lab.unsqueeze(-1),
+                tempo_lengths=tempo_lab_lengths,
+                beat=beat_lab.unsqueeze(-1),
+                beat_lengths=beat_lab_lengths,
             )
 
-            labelFrame = labelFrame[:, : labelFrame_lengths.max()]  # for data-parallel
-            scoreFrame = scoreFrame[:, : scoreFrame_lengths.max()]  # for data-parallel
+            labelFrame_lab = labelFrame_lab[
+                :, : labelFrame_lab_lengths.max()
+            ]  # for data-parallel
+            midiFrame_lab = midiFrame_lab[
+                :, : midiFrame_lab_lengths.max()
+            ]  # for data-parallel
 
-            # Extract Syllable Level label, score, tempo information from Frame Level
+            # Extract Syllable Level label, midi, tempo, beat information from Frame Level
             (
-                label,
-                label_lengths,
-                score,
-                score_lengths,
-                tempo,
-                tempo_lengths,
+                label_lab_after,
+                label_lab_lengths_after,
+                midi_lab_after,
+                midi_lab_lengths_after,
+                tempo_lab_after,
+                tempo_lab_lengths_after,
+                beat_lab_after,
+                beat_lab_lengths_after,
             ) = self.score_feats_extract(
-                durations=labelFrame,
-                durations_lengths=labelFrame_lengths,
-                score=scoreFrame,
-                score_lengths=scoreFrame_lengths,
-                tempo=tempoFrame,
-                tempo_lengths=tempoFrame_lengths,
+                label=labelFrame_lab,
+                label_lengths=labelFrame_lab_lengths,
+                midi=midiFrame_lab,
+                midi_lengths=midiFrame_lab_lengths,
+                tempo=tempoFrame_lab,
+                tempo_lengths=tempoFrame_lab_lengths,
+                beat=beatFrame_lab,
+                beat_lengths=beatFrame_lab_lengths,
+            )
+
+            (
+                labelFrame_xml,
+                labelFrame_xml_lengths,
+                midiFrame_xml,
+                midiFrame_xml_lengths,
+                tempoFrame_xml,
+                tempoFrame_xml_lengths,
+                beatFrame_xml,
+                beatFrame_xml_lengths,
+            ) = extractMethod_frame(
+                label=label_xml.unsqueeze(-1),
+                label_lengths=label_xml_lengths,
+                midi=midi_xml.unsqueeze(-1),
+                midi_lengths=midi_xml_lengths,
+                tempo=tempo_xml.unsqueeze(-1),
+                tempo_lengths=tempo_xml_lengths,
+                beat=beat_xml.unsqueeze(-1),
+                beat_lengths=beat_xml_lengths,
+            )
+
+            labelFrame_xml = labelFrame_xml[
+                :, : labelFrame_xml_lengths.max()
+            ]  # for data-parallel
+            midiFrame_xml = midiFrame_xml[
+                :, : midiFrame_xml_lengths.max()
+            ]  # for data-parallel
+            
+            # Extract Syllable Level label, midi, tempo, beat information from Frame Level
+            (
+                label_xml_after,
+                label_xml_lengths_after,
+                midi_xml_after,
+                midi_xml_lengths_after,
+                tempo_xml_after,
+                tempo_xml_lengths_after,
+                beat_xml_after,
+                beat_xml_lengths_after,
+            ) = self.score_feats_extract(
+                label=labelFrame_xml,
+                label_lengths=labelFrame_xml_lengths,
+                midi=midiFrame_xml,
+                midi_lengths=midiFrame_xml_lengths,
+                tempo=tempoFrame_xml,
+                tempo_lengths=tempoFrame_xml_lengths,
+                beat=beatFrame_xml,
+                beat_lengths=beatFrame_xml_lengths,
             )
 
             # calculate durations, represent syllable encoder outputs to feats mapping
             # Syllable Level duration info needs phone & midi
             ds = []
-            for i, _ in enumerate(labelFrame_lengths):
-                assert labelFrame_lengths[i] == scoreFrame_lengths[i]
-                assert label_lengths[i] == score_lengths[i]
+            for i, _ in enumerate(labelFrame_lab_lengths):
+                assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
+                assert label_lab_lengths[i] == midi_lab_lengths[i]
 
-                frame_length = labelFrame_lengths[i]
-                _phoneFrame = labelFrame[i, :frame_length]
-                _midiFrame = scoreFrame[i, :frame_length]
+                frame_length = labelFrame_lab_lengths[i]
+                _phoneFrame = labelFrame_lab[i, :frame_length]
+                _midiFrame = midiFrame_lab[i, :frame_length]
 
                 # Clean _phoneFrame & _midiFrame
                 for index in range(frame_length):
                     if _phoneFrame[index] == 0 and _midiFrame[index] == 0:
                         frame_length -= 1
 
-                syllable_length = label_lengths[i]
-                _phoneSyllable = label[i, :syllable_length]
-                _midiSyllable = score[i, :syllable_length]
+                syllable_length = label_lab_lengths_after[i]
+                _phoneSyllable = label_lab_after[i, :syllable_length]
+                _midiSyllable = midi_lab_after[i, :syllable_length]
 
                 start_index = 0
                 ds_tmp = []
@@ -591,14 +908,43 @@ class ESPnetSVSModel(AbsESPnetModel):
                     _findMidi = _midiSyllable[index]
                     _length = 0
                     if flag_finish == 1:
+                    # Remove unused note(label = 0, midi = 0)
+                        for xml_index in range(index, label_xml_lengths_after[i]):
+                            assert label_xml_after[i][xml_index] == 0
+                            assert midi_xml_after[i][xml_index] == 0
+                            tempo_xml_after[i][xml_index] = 0
+                            beat_xml_after[i][xml_index] = 0
                         # Fix error in _phoneSyllable & _midiSyllable
-                        label[i, index] = 0
-                        score[i, index] = 0
-                        tempo[i, index] = 0
-                        label_lengths[i] -= 1
-                        score_lengths[i] -= 1
-                        tempo_lengths[i] -= 1
+                        assert label_lab_after[i, index] == 0
+                        assert midi_lab_after[i, index] == 0
+                        tempo_lab_after[i, index] = 0
+                        beat_lab_after[i, index] = 0
+                        label_lab_lengths_after[i] -= 1
+                        midi_lab_lengths_after[i] -= 1
+                        tempo_lab_lengths_after[i] -= 1
+                        beat_lab_lengths_after[i] -= 1
+                        label_xml_lengths_after[i] = label_lab_lengths_after[i]
+                        midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
+                        tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
+                        beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
                     else:
+                        if _findPhone != label_xml_after[i][index] or _findMidi != midi_xml_after[i][index]:
+                            for xml_start in range(index + 1, label_xml_lengths_after[i] - 1):
+                                if _findPhone == label_xml_after[i][xml_start] and _findMidi == midi_xml_after[i][xml_start]:
+                                    delta = xml_start - index
+                                    for xml_index in range(index, label_xml_lengths_after[i] - delta):
+                                        label_xml_after[i][xml_index] = label_xml_after[i][xml_index + delta]
+                                        midi_xml_after[i][xml_index] = midi_xml_after[i][xml_index + delta]
+                                        tempo_xml_after[i][xml_index] = tempo_xml_after[i][xml_index + delta]
+                                        beat_xml_after[i][xml_index] = beat_xml_after[i][xml_index + delta]
+                                    for xml_index in range(label_xml_lengths_after[i] - delta, label_xml_lengths_after[i]):
+                                        label_xml_after[i][xml_index] = 0
+                                        midi_xml_after[i][xml_index] = 0
+                                        tempo_xml_after[i][xml_index] = 0
+                                        beat_xml_after[i][xml_index] = 0
+                                    break
+                            assert _findPhone == label_xml_after[i][index]
+                            assert _findMidi == midi_xml_after[i][index]
                         for indexFrame in range(start_index, frame_length):
                             if (
                                 _phoneFrame[indexFrame] == _findPhone
@@ -613,6 +959,16 @@ class ESPnetSVSModel(AbsESPnetModel):
                                 flag_finish = 1
                                 ds_tmp.append(_length)
                                 start_index = indexFrame
+                                if syllable_length < label_xml_lengths_after[i]:
+                                    for xml_index in range(syllable_length, label_xml_lengths_after[i]):
+                                        assert label_xml_after[i][xml_index] == 0
+                                        assert midi_xml_after[i][xml_index] == 0
+                                        tempo_xml_after[i][xml_index] == 0
+                                        beat_xml_after[i][xml_index] == 0
+                                    label_xml_lengths_after[i] = label_lab_lengths_after[i]
+                                    midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
+                                    tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
+                                    beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
                                 break
 
                 logging.info(
@@ -621,21 +977,36 @@ class ESPnetSVSModel(AbsESPnetModel):
                 assert sum(ds_tmp) == frame_length
 
                 ds.append(torch.tensor(ds_tmp))
-            ds = pad_list(ds, pad_value=0).to(label.device)
+            ds = pad_list(ds, pad_value=0).to(label_lab_after.device)
 
         input_dict = dict(text=text)
 
-        if score is not None and pitch is None:
-            score = score.to(dtype=torch.long)
-            input_dict["midi"] = score
-        if durations is not None:
-            label = label.to(dtype=torch.long)
-            input_dict["label"] = label
+        if midi_lab_after is not None and pitch is None:
+            midi_lab = midi_lab_after.to(dtype=torch.long)
+            input_dict["midi_lab"] = midi_lab
+        if midi_xml_after is not None and pitch is None:
+            midi_xml = midi_xml_after.to(dtype=torch.long)
+            input_dict["midi_xml"] = midi_xml
+        if label_lab_after is not None:
+            label_lab = label_lab_after.to(dtype=torch.long)
+            input_dict["label_lab"] = label_lab
+        if label_xml_after is not None:
+            label_xml = label_xml_after.to(dtype=torch.long)
+            input_dict["label_xml"] = label_xml
         if ds is not None:
             input_dict.update(ds=ds)
-        if tempo is not None:
-            tempo = tempo.to(dtype=torch.long)
-            input_dict.update(tempo=tempo)
+        if tempo_lab_after is not None:
+            tempo_lab = tempo_lab_after.to(dtype=torch.long)
+            input_dict.update(tempo_lab=tempo_lab)
+        if tempo_xml_after is not None:
+            tempo_xml = tempo_xml_after.to(dtype=torch.long)
+            input_dict.update(tempo_xml=tempo_xml)
+        if beat_lab_after is not None:
+            beat_lab = beat_lab_after.to(dtype=torch.long)
+            input_dict.update(beat_lab=beat_lab)
+        if beat_xml_after is not None:
+            beat_xml = beat_xml_after.to(dtype=torch.long)
+            input_dict.update(beat_xml=beat_xml)
         if spembs is not None:
             input_dict.update(spembs=spembs)
         if sids is not None:
