@@ -128,14 +128,13 @@ def main():
             print(f"[ ] {name}")
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
-    
-    #check muskit install
+
+    # check muskit install
     if os.path.exists("muskit.done"):
         print(f"[x] muskit")
     else:
         print(f"[ ] muskit")
         to_install.append(f"Use 'installers/install_muskit.sh' to install muskit")
-
 
     print()
     print("Executables:")
