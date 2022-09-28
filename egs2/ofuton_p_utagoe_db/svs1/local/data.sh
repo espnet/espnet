@@ -29,9 +29,9 @@ fi
 
 mkdir -p ${OFUTON}
 
-train_set=tr_no_dev
-train_dev=dev
-recog_set=eval
+train_set="tr_no_dev"
+train_dev="dev"
+recog_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"

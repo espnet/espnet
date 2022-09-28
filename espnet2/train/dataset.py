@@ -27,8 +27,12 @@ from espnet2.fileio.read_text import (
 )
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.xml_scp import XMLScpReader
 from espnet2.utils.sized_dict import SizedDict
+
+try:
+    from espnet2.fileio.xml_scp import XMLScpReader
+except ImportError or ModuleNotFoundError:
+    XMLScpReader = None  # cannot load XML reader, need instal Muskit
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -192,6 +196,11 @@ def xml_loader(path, float_dtype=None):
     #   utterance_id_A /some/where/a.mid
     #   utterance_id_B /some/where/b.midi
 
+    assert XMLScpReader is not None, (
+        "Cannot load XMLScpReader. ",
+        "Please install Muskit modules via ",
+        "tools/installers/install_muskit.sh",
+    )
     loader = XMLScpReader(fname=path)
 
     # MIDIScpReader.__getitem__() returns ndarray
