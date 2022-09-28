@@ -4,10 +4,10 @@
 
 import argparse
 import logging
-from pathlib import Path
 import shutil
 import sys
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import matplotlib
@@ -16,24 +16,23 @@ import soundfile as sf
 import torch
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
+from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-
-from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
-from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
-
-# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
-
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
+
+# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
+# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
+# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
+
 
 
 class SingingGenerate:

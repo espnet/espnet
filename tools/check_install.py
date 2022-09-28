@@ -6,9 +6,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
+import os
 import shutil
 import sys
-import os
 
 from packaging.version import parse
 

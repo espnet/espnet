@@ -3,9 +3,9 @@ import logging
 from pathlib import Path
 from typing import Union
 
+import music21 as m21
 import numpy as np
 from typeguard import check_argument_types
-import music21 as m21
 
 from espnet2.fileio.read_text import read_2column_text
 

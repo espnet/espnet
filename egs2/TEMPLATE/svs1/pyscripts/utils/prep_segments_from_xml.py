@@ -3,6 +3,7 @@ import argparse
 import math
 import os
 import sys
+
 import music21 as m21
 
 """Divide songs into segments according to structured musicXML."""
