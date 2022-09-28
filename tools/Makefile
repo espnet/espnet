@@ -29,7 +29,7 @@ endif
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi
@@ -201,6 +201,10 @@ transformers.done: espnet.done
 longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
+
+muskit.done: espnet.done
+	. ./activate_python.sh && ./installers/install_muskit.sh
+	touch muskit.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py

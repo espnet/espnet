@@ -6,10 +6,8 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-rm -rf muskit.done
-
 # Install ParallelWaveGAN
-if ! python -c "import parallel_wavegan.version" &> /dev/null; then
+if ! python3 -c "import parallel_wavegan.version" &> /dev/null; then
     (
         set -euo pipefail
         rm -rf ParallelWaveGAN
@@ -23,7 +21,7 @@ else
 fi
 
 # Install pytsmod
-if ! python -c "import pytsmod.version" &> /dev/null; then
+if ! python3 -c "import pytsmod.version" &> /dev/null; then
     (
         set -euo pipefail
         python3 -m pip install pytsmod
@@ -33,7 +31,7 @@ else
 fi
 
 # Install miditoolkit
-if ! python -c "import miditoolkit.version" &> /dev/null; then
+if ! python3 -c "import miditoolkit.version" &> /dev/null; then
     (
         set -euo pipefail
         python3 -m pip install miditoolkit
@@ -43,7 +41,7 @@ else
 fi
 
 # Install music21
-if ! python -c "import music21.version" &> /dev/null; then
+if ! python3 -c "import music21.version" &> /dev/null; then
     (
         set -euo pipefail
         python3 -m pip install music21
@@ -52,4 +50,3 @@ else
     echo "music21 is already installed"
 fi
 
-touch muskit.done
