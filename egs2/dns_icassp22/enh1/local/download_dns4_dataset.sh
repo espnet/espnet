@@ -207,12 +207,16 @@ do
     tar -xjf $(basename $BLOB)
 done
 
-# get noisy wav synthesizer config file
-cd ${PATH_PREFIX}
-wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/noisyspeech_synthesizer.cfg -O noisyspeech_synthesizer.cfg
-
 # delete folders created only to prevent path errors
 rmdir $PATH_PREFIX/clean_fullband
 rmdir $PATH_PREFIX/noise_fullband
 
-cd $RUN_DIR
+# get noisy wav synthesizer config file
+cd ${PATH_PREFIX}
+wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/noisyspeech_synthesizer.cfg -O noisyspeech_synthesizer.cfg
+
+cd $RUN_DIR/local/
+wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/audiolib.py -O audiolib.py
+wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/utils.py -O utils.py
+
+cd ../
