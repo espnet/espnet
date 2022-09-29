@@ -333,6 +333,88 @@ class CommonPreprocessor(AbsPreprocessor):
         return data
 
 
+class SLUPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        transcript_token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+    ):
+        super().__init__(
+            train=train,
+            token_type=token_type,
+            token_list=token_list,
+            bpemodel=bpemodel,
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+        )
+        if transcript_token_list is not None:
+            print("using transcript")
+            self.transcript_tokenizer = build_tokenizer(
+                token_type="word",
+                bpemodel=bpemodel,
+                delimiter=delimiter,
+                space_symbol=space_symbol,
+                non_linguistic_symbols=non_linguistic_symbols,
+                g2p_type=g2p_type,
+            )
+            self.transcript_token_id_converter = TokenIDConverter(
+                token_list=transcript_token_list,
+                unk_symbol=unk_symbol,
+            )
+        else:
+            self.transcript_tokenizer = None
+            self.transcript_token_id_converter = None
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        if self.text_name in data and self.tokenizer is not None:
+            text = data[self.text_name]
+            text = self.text_cleaner(text)
+            tokens = self.tokenizer.text2tokens(text)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        if "transcript" in data and self.tokenizer is not None:
+            text = data["transcript"]
+            text = self.text_cleaner(text)
+            tokens = self.transcript_tokenizer.text2tokens(text)
+            text_ints = self.transcript_token_id_converter.tokens2ids(tokens)
+            data["transcript"] = np.array(text_ints, dtype=np.int64)
+        assert check_return_type(data)
+        return data
+
+
 class CommonPreprocessor_multi(AbsPreprocessor):
     def __init__(
         self,
@@ -507,19 +589,25 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         self,
         train: bool,
         source_scp: str = None,
-        num_spk: int = 2,
+        ref_num: int = 2,
         dynamic_mixing_gain_db: float = 0.0,
         speech_name: str = "speech_mix",
         speech_ref_name_prefix: str = "speech_ref",
+        mixture_source_name: str = None,
         utt2spk: str = None,
     ):
 
         super().__init__(train)
         self.source_scp = source_scp
-        self.num_spk = num_spk
+        self.ref_num = ref_num
         self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
         self.speech_name = speech_name
         self.speech_ref_name_prefix = speech_ref_name_prefix
+        # mixture_source_name: the key to select source utterances from dataloader
+        if mixture_source_name is None:
+            self.mixture_source_name = f"{speech_ref_name_prefix}1"
+        else:
+            self.mixture_source_name = mixture_source_name
 
         self.sources = {}
         assert (
@@ -549,14 +637,14 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         self.source_keys = list(self.sources.keys())
 
     def _pick_source_utterances_(self, uid):
-        # return (num_spk - 1) uid of reference sources.
+        # return (ref_num - 1) uid of reference sources.
 
         source_keys = [uid]
 
         spk_ids = [self.utt2spk[uid]]
 
         retry_cnt = 0
-        while len(source_keys) < self.num_spk:
+        while len(source_keys) < self.ref_num:
             picked = random.choice(self.source_keys)
             spk_id = self.utt2spk[picked]
 
@@ -600,9 +688,9 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         source_keys = self._pick_source_utterances_(uid)
 
         # load audios
-        speech_length = data[f"{self.speech_ref_name_prefix}1"].shape[0]
+        speech_length = data[self.mixture_source_name].shape[0]
         ref_audios = [self._read_source_(key, speech_length) for key in source_keys]
-        ref_audios = [data[f"{self.speech_ref_name_prefix}1"]] + ref_audios
+        ref_audios = [data[self.mixture_source_name]] + ref_audios
 
         # apply random gain to speech sources
 
@@ -628,7 +716,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
 
         # TODO(Chenda): need to test for multi-channel data.
         assert (
-            len(data[f"{self.speech_ref_name_prefix}1"].shape) == 1
+            len(data[self.mixture_source_name].shape) == 1
         ), "Multi-channel input has not been tested"
 
         if self.train:
@@ -881,7 +969,13 @@ class SVSPreprocessor(AbsPreprocessor):
         label_name: str = "label",
         midi_name: str = "midi",
         fs: np.int32 = 0,
-        align: list = ["singing", "label_lab", "midi_lab", "tempo_lab", "beat_lab"],  # TODO(Tao): add to args
+        align: list = [
+            "singing",
+            "label_lab",
+            "midi_lab",
+            "tempo_lab",
+            "beat_lab",
+        ],  # TODO(Tao): add to args
     ):
         super().__init__(train)
         self.train = train
@@ -927,7 +1021,11 @@ class SVSPreprocessor(AbsPreprocessor):
                 ma = np.max(np.abs(singing))
                 data[self.singing_name] = singing * self.singing_volume_normalize / ma
 
-        if self.midi_name in data and self.label_name in data and self.tokenizer is not None:
+        if (
+            self.midi_name in data
+            and self.label_name in data
+            and self.tokenizer is not None
+        ):
             # Load label info
             lab_timeseq, text = data[self.label_name]
             lab_len = len(text)
@@ -936,10 +1034,10 @@ class SVSPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data.pop(self.label_name)
-            
+
             # Load xml info
             # TODO(Yuning): It can only work on Japanese dataset now.
-            # Syllable2phoneme mismatch and more languags settings need to be settled. 
+            # Syllable2phoneme mismatch and more languags settings need to be settled.
             syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
             midis = []
             xml_timeseq = []
@@ -950,7 +1048,7 @@ class SVSPreprocessor(AbsPreprocessor):
                 if syllables[i] == "へ":
                     phn = ["h", "e"]
                 else:
-                    phn = pyopenjtalk.g2p(syllables[i]).split(' ')
+                    phn = pyopenjtalk.g2p(syllables[i]).split(" ")
                 phn_num = len(phn)
                 vowel_num = 0
                 for p in phn:
@@ -965,19 +1063,37 @@ class SVSPreprocessor(AbsPreprocessor):
                 if phn_num == 1:
                     xml_timeseq.append([notetimeseq[i][0], notetimeseq[i][1]])
                 elif phn_num == 2:
-                    t = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
+                    t = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t])
                     xml_timeseq.append([t, notetimeseq[i][1]])
                 elif phn_num == 3:
-                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    t1 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    )
+                    t2 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t1])
                     xml_timeseq.append([t1, t2])
                     xml_timeseq.append([t2, notetimeseq[i][1]])
                 elif phn_num == 4:
-                    t1 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
-                    t2 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    t3 = notetimeseq[i][0] + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    t1 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
+                    )
+                    t2 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
+                    )
+                    t3 = (
+                        notetimeseq[i][0]
+                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
+                    )
                     xml_timeseq.append([notetimeseq[i][0], t1])
                     xml_timeseq.append([t1, t2])
                     xml_timeseq.append([t2, t3])
@@ -989,7 +1105,7 @@ class SVSPreprocessor(AbsPreprocessor):
 
             # Calculate feature according to label time sequence
             timeseq = lab_timeseq
-            nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
+            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
 
             labelseq_lab = np.zeros((nsamples))
             temposeq_lab = np.full(nsamples, tempo)
@@ -1003,7 +1119,7 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_lab[start:end] = text_ints[i]
                 midiseq_lab[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
                 beatseq_lab[start:end] = int(beat_num * tempo + 0.5)
 
             labelseq_lab.astype(np.int64)
@@ -1018,8 +1134,8 @@ class SVSPreprocessor(AbsPreprocessor):
 
             # Calculate feature according to XML time sequence
             timeseq = xml_timeseq
-            nsamples = int((timeseq[-1][1] -  timeseq[0][0]) * self.fs)
-            
+            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
+
             labelseq_xml = np.zeros((nsamples))
             midiseq_xml = np.zeros((nsamples))
             temposeq_xml = np.full(nsamples, tempo)
@@ -1032,7 +1148,7 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_xml[start:end] = text_ints[i]
                 midiseq_xml[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0])  * tempo / 60
+                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
                 beatseq_xml[start:end] = int(beat_num * tempo + 0.5)
 
             labelseq_xml.astype(np.int64)
@@ -1057,9 +1173,7 @@ class SVSPreprocessor(AbsPreprocessor):
         # TODO allow the tuple type
 
         # align frame length with singing
-        length = min(
-            [len(data[key]) for key in data.keys() if key in self.align]
-        )
+        length = min([len(data[key]) for key in data.keys() if key in self.align])
         for key in self.align:
             if key in data:
                 data[key] = data[key][:length]

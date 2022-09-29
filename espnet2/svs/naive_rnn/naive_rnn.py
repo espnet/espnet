@@ -57,7 +57,7 @@ class NaiveRNNLoss(torch.nn.Module):
             before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
             ys (Tensor): Batch of padded target features (B, Lmax, odim).
             olens (LongTensor): Batch of the lengths of each target (B,).
-        
+
         Returns:
             Tensor: L1 loss value.
             Tensor: Mean square error loss value.
@@ -331,12 +331,12 @@ class NaiveRNN(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
-        
+
         GS Fix:
             arguements from forward func. V.S. **batch from muskit_model.py
             label == durations ｜ phone sequence
             midi -> pitch sequence
-        
+
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
@@ -346,7 +346,7 @@ class NaiveRNN(AbsSVS):
         midi = midi_lab
         label_lengths = label_lab_lengths
         midi_lengths = midi_lab_lengths
-        
+
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
@@ -468,7 +468,7 @@ class NaiveRNN(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
-        
+
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
             * feat_gen (Tensor): Output sequence of features (T_feats, odim).
@@ -521,7 +521,7 @@ class NaiveRNN(AbsSVS):
         Args:
             hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
             spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
-        
+
         Returns:
             Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).
         """

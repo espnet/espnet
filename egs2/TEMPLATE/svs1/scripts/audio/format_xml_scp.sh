@@ -33,8 +33,6 @@ segments=
 ref_channels=
 utt2ref_channels=
 
-write_utt2num_samples=true
-
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -91,15 +89,15 @@ if [ -n "${segments}" ]; then
 else
     # TODO(Yuning): xml_scp without segments needs to be finished
     log "[info]: without segments"
-    nutt=$(<${scp_dir}/wav.scp wc -l)
+    nutt=$(<${scp_dir}/xml.scp wc -l)
     nj=$((nj<nutt?nj:nutt))
 
     split_scps=""
     for n in $(seq ${nj}); do
-        split_scps="${split_scps} ${logdir}/wav.${n}.scp"
+        split_scps="${split_scps} ${logdir}/xml.${n}.scp"
     done
 
-    utils/split_scp.pl "${scp_dir}/xml.scp" ${split_xml_scps}
+    utils/split_scp.pl "${scp_dir}/xml.scp" ${split_scps}
     
     ${cmd} "JOB=1:${nj}" "${logdir}/format_xml_scp.JOB.log" \
         pyscripts/audio/format_xml_scp.py \

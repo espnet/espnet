@@ -51,7 +51,7 @@ install_torch(){
         if [ -z "${cuda_version}" ]; then
             log conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
             conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
-        elif [ "${cuda_version}" = "11.5" ]; then
+        elif [ "${cuda_version}" = "11.5" ] || [ "${cuda_version}" = "11.6" ]; then
             # NOTE(kamo): In my environment, cudatoolkit of conda-forge only could be installed, but I don't know why @ 12, May, 2022
             cudatoolkit_channel=conda-forge
             log conda install -y "pytorch=${torch_version}" "torchaudio=$1" "cudatoolkit=${cuda_version}" -c pytorch -c "${cudatoolkit_channel}"
@@ -130,9 +130,19 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 1.11.1); then
+if $(pytorch_plus 1.12.2); then
     log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
+
+elif $(pytorch_plus 1.12.1); then
+    check_python_version 3.11  # Error if python>=<number>
+    check_cuda_version 11.6 11.3 10.2  # Error if cuda_version doesn't match with any given numbers
+    install_torch 0.12.1 10.2  # install_torch <torch-audio-ver> <default-cuda-version-for-pip-install-torch>
+
+elif $(pytorch_plus 1.12.0); then
+    check_python_version 3.11  # Error if python>=<number>
+    check_cuda_version 11.6 11.3 10.2  # Error if cuda_version doesn't match with any given numbers
+    install_torch 0.12.0 10.2  # install_torch <torch-audio-ver> <default-cuda-version-for-pip-install-torch>
 
 elif $(pytorch_plus 1.11.0); then
     check_python_version 3.11  # Error if python>=<number>

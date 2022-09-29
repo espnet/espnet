@@ -24,6 +24,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
+
 # from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP

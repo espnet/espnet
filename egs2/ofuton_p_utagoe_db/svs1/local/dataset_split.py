@@ -4,8 +4,20 @@ import shutil
 
 
 UTT_PREFIX = "ofuton"
-DEV_LIST = ["chatsumi", "my_grandfathers_clock_3_2", "haruyo_koi", "momiji", "tetsudou_shouka"]
-TEST_LIST = ["usagito_kame", "my_grandfathers_clock_1_2", "antagata_dokosa", "momotarou", "furusato"]
+DEV_LIST = [
+    "chatsumi",
+    "my_grandfathers_clock_3_2",
+    "haruyo_koi",
+    "momiji",
+    "tetsudou_shouka",
+]
+TEST_LIST = [
+    "usagito_kame",
+    "my_grandfathers_clock_1_2",
+    "antagata_dokosa",
+    "momotarou",
+    "furusato",
+]
 
 
 def train_check(song):
@@ -66,7 +78,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
 
         cmd = f"sox {os.path.join(src_data, folder, folder)}.wav -c 1 -t wavpcm -b 16 -r {fs} {os.path.join(wav_dump, folder)}_bits16.wav"
         os.system(cmd)
-        
+
         wavscp.write(
             "{} {}\n".format(
                 utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(folder))
@@ -92,7 +104,9 @@ if __name__ == "__main__":
     parser.add_argument("dev", type=str, help="development set")
     parser.add_argument("test", type=str, help="test set")
     parser.add_argument("--fs", type=int, help="frame rate (Hz)")
-    parser.add_argument("--wav_dump", type=str, default="wav_dump", help="wav dump directory")
+    parser.add_argument(
+        "--wav_dump", type=str, default="wav_dump", help="wav dump directory"
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.wav_dump):

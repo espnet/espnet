@@ -241,7 +241,16 @@ class SyllableScoreFeats(AbsFeatsExtract):
             seg_tempo.append(tmp_tempo.item())
             seg_beat.append(tmp_beat.item())
 
-        return seg_label, lengths, seg_midi, lengths, seg_tempo, lengths, seg_beat, lengths
+        return (
+            seg_label,
+            lengths,
+            seg_midi,
+            lengths,
+            seg_tempo,
+            lengths,
+            seg_beat,
+            lengths,
+        )
 
     def forward(
         self,
@@ -274,12 +283,16 @@ class SyllableScoreFeats(AbsFeatsExtract):
             tempo_lengths: (Batch)
             beat: (Batch, Nsamples)
             beat_lengths: (Batch)
-            
+
 
         Returns:
             output: (Batch, Frames)
         """
-        assert label.shape == midi.shape and midi.shape == tempo.shape and tempo.shape == beat.shape
+        assert (
+            label.shape == midi.shape
+            and midi.shape == tempo.shape
+            and tempo.shape == beat.shape
+        )
         assert (
             label_lengths.shape == midi_lengths.shape
             and midi_lengths.shape == tempo_lengths.shape
@@ -312,12 +325,8 @@ class SyllableScoreFeats(AbsFeatsExtract):
             seg_beat.append(seg[6])
             seg_beat_lengths.append(seg[7])
 
-        seg_label = torch.LongTensor(ListsToTensor(seg_label)).to(
-            label.device
-        )
-        seg_label_lengths = torch.LongTensor(seg_label_lengths).to(
-            label.device
-        )
+        seg_label = torch.LongTensor(ListsToTensor(seg_label)).to(label.device)
+        seg_label_lengths = torch.LongTensor(seg_label_lengths).to(label.device)
         seg_midi = torch.LongTensor(ListsToTensor(seg_midi)).to(label.device)
         seg_midi_lengths = torch.LongTensor(seg_midi_lengths).to(label.device)
         seg_tempo = torch.LongTensor(ListsToTensor(seg_tempo)).to(label.device)

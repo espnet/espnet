@@ -1,5 +1,5 @@
-# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1 and 1.11.0 are tested.
-TH_VERSION := 1.11.0
+# PyTorch version: 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1, 1.11.0 and 1.12.1 are tested.
+TH_VERSION := 1.12.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -29,7 +29,7 @@ endif
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi
@@ -89,11 +89,7 @@ packaging.done: activate_python.sh
 	touch packaging.done
 
 numba.done: activate_python.sh
-ifeq ($(strip $(USE_CONDA)),)
-	. ./activate_python.sh && python3 -m pip install numba
-else
-	. ./activate_python.sh && conda install -y numba
-endif
+	. ./activate_python.sh && python3 -m pip install -U numba
 	touch numba.done
 
 # NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
@@ -116,14 +112,6 @@ espnet.done: pytorch.done conda_packages.done
 chainer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
 	touch chainer.done
-
-# NOTE(kamo): Add conda_packages.done if cmake is used
-warp-ctc.done: pytorch.done conda_packages.done
-ifeq ($(strip $(CPU_ONLY)),)
-	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
-endif
-	. ./activate_python.sh && ./installers/install_warp-ctc.sh
-	touch warp-ctc.done
 
 warp-transducer.done: pytorch.done conda_packages.done
 ifeq ($(strip $(CPU_ONLY)),)
@@ -214,17 +202,21 @@ longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
 
+muskit.done: espnet.done
+	. ./activate_python.sh && ./installers/install_muskit.sh
+	touch muskit.done
+
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 
 clean: clean_extra
-	rm -rf warp-ctc warp-transducer chainer_ctc
+	rm -rf warp-transducer chainer_ctc
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf warp-ctc warp-transducer chainer_ctc
-	rm -f warp-ctc.done chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
+	rm -rf warp-transducer chainer_ctc
+	rm -f chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 
 clean_extra:

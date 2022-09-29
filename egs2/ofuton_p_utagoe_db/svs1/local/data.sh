@@ -29,9 +29,9 @@ fi
 
 mkdir -p ${OFUTON}
 
-train_set=tr_no_dev
-train_dev=dev
-recog_set=eval
+train_set="tr_no_dev"
+train_dev="dev"
+recog_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
@@ -58,7 +58,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         local/prep_segments_from_xml.py ${src_data} 10000 # in ms
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/xmlnote.tmp ${src_data}/xmlnote
-        cat ${src_data}/segments | awk '{printf("%s ofuton\n", $1);}' > ${src_data}/utt2spk
+        awk '{printf("%s ofuton\n", $1);}' < ${src_data}/segments > ${src_data}/utt2spk
         utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files label ${src_data}
     done
