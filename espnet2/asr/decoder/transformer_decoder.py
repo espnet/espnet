@@ -224,7 +224,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         if self.use_output_embed and return_hidden:
             #weighted logsoftmax embeddings
-            hs_asr = torch.nn.functional(y, self.output_layer.weight.T)
+            hs_asr = torch.nn.functional.linear(y, self.output_layer.weight.T)
 
         if return_hidden:
             return y, h_asr, new_cache

@@ -378,7 +378,7 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray], src_text: Optional[torch.Tensor] = None
+            self, speech: Union[torch.Tensor, np.ndarray], src_text: Optional[torch.Tensor] = None,
     ) -> List[Tuple[Optional[str], Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
@@ -406,6 +406,7 @@ class Speech2Text:
         # b. Forward Encoder
         enc, enc_lens = self.st_model.encode(**batch)
         assert len(enc) == 1, len(enc)
+
 
         if src_text is not None:
             # data: (Nsamples,) -> (1, Nsamples)
@@ -484,12 +485,15 @@ class Speech2Text:
             if self.CRF_loss:
                 ys_hat = torch.Tensor(self.st_model.criterion_st.decode(dec_out)).long()
                 emissions = dec_out.transpose(0, 1)
+                tags = ys_hat.transpose(0, 1)
                 mask = emissions.new_ones(emissions.shape[:2], dtype=torch.uint8)
-                score=self.st_model.criterion_st._compute_normalizer(emissions,mask).item()                
+                num= self.st_model.criterion_st._compute_score(emissions,tags, mask).item()
+                score= num - self.st_model.criterion_st._compute_normalizer(emissions,mask).item()
             else:
+                soft_dec_out = torch.nn.functional.log_softmax(dec_out,dim=-1)
                 dec_out[:,:,self.st_model.eos] = -float('inf')
                 ys_hat = dec_out.argmax(dim=-1) #it is trained to predict eos unfortunately. So we probably need to remove that from it's prediction. We should also consider masking them during training
-                score=1.0
+                score=torch.take(soft_dec_out,ys_hat).sum().item()
             nbest_hyps = [
                     Hypothesis(
                         score=score,
