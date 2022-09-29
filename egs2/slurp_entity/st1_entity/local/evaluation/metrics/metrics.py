@@ -4,7 +4,7 @@ from typing import Dict, List, Set, Tuple
 
 from .distance import Distance
 
-METRIC_OPTIONS = {"f1", "span_f1", "span_distance_f1", "slu_f1", "span_label_f1"}
+METRIC_OPTIONS = {"f1", "span_f1", "span_distance_f1", "slu_f1", "span_label_f1", "span_distance_f1_new"}
 
 
 class ErrorMetric:
@@ -138,6 +138,8 @@ class ErrorMetric:
             return LabelFMeasure(average=average)
         if metric == "span_distance_f1":
             return SpanDistanceFMeasure(average=average, distance=distance)
+        if metric == "span_distance_f1_new":
+            return SpanDistanceFMeasure_New(average=average, distance=distance)
         if metric == "slu_f1":
             return SLUF1(average=average)
 
@@ -254,6 +256,102 @@ class SLUF1(ErrorMetric):
                 self._false_positives[label] += results[label][4]
                 self._false_negatives[label] += results[label][5]
 
+class SpanDistanceFMeasure_New(ErrorMetric):
+    """
+    This metric is a generalisation of the `SpanFMeasure`,\
+            particularly suitable for measuring entity prediction scores
+    in SLU tasks. A distance function is used to smooth the negative\
+            contribution of wrong transcription. In particular,
+    for every label match, the lexical distance between gold and predicted\
+            fillers contributes to FPs and FNs count.
+    For more information, please see `SLURP: A Spoken Language Understanding\
+            Resource Package` by Bastianelli, Vanzo,
+    Swietojanski, and Rieser.
+
+    :param average: This determines the type of averaging performed\
+            on the data: 'micro' (calculate metrics globally
+    by counting the total true positives, false negatives and false positives),\
+            'macro' (calculate metrics for each
+    label, and find their unweighted mean).
+    :param distance: The distance function being applied.\
+            `word` applies WER, whereas `char` applies the Levenshtein
+    distance.
+    """
+
+    def __init__(self, average: str = "micro", distance: str = "word"):
+        super().__init__(average=average)
+        self._distance = Distance.get_instance(distance=distance)
+
+    def __call__(
+        self, gold: List[Dict[str, str]], prediction: List[Dict[str, str]]
+    ) -> None:
+        """
+        This method accumulates TPs, FPs, and FNs for each span label,\
+                taking into account the distance function being
+        applied.
+
+        :param gold: A list of gold entities, each defined by a dictionary\
+                with `type` and `filler` keys.
+        :param prediction: A list of gold entities, each defined\
+                by a dictionary with `type` and `filler` keys.
+        """
+        gold_labels, gold_fillers = split_spans(gold)
+        predicted_labels, predicted_fillers = split_spans(prediction)
+        cat1=0
+        cat2=0
+        cat3=0
+        ent3_arr=[]
+        for j, pred_label in enumerate(predicted_labels):
+            if pred_label in gold_labels:
+                idx_to_remove, distance = self._get_lowest_distance(
+                    pred_label, predicted_fillers[j], gold_labels, gold_fillers
+                )
+                if distance==0:
+                    cat1+=1
+                else:
+                    cat2+=1
+                self._true_positives[pred_label] += 1
+                self._false_positives[pred_label] += distance
+                self._false_negatives[pred_label] += distance
+                gold_labels.pop(idx_to_remove)
+                gold_fillers.pop(idx_to_remove)
+            else:
+                self._false_positives[pred_label] += 1
+        for i, gold_label in enumerate(gold_labels):
+            cat3+=1
+            ent3_arr.append(gold_fillers[i])
+            self._false_negatives[gold_label] += 1
+        return cat1, cat2, cat3, ent3_arr
+
+    def _get_lowest_distance(
+        self,
+        target_label: str,
+        target_span: str,
+        gold_labels: List[str],
+        gold_spans: List[str],
+    ) -> Tuple[int, float]:
+        """
+        This method returns a tuple: the first element is the index of the\
+                gold entity having the lowest distance with
+        the predicted one, the second element is the corresponding distance.
+
+        :param target_label: The label of the target predicted entity.
+        :param target_span: The span of the target predicted entity.
+        :param gold_labels: A list of label of the gold entities.\
+                It is aligned with `gold_spans`.
+        :param gold_spans: A list of span of the gold entities.\
+                It is aligned with `gold_labels`.
+        :return: A tuple with index and distance of the best gold candidate.
+        """
+        index = 0
+        lowest_distance = float("inf")
+        for j, gold_label in enumerate(gold_labels):
+            if target_label == gold_label:
+                distance = self._distance(gold_spans[j], target_span)
+                if distance < lowest_distance:
+                    index = j
+                    lowest_distance = distance
+        return index, lowest_distance
 
 class SpanDistanceFMeasure(ErrorMetric):
     """
@@ -296,7 +394,6 @@ class SpanDistanceFMeasure(ErrorMetric):
         """
         gold_labels, gold_fillers = split_spans(gold)
         predicted_labels, predicted_fillers = split_spans(prediction)
-
         for j, pred_label in enumerate(predicted_labels):
             if pred_label in gold_labels:
                 idx_to_remove, distance = self._get_lowest_distance(

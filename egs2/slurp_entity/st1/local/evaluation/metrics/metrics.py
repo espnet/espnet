@@ -4,7 +4,7 @@ from typing import Dict, List, Set, Tuple
 
 from .distance import Distance
 
-METRIC_OPTIONS = {"f1", "span_f1", "span_distance_f1", "slu_f1"}
+METRIC_OPTIONS = {"f1", "span_f1", "span_distance_f1", "slu_f1", "span_label_f1"}
 
 
 class ErrorMetric:
@@ -83,6 +83,14 @@ class ErrorMetric:
             recall = overall_recall / len(all_tags)
             f1_measure = overall_f1_measure / len(all_tags)
         else:
+#             for tag in all_tags:
+#                 precision, recall, f1_measure = compute_metrics(
+#                     self._true_positives[tag],
+#                     self._false_positives[tag],
+#                     self._false_negatives[tag],
+#                 )
+#                 print(tag)
+#                 print(f1_measure)
             precision, recall, f1_measure = compute_metrics(
                 sum(self._true_positives.values()),
                 sum(self._false_positives.values()),
@@ -126,6 +134,8 @@ class ErrorMetric:
             return FMeasure(average=average)
         if metric == "span_f1":
             return SpanFMeasure(average=average)
+        if metric == "span_label_f1":
+            return LabelFMeasure(average=average)
         if metric == "span_distance_f1":
             return SpanDistanceFMeasure(average=average, distance=distance)
         if metric == "slu_f1":
@@ -178,6 +188,48 @@ class SpanFMeasure(ErrorMetric):
         # These spans weren't predicted.
         for entity in gold:
             self._false_negatives[entity["type"]] += 1
+
+class LabelFMeasure(ErrorMetric):
+    """
+    Compute precision, recall, F-measure for each class\
+            of a span-based multi-class problem.
+    """
+
+    def __call__(
+        self, gold: List[Dict[str, str]], prediction: List[Dict[str, str]]
+    ) -> None:
+        """
+        This method accumulates TPs, FPs, and FNs for each span label.
+
+        :param gold: A list of gold entities, each defined by a dictionary\
+                with `type` and `filler` keys.
+        :param prediction: A list of gold entities, each defined by a\
+                dictionary with `type` and `filler` keys.
+        """
+        gold = copy(gold)
+        gold_type=[]
+        for gold_entity in gold:
+            gold_type.append(gold_entity["type"])
+        pred_type=[]
+        for pred_entity in prediction:
+            pred_type.append(pred_entity["type"])
+        tp=0
+        fp=0
+        fn=0
+        for entity in pred_type:
+            if entity in gold_type:
+                self._true_positives[entity] += 1
+                gold_type.remove(entity)
+                tp+=1
+            else:
+                self._false_positives[entity] += 1
+                fp+=1
+        # These spans weren't predicted.
+        for entity in gold_type:
+            self._false_negatives[entity] += 1
+            fn+=1
+        _,_,f1=compute_metrics(tp,fp,fn)
+        return f1
 
 
 class SLUF1(ErrorMetric):

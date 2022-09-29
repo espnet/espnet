@@ -29,6 +29,7 @@ if [ $# -gt 1 ]; then
 else
 	valid_inference_folder=inference_st_model_valid.acc.ave/devel/
 	test_inference_folder=inference_st_model_valid.acc.ave/test/
+  python local/convert_to_entity_file_token.py --exp_root ${asr_expdir}
 	python local/prepare_asr_file.py --exp_root ${asr_expdir}
   python local/prepare_ner_file.py --exp_root ${asr_expdir}
 fi

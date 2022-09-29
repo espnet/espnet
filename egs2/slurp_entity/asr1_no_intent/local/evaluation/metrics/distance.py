@@ -1,6 +1,5 @@
-from typing import List, Union
-
 from jiwer import wer
+from typing import List, Union
 from textdistance.algorithms.edit_based import levenshtein
 
 DISTANCE_OPTIONS = {"word", "char"}
