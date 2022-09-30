@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
 
 import numpy as np
-import pyopenjtalk
 import scipy.signal
 import soundfile
 from typeguard import check_argument_types, check_return_type
