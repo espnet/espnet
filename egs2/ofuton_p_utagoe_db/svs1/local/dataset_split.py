@@ -65,7 +65,6 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
-    pho_scp = open(os.path.join(subset, "phoneme"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
     musicxmlscp = open(os.path.join(subset, "musicxml.scp"), "w", encoding="utf-8")
 
@@ -88,7 +87,6 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
         label_info, pho_info = process_pho_info(
             os.path.join(src_data, folder, "{}.lab".format(folder))
         )
-        pho_scp.write("{} {}\n".format(utt_id, pho_info))
         label_scp.write("{} {}\n".format(utt_id, label_info))
         musicxmlscp.write(
             "{} {}\n".format(

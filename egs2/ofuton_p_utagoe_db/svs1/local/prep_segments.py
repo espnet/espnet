@@ -95,7 +95,6 @@ def make_segment(file_id, labels, threshold=13.5, sil=["pau", "br", "sil"]):
 
 
 if __name__ == "__main__":
-    # os.chdir(sys.path[0]+'/..')
     args = get_parser().parse_args()
     args.threshold *= 1e-3
     segments = []
@@ -107,7 +106,6 @@ if __name__ == "__main__":
         os.path.join(args.scp, "segments.tmp"), "w", encoding="utf-8"
     )
     update_label = open(os.path.join(args.scp, "label.tmp"), "w", encoding="utf-8")
-    update_pho = open(os.path.join(args.scp, "phoneme.tmp"), "w", encoding="utf-8")
 
     for wav_line in wavscp:
         label_line = label.readline()
@@ -138,10 +136,7 @@ if __name__ == "__main__":
                 )
             )
             update_label.write("{}".format(key))
-            update_pho.write("{}".format(key))
 
             for v in val:
                 update_label.write(" {:.3f} {:.3f}  {}".format(v[0], v[1], v[2]))
-                update_pho.write(" {}".format(v[2]))
             update_label.write("\n")
-            update_pho.write("\n")
