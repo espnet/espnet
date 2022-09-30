@@ -26,4 +26,5 @@ test_sets="cv_synthetic tt_synthetic"
     --use_noise_ref false \
     --max_wav_duration 31 \
     --inference_model "valid.loss.best.pth" \
+    --nj 8 \
     "$@"

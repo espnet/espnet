@@ -211,12 +211,14 @@ done
 rmdir $PATH_PREFIX/clean_fullband
 rmdir $PATH_PREFIX/noise_fullband
 
-# get noisy wav synthesizer config file
+# get files needed from DNS-Challenge repo
 cd ${PATH_PREFIX}
-wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/noisyspeech_synthesizer.cfg -O noisyspeech_synthesizer.cfg
+git clone -b master --single-branch https://github.com/microsoft/DNS-Challenge.git
+cd DNS-Challenge
+git checkout 5582dcf5ba43155621de72a035eb54a7d233af14
+cp noisyspeech_synthesizer.cfg ../
+cp audiolib.py $RUN_DIR/local/
+cp utils.py $RUN_DIR/local/
+echo "Required scripts & files fetched from DNS-Challenge repo"
 
-cd $RUN_DIR/local/
-wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/audiolib.py -O audiolib.py
-wget https://raw.githubusercontent.com/microsoft/DNS-Challenge/master/utils.py -O utils.py
-
-cd ../
+cd $RUN_DIR
