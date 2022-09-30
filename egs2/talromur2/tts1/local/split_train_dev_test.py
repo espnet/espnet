@@ -129,9 +129,6 @@ def main():
 
     male_test_speakers = (args.num_test_speakers // 2) + (args.num_test_speakers % 2)
     female_test_speakers = args.num_test_speakers // 2
-    print(
-        f"Male test speakers: {male_test_speakers}, female test speakers: {female_test_speakers}"
-    )
     test_speakers = np.concatenate(
         (
             np.random.choice(MALE_VOICES, male_test_speakers),

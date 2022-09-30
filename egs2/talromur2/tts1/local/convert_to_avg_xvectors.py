@@ -49,22 +49,25 @@ xvector_dir = args.xvector_path
 
 if not os.path.exists(args.xvector_path):
     sys.stderr.write(
-        f"Error: provided --xvector-path ({args.xvector_path}) does not exist. Exiting...\n"
+        f"Error: provided --xvector-path ({args.xvector_path}) does not exist."
     )
+    sys.stderr.write(" Exiting...\n")
     sys.stderr.flush()
     exit(1)
 
 if not os.path.exists(args.spk_xvector_path):
     sys.stderr.write(
-        f"Error: provided --spk-xvector-path ({args.spk_xvector_path}) does not exist. Exiting...\n"
+        f"Error: provided --spk-xvector-path ({args.spk_xvector_path}) does not exist."
     )
+    sys.stderr.write(" Exiting...\n")
     sys.stderr.flush()
     exit(1)
 
 if args.utt2spk and (not os.path.exists(args.utt2spk)):
     sys.stderr.write(
-        f"Error: provided --utt2spk file ({args.utt2spk}) does not exist. Exiting...\n"
+        f"Error: provided --utt2spk file ({args.utt2spk}) does not exist."
     )
+    sys.stderr.write(" Exiting...\n")
     sys.stderr.flush()
     exit(1)
 
@@ -78,8 +81,9 @@ with open(args.spk_xvector_path) as spembfile:
 
 if args.spk_id and (args.spk_id not in spk_xvector_paths):
     sys.stderr.write(
-        f"Error: provided --spk-id: {args.spk_id} not present in provided --spk-xvector-path. Exiting...\n"
+        f"Error: --spk-id:{args.spk_id} not present in provided --spk-xvector-path."
     )
+    sys.stderr.write(" Exiting...\n")
     sys.stderr.flush()
     exit(1)
 
