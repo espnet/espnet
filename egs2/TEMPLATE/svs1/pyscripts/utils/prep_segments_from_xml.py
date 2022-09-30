@@ -3,7 +3,10 @@ import argparse
 import math
 import os
 import sys
+
 import music21 as m21
+
+from espnet2.fileio.xml_scp import XMLScpReader
 
 """Divide songs into segments according to structured musicXML."""
 
@@ -96,7 +99,7 @@ def get_parser():
     return parser
 
 
-def make_segment(file_id, labels, threshold=13.5):
+def make_segment(file_id, labels, tempo, threshold=13.5):
     segments = []
     segment = SegInfo()
     for label in labels:
@@ -121,7 +124,7 @@ def make_segment(file_id, labels, threshold=13.5):
     for seg in segments:
         if len(seg) == 0:
             continue
-        segments_w_id[pack_zero(file_id, id)] = seg
+        segments_w_id[pack_zero(file_id, id)] = seg, tempo
         id += 1
     return segments_w_id
 
@@ -135,6 +138,7 @@ if __name__ == "__main__":
         os.path.join(args.scp, "segments_from_xml.tmp"), "w", encoding="utf-8"
     )
     update_xmlnote = open(os.path.join(args.scp, "xmlnote.tmp"), "w", encoding="utf-8")
+    update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
 
     for xml_line in musicxmlscp:
         xmlline = xml_line.strip().split(" ")
@@ -144,6 +148,8 @@ if __name__ == "__main__":
         temp_info = []
         score = m21.converter.parse(path)
         part = score.parts[0].flat
+        m = score.metronomeMarkBoundaries()
+        tempo = m[0][2]
         t = 0
         rest = LabelInfo(0, 0, 0, "Rest", None)
         for note in part.notesAndRests:
@@ -160,10 +166,10 @@ if __name__ == "__main__":
         if rest.start != rest.end:
             temp_info.append(rest)
 
-        segments.append(make_segment(recording_id, temp_info, args.threshold))
+        segments.append(make_segment(recording_id, temp_info, tempo, args.threshold))
 
     for file in segments:
-        for key, val in file.items():
+        for key, (val, tempo) in file.items():
             segment_begin = "{:.3f}".format(val[0][0])
             segment_end = "{:.3f}".format(val[-1][1])
 
@@ -173,10 +179,14 @@ if __name__ == "__main__":
                 )
             )
             update_xmlnote.write("{}".format(key))
+            update_text.write("{} ".format(key))
             new_stream = m21.stream.Stream()
+            new_stream.insert(tempo)
             for v in val:
                 update_xmlnote.write(" {}".format(v[2]))
                 new_stream.insert(v[3].offset, v[3])
-
+                if v[3].lyric is not None:
+                    update_text.write("{}".format(v[3].lyric))
             update_xmlnote.write("\n")
+            update_text.write("\n")
             new_stream.write("xml", fp=os.path.join(args.xml_dump, key + ".musicxml"))

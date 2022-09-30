@@ -12,22 +12,24 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.espnet_model import ESPnetSVSModel
+from espnet2.svs.feats_extract.score_feats_extract import (
+    FrameScoreFeats,
+    SyllableScoreFeats,
+)
+from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
+from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import SVSPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.svs.abs_svs import AbsSVS
-from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
-from espnet2.svs.feats_extract.score_feats_extract import FrameScoreFeats
-from espnet2.svs.feats_extract.score_feats_extract import SyllableScoreFeats
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
-from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
@@ -40,7 +42,6 @@ from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",

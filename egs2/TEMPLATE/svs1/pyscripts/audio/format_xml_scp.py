@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 import os
+from pathlib import Path
 
 from espnet.utils.cli_utils import get_commandline_args
 
