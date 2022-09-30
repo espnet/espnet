@@ -54,8 +54,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         local/prep_segments.py --silence pau --silence sil --silence br ${src_data} 10000 # in ms
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
-        mv ${src_data}/text.tmp ${src_data}/text
         local/prep_segments_from_xml.py ${src_data} 10000 # in ms
+        mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/xmlnote.tmp ${src_data}/xmlnote
         awk '{printf("%s ofuton\n", $1);}' < ${src_data}/segments > ${src_data}/utt2spk
