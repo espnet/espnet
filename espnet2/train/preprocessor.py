@@ -7,7 +7,6 @@ from typing import Collection, Dict, Iterable, List, Union
 import numpy as np
 import scipy.signal
 import soundfile
-import pyopenjtalk
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -1042,21 +1041,10 @@ class SVSPreprocessor(AbsPreprocessor):
             midis = []
             xml_timeseq = []
             phn_cnt = 0
-            vowel = ["a", "i", "u", "e", "o"]
             for i in range(len(syllables)):
                 # NOTE: Some phonemes are tagged differently
-                if syllables[i] == "へ":
-                    phn = ["h", "e"]
-                else:
-                    phn = pyopenjtalk.g2p(syllables[i]).split(" ")
+                phn = self.tokenizer.text2tokens_svs(syllables[i])
                 phn_num = len(phn)
-                vowel_num = 0
-                for p in phn:
-                    if p in vowel:
-                        vowel_num += 1
-                if vowel_num == 2 and phn[0] != "k" and phn[0] != "g":
-                    phn_num -= 1
-                assert vowel_num <= 2
                 phn_cnt += phn_num
                 for _ in range(phn_num):
                     midis.append(notemidis[i])
