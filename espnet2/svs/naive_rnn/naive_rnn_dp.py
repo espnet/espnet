@@ -1,15 +1,12 @@
 # Copyright 2021 Carnegie Mellon University (Jiatong Shi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Transformer-SVS related modules."""
+"""NaiveRNN-DP-SVS related modules."""
 
-import logging
-import random
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.distributions import Beta
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
@@ -20,14 +17,14 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class NaiveRNNDP(AbsSVS):
-    """NaiveRNNDP-SVS module
+    """NaiveRNNDP-SVS module.
+
     This is an implementation of naive RNN with duration prediction
     for singing voice synthesis
     The features are processed directly over time-domain from music score and
@@ -75,7 +72,8 @@ class NaiveRNNDP(AbsSVS):
         use_weighted_masking: bool = False,
     ):
         """Initialize NaiveRNN module.
-        Args: TODO
+
+        Args: TODO(Yuning)
         """
         assert check_argument_types()
         super().__init__()
@@ -184,7 +182,7 @@ class NaiveRNNDP(AbsSVS):
             # proj_size=eunits,
         )
 
-        dim_direction = 2 if ebidirectional == True else 1
+        dim_direction = 2 if ebidirectional is True else 1
         if self.midi_embed_integration_type == "add":
             self.midi_projection = torch.nn.Linear(
                 eunits * dim_direction, eunits * dim_direction
@@ -223,7 +221,7 @@ class NaiveRNNDP(AbsSVS):
             self.sid_emb = torch.nn.Embedding(spks, dunits * dim_direction)
         self.langs = None
         if langs is not None and langs > 1:
-            # TODO (not encode yet)
+            # TODO(Yuning): not encode yet
             self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, dunits * dim_direction)
 

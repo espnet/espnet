@@ -40,6 +40,7 @@ from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 # from espnet2.svs.bytesing.bytesing import ByteSing
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
