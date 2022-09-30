@@ -34,7 +34,6 @@ from espnet.utils.cli_utils import get_commandline_args
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
 
 
-
 class SingingGenerate:
     """SingingGenerate class
 
