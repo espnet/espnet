@@ -2,11 +2,12 @@
 
 import os
 import sys
-from dataclasses import dataclass
-import zipfile
 import tempfile
-from typing import Optional, List, Dict
+import zipfile
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict, List, Optional
+
 import numpy as np
 
 

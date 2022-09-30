@@ -1,10 +1,10 @@
 #!/bin/bash
 
-expdir="exp/all"
+expdir="exp"
 
-train_set=train_all
-valid_set=dev_all
-eval_set=eval1_all
+train_set=train
+valid_set=dev
+eval_set=eval1
 test_sets="${valid_set} ${eval_set}"
 
 # # Prep data directory
@@ -12,7 +12,7 @@ test_sets="${valid_set} ${eval_set}"
     --train_set "$train_set" \
     --valid_set "$valid_set" \
     --test_sets "$test_sets" \
-    --srctexts "data/train_all/text" \
+    --srctexts "data/$train_set/text" \
     --expdir "$expdir" \
     --local_data_opts "all"
 
@@ -30,7 +30,7 @@ test_sets="${valid_set} ${eval_set}"
     --g2p none \
     --cleaner none \
     --use_xvector true \
-    --ngpu 4 \
+    --ngpu 1 \
     --expdir "$expdir" \
     --train_config ./conf/tuning/train_xvector_tacotron2.yaml \
-    --inference_model dev.total_count.ave.pth
+    --inference_model valid.loss.ave_5best.pth

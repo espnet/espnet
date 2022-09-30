@@ -34,7 +34,11 @@ eval_set=eval1
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
-    local/data_download.sh "${db_root}"
+    if [ ${db_root}=="downloads" ]; then
+        log "Non-default db root provided, skipping download..."
+    else
+        ./local/data_download.sh "${db_root}"
+    fi
 fi
 
 # set filenames
@@ -42,8 +46,6 @@ scp=data/${full_set}/wav.scp
 utt2spk=data/${full_set}/utt2spk
 spk2utt=data/${full_set}/spk2utt
 text=data/${full_set}/text
-num_dev=250
-num_eval=250
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Preparation"
@@ -89,12 +91,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # make text using the original text
     # cleaning and phoneme conversion are performed on-the-fly during the training
     echo "Collecting text prompts"
-    for path in downloads/s*
+    for path in ${db_root}/s*
     do
         speaker_id=$(basename ${path})
         paste -d " " \
             <(cut -f 1 < ${db_root}/${speaker_id}/index.tsv) \
-            <(cut -f 4 < ${db_root}/${speaker_id}/index.tsv) \
+            <(cut -f 3 < ${db_root}/${speaker_id}/index.tsv) \
             >> ${text}
     done
     sort ${text} > ${text}_sorted
@@ -106,36 +108,10 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 2: utils/subset_data_dir.sh"
-    if [ -e val_utts.txt ]; then rm val_utts.txt; fi
-    if [ -e test_utts.txt ]; then rm test_utts.txt; fi
-    if [ -e train_utts.txt ]; then rm train_utts.txt; fi
 
-    num_all=$(wc -l < "${scp}")
-    num_deveval=$((num_dev + num_eval))
-    num_train=$((num_all - num_deveval))
-    utils/subset_data_dir.sh --last "data/${full_set}" "${num_deveval}" "data/${deveval_set}"
-    utils/subset_data_dir.sh --first "data/${deveval_set}" "${num_dev}" "data/${eval_set}"
-    utils/subset_data_dir.sh --last "data/${deveval_set}" "${num_eval}" "data/${dev_set}"
-    utils/subset_data_dir.sh --first "data/${full_set}" "${num_train}" "data/${train_set}"
-    # # make evaluation and devlopment sets
-    # for path in downloads/s*
-    # do
-    #     speaker_id=$(basename ${path})
-    #     paste -d " " \
-    #         <(cut -f 1 < ${db_root}/split/${speaker_id}_val.txt) \
-    #         >> val_utts.txt
-    #     paste -d " " \
-    #         <(cut -f 1 < ${db_root}/split/${speaker_id}_test.txt) \
-    #         >> test_utts.txt
-    #     paste -d " " \
-    #         <(cut -f 1 < ${db_root}/split/${speaker_id}_train.txt) \
-    #         >> train_utts.txt
-    # done
-    # utils/subset_data_dir.sh --utt-list val_utts.txt data/${full_set} data/${dev_set}
-    # utils/subset_data_dir.sh --utt-list test_utts.txt data/${full_set} data/${eval_set}
-    # utils/subset_data_dir.sh --utt-list train_utts.txt data/${full_set} data/${train_set}
+    ./local/split_train_dev_test.py --data_dir "data/${full_set}" --train_dir "data/${train_set}" --dev_dir "data/${dev_set}" --test_dir "data/${eval_set}"
 
-    # rm val_utts.txt test_utts.txt train_utts.txt
+
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
