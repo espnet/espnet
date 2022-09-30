@@ -155,6 +155,7 @@ VOXFORGE=downloads
 VOXPOPULI=downloads
 HARPERVALLEY=downloads
 TALROMUR=downloads
+TALROMUR2=downloads
 DCASE=
 TEDX_SPANISH=downloads
 
