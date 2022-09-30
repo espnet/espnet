@@ -5,7 +5,6 @@
 
 """Singing-voice-synthesis ESPnet model."""
 
-import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple

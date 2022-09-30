@@ -7,7 +7,6 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.distributions import Beta
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
@@ -232,7 +231,7 @@ class NaiveRNN(AbsSVS):
             self.sid_emb = torch.nn.Embedding(spks, eunits * dim_direction)
         self.langs = None
         if langs is not None and langs > 1:
-            # TODO (Yuning): not encode yet
+            # TODO(Yuning): not encode yet
             self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, eunits * dim_direction)
 
