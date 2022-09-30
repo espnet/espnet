@@ -7,17 +7,18 @@ valid_set=dev
 eval_set=eval1
 test_sets="${valid_set} ${eval_set}"
 
-# # # Prep data directory
-# ./run.sh --stage 1 --stop-stage 1 \
-#     --train_set "$train_set" \
-#     --valid_set "$valid_set" \
-#     --test_sets "$test_sets" \
-#     --srctexts "data/train_all/text" \
-#     --expdir "$expdir" \
-#     --local_data_opts "all"
-
-# # # Since ice-g2p phonetization is very slow, dump phonemized text at first
-# ./local/phonetize.sh all
+# Use the previously trained tacotron2 model as the teacher
+./run.sh \
+    --ngpu 1 \
+    --stage 7 \
+    --train_set train_${speaker_id}_phn \
+    --valid_set dev_${speaker_id}_phn \
+    --test_sets "train_${speaker_id}_phn dev_${speaker_id}_phn eval1_${speaker_id}_phn" \
+    --cleaner none \
+    --g2p none \
+    --train_config ./conf/tuning/train_xvector_tacotron2.yaml \
+    --tts_exp exp/${speaker_id}/tts_train_xvector_tacotron2_raw_phn_none \
+    --inference_args "--use_teacher_forcing true"
 
 # Run from stage 2
 ./run.sh \
@@ -26,7 +27,7 @@ test_sets="${valid_set} ${eval_set}"
     --test_sets "${valid_set}_phn ${eval_set}_phn" \
     --srctexts "data/${train_set}_phn/text" \
     --expdir "$expdir" \
-    --stage 6 \
+    --stage 5 \
     --g2p none \
     --cleaner none \
     --use_xvector true \
