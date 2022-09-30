@@ -6,6 +6,8 @@ import sys
 
 import music21 as m21
 
+from espnet2.fileio.xml_scp import XMLScpReader
+
 """Divide songs into segments according to structured musicXML."""
 
 
@@ -136,6 +138,7 @@ if __name__ == "__main__":
         os.path.join(args.scp, "segments_from_xml.tmp"), "w", encoding="utf-8"
     )
     update_xmlnote = open(os.path.join(args.scp, "xmlnote.tmp"), "w", encoding="utf-8")
+    update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
 
     for xml_line in musicxmlscp:
         xmlline = xml_line.strip().split(" ")
@@ -176,11 +179,14 @@ if __name__ == "__main__":
                 )
             )
             update_xmlnote.write("{}".format(key))
+            update_text.write("{} ".format(key))
             new_stream = m21.stream.Stream()
             new_stream.insert(tempo)
             for v in val:
                 update_xmlnote.write(" {}".format(v[2]))
                 new_stream.insert(v[3].offset, v[3])
-
+                if v[3].lyric is not None:
+                    update_text.write("{}".format(v[3].lyric))
             update_xmlnote.write("\n")
+            update_text.write("\n")
             new_stream.write("xml", fp=os.path.join(args.xml_dump, key + ".musicxml"))

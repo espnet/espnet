@@ -44,10 +44,10 @@ def makedir(data_url):
     os.makedirs(data_url)
 
 
-def process_text_info(text):
-    info = open(text, "r", encoding="utf-8")
+def process_pho_info(phone):
+    info = open(phone, "r", encoding="utf-8")
     label_info = []
-    text_info = []
+    pho_info = []
     for line in info.readlines():
         line = line.strip().split()
         label_info.append(
@@ -55,8 +55,8 @@ def process_text_info(text):
                 float(line[0]) / 1e7, float(line[1]) / 1e7, line[2].strip()
             )
         )
-        text_info.append(line[2].strip())
-    return " ".join(label_info), " ".join(text_info)
+        pho_info.append(line[2].strip())
+    return " ".join(label_info), " ".join(pho_info)
 
 
 def process_subset(src_data, subset, check_func, fs, wav_dump):
@@ -64,7 +64,6 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
-    text_scp = open(os.path.join(subset, "text"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
     musicxmlscp = open(os.path.join(subset, "musicxml.scp"), "w", encoding="utf-8")
 
@@ -84,10 +83,9 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))
-        label_info, text_info = process_text_info(
+        label_info, pho_info = process_pho_info(
             os.path.join(src_data, folder, "{}.lab".format(folder))
         )
-        text_scp.write("{} {}\n".format(utt_id, text_info))
         label_scp.write("{} {}\n".format(utt_id, label_info))
         musicxmlscp.write(
             "{} {}\n".format(
