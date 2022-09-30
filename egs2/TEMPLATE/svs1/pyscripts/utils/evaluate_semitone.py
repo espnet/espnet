@@ -11,6 +11,7 @@ import fnmatch
 import logging
 import multiprocessing as mp
 import os
+from math import log2, pow
 from typing import Dict, List, Tuple
 
 import librosa
@@ -20,7 +21,6 @@ import pyworld as pw
 import soundfile as sf
 from fastdtw import fastdtw
 from scipy import spatial
-from math import log2, pow
 
 
 def _Hz2Semitone(freq):

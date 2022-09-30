@@ -3,23 +3,22 @@
 
 """Transformer-SVS related modules."""
 
+import logging
+import random
 from typing import Dict, Optional, Sequence, Tuple
+
 import torch
 import torch.nn.functional as F
-
-import logging
+from torch.distributions import Beta
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
+from espnet2.svs.abs_svs import AbsSVS
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet2.svs.abs_svs import AbsSVS
-
-import random
-from torch.distributions import Beta
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 Beta_distribution = Beta(torch.tensor([0.5]), torch.tensor([0.5]))
 

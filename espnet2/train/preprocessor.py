@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
 
 import numpy as np
+import pyopenjtalk
 import scipy.signal
 import soundfile
-import pyopenjtalk
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.text.build_tokenizer import build_tokenizer

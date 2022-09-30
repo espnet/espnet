@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-
 UTT_PREFIX = "ofuton"
 DEV_LIST = [
     "chatsumi",

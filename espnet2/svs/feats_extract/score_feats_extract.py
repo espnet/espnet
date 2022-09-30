@@ -5,9 +5,9 @@ import humanfriendly
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 
 def ListsToTensor(xs):
