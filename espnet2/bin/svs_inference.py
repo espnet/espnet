@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
-import matplotlib
 import numpy as np
 import soundfile as sf
 import torch
@@ -280,6 +279,8 @@ def inference(
     (output_dir / "focus_rates").mkdir(parents=True, exist_ok=True)
 
     # Lazy load to avoid the backend error
+    import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator

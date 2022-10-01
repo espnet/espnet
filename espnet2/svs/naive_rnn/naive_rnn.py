@@ -9,7 +9,6 @@ from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.distributions import Beta
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
@@ -19,8 +18,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-
-Beta_distribution = Beta(torch.tensor([0.5]), torch.tensor([0.5]))
 
 
 class NaiveRNNLoss(torch.nn.Module):
@@ -235,7 +232,7 @@ class NaiveRNN(AbsSVS):
             self.sid_emb = torch.nn.Embedding(spks, eunits * dim_direction)
         self.langs = None
         if langs is not None and langs > 1:
-            # TODO (not encode yet)
+            # TODO: not encode yet
             self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, eunits * dim_direction)
 
@@ -433,7 +430,7 @@ class NaiveRNN(AbsSVS):
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        if flag_IsValid == False:
+        if flag_IsValid is False:
             # training stage
             return loss, stats, weight
         else:

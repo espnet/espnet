@@ -4,7 +4,6 @@
 
 """Singing-voice-synthesis ESPnet model."""
 
-import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
@@ -1033,10 +1032,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                                         i
                                     ]
                                 break
-
-                logging.info(
-                    f"ds_tmp: {ds_tmp}, sum(ds_tmp): {sum(ds_tmp)}, frame_length: {frame_length}"
-                )
                 assert sum(ds_tmp) == frame_length
 
                 ds.append(torch.tensor(ds_tmp))
