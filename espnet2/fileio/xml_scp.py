@@ -1,7 +1,6 @@
 import collections.abc
 import logging
 
-import music21 as m21
 import numpy as np
 from typeguard import check_argument_types
 
