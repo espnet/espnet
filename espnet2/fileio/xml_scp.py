@@ -7,6 +7,11 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2column_text
 
+try:
+    import music21 as m21  # for CI import
+except ImportError or ModuleNotFoundError:
+    m21 = None
+
 
 class XMLScpReader(collections.abc.Mapping):
     # TODO(Yuning): It is designed for sub xmls after segmentation.
@@ -30,6 +35,11 @@ class XMLScpReader(collections.abc.Mapping):
         dtype=np.int16,
     ):
         assert check_argument_types()
+        assert m21 is not None, (
+            "Cannot load music21 package. ",
+            "Please install Muskit modules via ",
+            "(cd tools && make muskit.done)",
+        )
         self.fname = fname
         self.dtype = dtype
         self.data = read_2column_text(fname)  # get key-value dict
