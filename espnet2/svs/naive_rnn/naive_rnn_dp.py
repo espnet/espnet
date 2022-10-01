@@ -430,7 +430,7 @@ class NaiveRNNDP(AbsSVS):
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        if flag_IsValid == False:
+        if flag_IsValid is False:
             # training stage
             return loss, stats, weight
         else:

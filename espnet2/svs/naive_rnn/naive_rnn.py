@@ -7,7 +7,6 @@ from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.distributions import Beta
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
