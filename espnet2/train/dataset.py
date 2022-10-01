@@ -134,7 +134,12 @@ class AdapterForXMLScpReader(collections.abc.Mapping):
             lyrics, notes, segs, tempo = retval
         else:
             raise RuntimeError(
-                f"Unexpected type: {type(retval[0])}, {type(retval[1])}, {type(retval[2])}, {type(retval[3])}"
+                "Unexpected type: {}, {}, {}, {}".format(
+                    type(retval[0]),
+                    type(retval[1]),
+                    type(retval[2]),
+                    type(retval[3]),
+                )
             )
 
         assert (
@@ -257,8 +262,8 @@ DATA_TYPES = {
         help="Return text as is. The text must be converted to ndarray "
         "by 'preprocess'."
         "\n\n"
-        "   utterance_id_A start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ...\n"
-        "   utterance_id_B start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ...\n"
+        "   utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...\n"
+        "   utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...\n"
         "   ...",
     ),
     "kaldi_ark": dict(
@@ -524,7 +529,10 @@ class ESPnetDataset(AbsDataset):
                     value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple)
                 ):
                     raise TypeError(
-                        f"Must be ndarray, torch.Tensor, str,  Number or tuple: {type(value)}"
+                        (
+                            "Must be ndarray, torch.Tensor, "
+                            "str,  Number or tuple: {}".format(type(value))
+                        )
                     )
             except Exception:
                 path, _type = self.debug_info[name]

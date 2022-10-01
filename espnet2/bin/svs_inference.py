@@ -16,21 +16,12 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
-from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-
-# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
 
 
 class SingingGenerate:
@@ -67,7 +58,7 @@ class SingingGenerate:
         self.svs = model.svs
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
-        # self.duration_calculator = DurationCalculator() # TODO
+        # self.duration_calculator = DurationCalculator() # TODO(Yuning)
         self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
 
@@ -502,7 +493,7 @@ def get_parser():
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(
         "--vocoder_checkpoint",
-        default="/data5/gs/vocoder_peter/hifigan-vocoder/exp/train_hifigan.v1_train_nodev_clean_libritts_hifigan-2.v1/checkpoint-50000steps.pkl",
+        default="None",
         type=str_or_none,
         help="checkpoint file to be loaded.",
     )

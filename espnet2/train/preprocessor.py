@@ -1158,7 +1158,7 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-        # TODO allow the tuple type
+        # TODO(Yuning) allow the tuple type
 
         # align frame length with singing
         length = min([len(data[key]) for key in data.keys() if key in self.align])

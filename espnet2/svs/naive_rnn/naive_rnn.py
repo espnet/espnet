@@ -1,11 +1,9 @@
 # Copyright 2021 Carnegie Mellon University (Jiatong Shi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Transformer-SVS related modules."""
+"""Naive-SVS related modules."""
 
-import logging
-import random
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -17,7 +15,6 @@ from espnet2.torch_utils.initialize import initialize
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class NaiveRNNLoss(torch.nn.Module):
@@ -85,7 +82,8 @@ class NaiveRNNLoss(torch.nn.Module):
 
 
 class NaiveRNN(AbsSVS):
-    """NaiveRNN-SVS module
+    """NaiveRNN-SVS module.
+
     This is an implementation of naive RNN for singing voice synthesis
     The features are processed directly over time-domain from music score and
     predict the singing voice features
@@ -128,7 +126,8 @@ class NaiveRNN(AbsSVS):
         loss_type: str = "L1",
     ):
         """Initialize NaiveRNN module.
-        Args: TODO
+
+        Args: TODO(Yuning)
         """
         assert check_argument_types()
         super().__init__()
@@ -206,7 +205,7 @@ class NaiveRNN(AbsSVS):
             bidirectional=ebidirectional,
         )
 
-        dim_direction = 2 if ebidirectional == True else 1
+        dim_direction = 2 if ebidirectional is True else 1
         if self.midi_embed_integration_type == "add":
             self.midi_projection = torch.nn.Linear(
                 eunits * dim_direction, eunits * dim_direction
@@ -232,7 +231,7 @@ class NaiveRNN(AbsSVS):
             self.sid_emb = torch.nn.Embedding(spks, eunits * dim_direction)
         self.langs = None
         if langs is not None and langs > 1:
-            # TODO: not encode yet
+            # TODO (Yuning): not encode yet
             self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, eunits * dim_direction)
 

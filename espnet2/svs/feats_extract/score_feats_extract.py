@@ -1,11 +1,8 @@
-import logging
 from typing import Any, Dict, Optional, Tuple, Union
 
-import humanfriendly
 import torch
 from typeguard import check_argument_types
 
-from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
@@ -63,6 +60,7 @@ class FrameScoreFeats(AbsFeatsExtract):
         self, input: torch.Tensor, input_lengths: torch.Tensor = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """lage_aggregate function.
+
         Args:
             input: (Batch, Nsamples, Label_dim)
             input_lengths: (Batch)
