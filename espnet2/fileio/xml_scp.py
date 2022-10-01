@@ -1,7 +1,5 @@
 import collections.abc
 import logging
-from pathlib import Path
-from typing import Union
 
 import music21 as m21
 import numpy as np
@@ -91,4 +89,5 @@ class XMLScpReader(collections.abc.Mapping):
 
 # TODO(Yuning): Add XMLScpWriter
 # The present XMLScpReader extract note info and ignore rest_note.
-# For XMLWriter, additional information (eg. offset, <br>, instrument, etc) might be required.
+# For XMLWriter, additional information
+#                (eg. offset, <br>, instrument, etc) might be required.
