@@ -231,7 +231,7 @@ class NaiveRNN(AbsSVS):
             self.sid_emb = torch.nn.Embedding(spks, eunits * dim_direction)
         self.langs = None
         if langs is not None and langs > 1:
-            # TODO (Yuning): not encode yet
+            # TODO(Yuning): not encode yet
             self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, eunits * dim_direction)
 

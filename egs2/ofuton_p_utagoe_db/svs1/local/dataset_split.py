@@ -74,7 +74,11 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
             continue
         utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(folder))
 
-        cmd = f"sox {os.path.join(src_data, folder, folder)}.wav -c 1 -t wavpcm -b 16 -r {fs} {os.path.join(wav_dump, folder)}_bits16.wav"
+        cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
+            os.path.join(src_data, folder, folder),
+            fs,
+            os.path.join(wav_dump, folder),
+        )
         os.system(cmd)
 
         wavscp.write(

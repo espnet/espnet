@@ -43,6 +43,7 @@ cleaner=none
     --pitch_extract None \
     --fs "${fs}" \
     --fmax "${fmax}" \
+    --fmin "${fmin}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
@@ -56,6 +57,5 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --svs_exp ${expdir} \
     --ngpu 1 \
     ${opts} "$@"
