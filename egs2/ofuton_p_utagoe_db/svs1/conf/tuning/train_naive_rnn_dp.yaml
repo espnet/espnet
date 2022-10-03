@@ -1,0 +1,69 @@
+
+
+##########################################################
+#                  SVS MODEL SETTING                     #
+##########################################################
+svs: naive_rnn_dp                   # model architecture
+svs_conf:                        # keyword arguments for the selected model
+    midi_dim: 129                # midi dimension (note number + silence)
+    embed_dim: 512               # char or phn embedding dimension
+    tempo_dim: 500
+    eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
+    eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
+    eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
+    elayers: 3                   # number of lstm layers in encoder
+    eunits: 256                  # number of lstm units
+    ebidirectional: True         # if bidirectional in encoder
+    midi_embed_integration_type: add # how to integrate midi information
+    dlayers: 2                   # number of lstm layers in decoder
+    dunits: 256                  # number of lstm units in decoder
+    dbidirectional: True         # if bidirectional in decoder
+    postnet_layers: 5            # number of layers in postnet
+    postnet_chans: 512           # number of channels in postnet
+    postnet_filts: 5             # filter size of postnet layer
+    use_batch_norm: true         # whether to use batch normalization in postnet
+    reduction_factor: 1          # reduction factor
+    eprenet_dropout_rate: 0.2    # prenet dropout rate
+    edropout_rate: 0.1           # encoder dropout rate
+    ddropout_rate: 0.1           # decoder dropout rate
+    postnet_dropout_rate: 0.5    # postnet dropout_rate
+    init_type: pytorch           # parameter initialization
+    use_masking: true            # whether to apply masking for padded part in loss calculation
+
+
+##########################################################
+#                  OPTIMIZER SETTING                     #
+##########################################################
+optim: adam           # optimizer type
+optim_conf:           # keyword arguments for selected optimizer
+    lr: 1.0e-03       # learning rate
+    eps: 1.0e-06      # epsilon
+    weight_decay: 0.0 # weight decay coefficient
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+# num_iters_per_epoch: 200    # number of iterations per epoch
+max_epoch: 500              # number of epochs
+grad_clip: 1.0              # gradient clipping norm
+grad_noise: false           # whether to use gradient noise injection
+accum_grad: 1               # gradient accumulation
+ 
+batch_type: sorted
+batch_size: 16
+
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+num_workers: 8              # number of workers of data loader
+train_dtype: float32        # dtype in training
+log_interval: null          # log interval in iterations
+keep_nbest_models: 2        # number of models to keep
+num_att_plot: 3             # number of attention figures to be saved in every check
+seed: 0                     # random seed number
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+-   - train
+    - loss
+    - min

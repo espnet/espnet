@@ -6,6 +6,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
+import os
 import shutil
 import sys
 
@@ -127,6 +128,13 @@ def main():
             print(f"[ ] {name}")
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
+
+    # check muskit install
+    if os.path.exists("muskit.done"):
+        print(f"[x] muskit")
+    else:
+        print(f"[ ] muskit")
+        to_install.append(f"Use 'installers/install_muskit.sh' to install muskit")
 
     print()
     print("Executables:")
