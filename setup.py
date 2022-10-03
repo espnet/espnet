@@ -38,6 +38,10 @@ requirements = {
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # fix CI error due to the use of deprecated functions
+        # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
+        # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
+        "importlib-metadata<5.0",
     ],
     # train: The modules invoked when training only.
     "train": [
