@@ -14,6 +14,7 @@ n_shift=300
 win_length=1200
 
 score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats
+expdir=exp/vits
 
 opts=
 if [ "${fs}" -eq 48000 ]; then
