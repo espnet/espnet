@@ -6,10 +6,12 @@
    ./notebook/asr_library.ipynb
    ./notebook/espnet2_asr_realtime_demo.ipynb
    ./notebook/espnet2_asr_transfer_learning_demo.ipynb
+   ./notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb
    ./notebook/espnet2_streaming_asr_demo.ipynb
    ./notebook/espnet2_tts_realtime_demo.ipynb
    ./notebook/espnet2_tutorial_2021_CMU_11751_18781.ipynb
    ./notebook/espnet_se_demonstration_for_waspaa_2021.ipynb
+   ./notebook/onnx_conversion_demo.ipynb
    ./notebook/pretrained.ipynb
    ./notebook/se_demo.ipynb
    ./notebook/st_demo.ipynb
