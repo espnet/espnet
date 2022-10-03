@@ -13,8 +13,7 @@ n_fft=2048
 n_shift=300
 win_length=1200
 
-# score_feats_extract=frame_score_feats
-score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
+score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats
 
 opts=
 if [ "${fs}" -eq 48000 ]; then
@@ -29,20 +28,15 @@ valid_set=dev
 test_sets="dev eval"
 
 # training and inference configuration
-train_config=conf/tuning/train_naive_rnn_dp.yaml
-#train_config=conf/train.yaml
+train_config=conf/train.yaml
 inference_config=conf/decode.yaml
-expdir=exp/rnn-token
 
 # text related processing arguments
-# g2p=none
 g2p=pyopenjtalk
 cleaner=none
 
 ./svs.sh \
     --lang jp \
-    --stage 0 \
-    --stop_stage 4 \
     --local_data_opts "--stage 0" \
     --feats_type raw \
     --pitch_extract None \
@@ -62,7 +56,5 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --svs_exp ${expdir} \
-    --vocoder_file "/data1/wyn/Mus_data/vocoder/train_nodev_ofuton_hifigan.v1/checkpoint-300000steps.pkl"\
     --ngpu 1 \
     ${opts} "$@"

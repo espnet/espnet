@@ -157,7 +157,7 @@ HARPERVALLEY=downloads
 TALROMUR=downloads
 DCASE=
 TEDX_SPANISH=downloads
-OFUTON=/data1/wyn/Mus_data/OFUTON_P_UTAGOE_DB/
+OFUTON=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
