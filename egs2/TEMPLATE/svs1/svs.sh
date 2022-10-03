@@ -47,7 +47,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-min_wav_duration=0.1 # Minimum duration in second.
+min_wav_duration=1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false        # Whether to use language id as the inputs (Need utt2lang in data directory).
@@ -642,6 +642,7 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
+            log "CASE 1: AR model training"
             #####################################
             #     CASE 1: AR model training     #
             #####################################
@@ -709,8 +710,8 @@ if ! "${skip_train}"; then
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${svs_stats_dir}/train/singing_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/durations_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/score_shape "
+                # _opts+="--train_shape_file ${svs_stats_dir}/train/durations_shape "
+                # _opts+="--train_shape_file ${svs_stats_dir}/train/score_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
@@ -718,10 +719,10 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/xml.scp,midi,midi "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/score_shape "
+            # _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
+            # _opts+="--valid_shape_file ${svs_stats_dir}/valid/score_shape "
         else
-
+            log "CASE 2: Non-AR model training"
             #####################################
             #   CASE 2: Non-AR model training   #
             #####################################
