@@ -22,13 +22,12 @@
 # If jobs failed, your configuration might be wrong for your environment.
 #
 #
-# The official documentaion for run.pl, queue.pl, slurm.pl, and ssh.pl:
+# The official documentation for run.pl, queue.pl, slurm.pl, and ssh.pl:
 #   "Parallelization in Kaldi": http://kaldi-asr.org/doc/queue.html
 # =========================================================~
 
 
 # Select the backend used by run.sh from "local", "stdout", "sge", "slurm", or "ssh"
-
 cmd_backend='local'
 
 # Local machine, without any Job scheduling system
@@ -78,7 +77,7 @@ elif [ "${cmd_backend}" = slurm ]; then
     # The default setting is written in conf/slurm.conf.
     # You must change "-p cpu" and "-p gpu" for the "partition" for your environment.
     # To know the "partion" names, type "sinfo".
-    # You can use "--gpu * " by defualt for slurm and it is interpreted as "--gres gpu:*"
+    # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
     export train_cmd="slurm.pl"
