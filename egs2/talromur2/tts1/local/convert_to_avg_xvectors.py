@@ -64,9 +64,7 @@ if not os.path.exists(args.spk_xvector_path):
     exit(1)
 
 if args.utt2spk and (not os.path.exists(args.utt2spk)):
-    sys.stderr.write(
-        f"Error: provided --utt2spk file ({args.utt2spk}) does not exist."
-    )
+    sys.stderr.write(f"Error: provided --utt2spk file ({args.utt2spk}) does not exist.")
     sys.stderr.write(" Exiting...\n")
     sys.stderr.flush()
     exit(1)
