@@ -36,7 +36,7 @@ nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
-expdir=exp           # Directory to save experiments.
+expdir=exp2           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
@@ -105,6 +105,7 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
+use_src_lang=true          # Incorporate ASR loss (use src texts) or not 
 
 # Upload model related
 hf_repo=
@@ -147,7 +148,6 @@ lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
-
 Options:
     # General configuration
     --stage          # Processes starts from the specified stage (default="${stage}").
@@ -164,20 +164,16 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
-
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
-
     # Speed perturbation related
     --speed_perturb_factors # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
-
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
@@ -196,7 +192,6 @@ Options:
     --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
     --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
     --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
-
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_exp          # Specify the directory path for LM experiment.
@@ -209,7 +204,6 @@ Options:
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
-
     # ST model related
     --st_tag           # Suffix to the result dir for st model training (default="${st_tag}").
     --st_exp           # Specify the directory path for ST experiment.
@@ -225,7 +219,7 @@ Options:
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
-
+    --use_src_lang=    # Incorporate ASR loss (use src texts) or not 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
     --inference_config    # Config for decoding (default="${inference_config}").
@@ -235,7 +229,6 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_st_model # ST model path for decoding (default="${inference_st_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
@@ -271,7 +264,6 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
@@ -293,9 +285,14 @@ else
 fi
 
 # Extra files for translation process
-utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+if [ $use_src_lang = true ]; then
+    utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+else
+    utt_extra_files="text.${tgt_case}.${tgt_lang}"
+fi
+
 # Use the same text as ST for bpe training if not specified.
-[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+[ -z "${src_bpe_train_text}" ] && [ $use_src_lang = true ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
 [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
@@ -337,7 +334,10 @@ else
 fi
 
 # Set token types for src and tgt langs
-if [ "${src_token_type}" = bpe ]; then
+if [ $use_src_lang = false ]; then
+    src_token_type=none
+    src_token_list=none
+elif [ "${src_token_type}" = bpe ]; then
     src_token_list="${src_bpetoken_list}"
 elif [ "${src_token_type}" = char ]; then
     src_token_list="${src_chartoken_list}"
@@ -801,7 +801,7 @@ if ! "${skip_data_prep}"; then
         # Then generate src lang
         if "${token_joint}"; then
             log "Stage 5b: Skip separate token construction for src_lang when setting ${token_joint} as true"
-        else
+        elif [ $use_src_lang = true ]; then
             if [ "${src_token_type}" = bpe ]; then
                 log "Stage 5b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
 
@@ -1124,7 +1124,12 @@ if ! "${skip_train}"; then
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
-
+        
+        if [ $use_src_lang = true ]; then
+            _opts+="--src_bpemodel ${src_bpemodel} "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text "
+        fi
         # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -1132,7 +1137,6 @@ if ! "${skip_train}"; then
                 --collect_stats true \
                 --use_preprocessor true \
                 --bpemodel "${tgt_bpemodel}" \
-                --src_bpemodel "${src_bpemodel}" \
                 --token_type "${tgt_token_type}" \
                 --src_token_type "${src_token_type}" \
                 --token_list "${tgt_token_list}" \
@@ -1142,10 +1146,8 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1164,17 +1166,20 @@ if ! "${skip_train}"; then
             awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
             >"${st_stats_dir}/train/text_shape.${tgt_token_type}"
 
-        <"${st_stats_dir}/train/src_text_shape" \
-            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
-            >"${st_stats_dir}/train/src_text_shape.${src_token_type}"
-
         <"${st_stats_dir}/valid/text_shape" \
             awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
             >"${st_stats_dir}/valid/text_shape.${tgt_token_type}"
 
-        <"${st_stats_dir}/valid/src_text_shape" \
-            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
-            >"${st_stats_dir}/valid/src_text_shape.${src_token_type}"
+        
+        if [ $use_src_lang = true ]; then
+            <"${st_stats_dir}/train/src_text_shape" \
+                awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+                >"${st_stats_dir}/train/src_text_shape.${src_token_type}"
+
+            <"${st_stats_dir}/valid/src_text_shape" \
+                awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+                >"${st_stats_dir}/valid/src_text_shape.${src_token_type}"
+        fi
     fi
 
 
@@ -1214,6 +1219,12 @@ if ! "${skip_train}"; then
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${st_stats_dir}/train/feats_stats.npz "
         fi
 
+        _num_splits_opts=
+        if [ $use_src_lang = true ]; then
+            _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} " 
+            _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} " 
+            
+        fi
         if [ "${num_splits_st}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
@@ -1226,10 +1237,9 @@ if ! "${skip_train}"; then
                   --scps \
                       "${_st_train_dir}/${_scp}" \
                       "${_st_train_dir}/text.${tgt_case}.${tgt_lang}" \
-                      "${_st_train_dir}/text.${src_case}.${src_lang}" \
                       "${st_stats_dir}/train/speech_shape" \
                       "${st_stats_dir}/train/text_shape.${tgt_token_type}" \
-                      "${st_stats_dir}/train/src_text_shape.${src_token_type}" \
+                      $_num_splits_opts \
                   --num_splits "${num_splits_st}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
@@ -1239,18 +1249,22 @@ if ! "${skip_train}"; then
 
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${_split_dir}/speech_shape "
             _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
-            _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
             _opts+="--multiple_iterator true "
+            if [ $use_src_lang = true ]; then
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
+                _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
+            fi 
         else
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
-            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${st_stats_dir}/train/speech_shape "
             _opts+="--train_shape_file ${st_stats_dir}/train/text_shape.${tgt_token_type} "
-            _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
+            if [ $use_src_lang = true ]; then
+                _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
+                _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
+            fi
         fi
 
         log "Generate '${st_exp}/run.sh'. You can resume the process from stage 11 using this script"
@@ -1263,6 +1277,13 @@ if ! "${skip_train}"; then
             jobname="$(basename ${st_exp})"
         else
             jobname="${st_exp}/train.log"
+        fi
+
+        if [ $use_src_lang = true ]; then
+            _opts+="--src_bpemodel ${src_bpemodel} "
+            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text " 
+            _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} " 
+            _opts+="--fold_length ${st_text_fold_length} "
         fi
 
         # TODO(jiatong): fix bpe
@@ -1279,7 +1300,6 @@ if ! "${skip_train}"; then
                 --bpemodel "${tgt_bpemodel}" \
                 --token_type "${tgt_token_type}" \
                 --token_list "${tgt_token_list}" \
-                --src_bpemodel "${src_bpemodel}" \
                 --src_token_type "${src_token_type}" \
                 --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
@@ -1287,15 +1307,12 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
-                --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
                 --init_param ${pretrained_asr} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
-                --fold_length "${st_text_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
                 --output_dir "${st_exp}" \
                 ${_opts} ${st_args}

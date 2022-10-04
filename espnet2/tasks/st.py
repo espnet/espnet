@@ -47,7 +47,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.text.phoneme_tokenizer import g2p_choices
+#from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -262,7 +262,7 @@ class STTask(AbsTask):
             "--src_token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", 'none'],
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -292,7 +292,7 @@ class STTask(AbsTask):
         group.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=g2p_choices,
+        #    choices=g2p_choices,
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
@@ -361,6 +361,8 @@ class STTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
+        if args.src_token_type == 'none':
+            args.src_token_type = None 
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
