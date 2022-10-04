@@ -1133,7 +1133,6 @@ if ! "${skip_train}"; then
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
-        
 
         if [ $use_src_lang = true ]; then
             _opts+="--src_bpemodel ${src_bpemodel} "
