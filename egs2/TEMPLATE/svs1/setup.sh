@@ -49,10 +49,8 @@ done
 
 
 # Symlinks to Kaldi
-for f in utils; do
-    target=../../../tools/kaldi/egs/wsj/s5/"${f}"
-    ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
+target=../../../tools/kaldi/egs/wsj/s5/utils
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
 
 log "Created: ${targets}"
