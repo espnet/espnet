@@ -49,6 +49,7 @@ class TextEncoder(torch.nn.Module):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
+        midi_dim: int = 129,
     ):
         """Initialize TextEncoder module.
 
@@ -100,11 +101,17 @@ class TextEncoder(torch.nn.Module):
             cnn_module_kernel=conformer_kernel_size,
         )
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
+        self.pitch_embedding = torch.nn.Embedding(midi_dim, 192)
+        self.tempo_embedding = torch.nn.Embedding(1200, 192)
+        self.beat_embedding = torch.nn.Embedding(1200, 192)
 
     def forward(
         self,
         x: torch.Tensor,
         x_lengths: torch.Tensor,
+        note_pitch: torch.Tensor,
+        note_tempo: torch.Tensor,
+        note_beat: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
@@ -120,6 +127,11 @@ class TextEncoder(torch.nn.Module):
 
         """
         x = self.emb(x) * math.sqrt(self.attention_dim)
+        note_pitch = self.pitch_embedding(note_pitch)
+        note_tempo = self.tempo_embedding(note_tempo)
+        note_beat = self.beat_embedding(note_beat)
+
+        x = x + note_pitch + note_tempo + note_beat
         x_mask = (
             make_non_pad_mask(x_lengths)
             .to(

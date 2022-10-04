@@ -14,12 +14,12 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_tts.hifigan import HiFiGANGenerator
-from espnet2.gan_tts.utils import get_random_segments
-from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
-from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
-from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
-from espnet2.gan_tts.vits.text_encoder import TextEncoder
+from espnet2.gan_svs.hifigan import HiFiGANGenerator
+from espnet2.gan_svs.utils import get_random_segments
+from espnet2.gan_svs.vits.duration_predictor import StochasticDurationPredictor
+from espnet2.gan_svs.vits.posterior_encoder import PosteriorEncoder
+from espnet2.gan_svs.vits.residual_coupling import ResidualAffineCouplingBlock
+from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
@@ -40,6 +40,8 @@ class VITSGenerator(torch.nn.Module):
     def __init__(
         self,
         vocabs: int,
+        midi_dim: int = 129,
+        midi_embed_integration_type: str = "add",
         aux_channels: int = 513,
         hidden_channels: int = 192,
         spks: Optional[int] = None,
@@ -187,6 +189,7 @@ class VITSGenerator(torch.nn.Module):
             conformer_kernel_size=text_encoder_conformer_kernel_size,
             use_macaron_style=use_macaron_style_in_text_encoder,
             use_conformer_conv=use_conformer_conv_in_text_encoder,
+            midi_dim=midi_dim,
         )
         self.decoder = HiFiGANGenerator(
             in_channels=hidden_channels,
@@ -262,6 +265,22 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
+        label_lab: Optional[torch.Tensor] = None,
+        label_lab_lengths: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        label_xml_lengths: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        midi_lab_lengths: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        midi_xml_lengths: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        tempo_lab_lengths: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        tempo_xml_lengths: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        beat_lab_lengths: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
+        beat_xml_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -309,7 +328,18 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # forward text encoder
-        x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
+        # print("text", text)
+        # print("label_lab", label_lab)
+        # print("label_xml", label_xml)
+        # print("midi_lab", midi_lab)
+        # print("midi_xml", midi_xml)
+        # print("tempo_lab", tempo_lab)
+        # print("tempo_xml", tempo_xml)
+        # print("beat_lab", beat_lab)
+        # print("beat_xml", beat_xml)
+        x, m_p, logs_p, x_mask = self.text_encoder(
+            label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml
+        )
 
         # calculate global conditioning
         g = None
@@ -414,6 +444,14 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
         feats_lengths: Optional[torch.Tensor] = None,
+        label_lab: Optional[torch.Tensor] = None,
+        label_xml: Optional[torch.Tensor] = None,
+        midi_lab: Optional[torch.Tensor] = None,
+        midi_xml: Optional[torch.Tensor] = None,
+        tempo_lab: Optional[torch.Tensor] = None,
+        tempo_xml: Optional[torch.Tensor] = None,
+        beat_lab: Optional[torch.Tensor] = None,
+        beat_xml: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
