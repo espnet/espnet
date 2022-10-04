@@ -12,11 +12,11 @@
 ##########################################################
 svs: vits
 svs_conf:
-    midi_dim: 129                # midi dimension (note number + silence)
-    midi_embed_integration_type: add # how to integrate midi information
     # generator related
     generator_type: vits_generator
     generator_params:
+        midi_dim: 129                # midi dimension (note number + silence)
+        midi_embed_integration_type: add # how to integrate midi information
         hidden_channels: 192
         spks: -1
         global_channels: -1
@@ -160,11 +160,10 @@ generator_first: false # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 100 # number of iterations per epoch
+num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 200            # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 1000000        # batch bins (feats_type=raw)
-# batch_size: 8
+batch_bins: 500000        # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 batch_size: 8
 grad_clip: -1             # gradient clipping norm
