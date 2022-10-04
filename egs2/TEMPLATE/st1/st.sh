@@ -36,7 +36,7 @@ nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
-expdir=exp2           # Directory to save experiments.
+expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
@@ -148,6 +148,7 @@ lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
+
 Options:
     # General configuration
     --stage          # Processes starts from the specified stage (default="${stage}").
@@ -164,16 +165,20 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
+
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
+
     # Speed perturbation related
     --speed_perturb_factors # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
+
     # Feature extraction related
     --feats_type       # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --fs               # Sampling rate (default="${fs}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
+
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
@@ -192,6 +197,7 @@ Options:
     --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
     --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
     --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
+
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
     --lm_exp          # Specify the directory path for LM experiment.
@@ -204,6 +210,7 @@ Options:
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
+
     # ST model related
     --st_tag           # Suffix to the result dir for st model training (default="${st_tag}").
     --st_exp           # Specify the directory path for ST experiment.
@@ -220,6 +227,7 @@ Options:
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
     --use_src_lang=    # Incorporate ASR loss (use src texts) or not 
+
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
     --inference_config    # Config for decoding (default="${inference_config}").
@@ -263,6 +271,7 @@ fi
 
 . ./path.sh
 . ./cmd.sh
+
 
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
@@ -1125,6 +1134,7 @@ if ! "${skip_train}"; then
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
         
+
         if [ $use_src_lang = true ]; then
             _opts+="--src_bpemodel ${src_bpemodel} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
@@ -1223,8 +1233,8 @@ if ! "${skip_train}"; then
         if [ $use_src_lang = true ]; then
             _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} " 
             _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} " 
-            
         fi
+
         if [ "${num_splits_st}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
