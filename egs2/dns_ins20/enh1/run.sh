@@ -20,7 +20,7 @@ test_sets="tt_synthetic_no_reverb tt_synthetic_with_reverb"
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 2 \
-    --spk_num 1 \
+    --ref_num 1 \
     --local_data_opts "" \
     --enh_config ./conf/tuning/train_enh_blstm_tf.yaml \
     --use_dereverb_ref false \

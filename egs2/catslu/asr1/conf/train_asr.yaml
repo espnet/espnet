@@ -48,7 +48,7 @@ frontend_conf:
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: wav2vec2_xlsr  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        upstream: xlsr_53  # Note: If the upstream is changed, please change the input_size in the preencoder.
     download_dir: ./hub
     multilayer_feature: True
 

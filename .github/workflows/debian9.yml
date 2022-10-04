@@ -15,7 +15,7 @@ jobs:
       image: debian:9
       env:
         ESPNET_PYTHON_VERSION: 3.7
-        TH_VERSION: 1.11.0
+        TH_VERSION: 1.12.1
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: gcc-6

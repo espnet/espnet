@@ -227,13 +227,6 @@ so if you meet some installation error when running these recipe, you need to in
 
 e.g. 
 
-- To install Warp CTC
-    ```sh
-    cd <espnet-root>/tools
-    . activate_python.sh
-    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
-    ./installers/install_warp-ctc.sh
-    ```
 - To install Warp Transducer
     ```sh
     cd <espnet-root>/tools
