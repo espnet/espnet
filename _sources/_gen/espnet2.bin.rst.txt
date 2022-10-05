@@ -15,6 +15,17 @@ espnet2.bin.st_inference
     :show-inheritance:
 
 
+.. _espnet2.bin.svs_inference:
+
+espnet2.bin.svs_inference
+-------------------------
+
+.. automodule:: espnet2.bin.svs_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.aggregate_stats_dirs:
 
 espnet2.bin.aggregate_stats_dirs
@@ -296,6 +307,17 @@ espnet2.bin.lm_calc_perplexity
 ------------------------------
 
 .. automodule:: espnet2.bin.lm_calc_perplexity
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.svs_train:
+
+espnet2.bin.svs_train
+---------------------
+
+.. automodule:: espnet2.bin.svs_train
     :members:
     :undoc-members:
     :show-inheritance:

@@ -112,6 +112,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
@@ -240,6 +241,33 @@
         <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Error happened with path=&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">&quot;, id=&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s1">&quot;, value=&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
             <span class="k">raise</span>
+    <span class="k">return</span> <span class="n">retval</span></div>
+
+
+<div class="viewcode-block" id="read_label"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_label">[docs]</a><span class="k">def</span> <span class="nf">read_label</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Read a text file indicating sequences of number</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ....\n</span>
+<span class="sd">        key2 start_time_1 end_time_1 phone_1 \n</span>
+
+<span class="sd">        &gt;&gt;&gt; d = load_num_sequence_text(&#39;label&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; np.testing.assert_array_equal(d[&quot;key1&quot;], [0.1, 0.2, &quot;啊&quot;]))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">label_line</span> <span class="ow">in</span> <span class="n">label</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">label_line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">phn_info</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">temp_info</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">phn_info</span><span class="p">)</span> <span class="o">//</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="n">temp_info</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">phn_info</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">3</span><span class="p">],</span> <span class="n">phn_info</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">phn_info</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]]</span>
+            <span class="p">)</span>
+        <span class="n">retval</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_info</span>
     <span class="k">return</span> <span class="n">retval</span></div>
 </pre></div>
 

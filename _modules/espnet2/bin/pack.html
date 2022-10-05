@@ -112,6 +112,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
@@ -200,6 +201,11 @@
     <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;train_config&quot;</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="SVSPackedContents"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.SVSPackedContents">[docs]</a><span class="k">class</span> <span class="nc">SVSPackedContents</span><span class="p">(</span><span class="n">PackedContents</span><span class="p">):</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span>
+    <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;train_config&quot;</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="EnhS2TPackedContents"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.EnhS2TPackedContents">[docs]</a><span class="k">class</span> <span class="nc">EnhS2TPackedContents</span><span class="p">(</span><span class="n">PackedContents</span><span class="p">):</span>
     <span class="c1"># These names must be consistent with the argument of inference functions</span>
     <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;enh_s2t_model_file&quot;</span><span class="p">,</span> <span class="s2">&quot;lm_file&quot;</span><span class="p">]</span>
@@ -226,6 +232,7 @@
         <span class="p">(</span><span class="s2">&quot;tts&quot;</span><span class="p">,</span> <span class="n">TTSPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;enh&quot;</span><span class="p">,</span> <span class="n">EnhPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;diar&quot;</span><span class="p">,</span> <span class="n">DiarPackedContents</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;svs&quot;</span><span class="p">,</span> <span class="n">SVSPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;enh_s2t&quot;</span><span class="p">,</span> <span class="n">EnhS2TPackedContents</span><span class="p">),</span>
     <span class="p">]:</span>
         <span class="n">parser_asr</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>

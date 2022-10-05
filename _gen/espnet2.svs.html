@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.svs package &mdash; ESPnet 202209 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.text package" href="espnet2.text.html" />
+    <link rel="prev" title="espnet2.torch_utils package" href="espnet2.torch_utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202209
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.svs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-init">espnet2.svs.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-abs-svs">espnet2.svs.abs_svs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-espnet-model">espnet2.svs.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-feats-extract-init">espnet2.svs.feats_extract.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-feats-extract-score-feats-extract">espnet2.svs.feats_extract.score_feats_extract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-naive-rnn-init">espnet2.svs.naive_rnn.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-naive-rnn-naive-rnn-dp">espnet2.svs.naive_rnn.naive_rnn_dp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-naive-rnn-naive-rnn">espnet2.svs.naive_rnn.naive_rnn</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>espnet2.svs package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_gen/espnet2.svs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="espnet2-svs-package">
+<h1>espnet2.svs package<a class="headerlink" href="#espnet2-svs-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-svs-init">
+<span id="id1"></span><h2>espnet2.svs.__init__<a class="headerlink" href="#espnet2-svs-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.__init__"></span></section>
+<section id="espnet2-svs-abs-svs">
+<span id="id2"></span><h2>espnet2.svs.abs_svs<a class="headerlink" href="#espnet2-svs-abs-svs" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.abs_svs"></span><p>Singing-voice-synthesis abstrast class.</p>
+<dl class="class">
+<dt id="espnet2.svs.abs_svs.AbsSVS">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.abs_svs.</code><code class="sig-name descname">AbsSVS</code><a class="reference internal" href="../_modules/espnet2/svs/abs_svs.html#AbsSVS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.abs_svs.AbsSVS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>SVS abstract class.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.svs.abs_svs.AbsSVS.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/abs_svs.html#AbsSVS.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.abs_svs.AbsSVS.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate outputs and return the loss tensor.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.abs_svs.AbsSVS.inference">
+<em class="property">abstract </em><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/abs_svs.html#AbsSVS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.abs_svs.AbsSVS.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return predicted output as a dict.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.abs_svs.AbsSVS.require_raw_singing">
+<em class="property">property </em><code class="sig-name descname">require_raw_singing</code><a class="headerlink" href="#espnet2.svs.abs_svs.AbsSVS.require_raw_singing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not raw_singing is required.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.abs_svs.AbsSVS.require_vocoder">
+<em class="property">property </em><code class="sig-name descname">require_vocoder</code><a class="headerlink" href="#espnet2.svs.abs_svs.AbsSVS.require_vocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not vocoder is required.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-svs-espnet-model">
+<span id="id3"></span><h2>espnet2.svs.espnet_model<a class="headerlink" href="#espnet2-svs-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.espnet_model"></span><p>Singing-voice-synthesis ESPnet model.</p>
+<dl class="class">
+<dt id="espnet2.svs.espnet_model.ESPnetSVSModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.espnet_model.</code><code class="sig-name descname">ESPnetSVSModel</code><span class="sig-paren">(</span><em class="sig-param">text_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], score_feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], label_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], pitch_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], tempo_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], beat_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], energy_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], pitch_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], energy_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], svs: espnet2.svs.abs_svs.AbsSVS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<p>ESPnet model for singing voice synthesis task.</p>
+<p>Initialize ESPnetSVSModel module.</p>
+<dl class="method">
+<dt id="espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caclualte features and return them as a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
+<li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
+<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>label_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>midi_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>midi_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>midi_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor.</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
+<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>tempo_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>tempo_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>tempo_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>beat_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>beat_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
+<li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy length tensor (B,).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (B, 1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dict of features.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.espnet_model.ESPnetSVSModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caclualte outputs and return the loss tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
+<li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
+<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>label_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>midi_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>midi_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>midi_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor.</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
+<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>tempo_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>tempo_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>tempo_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>beat_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>beat_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy tensor.</p></li>
+<li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy length tensor (B,).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (B, 1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
+<li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Loss scalar tensor.
+Dict[str, float]: Statistics to be monitored.
+Tensor: Weight tensor to summarize losses.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.espnet_model.ESPnetSVSModel.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Caclualte features and return them as a dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
+<li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (T_wav).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (D,).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (1,).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (1,).</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Duration tensor.</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor.</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Tempo tensor.</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Beat tensor.</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Dict of outputs.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-svs-feats-extract-init">
+<span id="id4"></span><h2>espnet2.svs.feats_extract.__init__<a class="headerlink" href="#espnet2-svs-feats-extract-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.feats_extract.__init__"></span></section>
+<section id="espnet2-svs-feats-extract-score-feats-extract">
+<span id="id5"></span><h2>espnet2.svs.feats_extract.score_feats_extract<a class="headerlink" href="#espnet2-svs-feats-extract-score-feats-extract" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.feats_extract.score_feats_extract"></span><dl class="class">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.feats_extract.score_feats_extract.</code><code class="sig-name descname">FrameScoreFeats</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = 512</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">center: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.tts.html#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.extra_repr">
+<code class="sig-name descname">extra_repr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats.extra_repr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.extra_repr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lengths: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>FrameScoreFeats forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>label_lengths</strong> – (Batch)</p></li>
+<li><p><strong>midi</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>midi_lengths</strong> – (Batch)</p></li>
+<li><p><strong>tempo</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>tempo_lengths</strong> – (Batch)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch, Frames)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.label_aggregate">
+<code class="sig-name descname">label_aggregate</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats.label_aggregate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.label_aggregate" title="Permalink to this definition">¶</a></dt>
+<dd><p>lage_aggregate function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – (Batch, Nsamples, Label_dim)</p></li>
+<li><p><strong>input_lengths</strong> – (Batch)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch, Frames, Label_dim)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#FrameScoreFeats.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.ListsToTensor">
+<code class="sig-prename descclassname">espnet2.svs.feats_extract.score_feats_extract.</code><code class="sig-name descname">ListsToTensor</code><span class="sig-paren">(</span><em class="sig-param">xs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#ListsToTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.ListsToTensor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.feats_extract.score_feats_extract.</code><code class="sig-name descname">SyllableScoreFeats</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = 512</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">center: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.tts.html#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.extra_repr">
+<code class="sig-name descname">extra_repr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.extra_repr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.extra_repr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lengths: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>SyllableScoreFeats forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>label_lengths</strong> – (Batch)</p></li>
+<li><p><strong>midi</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>midi_lengths</strong> – (Batch)</p></li>
+<li><p><strong>tempo</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>tempo_lengths</strong> – (Batch)</p></li>
+<li><p><strong>beat</strong> – (Batch, Nsamples)</p></li>
+<li><p><strong>beat_lengths</strong> – (Batch)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch, Frames)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.get_segments">
+<code class="sig-name descname">get_segments</code><span class="sig-paren">(</span><em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lengths: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.get_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.get_segments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-svs-naive-rnn-init">
+<span id="id6"></span><h2>espnet2.svs.naive_rnn.__init__<a class="headerlink" href="#espnet2-svs-naive-rnn-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.naive_rnn.__init__"></span></section>
+<section id="espnet2-svs-naive-rnn-naive-rnn-dp">
+<span id="id7"></span><h2>espnet2.svs.naive_rnn.naive_rnn_dp<a class="headerlink" href="#espnet2-svs-naive-rnn-naive-rnn-dp" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.naive_rnn.naive_rnn_dp"></span><p>NaiveRNN-DP-SVS related modules.</p>
+<dl class="class">
+<dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn_dp.</code><code class="sig-name descname">NaiveRNNDP</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">midi_dim: int</em>, <em class="sig-param">tempo_dim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
+<p>NaiveRNNDP-SVS module.</p>
+<p>This is an implementation of naive RNN with duration prediction
+for singing voice synthesis
+The features are processed directly over time-domain from music score and
+predict the singing voice features</p>
+<p>Initialize NaiveRNN module.</p>
+<p>Args: TODO(Yuning)</p>
+<dl class="method">
+<dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
+<li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+<li><p><strong>label</strong> – (B, Tmax)</p></li>
+<li><p><strong>label_lengths</strong> – (B,)</p></li>
+<li><p><strong>midi</strong> – (B, Tmax)</p></li>
+<li><p><strong>midi_lengths</strong> – (B,)</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id8"><span class="problematic" id="id9">**</span></a>batch from muskit_model.py
+label == durations ｜ phone sequence
+midi -&gt; pitch sequence</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Loss scalar value.
+Dict: Statistics to be monitored.
+Tensor: Weight value if not joint training else model outputs.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">ds: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (Tmax).</p></li>
+<li><p><strong>label</strong> (<em>Tensor</em>) – </p></li>
+<li><p><strong>midi</strong> (<em>Tensor</em>) – </p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (Lmax, odim).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (spk_embed_dim).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-svs-naive-rnn-naive-rnn">
+<span id="id10"></span><h2>espnet2.svs.naive_rnn.naive_rnn<a class="headerlink" href="#espnet2-svs-naive-rnn-naive-rnn" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.naive_rnn.naive_rnn"></span><p>Naive-SVS related modules.</p>
+<dl class="class">
+<dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn.</code><code class="sig-name descname">NaiveRNN</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">midi_dim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_type: str = 'L1'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
+<p>NaiveRNN-SVS module.</p>
+<p>This is an implementation of naive RNN for singing voice synthesis
+The features are processed directly over time-domain from music score and
+predict the singing voice features</p>
+<p>Initialize NaiveRNN module.</p>
+<p>Args: TODO(Yuning)</p>
+<dl class="method">
+<dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
+<li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+<li><p><strong>label</strong> – (B, Tmax)</p></li>
+<li><p><strong>label_lengths</strong> – (B,)</p></li>
+<li><p><strong>midi</strong> – (B, Tmax)</p></li>
+<li><p><strong>midi_lengths</strong> – (B,)</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id11"><span class="problematic" id="id12">**</span></a>batch from muskit_model.py
+label == durations ｜ phone sequence
+midi -&gt; pitch sequence</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Loss scalar value.
+Dict: Statistics to be monitored.
+Tensor: Weight value if not joint training else model outputs.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor = None</em>, <em class="sig-param">feats: torch.Tensor = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (Tmax).</p></li>
+<li><p><strong>label</strong> (<em>Tensor</em>) – </p></li>
+<li><p><strong>midi</strong> (<em>Tensor</em>) – </p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (Lmax, odim).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (spk_embed_dim).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output dict including the following items:
+* feat_gen (Tensor): Output sequence of features (T_feats, odim).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn.</code><code class="sig-name descname">NaiveRNNLoss</code><span class="sig-paren">(</span><em class="sig-param">use_masking=True</em>, <em class="sig-param">use_weighted_masking=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNNLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Loss function module for Tacotron2.</p>
+<p>Initialize Tactoron2 loss module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to apply masking
+for padded part in loss calculation.</p></li>
+<li><p><strong>use_weighted_masking</strong> (<em>bool</em>) – Whether to apply weighted masking in loss calculation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">after_outs</em>, <em class="sig-param">before_outs</em>, <em class="sig-param">ys</em>, <em class="sig-param">olens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNNLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>after_outs</strong> (<em>Tensor</em>) – Batch of outputs after postnets (B, Lmax, odim).</p></li>
+<li><p><strong>before_outs</strong> (<em>Tensor</em>) – Batch of outputs before postnets (B, Lmax, odim).</p></li>
+<li><p><strong>ys</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
+<li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>L1 loss value.
+Tensor: Mean square error loss value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2.torch_utils.html" class="btn btn-neutral float-left" title="espnet2.torch_utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2.text.html" class="btn btn-neutral float-right" title="espnet2.text package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

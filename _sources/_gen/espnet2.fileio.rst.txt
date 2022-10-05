@@ -37,6 +37,17 @@ espnet2.fileio.sound_scp
     :show-inheritance:
 
 
+.. _espnet2.fileio.xml_scp:
+
+espnet2.fileio.xml_scp
+----------------------
+
+.. automodule:: espnet2.fileio.xml_scp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.fileio.read_text:
 
 espnet2.fileio.read_text

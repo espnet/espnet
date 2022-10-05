@@ -70,6 +70,17 @@ espnet2.tasks.asr_transducer
     :show-inheritance:
 
 
+.. _espnet2.tasks.svs:
+
+espnet2.tasks.svs
+-----------------
+
+.. automodule:: espnet2.tasks.svs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.enh_s2t:
 
 espnet2.tasks.enh_s2t

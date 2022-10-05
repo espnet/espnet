@@ -114,6 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-init">espnet2.fileio.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-datadir-writer">espnet2.fileio.datadir_writer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-sound-scp">espnet2.fileio.sound_scp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-xml-scp">espnet2.fileio.xml_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-read-text">espnet2.fileio.read_text</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rttm">espnet2.fileio.rttm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-npy-scp">espnet2.fileio.npy_scp</a></li>
@@ -124,6 +125,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
@@ -284,8 +286,38 @@ key4 /some/path/d.wav
 </dd></dl>
 
 </section>
+<section id="espnet2-fileio-xml-scp">
+<span id="id4"></span><h2>espnet2.fileio.xml_scp<a class="headerlink" href="#espnet2-fileio-xml-scp" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.fileio.xml_scp"></span><dl class="class">
+<dt id="espnet2.fileio.xml_scp.XMLScpReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">XMLScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for ‘xml.scp’.</p>
+<p class="rubric">Examples</p>
+<p>key1 /some/path/a.xml
+key2 /some/path/b.xml
+key3 /some/path/c.xml
+key4 /some/path/d.xml
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">XMLScpReader</span><span class="p">(</span><span class="s1">&#39;xml.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lyrics_array</span><span class="p">,</span> <span class="n">notes_array</span><span class="p">,</span> <span class="n">segs_array</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.xml_scp.XMLScpReader.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader.get_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.xml_scp.XMLScpReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-fileio-read-text">
-<span id="id4"></span><h2>espnet2.fileio.read_text<a class="headerlink" href="#espnet2-fileio-read-text" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet2.fileio.read_text<a class="headerlink" href="#espnet2-fileio-read-text" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.read_text"></span><dl class="function">
 <dt id="espnet2.fileio.read_text.load_num_sequence_text">
 <code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">load_num_sequence_text</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str], loader_type: str = 'csv_int'</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[Union[float, int]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#load_num_sequence_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.load_num_sequence_text" title="Permalink to this definition">¶</a></dt>
@@ -315,9 +347,22 @@ key2 /some/path/b.wav</p>
 </div>
 </dd></dl>
 
+<dl class="function">
+<dt id="espnet2.fileio.read_text.read_label">
+<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_label</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[Union[float, int]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a text file indicating sequences of number</p>
+<p class="rubric">Examples</p>
+<p>key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ….</p>
+<p>key2 start_time_1 end_time_1 phone_1</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">load_num_sequence_text</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;key1&quot;</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s2">&quot;啊&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 <section id="espnet2-fileio-rttm">
-<span id="id5"></span><h2>espnet2.fileio.rttm<a class="headerlink" href="#espnet2-fileio-rttm" title="Permalink to this headline">¶</a></h2>
+<span id="id6"></span><h2>espnet2.fileio.rttm<a class="headerlink" href="#espnet2-fileio-rttm" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.rttm"></span><dl class="class">
 <dt id="espnet2.fileio.rttm.RttmReader">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.rttm.</code><code class="sig-name descname">RttmReader</code><span class="sig-paren">(</span><em class="sig-param">fname: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/rttm.html#RttmReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.rttm.RttmReader" title="Permalink to this definition">¶</a></dt>
@@ -358,7 +403,7 @@ The difference including:
 
 </section>
 <section id="espnet2-fileio-npy-scp">
-<span id="id6"></span><h2>espnet2.fileio.npy_scp<a class="headerlink" href="#espnet2-fileio-npy-scp" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.fileio.npy_scp<a class="headerlink" href="#espnet2-fileio-npy-scp" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.npy_scp"></span><dl class="class">
 <dt id="espnet2.fileio.npy_scp.NpyScpReader">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.npy_scp.</code><code class="sig-name descname">NpyScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/npy_scp.html#NpyScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.npy_scp.NpyScpReader" title="Permalink to this definition">¶</a></dt>
@@ -416,7 +461,7 @@ key4 /some/path/d.npy
 
 </section>
 <section id="espnet2-fileio-rand-gen-dataset">
-<span id="id7"></span><h2>espnet2.fileio.rand_gen_dataset<a class="headerlink" href="#espnet2-fileio-rand-gen-dataset" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.fileio.rand_gen_dataset<a class="headerlink" href="#espnet2-fileio-rand-gen-dataset" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.rand_gen_dataset"></span><dl class="class">
 <dt id="espnet2.fileio.rand_gen_dataset.FloatRandomGenerateDataset">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.rand_gen_dataset.</code><code class="sig-name descname">FloatRandomGenerateDataset</code><span class="sig-paren">(</span><em class="sig-param">shape_file: Union[pathlib.Path, str], dtype: Union[str, numpy.dtype] = 'float32', loader_type: str = 'csv_int'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/rand_gen_dataset.html#FloatRandomGenerateDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.rand_gen_dataset.FloatRandomGenerateDataset" title="Permalink to this definition">¶</a></dt>

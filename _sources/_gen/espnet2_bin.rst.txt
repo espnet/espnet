@@ -679,6 +679,20 @@ asr_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -1303,6 +1317,20 @@ asr_transducer_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -1830,6 +1858,20 @@ diar_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
                                ...
                             
                             "kaldi_ark":
@@ -2426,6 +2468,20 @@ enh_s2t_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -3017,6 +3073,20 @@ enh_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -3506,6 +3576,20 @@ gan_tts_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -3985,6 +4069,20 @@ hubert_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
                                ...
                             
                             "kaldi_ark":
@@ -4547,6 +4645,20 @@ lm_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -5075,6 +5187,20 @@ mt_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               ...
+                            
                             "kaldi_ark":
                             Kaldi-ark file type.
                             
@@ -5220,12 +5346,12 @@ pack.py
 
 .. code-block:: none
 
-    usage: pack.py [-h] {asr,st,tts,enh,diar,enh_s2t} ...
+    usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t} ...
     
     Pack input files to archive format
     
     positional arguments:
-      {asr,st,tts,enh,diar,enh_s2t}
+      {asr,st,tts,enh,diar,svs,enh_s2t}
     
     optional arguments:
 .. _split_scps.py:
@@ -5677,6 +5803,20 @@ st_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
                                ...
                             
                             "kaldi_ark":
@@ -6338,6 +6478,20 @@ tts_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "midi":
+                            MIDI format types which supported by sndfile mid, midi, etc.
+                            
+                               utterance_id_a a.mid
+                               utterance_id_b b.mid
+                               ...
+                            
+                            "duration":
+                            Return text as is. The text must be converted to ndarray by 'preprocess'.
+                            
+                               utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...
+                               utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...
                                ...
                             
                             "kaldi_ark":

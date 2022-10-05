@@ -112,6 +112,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
@@ -726,7 +727,23 @@
 
 <div class="viewcode-block" id="PhonemeTokenizer.tokens2text"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.tokens2text">[docs]</a>    <span class="k">def</span> <span class="nf">tokens2text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="c1"># phoneme type is not invertible</span>
-        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PhonemeTokenizer.text2tokens_svs"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens_svs">[docs]</a>    <span class="k">def</span> <span class="nf">text2tokens_svs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">syllable</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="c1"># Note(Yuning): fix syllabel2phoneme mismatch</span>
+        <span class="c1"># If needed, customed_dic can be changed into extra input</span>
+        <span class="n">customed_dic</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;へ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ヴぁ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ヴぃ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ヴぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ヴぉ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;でぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span><span class="p">(</span><span class="n">syllable</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">syllable</span> <span class="ow">in</span> <span class="n">customed_dic</span><span class="p">:</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">customed_dic</span><span class="p">[</span><span class="n">syllable</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">tokens</span></div></div>
 </pre></div>
 
            </div>
