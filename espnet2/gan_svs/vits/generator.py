@@ -446,6 +446,7 @@ class VITSGenerator(torch.nn.Module):
         feats_lengths: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
         label_xml: Optional[torch.Tensor] = None,
+        label_xml_lengths: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         midi_xml: Optional[torch.Tensor] = None,
         tempo_lab: Optional[torch.Tensor] = None,
@@ -487,7 +488,7 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # encoder
-        x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
+        x, m_p, logs_p, x_mask = self.text_encoder(label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml)
         g = None
         if self.spks is not None:
             # (B, global_channels, 1)
