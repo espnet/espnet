@@ -165,7 +165,6 @@ max_epoch: 200            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_bins: 500000        # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
-batch_size: 8
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
