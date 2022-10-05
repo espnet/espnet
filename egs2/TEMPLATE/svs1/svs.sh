@@ -859,7 +859,7 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
-		--init_param ${pretrained_model} \
+                --init_param ${pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
@@ -981,7 +981,7 @@ if ! "${skip_eval}"; then
                     --model_file "${svs_exp}"/"${inference_model}" \
                     --train_config "${svs_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-		            --vocoder_checkpoint "${vocoder_file}" \
+                    --vocoder_checkpoint "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
