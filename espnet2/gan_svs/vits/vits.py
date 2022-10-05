@@ -706,6 +706,11 @@ class VITS(AbsGANSVS):
             dtype=torch.long,
             device=text.device,
         )
+        label_xml_lengths = torch.tensor(
+            [label_xml.size(1)],
+            dtype=torch.long,
+            device=text.device,
+        )
         if sids is not None:
             sids = sids.view(1)
         if lids is not None:
@@ -729,6 +734,7 @@ class VITS(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 label_lab=label_lab,
                 label_xml=label_xml,
+                label_xml_lengths=label_xml_lengths,
                 midi_lab=midi_lab,
                 midi_xml=midi_xml,
                 tempo_lab=tempo_lab,
@@ -747,6 +753,7 @@ class VITS(AbsGANSVS):
                 text_lengths=text_lengths,
                 label_lab=label_lab,
                 label_xml=label_xml,
+                label_xml_lengths=label_xml_lengths,
                 midi_lab=midi_lab,
                 midi_xml=midi_xml,
                 tempo_lab=tempo_lab,

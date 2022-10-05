@@ -10,6 +10,7 @@ import torch
 import yaml
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
@@ -28,6 +29,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 
@@ -46,7 +48,11 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
     type_check=AbsFeatsExtract,
     default="fbank",
 )
@@ -106,6 +112,7 @@ svs_choices = ClassChoices(
         # mlp=MLPSinger,
         # xiaoice=XiaoiceSing,
         # xiaoice_noDP=XiaoiceSing_noDP,
+        vits=VITS,
     ),
     type_check=AbsSVS,
     default="transformer",
