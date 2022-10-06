@@ -39,10 +39,10 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb)
 - 2022 Tutorial at CMU
   - Usage of ESPnet (ASR as an example)
-    - [Online video]()
-    - [Material]()
+    - [Online video](https://youtu.be/YDN8cVjxSik)
+    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.ipynb)
   - Add new models/tasks to ESPnet
-    - [Online video]()
+    - [Online video](https://youtu.be/Css3XAes7SU)
     - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb)
 
 
