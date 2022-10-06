@@ -261,7 +261,9 @@ class ESPnetSTModel(AbsESPnetModel):
 
         stats = dict(
             loss=loss.detach(),
-            loss_asr=loss_asr.detach() if type(loss_asr) not in {float, int} else loss_asr,
+            loss_asr=loss_asr.detach()
+            if type(loss_asr) not in {float, int}
+            else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
