@@ -7,6 +7,7 @@
    ./notebook/espnet2_asr_realtime_demo.ipynb
    ./notebook/espnet2_asr_transfer_learning_demo.ipynb
    ./notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb
+   ./notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.ipynb
    ./notebook/espnet2_streaming_asr_demo.ipynb
    ./notebook/espnet2_tts_realtime_demo.ipynb
    ./notebook/espnet2_tutorial_2021_CMU_11751_18781.ipynb
