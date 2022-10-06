@@ -14,11 +14,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_svs.hifigan import HiFiGANGenerator
-from espnet2.gan_svs.utils import get_random_segments
+from espnet2.gan_tts.hifigan import HiFiGANGenerator
+from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_svs.vits.duration_predictor import StochasticDurationPredictor
-from espnet2.gan_svs.vits.posterior_encoder import PosteriorEncoder
-from espnet2.gan_svs.vits.residual_coupling import ResidualAffineCouplingBlock
+from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
+from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
@@ -488,7 +488,9 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # encoder
-        x, m_p, logs_p, x_mask = self.text_encoder(label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml)
+        x, m_p, logs_p, x_mask = self.text_encoder(
+            label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml
+        )
         g = None
         if self.spks is not None:
             # (B, global_channels, 1)
