@@ -41,6 +41,8 @@ class VITSGenerator(torch.nn.Module):
         self,
         vocabs: int,
         midi_dim: int = 129,
+        tempo_dim: int = 1200,
+        beat_dim: int = 1200,
         midi_embed_integration_type: str = "add",
         aux_channels: int = 513,
         hidden_channels: int = 192,
@@ -190,6 +192,8 @@ class VITSGenerator(torch.nn.Module):
             use_macaron_style=use_macaron_style_in_text_encoder,
             use_conformer_conv=use_conformer_conv_in_text_encoder,
             midi_dim=midi_dim,
+            tempo_dim=tempo_dim,
+            beat_dim=beat_dim,
         )
         self.decoder = HiFiGANGenerator(
             in_channels=hidden_channels,

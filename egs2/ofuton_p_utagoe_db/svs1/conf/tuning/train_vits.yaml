@@ -16,6 +16,8 @@ svs_conf:
     generator_type: vits_generator
     generator_params:
         midi_dim: 129                # midi dimension (note number + silence)
+        tempo_dim: 1200
+        beat_dim: 1200
         midi_embed_integration_type: add # how to integrate midi information
         hidden_channels: 192
         spks: -1

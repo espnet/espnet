@@ -50,6 +50,8 @@ class TextEncoder(torch.nn.Module):
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         midi_dim: int = 129,
+        tempo_dim: int = 1200,
+        beat_dim: int = 1200,
     ):
         """Initialize TextEncoder module.
 
@@ -101,9 +103,9 @@ class TextEncoder(torch.nn.Module):
             cnn_module_kernel=conformer_kernel_size,
         )
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
-        self.pitch_embedding = torch.nn.Embedding(midi_dim, 192)
-        self.tempo_embedding = torch.nn.Embedding(1200, 192)
-        self.beat_embedding = torch.nn.Embedding(1200, 192)
+        self.pitch_embedding = torch.nn.Embedding(midi_dim, attention_dim)
+        self.tempo_embedding = torch.nn.Embedding(tempo_dim, attention_dim)
+        self.beat_embedding = torch.nn.Embedding(beat_dim, attention_dim)
 
     def forward(
         self,
