@@ -135,7 +135,9 @@ class ASRTransducerTask(AbsTask):
             default={},
             help="The keyword arguments for the joint network class.",
         )
-        group = group.add_argument_group(description="Preprocess related.")
+
+        group = parser.add_argument_group(description="Preprocess related.")
+
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
