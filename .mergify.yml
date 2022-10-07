@@ -12,9 +12,10 @@ pull_request_rules:
       - "check-success=linter_and_test (ubuntu-18.04, 3.7, 1.9.1, 6.0.0, false)"
       - "check-success=linter_and_test (ubuntu-18.04, 3.7, 1.10.2, 6.0.0, false)"
       - "check-success=linter_and_test (ubuntu-18.04, 3.7, 1.11.0, 6.0.0, false)"
-      - "check-success=linter_and_test (ubuntu-20.04, 3.8, 1.11.0, false, 6.0.0)"
-      - "check-success=linter_and_test (ubuntu-20.04, 3.9, 1.11.0, false, 6.0.0)"
-      - "check-success=test_import (ubuntu-latest, 3.9, 1.11.0)"
+      - "check-success=linter_and_test (ubuntu-18.04, 3.7, 1.12.1, 6.0.0, false)"
+      - "check-success=linter_and_test (ubuntu-20.04, 3.8, 1.12.1, false, 6.0.0)"
+      - "check-success=linter_and_test (ubuntu-20.04, 3.9, 1.12.1, false, 6.0.0)"
+      - "check-success=test_import (ubuntu-latest, 3.9, 1.12.1)"
     actions:
       merge:
         method: merge

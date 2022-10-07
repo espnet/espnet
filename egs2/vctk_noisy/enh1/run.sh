@@ -20,7 +20,7 @@ test_sets=tt_2spk
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 1 \
-    --spk_num 1 \
+    --ref_num 1 \
     --local_data_opts "" \
     --enh_config ./conf/train.yaml \
     --use_dereverb_ref false \

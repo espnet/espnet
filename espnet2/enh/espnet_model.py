@@ -84,10 +84,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             espnet2/iterators/chunk_iter_factory.py
             kwargs: "utt_id" is among the input.
         """
-
-        # clean speech signal of each speaker
+        # reference speech signal of each speaker
+        assert "speech_ref1" in kwargs, "At least 1 reference signal input is required."
         speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
+            kwargs.get(
+                f"speech_ref{spk + 1}",
+                torch.zeros_like(kwargs["speech_ref1"]),
+            )
+            for spk in range(self.num_spk)
         ]
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)

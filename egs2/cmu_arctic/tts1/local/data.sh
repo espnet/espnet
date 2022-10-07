@@ -19,7 +19,7 @@ log "$0 $*"
 spk=$1
 
 available_spks=(
-    "slt" "clb" "bdl" "rms" "jmk" "awb" "ksp"
+    "slt" "clb" "bdl" "rms" "jmk" "awb" "ksp" "all"
 )
 
 # check arguments
@@ -48,16 +48,29 @@ eval_set=${spk}_eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
-    local/data_download.sh "${db_root}" "${spk}"
+    if [ ${spk} = "all" ] ; then
+        local/data_download_all.sh "${db_root}"
+    else
+        local/data_download.sh "${db_root}" "${spk}"
+    fi
+    
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: local/data_prep.sh"
+    log "stage 0: Data Preparation"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
-    local/data_prep.sh \
-        --train_set "${train_set}" \
-        --dev_set "${dev_set}" \
-        --eval_set "${eval_set}" \
-        "${db_root}/cmu_us_${spk}_arctic" "${spk}"
+    if [ ${spk} = "all" ] ; then
+        local/data_prep_all.sh \
+            --train_set "${train_set}" \
+            --dev_set "${dev_set}" \
+            --eval_set "${eval_set}" \
+            "${db_root}/cmu_us_${spk}_arctic"
+    else
+        local/data_prep.sh \
+            --train_set "${train_set}" \
+            --dev_set "${dev_set}" \
+            --eval_set "${eval_set}" \
+            "${db_root}/cmu_us_${spk}_arctic" "${spk}"
+    fi
 fi

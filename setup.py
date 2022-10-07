@@ -24,11 +24,12 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
+        "numpy",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
         # ASR
         "sentencepiece",
-        "ctc-segmentation<1.8,>=1.6.6",
+        "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
         "pypinyin<=0.44.0",
@@ -37,10 +38,14 @@ requirements = {
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # fix CI error due to the use of deprecated functions
+        # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
+        # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
+        "importlib-metadata<5.0",
     ],
     # train: The modules invoked when training only.
     "train": [
-        "matplotlib==3.1.0",
+        "matplotlib",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "wandb",
@@ -75,7 +80,6 @@ requirements = {
         "gtn==0.0.0",
     ],
     "setup": [
-        "numpy<=1.21.4",
         "pytest-runner",
     ],
     "test": [

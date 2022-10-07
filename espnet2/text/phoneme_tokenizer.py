@@ -563,3 +563,19 @@ class PhonemeTokenizer(AbsTokenizer):
     def tokens2text(self, tokens: Iterable[str]) -> str:
         # phoneme type is not invertible
         return "".join(tokens)
+
+    def text2tokens_svs(self, syllable: str) -> List[str]:
+        # Note(Yuning): fix syllabel2phoneme mismatch
+        # If needed, customed_dic can be changed into extra input
+        customed_dic = {
+            "へ": ["h", "e"],
+            "ヴぁ": ["v", "a"],
+            "ヴぃ": ["v", "i"],
+            "ヴぇ": ["v", "e"],
+            "ヴぉ": ["v", "i"],
+            "でぇ": ["dy", "e"],
+        }
+        tokens = self.g2p(syllable)
+        if syllable in customed_dic:
+            tokens = customed_dic[syllable]
+        return tokens

@@ -16,13 +16,9 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.9]
-        pytorch-version: [1.11.0]
+        pytorch-version: [1.12.1]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
@@ -39,6 +35,8 @@ jobs:
         ./tools/installers/install_chainer.sh CPU
         python3 setup.py bdist_wheel
         python3 -m pip install dist/espnet-*.whl
+        # log
+        python3 -m pip freeze
     - name: Import all modules (Try1)
       run: |
         python3 ./ci/test_import_all.py
@@ -47,6 +45,8 @@ jobs:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         python3 -m pip install "$(ls dist/espnet-*.whl)[all]"
+        # log
+        python3 -m pip freeze
     - name: Import all modules (Try2)
       run: |
         python3 ./ci/test_import_all.py
