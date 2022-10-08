@@ -41,8 +41,8 @@ class VITSGenerator(torch.nn.Module):
         self,
         vocabs: int,
         midi_dim: int = 129,
-        tempo_dim: int = 1200,
-        beat_dim: int = 1200,
+        tempo_dim: int = 128,
+        beat_dim: int = 128,
         midi_embed_integration_type: str = "add",
         aux_channels: int = 513,
         hidden_channels: int = 192,
@@ -332,15 +332,6 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # forward text encoder
-        # print("text", text)
-        # print("label_lab", label_lab)
-        # print("label_xml", label_xml)
-        # print("midi_lab", midi_lab)
-        # print("midi_xml", midi_xml)
-        # print("tempo_lab", tempo_lab)
-        # print("tempo_xml", tempo_xml)
-        # print("beat_lab", beat_lab)
-        # print("beat_xml", beat_xml)
         x, m_p, logs_p, x_mask = self.text_encoder(
             label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml
         )

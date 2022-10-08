@@ -50,8 +50,8 @@ class TextEncoder(torch.nn.Module):
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         midi_dim: int = 129,
-        tempo_dim: int = 1200,
-        beat_dim: int = 1200,
+        tempo_dim: int = 128,
+        beat_dim: int = 128,
     ):
         """Initialize TextEncoder module.
 
