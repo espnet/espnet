@@ -137,7 +137,7 @@ pyopenjtalk.done: espnet.done conda_packages.done
 	touch pyopenjtalk.done
 
 phonemizer.done: espnet.done conda_packages.done
-ifeq ($(WITH_OMP)),ON)
+ifeq ($(WITH_OMP),ON)
 	. ./activate_python.sh && ./installers/install_phonemizer.sh
 	touch phonemizer.done
 else
