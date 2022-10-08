@@ -464,7 +464,10 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
                     ds.append(torch.tensor(ds_tmp))
                 ds = pad_list(ds, pad_value=0).to(label_lab_after.device)
-
+                label_xml_after = label_xml_after[:, : label_xml_lengths_after.max()]
+                tempo_xml_after = tempo_xml_after[:, : tempo_xml_lengths_after.max()]
+                beat_xml_after = beat_xml_after[:, : beat_xml_lengths_after.max()]
+                midi_xml_after = midi_xml_after[:, : midi_xml_lengths_after.max()]
             #
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
