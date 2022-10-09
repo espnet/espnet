@@ -5556,7 +5556,7 @@ st_train.py
                        [--model_conf MODEL_CONF]
                        [--use_preprocessor USE_PREPROCESSOR]
                        [--token_type {bpe,char,word,phn}]
-                       [--src_token_type {bpe,char,word,phn}]
+                       [--src_token_type {bpe,char,word,phn,none}]
                        [--bpemodel BPEMODEL] [--src_bpemodel SRC_BPEMODEL]
                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                        [--cleaner {None,tacotron,jaconv,vietnamese}]
@@ -5934,7 +5934,7 @@ st_train.py
                             Apply preprocessing to data or not (default: True)
       --token_type {bpe,char,word,phn}
                             The target text will be tokenized in the specified level token (default: bpe)
-      --src_token_type {bpe,char,word,phn}
+      --src_token_type {bpe,char,word,phn,none}
                             The source text will be tokenized in the specified level token (default: bpe)
       --bpemodel BPEMODEL   The model file of sentencepiece (for target language) (default: None)
       --src_bpemodel SRC_BPEMODEL
