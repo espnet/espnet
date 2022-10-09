@@ -134,7 +134,7 @@ class XMLScpWriter:
         >>> writer = XMLScpWriter('./data/', './data/xml.scp')
         >>> writer['aa'] = xml_obj
         >>> writer['bb'] = xml_obj
-        
+
     """
 
     def __init__(

@@ -1037,7 +1037,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                                 or _findMidi != midi_lab_after[i][index]
                             )
                         ):
-                            # If duration is too short, 
+                            # If duration is too short,
                             # add missing phone into label_lab sequence
                             label_lab_lengths_after[i] += 1
                             midi_lab_lengths_after[i] += 1
