@@ -29,8 +29,8 @@ fi
 
 mkdir -p ${OPENCPOP}
 
-train_set=tr_no_dev
-train_dev=dev
+train_set="tr_no_dev"
+train_dev="dev"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
@@ -56,12 +56,11 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 2: Held out validation set"
     
-    utils/copy_data_dir.sh data/train data/tr_no_dev
-    utils/copy_data_dir.sh data/train data/dev
-    for dset in tr_no_dev dev; do
+    utils/copy_data_dir.sh data/train data/${train_set}
+    utils/copy_data_dir.sh data/train data/${train_dev}
+    for dset in ${train_set} ${train_dev}; do
         for extra_file in label musicxml.scp; do
-            for single_file in $(ls data/train/${extra_file}); do
-                cp ${single_file} data/${dset}
+            cp data/train/${extra_file} data/${dset}
             done
         done
     done
