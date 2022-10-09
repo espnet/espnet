@@ -1,4 +1,3 @@
-
 """
 midi_obj = miditoolkit.midi.parser.MidiFile(midi_path)
 
