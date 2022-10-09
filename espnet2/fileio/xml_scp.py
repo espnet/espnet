@@ -1,5 +1,4 @@
 import collections.abc
-import logging
 from pathlib import Path
 from typing import Union
 
