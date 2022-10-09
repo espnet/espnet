@@ -21,6 +21,7 @@ g2p_choices = [
     "pyopenjtalk_prosody",
     "pypinyin_g2p",
     "pypinyin_g2p_phone",
+    "pypinyin_g2p_phone_without_prosody",
     "espeak_ng_arabic",
     "espeak_ng_german",
     "espeak_ng_french",
@@ -204,6 +205,27 @@ def pypinyin_g2p_phone(text) -> List[str]:
         # Remove the case of individual tones as a phoneme
         if len(p) != 0 and not p.isdigit()
     ]
+    return phones
+
+
+def pypinyin_g2p_phone_without_prosody(text) -> List[str]:
+    from pypinyin import Style, pinyin
+    from pypinyin.style._utils import get_finals, get_initials
+
+    phones = []
+    for phone in pinyin(text, style=Style.NORMAL, strict=False):
+        initial = get_initials(phone[0], strict=False)
+        final = get_finals(phone[0], strict=False)
+        if len(initial) != 0:
+            phones.append(initial)
+            if initial in ["x", "y", "j", "q"]:
+                if final == "un":
+                    final = "vn"
+                elif final == "uan":
+                    final = "van"
+            if final == "ue":
+                final = "ve"
+        phones.append(final)
     return phones
 
 
@@ -419,6 +441,8 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = pypinyin_g2p
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
+        elif g2p_type == "pypinyin_g2p_phone_without_prosody":
+            self.g2p = pypinyin_g2p_phone_without_prosody
         elif g2p_type == "espeak_ng_arabic":
             self.g2p = Phonemizer(
                 language="ar",

@@ -213,6 +213,7 @@ class SVSTask(AbsTask):
                 "pyopenjtalk_accent_with_pause",
                 "pypinyin_g2p",
                 "pypinyin_g2p_phone",
+                "pypinyin_g2p_phone_without_prosody",
                 "espeak_ng_arabic",
             ],
             default=None,
