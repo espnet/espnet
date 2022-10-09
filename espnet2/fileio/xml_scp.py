@@ -123,15 +123,18 @@ class XMLScpReader(collections.abc.Mapping):
 
 class XMLScpWriter:
     """Writer class for 'midi.scp'
+
     Examples:
         key1 /some/path/a.musicxml
         key2 /some/path/b.musicxml
         key3 /some/path/c.musicxml
         key4 /some/path/d.musicxml
         ...
+
         >>> writer = XMLScpWriter('./data/', './data/xml.scp')
         >>> writer['aa'] = xml_obj
         >>> writer['bb'] = xml_obj
+        
     """
 
     def __init__(
