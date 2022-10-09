@@ -61,7 +61,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for dset in ${train_set} ${train_dev}; do
         for extra_file in label musicxml.scp; do
             cp data/train/${extra_file} data/${dset}
-            done
         done
     done
     tail -n 50 data/train/wav.scp > data/dev/wav.scp
