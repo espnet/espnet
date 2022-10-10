@@ -204,7 +204,7 @@ def xml_loader(path, float_dtype=None):
     assert XMLScpReader is not None, (
         "Cannot load XMLScpReader. ",
         "Please install Muskit modules via ",
-        "tools/installers/install_muskit.sh",
+        "(cd tools && make muskit.done)",
     )
     loader = XMLScpReader(fname=path)
 

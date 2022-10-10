@@ -1,6 +1,7 @@
+import sys
+
 import pandas as pd
 from espnet_model_zoo.downloader import ModelDownloader
-import sys
 
 tts_reference = "@inproceedings{hayashi2020espnet,\n\
   title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},\n\

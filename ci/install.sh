@@ -18,10 +18,9 @@ ${CXX:-g++} -v
     else
         ./setup_venv.sh "$(command -v python3)" venv
     fi
-    . ./activate_python.sh
-    make TH_VERSION="${TH_VERSION}"
 
-    make warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done gtn.done longformer.done
+    . ./activate_python.sh
+    make TH_VERSION="${TH_VERSION}" WITH_OMP="${WITH_OMP-ON}" all warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done gtn.done longformer.done
     rm -rf kaldi
 )
 . tools/activate_python.sh

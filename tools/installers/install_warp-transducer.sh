@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ $# != 0 ]; then
-    echo "Usage: $0"
+if [ $# -eq 0 ]; then
+    with_openmp=ON
+elif [ $# -eq 1 ]; then
+    with_openmp=$1
+elif [ $# -gt 1 ]; then
+    echo "Usage: $0 [with_openmp| ON or OFF]"
     exit 1;
 fi
+unames="$(uname -s)"
+if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
+    echo "Warning: This script may not work with ${unames}. Exit with doing nothing"
+    exit 0
+fi
+
 
 if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
@@ -25,7 +35,7 @@ git clone --single-branch --branch espnet_v1.1 https://github.com/b-flo/warp-tra
     mkdir build
     (
         set -euo pipefail
-        cd build && cmake .. && make
+        cd build && cmake -DWITH_OMP="${with_openmp}" .. && make
     )
 
     (
