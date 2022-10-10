@@ -158,6 +158,7 @@ HARPERVALLEY=downloads
 TALROMUR=downloads
 DCASE=
 TEDX_SPANISH=downloads
+M_AILABS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
