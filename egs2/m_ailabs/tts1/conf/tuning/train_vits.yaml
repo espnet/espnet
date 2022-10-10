@@ -129,8 +129,6 @@ tts_conf:
     # others
     sampling_rate: 16000          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
-    # langs: 10
-    # spks: 30
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
