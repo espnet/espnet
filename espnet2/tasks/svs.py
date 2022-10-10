@@ -44,6 +44,8 @@ from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
+# TODO(Yuning): Add singing augmentation
+
 feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
@@ -261,6 +263,7 @@ class SVSTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 fs=args.fs,
+                time_shift=args.feats_extract_conf["hop_length"] / args.feats_extract_conf["fs"]
             )
         else:
             retval = None
