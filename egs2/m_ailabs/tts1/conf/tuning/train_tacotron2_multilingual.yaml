@@ -40,7 +40,7 @@ tts_conf:                        # keyword arguments for the selected model
     use_guided_attn_loss: true   # whether to use guided attention loss
     guided_attn_loss_sigma: 0.4  # sigma of guided attention loss
     guided_attn_loss_lambda: 1.0 # strength of guided attention loss
-    lang: 10
+    langs: 10
     spks: 30
 
 ##########################################################
