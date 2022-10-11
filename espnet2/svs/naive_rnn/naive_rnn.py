@@ -452,6 +452,7 @@ class NaiveRNN(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -506,7 +507,9 @@ class NaiveRNN(AbsSVS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        return after_outs, None, None  # outs, probs, att_ws
+        return dict(
+            feat_gen=after_outs[0], prob=None, att_w=None
+        )  # outs, probs, att_ws
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
