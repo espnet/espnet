@@ -1,8 +1,9 @@
 #!/bin/bash
+# A script to download and extract the "lines" split of the IAM Handwriting Dataset
 
 if [ $# -lt 3 ]; then
     echo "Usage: $0 <data-base-path> <lrs3-username> <lrs3-password>"
-    echo "--args <data-base-path> : The path where to download the dataset"
+    echo "--args <data-base-path> : The path to download the dataset to"
     echo "--args <iam-username> : The username required to download the dataset"
     echo "--args <iam-password> : The password required to download the dataset"
     echo "If you do not have a username/password, please request from: https://fki.tic.heia-fr.ch/register"
@@ -75,7 +76,7 @@ echo "Downloading train/dev/test splits"
 # Using the IAM-B splits from https://github.com/shonenkov/IAM-Splitting for this recipe
 for split in train valid test; do
     if [ -e ${download_dir}/${split}.txt ]; then
-        rm ${download_dir}/${split}.txt 
+        rm ${download_dir}/${split}.txt
     fi
     if ! wget -nv ${iam_splits_base_url}${split}.txt -P ${download_dir}; then
         echo "Error downloading ${iam_splits_base_url}${split}.txt"

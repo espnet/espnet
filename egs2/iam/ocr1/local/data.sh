@@ -18,13 +18,17 @@ SECONDS=0
 
 stage=1
 stop_stage=2
-# Set username/password from account on https://fki.tic.heia-fr.ch/register
+
+# Fill in username/password from account on https://fki.tic.heia-fr.ch/register
 iam_username=""
 iam_password=""
 
-data_dir=data/
+# Set parameters for the feature dimensions used during image extraction,
+# see data_prep.py for details
 feature_dim=100
 downsampling_factor=0.5
+
+data_dir=data/
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1.1: Downloading the IAM Handwriting dataset with username ${iam_username} and password ${iam_password}"

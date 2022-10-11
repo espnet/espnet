@@ -1,4 +1,20 @@
-import string
+"""Prepare the IAM handwriting dataset for ESPnet ASR training
+
+Usage:
+    python local/data_prep.py [--feature_dim 100] [--downsampling_factor 0.5]
+
+Expects data to be in:
+    downloads/
+        lines.txt        # labels from IAM Handwriting dataset (from ascii.tgz)
+        lines/
+            */*/*.png    # "lines" images from IAM Handwriting dataset (from lines.tgz)
+        train.txt        # id's for train/valid/test splits
+        valid.txt
+        test.txt
+
+Required packages:
+    Pillow
+"""
 import os
 import argparse
 import numpy as np
@@ -7,7 +23,22 @@ from PIL import Image
 from espnet.utils.cli_writers import file_writer_helper
 
 def prepare_text(lines_file_path, output_dir, split_ids):
-    """Create text file (map of ids to transcriptions) in Kaldi format"""
+    """Create 'text' file (map of ids to transcriptions) in Kaldi format
+
+    Parameters
+    ----------
+    lines_file_path : str
+        The file path of the full "lines.txt" label file of the IAM dataset
+    output_dir : str
+        The folder path for output, e.g. data/
+    split_ids : list of str
+        a list of example ids to process, used to define train/valid/test splits
+
+    Returns
+    -------
+    skipped_ids : list of str
+        a list of ids that were skipped due to having an empty transcription
+    """
     output_lines = []
     skipped_ids = []
     with open(lines_file_path) as lines_file:
@@ -27,9 +58,6 @@ def prepare_text(lines_file_path, output_dir, split_ids):
                 # extract and format transcription into Kaldi style
                 transcription = " ".join(line_split[8:])
                 transcription = transcription.replace("|", " ")
-                # transcription = transcription.translate(str.maketrans('', '', string.punctuation))
-                # transcription = transcription.replace("  ", " ")
-                # transcription = transcription.strip().upper()
                 transcription = transcription.strip()
 
                 if transcription == "":
@@ -47,7 +75,18 @@ def prepare_text(lines_file_path, output_dir, split_ids):
     return skipped_ids
 
 def prepare_utt2spk_spk2utt(output_dir, split_ids, ids_to_skip=[]):
-    """Create (dummy) utt2spk and spk2utt files to satisfy Kaldi format"""
+    """Create (dummy) utt2spk and spk2utt files to satisfy Kaldi format
+
+    Parameters
+    ----------
+    output_dir : str
+        The folder path for output, e.g. data/
+    split_ids : list of str
+        a list of example ids to process, used to define train/valid/test splits
+    ids_to_skip : list of str
+        A list of ids to exclude from the output, e.g. used to ignore the ones
+        that were skipped due to an empty transcription
+    """
     output_lines = [f'{line_id} {line_id}\n' for line_id in split_ids if line_id not in ids_to_skip]
     output_lines.sort()
 
@@ -57,9 +96,25 @@ def prepare_utt2spk_spk2utt(output_dir, split_ids, ids_to_skip=[]):
     with open(os.path.join(output_dir, 'spk2utt'), 'w') as out_file:
         out_file.writelines(output_lines)
 
-def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=100, downsampling_factor=0.25):
-    """Create feats.scp file from OCR images"""
+def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=100, downsampling_factor=0.5):
+    """Create feats.scp file from OCR images
 
+    Parameters
+    ----------
+    output_dir : str
+        The folder path for output, e.g. data/
+    split_ids : list of str
+        a list of example ids to process, used to define train/valid/test splits
+    ids_to_skip : list of str
+        A list of ids to exclude from the output, e.g. used to ignore the ones
+        that were skipped due to an empty transcription
+    feature_dim : int (default=100)
+        The hidden dimension for each feature matrix, all images are resized to this height
+    downsampling_factor : float (default=0.5)
+        A multiplier for the width dimension (analogous to the 'time' dimension in ASR) of each image,
+        used to reduce the length for faster training. Empirically, a value of 0.5 is found to achieve the
+        best performance
+    """
     writer = file_writer_helper(
         wspecifier=f'ark,scp:{os.path.join(output_dir, "feats.ark")},{os.path.join(output_dir, "feats.scp")}',
         filetype='mat',
@@ -89,7 +144,7 @@ def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=10
             # update counters for logging
             num_processed += 1
             total_length += img_arr.shape[0]
-    
+
     print(f'Extracted features for {num_processed} examples to {os.path.join(output_dir, "feats.scp")}, average length is {total_length / num_processed:.02f}')
 
 if __name__ == '__main__':
@@ -98,9 +153,9 @@ if __name__ == '__main__':
     data_dir = "data/"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--feature_dim', type=int, default=100, 
+    parser.add_argument('--feature_dim', type=int, default=100,
         help='Feature dimension to resize each image feature to')
-    parser.add_argument('--downsampling_factor', type=float, default=0.25, 
+    parser.add_argument('--downsampling_factor', type=float, default=0.5,
         help='Factor to downsample the length of each image feature to, the average length will be about 1500 * downsampling_factor')
 
     args = parser.parse_args()
