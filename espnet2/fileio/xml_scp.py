@@ -72,7 +72,7 @@ class XMLScpReader(collections.abc.Mapping):
                         )
                     )
                 else:
-                    if note.pitch == prepitch:
+                    if note.pitch.midi == prepitch:
                         notes_list[-1].dur += note.seconds
                         notes_list[-1].et += note.seconds
                     else:
@@ -81,7 +81,7 @@ class XMLScpReader(collections.abc.Mapping):
                                 "", note.pitch.midi, st, st + note.seconds, note.seconds
                             )
                         )
-                prepitch = note.pitch
+                prepitch = note.pitch.midi
             else:
                 if prepitch == 0:
                     notes_list[-1].dur += note.seconds
