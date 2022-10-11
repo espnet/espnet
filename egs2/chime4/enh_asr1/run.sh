@@ -8,6 +8,13 @@ set -o pipefail
 
 extra_annotations=
 
+# train_set=tr05_multi_isolated_6ch_track # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
+# valid_set=dt05_multi_isolated_6ch_track
+# test_sets="\
+# dt05_simu_isolated_6ch_track dt05_real_isolated_6ch_track \
+# et05_simu_isolated_6ch_track et05_real_isolated_6ch_track \
+# "
+
 train_set=tr05_multi_noisy_si284 # tr05_multi_noisy (original training data) or tr05_multi_noisy_si284 (add si284 data)
 valid_set=dt05_multi_isolated_1ch_track
 test_sets="\
