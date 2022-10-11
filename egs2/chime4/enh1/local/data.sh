@@ -64,10 +64,10 @@ odir="${PWD}/local/nn-gev/data"; mkdir -p "${odir}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Simulation"
 
-    # if ! command -v matlab &> /dev/null; then
-    #     log "You don't have matlab"
-    #     exit 2
-    # fi
+    if ! command -v matlab &> /dev/null; then
+        log "You don't have matlab"
+        exit 2
+    fi
 
     # Prepare simulation data for 6ch track
     # (This takes ~10 hours with nj=10 on Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz)
