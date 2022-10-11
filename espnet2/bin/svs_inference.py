@@ -49,6 +49,8 @@ class SingingGenerate:
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
+        always_fix_seed: bool = False,
+        prefer_normalized_feats: bool = False,
     ):
         assert check_argument_types()
 
@@ -67,8 +69,10 @@ class SingingGenerate:
         # self.duration_calculator = DurationCalculator() # TODO(Yuning)
         self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
-
+        self.seed = seed
+        self.always_fix_seed = always_fix_seed
         self.vocoder = None
+        self.prefer_normalized_feats = prefer_normalized_feats
         if vocoder_checkpoint is not None:
             vocoder = SVSTask.build_vocoder_from_file(
                 vocoder_config, vocoder_checkpoint, model, device
@@ -223,6 +227,7 @@ def inference(
     key_file: Optional[str],
     train_config: Optional[str],
     model_file: Optional[str],
+    # maxlenratio: float, TODO: add maxlenratio
     use_teacher_forcing: bool,
     speed_control_alpha: float,
     noise_scale: float,
@@ -334,8 +339,9 @@ def inference(
                     )
                 )
                 logging.info(f"{key} (size:{insize}->{feat_gen.size(0)})")
-                if feat_gen.size(0) == insize * maxlenratio:
-                    logging.warning(f"output length reaches maximum length ({key}).")
+                # TODO: add maxlenratio
+                # if feat_gen.size(0) == insize * maxlenratio:
+                #     logging.warning(f"output length reaches maximum length ({key}).")
 
                 norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
                 shape_writer.write(
@@ -418,7 +424,7 @@ def inference(
             if output_dict.get("wav") is not None:
                 sf.write(
                     f"{output_dir}/wav/{key}.wav",
-                    wav.numpy(),
+                    output_dict["wav"].cpu().numpy(),
                     singingGenerate.fs,
                     "PCM_16",
                 )
