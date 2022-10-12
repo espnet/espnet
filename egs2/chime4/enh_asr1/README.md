@@ -131,7 +131,5 @@
 
 |dataset|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|
-|enhanced_dt05_real_isolated_6ch_track|59.38|-0.54|-0.54|0.00|-28.31|
 |enhanced_dt05_simu_isolated_6ch_track|94.48|14.95|14.95|0.00|12.43|
-|enhanced_et05_real_isolated_6ch_track|51.17|-2.56|-2.56|0.00|-30.17|
 |enhanced_et05_simu_isolated_6ch_track|94.93|16.08|16.08|0.00|13.98|
