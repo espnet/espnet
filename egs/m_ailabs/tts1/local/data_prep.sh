@@ -19,6 +19,37 @@ if [ $# != 4 ]; then
     exit 1
 fi
 
+# check language
+if [ ${lang} = "de_DE" ]; then
+    available_spks=("angela" "rebecca" "ramona" "eva" "karlsson")
+elif [ ${lang} = "en_UK" ]; then
+    available_spks=("elizabeth")
+elif [ ${lang} = "it_IT" ]; then
+    available_spks=("lisa" "riccardo")
+elif [ ${lang} = "es_ES" ]; then
+    available_spks=("karen" "tux" "victor")
+elif [ ${lang} = "en_US" ]; then
+    available_spks=("judy" "mary" "elliot")
+elif [ ${lang} = "fr_FR" ]; then
+    available_spks=("ezwa" "nadine" "bernard" "gilles" "zeckou")
+elif [ ${lang} = "uk_UK" ]; then
+    available_spks=("sumska" "loboda" "miskun" "obruchov" "shepel")
+elif [ ${lang} = "ru_RU" ]; then
+    available_spks=("hajdurova" "minaev" "nikolaev")
+elif [ ${lang} = "pl_PL" ]; then
+    available_spks=("nina" "piotr")
+else
+    echo "${lang} is not supported."
+    exit 1
+fi
+
+# check speaker
+if ! $(echo ${available_spks[*]} | grep -q ${spk}); then
+    echo "Specified speaker is not available."
+    echo "Available speakers: ${available_spks[*]}"
+    exit 1
+fi
+
 # check directory existence
 [ ! -e ${data_dir} ] && mkdir -p ${data_dir}
 
@@ -34,15 +65,15 @@ text=${data_dir}/text
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
 # make scp, utt2spk, spk2utt, and utt2lang
-find ${db} -name "*.wav" -follow | grep ${spk} | sort | while read -r filename;do
+find ${db} -name "*.wav" -follow | grep ${spk} | sort | while read -r filename; do
     id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
-    echo "${id} ${filename}" >> ${scp}
-    echo "${id} ${spk}" >> ${utt2spk}
-    echo "${id} ${lang}" >> ${utt2lang}
+    echo "${id} ${filename}" >>${scp}
+    echo "${id} ${spk}" >>${utt2spk}
+    echo "${id} ${lang}" >>${utt2lang}
 done
 echo "Successfully finished making wav.scp, utt2spk, and utt2lang."
 
-utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
+utils/utt2spk_to_spk2utt.pl ${utt2spk} >${spk2utt}
 echo "Successfully finished making spk2utt."
 
 jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | grep -v "/\._" | tr "\n" " ")
