@@ -159,6 +159,8 @@ def get_rtf(
     mode="power",
     reference_vector: Union[int, torch.Tensor] = 0,
     iterations: int = 3,
+    diagonal_loading: bool = True,
+    diag_eps: float = 1e-7,
 ):
     """Calculate the relative transfer function (RTF).
 
@@ -181,7 +183,8 @@ def get_rtf(
             psd_noise,
             reference_vector,
             n_iter=iterations,
-            diagonal_loading=False,
+            diagonal_loading=diagonal_loading,
+            diag_eps=diag_eps,
         )
     elif mode == "evd":
         rtf = torchaudio.functional.rtf_evd(psd_speech)
@@ -264,12 +267,14 @@ def get_mvdr_vector_with_rtf(
     Returns:
         beamform_vector (torch.complex64): (..., F, C)
     """  # noqa: H405, D205, D400
-    if diagonal_loading:
-        psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
-
     # (B, F, C)
     rtf = get_rtf(
-        psd_speech, psd_noise, reference_vector=reference_vector, iterations=iterations
+        psd_speech,
+        psd_noise,
+        reference_vector=reference_vector,
+        iterations=iterations,
+        diagonal_loading=diagonal_loading,
+        diag_eps=diag_eps,
     )
     return torchaudio.functional.mvdr_weights_rtf(
         rtf,
@@ -373,7 +378,7 @@ def get_sdw_mwf_vector(
         eps (float):
     Returns:
         beamform_vector (torch.complex64): (..., F, C)
-    """  # noqa: H405, D205, D400
+    """  # noqa: H405, D205, D400, E501
     if approx_low_rank_psd_speech:
         if diagonal_loading:
             psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
@@ -385,6 +390,7 @@ def get_sdw_mwf_vector(
             mode="power",
             iterations=iterations,
             reference_vector=reference_vector,
+            diagonal_loading=False,
         )
         # Eq. (25) in Ref[2]
         psd_speech_r1 = torch.einsum("...c,...e->...ce", recon_vec, recon_vec.conj())
@@ -462,6 +468,7 @@ def get_rank1_mwf_vector(
             mode="power",
             iterations=iterations,
             reference_vector=reference_vector,
+            diagonal_loading=False,
         )
         # Eq. (25) in Ref[1]
         psd_speech_r1 = torch.einsum("...c,...e->...ce", recon_vec, recon_vec.conj())
@@ -504,9 +511,11 @@ def get_rtf_matrix(
         [
             get_rtf(
                 psd_speeches[spk],
-                tik_reg(psd_n, reg=diag_eps, eps=eps) if diagonal_loading else psd_n,
+                psd_n,
                 reference_vector=ref_channel,
                 iterations=rtf_iterations,
+                diagonal_loading=diagonal_loading,
+                diag_eps=diag_eps,
             )
             for spk, psd_n in enumerate(psd_noises)
         ],
@@ -984,8 +993,6 @@ def get_WPD_filter_with_rtf(
         beamform_vector (torch.complex64): (..., F, C)
     """
     C = psd_noise.size(-1)
-    if diagonal_loading:
-        psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
     # (B, F, C)
     rtf = get_rtf(
@@ -994,6 +1001,8 @@ def get_WPD_filter_with_rtf(
         mode="power",
         reference_vector=reference_vector,
         iterations=iterations,
+        diagonal_loading=diagonal_loading,
+        diag_eps=diag_eps,
     )
 
     # (B, F, (K+1)*C)

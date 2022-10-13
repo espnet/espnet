@@ -7,45 +7,14 @@ from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
+import espnet2.enh.layers.beamformer as bf_v1
+import espnet2.enh.layers.beamformer_th as bf_v2
 from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
-if is_torch_1_12_1_plus:
-    from espnet2.enh.layers.beamformer_th import (
-        apply_beamforming_vector,
-        blind_analytic_normalization,
-        get_gev_vector,
-        get_lcmv_vector_with_rtf,
-        get_mvdr_vector,
-        get_mvdr_vector_with_rtf,
-        get_mwf_vector,
-        get_rank1_mwf_vector,
-        get_rtf_matrix,
-        get_sdw_mwf_vector,
-        get_WPD_filter_v2,
-        get_WPD_filter_with_rtf,
-        perform_WPD_filtering,
-        prepare_beamformer_stats,
-    )
-else:
-    from espnet2.enh.layers.beamformer import (
-        apply_beamforming_vector,
-        blind_analytic_normalization,
-        get_gev_vector,
-        get_lcmv_vector_with_rtf,
-        get_mvdr_vector,
-        get_mvdr_vector_with_rtf,
-        get_mwf_vector,
-        get_rank1_mwf_vector,
-        get_rtf_matrix,
-        get_sdw_mwf_vector,
-        get_WPD_filter_v2,
-        get_WPD_filter_with_rtf,
-        perform_WPD_filtering,
-        prepare_beamformer_stats,
-    )
+
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
@@ -113,6 +82,8 @@ class DNN_Beamformer(torch.nn.Module):
         mask_flooring: bool = False,
         flooring_thres: float = 1e-6,
         use_torch_solver: bool = True,
+        # False to use old APIs; True to use torchaudio-based new APIs
+        use_torchaudio_api: bool = False,
         # only for WPD beamformer
         btaps: int = 5,
         bdelay: int = 3,
@@ -186,6 +157,11 @@ class DNN_Beamformer(torch.nn.Module):
                 "Now it will always be true in DNN_Beamformer"
             )
 
+        if use_torchaudio_api and is_torch_1_12_1_plus:
+            self.bf_func = bf_v2
+        else:
+            self.bf_func = bf_v1
+
     def forward(
         self,
         data: Union[torch.Tensor, ComplexTensor],
@@ -237,7 +213,7 @@ class DNN_Beamformer(torch.nn.Module):
 
             if self.beamformer_type in ("lcmv", "lcmp", "wlcmp"):
                 raise NotImplementedError("Single source is not supported yet")
-            beamformer_stats = prepare_beamformer_stats(
+            beamformer_stats = self.bf_func.prepare_beamformer_stats(
                 data_d,
                 [mask_speech],
                 mask_noise,
@@ -287,7 +263,7 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = list(masks)
                 mask_noise = None
 
-            beamformer_stats = prepare_beamformer_stats(
+            beamformer_stats = self.bf_func.prepare_beamformer_stats(
                 data_d,
                 mask_speech,
                 mask_noise,
@@ -298,7 +274,7 @@ class DNN_Beamformer(torch.nn.Module):
                 eps=self.eps,
             )
             if self.beamformer_type in ("lcmv", "lcmp", "wlcmp"):
-                rtf_mat = get_rtf_matrix(
+                rtf_mat = self.bf_func.get_rtf_matrix(
                     beamformer_stats["psd_speech"],
                     beamformer_stats["psd_distortion"],
                     diagonal_loading=self.diagonal_loading,
@@ -430,7 +406,7 @@ class DNN_Beamformer(torch.nn.Module):
                 u = self.ref_channel
 
         if self.beamformer_type in ("mvdr", "mpdr", "wmpdr"):
-            ws = get_mvdr_vector_with_rtf(
+            ws = self.bf_func.get_mvdr_vector_with_rtf(
                 to_double(psd_n),
                 to_double(psd_speech),
                 to_double(psd_distortion),
@@ -439,11 +415,11 @@ class DNN_Beamformer(torch.nn.Module):
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type == "mvdr_tfs":
             assert isinstance(psd_n, (list, tuple))
             ws = [
-                get_mvdr_vector_with_rtf(
+                self.bf_func.get_mvdr_vector_with_rtf(
                     to_double(psd_n_i),
                     to_double(psd_speech),
                     to_double(psd_distortion),
@@ -454,7 +430,9 @@ class DNN_Beamformer(torch.nn.Module):
                 )
                 for psd_n_i in psd_n
             ]
-            enhanced = stack([apply_beamforming_vector(w, to_double(data)) for w in ws])
+            enhanced = stack(
+                [self.bf_func.apply_beamforming_vector(w, to_double(data)) for w in ws]
+            )
             with torch.no_grad():
                 index = enhanced.abs().argmin(dim=0, keepdims=True)
             enhanced = enhanced.gather(0, index).squeeze(0)
@@ -464,18 +442,18 @@ class DNN_Beamformer(torch.nn.Module):
             "mvdr_souden",
             "wmpdr_souden",
         ):
-            ws = get_mvdr_vector(
+            ws = self.bf_func.get_mvdr_vector(
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type == "mvdr_tfs_souden":
             assert isinstance(psd_n, (list, tuple))
             ws = [
-                get_mvdr_vector(
+                self.bf_func.get_mvdr_vector(
                     to_double(psd_speech),
                     to_double(psd_n_i),
                     u,
@@ -484,13 +462,15 @@ class DNN_Beamformer(torch.nn.Module):
                 )
                 for psd_n_i in psd_n
             ]
-            enhanced = stack([apply_beamforming_vector(w, to_double(data)) for w in ws])
+            enhanced = stack(
+                [self.bf_func.apply_beamforming_vector(w, to_double(data)) for w in ws]
+            )
             with torch.no_grad():
                 index = enhanced.abs().argmin(dim=0, keepdims=True)
             enhanced = enhanced.gather(0, index).squeeze(0)
             ws = stack(ws, dim=0)
         elif self.beamformer_type == "wpd":
-            ws = get_WPD_filter_with_rtf(
+            ws = self.bf_func.get_WPD_filter_with_rtf(
                 to_double(psd_n),
                 to_double(psd_speech),
                 to_double(psd_distortion),
@@ -499,31 +479,31 @@ class DNN_Beamformer(torch.nn.Module):
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = perform_WPD_filtering(
+            enhanced = self.bf_func.perform_WPD_filtering(
                 ws, to_double(data), self.bdelay, self.btaps
             )
         elif self.beamformer_type == "wpd_souden":
-            ws = get_WPD_filter_v2(
+            ws = self.bf_func.get_WPD_filter_v2(
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = perform_WPD_filtering(
+            enhanced = self.bf_func.perform_WPD_filtering(
                 ws, to_double(data), self.bdelay, self.btaps
             )
         elif self.beamformer_type in ("mwf", "wmwf"):
-            ws = get_mwf_vector(
+            ws = self.bf_func.get_mwf_vector(
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type == "sdw_mwf":
-            ws = get_sdw_mwf_vector(
+            ws = self.bf_func.get_sdw_mwf_vector(
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
@@ -531,9 +511,9 @@ class DNN_Beamformer(torch.nn.Module):
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type == "r1mwf":
-            ws = get_rank1_mwf_vector(
+            ws = self.bf_func.get_rank1_mwf_vector(
                 to_double(psd_speech),
                 to_double(psd_n),
                 u,
@@ -541,27 +521,27 @@ class DNN_Beamformer(torch.nn.Module):
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type in ("lcmp", "wlcmp", "lcmv"):
-            ws = get_lcmv_vector_with_rtf(
+            ws = self.bf_func.get_lcmv_vector_with_rtf(
                 to_double(psd_n),
                 to_double(rtf_mat),
                 reference_vector=spk,
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
         elif self.beamformer_type.startswith("gev"):
-            ws = get_gev_vector(
+            ws = self.bf_func.get_gev_vector(
                 to_double(psd_n),
                 to_double(psd_speech),
                 mode="power",
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
-            enhanced = apply_beamforming_vector(ws, to_double(data))
+            enhanced = self.bf_func.apply_beamforming_vector(ws, to_double(data))
             if self.beamformer_type == "gev_ban":
-                gain = blind_analytic_normalization(ws, to_double(psd_n))
+                gain = self.bf_func.blind_analytic_normalization(ws, to_double(psd_n))
                 enhanced = enhanced * gain.unsqueeze(-1)
         else:
             raise ValueError(

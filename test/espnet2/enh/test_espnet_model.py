@@ -484,6 +484,7 @@ def test_forward_with_beamformer_net(
         ref_channel=0,
         use_noise_mask=False,
         beamformer_type="mvdr_souden",
+        use_torchaudio_api=is_torch_1_12_1_plus,
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,

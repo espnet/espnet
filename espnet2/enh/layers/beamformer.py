@@ -350,7 +350,7 @@ def get_mvdr_vector_with_rtf(
         if isinstance(reference_vector, int):
             scale = rtf.squeeze(-1)[..., reference_vector, None].conj()
         else:
-            scale = (rtf.conj() * reference_vector[..., None, :]).sum(
+            scale = (rtf.squeeze(-1).conj() * reference_vector[..., None, :]).sum(
                 dim=-1, keepdim=True
             )
         beamforming_vector = numerator * scale / (denominator.real.unsqueeze(-1) + eps)
@@ -450,7 +450,7 @@ def get_sdw_mwf_vector(
         eps (float):
     Returns:
         beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
-    """  # noqa: H405, D205, D400
+    """  # noqa: H405, D205, D400, E501
     if approx_low_rank_psd_speech:
         if diagonal_loading:
             psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
