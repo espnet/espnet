@@ -35,7 +35,7 @@ recog_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    # The Oniku data should be downloaded from ??
+    # The Oniku data should be downloaded from https://github.com/oatsu-gh/virtual_singer_oniku_kurumi
     # with authentication
 
 fi
