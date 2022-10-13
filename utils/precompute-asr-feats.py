@@ -3,22 +3,22 @@
 # Copyright 2022 Nanyang Technological University (Kwok Chin Yuen)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import os
-from pathlib import Path
 import argparse
 import logging
-from typing import Any, List, Optional, Sequence, Tuple, Union, Callable
-from typeguard import check_argument_types
+import os
 import re
+from pathlib import Path
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import kaldiio
 import numpy as np
 import resampy
 import torch
+from typeguard import check_argument_types
 
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.torch_utils.device_funcs import to_device
 from espnet2.tasks.asr import ASRTask
+from espnet2.torch_utils.device_funcs import to_device
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.cli_utils import get_commandline_args
@@ -26,61 +26,58 @@ from espnet.utils.cli_writers import file_writer_helper
 
 
 def build_asr_model(
-        enh_s2t_task: bool = False,
-        quantize_asr_model: bool = False,
-        quantize_modules: List[str] = ["Linear"],
-        quantize_dtype: str = "qint8",
-        asr_train_config: Union[Path, str] = None,
-        asr_model_file: Union[Path, str] = None,
-        device: str = "cpu",
-        dtype: str = np.float32,
-    ):
-        task = ASRTask if not enh_s2t_task else EnhS2TTask
+    enh_s2t_task: bool = False,
+    quantize_asr_model: bool = False,
+    quantize_modules: List[str] = ["Linear"],
+    quantize_dtype: str = "qint8",
+    asr_train_config: Union[Path, str] = None,
+    asr_model_file: Union[Path, str] = None,
+    device: str = "cpu",
+    dtype: str = np.float32,
+):
+    task = ASRTask if not enh_s2t_task else EnhS2TTask
 
-        if quantize_asr_model:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
+    if quantize_asr_model:
+        if quantize_dtype == "float16" and torch.__version__ < LooseVersion("1.5.0"):
+            raise ValueError(
+                "float16 dtype for dynamic quantization is not supported with "
+                "torch version < 1.5.0. Switch to qint8 dtype instead."
+            )
 
-        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
-        quantize_dtype = getattr(torch, quantize_dtype)
+    quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
+    quantize_dtype = getattr(torch, quantize_dtype)
 
-        # 1. Build ASR model
-        asr_model, asr_train_args = task.build_model_from_file(
-            asr_train_config, asr_model_file, device
+    # 1. Build ASR model
+    asr_model, asr_train_args = task.build_model_from_file(
+        asr_train_config, asr_model_file, device
+    )
+    if enh_s2t_task:
+        asr_model.inherite_attributes(
+            inherite_s2t_attrs=[
+                "ctc",
+                "decoder",
+                "eos",
+                "joint_network",
+                "sos",
+                "token_list",
+                "use_transducer_decoder",
+            ]
         )
-        if enh_s2t_task:
-            asr_model.inherite_attributes(
-                inherite_s2t_attrs=[
-                    "ctc",
-                    "decoder",
-                    "eos",
-                    "joint_network",
-                    "sos",
-                    "token_list",
-                    "use_transducer_decoder",
-                ]
-            )
-        asr_model.to(dtype=getattr(torch, dtype)).eval()
+    asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        if quantize_asr_model:
-            logging.info("Use quantized asr model for decoding.")
+    if quantize_asr_model:
+        logging.info("Use quantized asr model for decoding.")
 
-            asr_model = torch.quantization.quantize_dynamic(
-                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
-            )
+        asr_model = torch.quantization.quantize_dynamic(
+            asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+        )
 
-        decoder = asr_model.decoder
+    decoder = asr_model.decoder
 
-        return asr_model, asr_train_args
+    return asr_model, asr_train_args
 
 
 class Speech2Feat:
-
     def __init__(
         self,
         data_path_and_name_and_type: str,
@@ -98,7 +95,7 @@ class Speech2Feat:
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
-        output_modules: List[str] = ["encoder.encoders.*"], 
+        output_modules: List[str] = ["encoder.encoders.*"],
         skip_pad_modules: List[str] = [],
     ):
 
@@ -133,7 +130,7 @@ class Speech2Feat:
         self.dtype = dtype
         self.device = device
         self.batch_size = batch_size
-        self.skip_pad = [] # Name of features that should not be unpadded
+        self.skip_pad = []  # Name of features that should not be unpadded
         self.unpad_search_done = False
         self.feats_dict = None
 
@@ -144,28 +141,31 @@ class Speech2Feat:
             logging.info(f"Registered output hook for {path}")
 
         for n, p in module.named_children():
-            new_path = ".".join( list(filter(len, path.split("."))) + [n] )
+            new_path = ".".join(list(filter(len, path.split("."))) + [n])
             self.register_hook(p, path=new_path, key_paths=key_paths)
 
     def save_outputs_hook(self, path: str) -> Callable:
         def fn(_, __, output):
-            # If output is a tuple, we assume the first element 
+            # If output is a tuple, we assume the first element
             # is the target and extract it recursively,
             # until we get a tensor
             while isinstance(output, tuple):
                 output = output[0]
                 if not isinstance(output, tuple):
-                    logging.warning(f"{path} has tuple output, " + \
-                        "only the tensor from the 1st element is stored")
+                    logging.warning(
+                        f"{path} has tuple output, "
+                        + "only the tensor from the 1st element is stored"
+                    )
 
             self.feats_dict[path] = output
+
         return fn
 
     @torch.no_grad()
     def compute_feats(
-        self, 
-        speech: Union[torch.Tensor, np.ndarray], 
-        speech_lengths: Union[torch.Tensor, np.ndarray]
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        speech_lengths: Union[torch.Tensor, np.ndarray],
     ):
         """Extract model activations
 
@@ -194,21 +194,26 @@ class Speech2Feat:
         # If we use a batch size larger than one, try to unpad the tensors
         if self.batch_size > 1:
             encoder_max_len = encoder_out_lens.max().item()
-            for k,v in self.feats_dict.items():
+            for k, v in self.feats_dict.items():
                 if "encoder" in k and k not in self.skip_pad:
                     try:
                         pad_dim = v.size().index(encoder_max_len)
                         unpad_feats = []
                         for i, feat in enumerate(v):
-                            split = [encoder_out_lens[i].item(), v.size(pad_dim)-encoder_out_lens[i].item()]
-                            unpad_feats.append(v[i].split(split, dim=pad_dim-1)[0])
+                            split = [
+                                encoder_out_lens[i].item(),
+                                v.size(pad_dim) - encoder_out_lens[i].item(),
+                            ]
+                            unpad_feats.append(v[i].split(split, dim=pad_dim - 1)[0])
                         self.feats_dict[k] = unpad_feats
                     except:
                         if not self.unpad_search_done:
                             self.skip_pad.append(k)
                         else:
-                            raise ValueError(f"Error unpadding {k}, use" +
-                                f"--skip_pad_modules=[{k}] to disable unpadding.")
+                            raise ValueError(
+                                f"Error unpadding {k}, use"
+                                + f"--skip_pad_modules=[{k}] to disable unpadding."
+                            )
 
     def __iter__(self):
         """Iterate through dataset to compute model activations
@@ -281,9 +286,8 @@ def inference(
     ngpu: int = 0,
     seed: int = 0,
     inference: bool = False,
-    output_modules: List[str] = ["encoder.encoders.*"], 
+    output_modules: List[str] = ["encoder.encoders.*"],
     skip_pad_modules: List[str] = [],
-    
 ):
     assert check_argument_types()
     if ngpu > 1:
@@ -347,8 +351,10 @@ def inference(
     writers = {}
     for feat_type, feats in feats_dict.items():
         writers[feat_type] = file_writer_helper(
-            "ark,scp:" + os.path.join(output_dir, f"{feat_type}.ark") + \
-                "," + os.path.join(output_dir, f"{feat_type}.scp"),
+            "ark,scp:"
+            + os.path.join(output_dir, f"{feat_type}.ark")
+            + ","
+            + os.path.join(output_dir, f"{feat_type}.scp"),
             filetype=filetype,
             compress=compress,
             compression_method=compression_method,
@@ -361,7 +367,8 @@ def inference(
                 writers[feat_type][utt_id] = feats[utt_idx].cpu().numpy()
 
     # Close all writers
-    for writer in writers.values(): writer.close()
+    for writer in writers.values():
+        writer.close()
 
 
 def get_parser():
@@ -494,7 +501,7 @@ def get_parser():
         default=2,
         help="Specify the method(if mat) or " "gzip-level(if hdf5)",
     )
-    
+
     return parser
 
 
