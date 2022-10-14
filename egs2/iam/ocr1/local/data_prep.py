@@ -22,6 +22,7 @@ from PIL import Image
 
 from espnet.utils.cli_writers import file_writer_helper
 
+
 def prepare_text(lines_file_path, output_dir, split_ids):
     """Create 'text' file (map of ids to transcriptions) in Kaldi format
 
@@ -45,7 +46,7 @@ def prepare_text(lines_file_path, output_dir, split_ids):
         for line in lines_file.readlines():
 
             # skip comment lines
-            if line[0] == '#':
+            if line[0] == "#":
                 continue
 
             line_split = line.strip().split()
@@ -61,7 +62,7 @@ def prepare_text(lines_file_path, output_dir, split_ids):
                 transcription = transcription.strip()
 
                 if transcription == "":
-                    print(f'Line {line_id} has an empty transcription, skipping it')
+                    print(f"Line {line_id} has an empty transcription, skipping it")
                     skipped_ids.append(line_id)
                     continue
 
@@ -69,10 +70,11 @@ def prepare_text(lines_file_path, output_dir, split_ids):
 
     output_lines.sort()
 
-    with open(os.path.join(output_dir, 'text'), 'w') as out_file:
+    with open(os.path.join(output_dir, "text"), "w") as out_file:
         out_file.writelines(output_lines)
 
     return skipped_ids
+
 
 def prepare_utt2spk_spk2utt(output_dir, split_ids, ids_to_skip=[]):
     """Create (dummy) utt2spk and spk2utt files to satisfy Kaldi format
@@ -87,16 +89,26 @@ def prepare_utt2spk_spk2utt(output_dir, split_ids, ids_to_skip=[]):
         A list of ids to exclude from the output, e.g. used to ignore the ones
         that were skipped due to an empty transcription
     """
-    output_lines = [f'{line_id} {line_id}\n' for line_id in split_ids if line_id not in ids_to_skip]
+    output_lines = [
+        f"{line_id} {line_id}\n" for line_id in split_ids if line_id not in ids_to_skip
+    ]
     output_lines.sort()
 
-    with open(os.path.join(output_dir, 'utt2spk'), 'w') as out_file:
+    with open(os.path.join(output_dir, "utt2spk"), "w") as out_file:
         out_file.writelines(output_lines)
 
-    with open(os.path.join(output_dir, 'spk2utt'), 'w') as out_file:
+    with open(os.path.join(output_dir, "spk2utt"), "w") as out_file:
         out_file.writelines(output_lines)
 
-def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=100, downsampling_factor=0.5):
+
+def prepare_feats(
+    img_dir,
+    output_dir,
+    split_ids,
+    ids_to_skip=[],
+    feature_dim=100,
+    downsampling_factor=0.5,
+):
     """Create feats.scp file from OCR images
 
     Parameters
@@ -117,9 +129,9 @@ def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=10
     """
     writer = file_writer_helper(
         wspecifier=f'ark,scp:{os.path.join(output_dir, "feats.ark")},{os.path.join(output_dir, "feats.scp")}',
-        filetype='mat',
-        write_num_frames=f'ark,t:{output_dir}/num_frames.txt',
-        compress=False
+        filetype="mat",
+        write_num_frames=f"ark,t:{output_dir}/num_frames.txt",
+        compress=False,
     )
 
     num_processed = 0
@@ -129,8 +141,10 @@ def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=10
         if img_id in ids_to_skip:
             continue
 
-        dir, subdir, index = img_id.split('-')
-        img_path = os.path.join(img_dir, dir, f'{dir}-{subdir}', f'{dir}-{subdir}-{index}.png')
+        dir, subdir, index = img_id.split("-")
+        img_path = os.path.join(
+            img_dir, dir, f"{dir}-{subdir}", f"{dir}-{subdir}-{index}.png"
+        )
         with Image.open(img_path) as img:
             # resize images to common height (feature_dim) and downsample width by downsampling_factor
             n_frames = int((img.width / img.height * feature_dim) * downsampling_factor)
@@ -145,29 +159,47 @@ def prepare_feats(img_dir, output_dir, split_ids, ids_to_skip=[], feature_dim=10
             num_processed += 1
             total_length += img_arr.shape[0]
 
-    print(f'Extracted features for {num_processed} examples to {os.path.join(output_dir, "feats.scp")}, average length is {total_length / num_processed:.02f}')
+    print(
+        f'Extracted features for {num_processed} examples to {os.path.join(output_dir, "feats.scp")}, average length is {total_length / num_processed:.02f}'
+    )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     downloads_dir = "downloads/"
     data_dir = "data/"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--feature_dim', type=int, default=100,
-        help='Feature dimension to resize each image feature to')
-    parser.add_argument('--downsampling_factor', type=float, default=0.5,
-        help='Factor to downsample the length of each image feature to, the average length will be about 1500 * downsampling_factor')
+    parser.add_argument(
+        "--feature_dim",
+        type=int,
+        default=100,
+        help="Feature dimension to resize each image feature to",
+    )
+    parser.add_argument(
+        "--downsampling_factor",
+        type=float,
+        default=0.5,
+        help="Factor to downsample the length of each image feature to, the average length will be about 1500 * downsampling_factor",
+    )
 
     args = parser.parse_args()
 
-    for split in ['train', 'valid', 'test']:
-        with open(os.path.join(downloads_dir, f'{split}.txt')) as split_file:
+    for split in ["train", "valid", "test"]:
+        with open(os.path.join(downloads_dir, f"{split}.txt")) as split_file:
             split_ids = [line.strip() for line in split_file.readlines()]
             split_ids.sort()
-            split_dir = os.path.join(data_dir, f'{split}/')
+            split_dir = os.path.join(data_dir, f"{split}/")
             os.makedirs(split_dir, exist_ok=True)
 
-            lines_file_path = os.path.join(downloads_dir, 'lines.txt')
+            lines_file_path = os.path.join(downloads_dir, "lines.txt")
             skipped_lines = prepare_text(lines_file_path, split_dir, split_ids)
             prepare_utt2spk_spk2utt(split_dir, split_ids, skipped_lines)
-            prepare_feats(os.path.join(downloads_dir, 'lines/'), split_dir, split_ids, skipped_lines, args.feature_dim, args.downsampling_factor)
+            prepare_feats(
+                os.path.join(downloads_dir, "lines/"),
+                split_dir,
+                split_ids,
+                skipped_lines,
+                args.feature_dim,
+                args.downsampling_factor,
+            )
