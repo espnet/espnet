@@ -1,0 +1,74 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 50
+batch_type: folded
+batch_size: 8
+num_workers: 0
+optim_conf:
+    lr: 4.0e-4
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 5
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - ci_sdr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 128
+    use_builtin_complex: False
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 128
+separator: wpe_beamformer
+separator_conf:
+    num_spk: 1
+    loss_type: spectrum
+    use_wpe: False
+    wnet_type: blstmp
+    wlayers: 3
+    wunits: 512
+    wprojs: 512
+    wdropout_rate: 0.1
+    taps: 3
+    delay: 3
+    use_dnn_mask_for_wpe: True
+    use_beamformer: True
+    bnet_type: blstmp
+    blayers: 3
+    bunits: 512
+    bprojs: 512
+    badim: 320
+    ref_channel: 4
+    use_noise_mask: True
+    beamformer_type: wpd_souden
+    bdropout_rate: 0.1
+    rtf_iterations: 5
+
+
+criterions: 
+  # The first criterion
+  - name: ci_sdr
+    conf:
+      filter_length: 512
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

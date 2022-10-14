@@ -108,6 +108,8 @@
 
 ## enh_asr_train_enh_asr_wpd_init_noenhloss_wavlm_conformer_raw_en_char
 - Pretrained model: https://huggingface.co/Yoshiki/chime4_enh_asr1_wpd_wavlm_conformer
+- This joint training requires pre-trained models for both Enh and ASR. Each model with the specified configuration must be trained in advance.
+- The language model is also copied from the ASR pre-training recipe.
 
 ### WER
 
