@@ -4,6 +4,7 @@ import torch
 from packaging.version import parse as V
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.enh.layers.dnn_beamformer import BEAMFORMER_TYPES
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
@@ -209,7 +210,7 @@ def test_neural_beamformer_wpe_output(
     else:
         assert len(specs) == num_spk
     assert specs[0].shape == input_spectrum.shape
-    if is_torch_1_9_plus and torch.is_complex(specs[0]):
+    if is_torch_complex_tensor(specs[0]):
         assert specs[0].dtype == torch.complex64
     else:
         assert specs[0].dtype == torch.float
@@ -282,7 +283,7 @@ def test_neural_beamformer_bf_output(
         assert others["mask_spk{}".format(n)].shape[-2] == ch
         assert specs[n - 1].shape == others["mask_spk{}".format(n)][..., 0, :].shape
         assert specs[n - 1].shape == input_spectrum[..., 0, :].shape
-        if is_torch_1_9_plus and torch.is_complex(specs[n - 1]):
+        if is_torch_complex_tensor(specs[n - 1]):
             assert specs[n - 1].dtype == torch.complex64
         else:
             assert specs[n - 1].dtype == torch.float
