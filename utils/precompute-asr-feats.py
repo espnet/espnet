@@ -230,7 +230,7 @@ class Speech2Feat:
 
         Returns:
             key: utterance ID
-            feats: List[torch.tensor]
+            feats: Dict["feat1": List(torch.tensor) or torch.tensor, ...]
 
         """
         for keys, batch in self.loader:
