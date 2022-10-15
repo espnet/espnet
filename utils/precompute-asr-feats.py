@@ -130,7 +130,8 @@ class Speech2Feat:
         self.dtype = dtype
         self.device = device
         self.batch_size = batch_size
-        self.skip_pad = []  # Name of features that should not be unpadded
+        self.skip_pad = [] # Name of features that should not be unpadded
+        self.pad_dict = {} # Dimensions to pad for each padded tensor
         self.unpad_search_done = False
         self.feats_dict = None
 
@@ -197,14 +198,23 @@ class Speech2Feat:
             for k, v in self.feats_dict.items():
                 if "encoder" in k and k not in self.skip_pad:
                     try:
-                        pad_dim = v.size().index(encoder_max_len)
+                        pad_dims = set([dim for dim, len_ in enumerate(v.size()) 
+                            if len_ == encoder_max_len])
+                        if k in self.pad_dict.keys():
+                            pad_dims = self.pad_dict[k].intersection(pad_dims)
+                        if len(pad_dims) == 0:
+                            raise ValueError("No padding dimension found. Unpadding failed.")
+                        self.pad_dict[k] = pad_dims
+
                         unpad_feats = []
                         for i, feat in enumerate(v):
-                            split = [
-                                encoder_out_lens[i].item(),
-                                v.size(pad_dim) - encoder_out_lens[i].item(),
-                            ]
-                            unpad_feats.append(v[i].split(split, dim=pad_dim - 1)[0])
+                            for pad_dim in pad_dims:
+                                split = [
+                                    encoder_out_lens[i].item(),
+                                    v.size(pad_dim) - encoder_out_lens[i].item(),
+                                ]
+                                feat = feat.split(split, dim=pad_dim - 1)[0]
+                            unpad_feats.append(feat)
                         self.feats_dict[k] = unpad_feats
                     except:
                         if not self.unpad_search_done:
