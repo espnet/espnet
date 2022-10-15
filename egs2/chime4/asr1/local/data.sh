@@ -85,7 +85,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
     local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
 
-   # prepare data for 6ch track:
+    # prepare data for 6ch track:
     #  (1) {tr05,dt05,et05}_simu_isolated_6ch_track
     local/simu_ext_chime4_data_prep.sh --track 6 isolated_6ch_track ${PWD}/local/nn-gev/data/audio/16kHz
     #  (2) {tr05,dt05,et05}_real_isolated_6ch_track
@@ -103,8 +103,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy 
     utils/combine_data.sh data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh data/${train_dev} data/dt05_simu_isolated_1ch_track data/dt05_real_isolated_1ch_track
-    utils/combine_data.sh data/tr05_multi_isolated_6ch_track data/tr05_simu_isolated_6ch_track data/tr05_real_isolated_6ch_track
-    utils/combine_data.sh data/${train_dev} data/dt05_simu_isolated_6ch_track data/dt05_real_isolated_6ch_track
 fi
 
 other_text=data/local/other_text/text
