@@ -90,7 +90,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/combine_data.sh --extra_files "utt2category spk1.scp" \
         data/tr05_multi_isolated_6ch_track data/tr05_simu_isolated_6ch_track data/tr05_real_isolated_6ch_track
     utils/combine_data.sh --extra_files "utt2category spk1.scp" \
-        data/dt05_multi_isolated_6ch_track data/dt05_simu_isolated_6ch_track data/dt05_real_isolated_6ch_track  # redundant?
+        data/dt05_multi_isolated_6ch_track data/dt05_simu_isolated_6ch_track data/dt05_real_isolated_6ch_track
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
