@@ -1,4 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Generator module in VITS.
@@ -16,11 +17,20 @@ import torch.nn.functional as F
 
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
-from espnet2.gan_svs.vits.duration_predictor import StochasticDurationPredictor
+from espnet2.gan_svs.vits.duration_predictor import (
+    DurationPredictor,
+    StochasticDurationPredictor,
+)
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
+from espnet2.gan_svs.vits.length_regulator import LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
+from espnet2.gan_svs.vits.modules import Projection, sequence_mask
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
 
 
 class VITSGenerator(torch.nn.Module):
@@ -90,6 +100,7 @@ class VITSGenerator(torch.nn.Module):
         stochastic_duration_predictor_dropout_rate: float = 0.5,
         stochastic_duration_predictor_flows: int = 4,
         stochastic_duration_predictor_dds_conv_layers: int = 3,
+        use_sdp: bool = False,
     ):
         """Initialize VITS generator module.
 
@@ -192,9 +203,9 @@ class VITSGenerator(torch.nn.Module):
             use_macaron_style=use_macaron_style_in_text_encoder,
             use_conformer_conv=use_conformer_conv_in_text_encoder,
             midi_dim=midi_dim,
-            tempo_dim=tempo_dim,
             beat_dim=beat_dim,
         )
+
         self.decoder = HiFiGANGenerator(
             in_channels=hidden_channels,
             out_channels=1,
@@ -231,15 +242,28 @@ class VITSGenerator(torch.nn.Module):
             use_weight_norm=use_weight_norm_in_flow,
             use_only_mean=use_only_mean_in_flow,
         )
+        self.project = Projection(hidden_channels, hidden_channels)
         # TODO(kan-bayashi): Add deterministic version as an option
-        self.duration_predictor = StochasticDurationPredictor(
-            channels=hidden_channels,
-            kernel_size=stochastic_duration_predictor_kernel_size,
-            dropout_rate=stochastic_duration_predictor_dropout_rate,
-            flows=stochastic_duration_predictor_flows,
-            dds_conv_layers=stochastic_duration_predictor_dds_conv_layers,
-            global_channels=global_channels,
-        )
+        self.use_sdp = use_sdp
+        if use_sdp:
+            self.duration_predictor = StochasticDurationPredictor(
+                channels=hidden_channels,
+                kernel_size=stochastic_duration_predictor_kernel_size,
+                dropout_rate=stochastic_duration_predictor_dropout_rate,
+                flows=stochastic_duration_predictor_flows,
+                dds_conv_layers=stochastic_duration_predictor_dds_conv_layers,
+                global_channels=global_channels,
+            )
+        else:
+            self.duration_predictor = DurationPredictor(
+                channels=hidden_channels,
+                filter_channels=256,
+                kernel_size=3,
+                dropout_rate=0.5,
+                gin_channels=0,
+            )
+
+        self.lr = LengthRegulator()
 
         self.upsample_factor = int(np.prod(decoder_upsample_scales))
         self.spks = None
@@ -269,6 +293,7 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
+        ds: torch.Tensor,
         label_lab: Optional[torch.Tensor] = None,
         label_lab_lengths: Optional[torch.Tensor] = None,
         label_xml: Optional[torch.Tensor] = None,
@@ -332,10 +357,44 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # forward text encoder
+        # print("label_xml", label_xml.shape)
+        # print("label_xml_lengths", label_xml_lengths)
+        # print("feats", feats.shape)
+        # print("feats_lengths", feats_lengths)
+        # print("label_xml_lengths", label_xml_lengths)
+        for i, length in enumerate(label_xml_lengths):
+            if length == label_xml.shape[1]:
+                label_xml_lengths[i] = feats.shape[2]
+        if label_xml.shape[1] < feats.shape[2]:
+            label_xml = F.pad(
+                input=label_xml,
+                pad=(0, feats.shape[2] - label_xml.shape[1], 0, 0),
+                mode="constant",
+                value=0,
+            )
+            midi_xml = F.pad(
+                input=midi_xml,
+                pad=(0, feats.shape[2] - midi_xml.shape[1], 0, 0),
+                mode="constant",
+                value=0,
+            )
+            beat_xml = F.pad(
+                input=beat_xml,
+                pad=(0, feats.shape[2] - beat_xml.shape[1], 0, 0),
+                mode="constant",
+                value=0,
+            )
+        else:
+            label_xml = label_xml[:, : feats.shape[2]]
+            midi_xml = midi_xml[:, : feats.shape[2]]
+            beat_xml = beat_xml[:, : feats.shape[2]]
+        # print("label_xml_lengths222", label_xml_lengths)
+        # print("label_xml22222", label_xml.shape)
         x, m_p, logs_p, x_mask = self.text_encoder(
-            label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml
+            label_xml, label_xml_lengths, ds, midi_xml, beat_xml
         )
-
+        # print("m_p shape1", m_p.shape)
+        # print("logs_p shape1", logs_p.shape)
         # calculate global conditioning
         g = None
         if self.spks is not None:
@@ -356,62 +415,126 @@ class VITSGenerator(torch.nn.Module):
             else:
                 g = g + g_
 
+        # w = beat_xml.unsqueeze(1)
+        # logw_ = w * x_mask
+        # logw = self.duration_predictor(x, x_mask, beat_xml, g=g)
+        # logw = torch.mul(logw.squeeze(1), beat_xml).unsqueeze(1)
+        # dur_nll = torch.sum((logw - logw_) ** 2, [1, 2])
+        # x_frame, frame_pitch, x_lengths = self.lr(
+        #     x, midi_xml, beat_xml, beat_xml_lengths
+        # )
+        # x_frame = x_frame.to(x.device)
+
+        # x_mask = torch.unsqueeze(sequence_mask(x_lengths, x_frame.size(2)), 1).to(
+        #     x.dtype
+        # )  # 更新x_mask矩阵
+        # x_mask = x_mask.to(x.device)
+
+        # # position encoding
+        # # TODO: modify PositionalEncoding, shape and transpose problem
+        # max_len = x_frame.size(2)
+        # d_model = x_frame.size(1)
+        # batch_size = x_frame.size(0)
+
+        # pe = torch.zeros(batch_size, max_len, d_model)
+        # position = torch.arange(0, max_len).unsqueeze(1)
+        # div_term = torch.exp(
+        #     torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
+        # )
+        # pe[:, :, 0::2] = torch.sin(position * div_term)
+        # pe[:, :, 1::2] = torch.cos(position * div_term)
+        # pe = pe.transpose(1, 2).to(x_frame.device)
+        # x_frame = x_frame + pe
+
+        # self.pos_encoder = PositionalEncoding(
+        #     d_model=x_frame.size(1), dropout_rate=0.1, max_len=x_frame.size(2)
+        # )
+        # x_frame = self.pos_encoder(x_frame)
+
+        # m_p, logs_p = self.project(x_frame, x_mask)
+
+        # x_mask = torch.unsqueeze(sequence_mask(label_xml_lengths, x.size(2)), 1).to(
+        #     x.dtype
+        # )  # 更新x_mask矩阵
+        # x_mask = x_mask.to(x.device)
+        # print("x", x.shape)
+        # print("xmask", x_mask.shape)
+
+        # position encoding
+        max_len = x.size(2)
+        d_model = x.size(1)
+        batch_size = x.size(0)
+
+        pe = torch.zeros(batch_size, max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
+        )
+        pe[:, :, 0::2] = torch.sin(position * div_term)
+        pe[:, :, 1::2] = torch.cos(position * div_term)
+        pe = pe.transpose(1, 2).to(x.device)
+        x = x + pe
+        # m_p, logs_p = self.project(x, x_mask)
+
+        # print("m_p shape", m_p.shape)
+        # print("logs_p shape", logs_p.shape)
         # forward posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
-
+        # print("m_q shape", m_q.shape)
+        # print("logs_q shape", logs_q.shape)
         # forward flow
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
-        # monotonic alignment search
-        with torch.no_grad():
-            # negative cross-entropy
-            s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
-            # (B, 1, T_text)
-            neg_x_ent_1 = torch.sum(
-                -0.5 * math.log(2 * math.pi) - logs_p,
-                [1],
-                keepdim=True,
-            )
-            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p**2).transpose(1, 2),
-                s_p_sq_r,
-            )
-            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_3 = torch.matmul(
-                z_p.transpose(1, 2),
-                (m_p * s_p_sq_r),
-            )
-            # (B, 1, T_text)
-            neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p**2) * s_p_sq_r,
-                [1],
-                keepdim=True,
-            )
-            # (B, T_feats, T_text)
-            neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
-            # (B, 1, T_feats, T_text)
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            # monotonic attention weight: (B, 1, T_feats, T_text)
-            attn = (
-                self.maximum_path(
-                    neg_x_ent,
-                    attn_mask.squeeze(1),
-                )
-                .unsqueeze(1)
-                .detach()
-            )
+        # # monotonic alignment search
+        # with torch.no_grad():
+        #     # negative cross-entropy
+        #     s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
+        #     # (B, 1, T_text)
+        #     neg_x_ent_1 = torch.sum(
+        #         -0.5 * math.log(2 * math.pi) - logs_p,
+        #         [1],
+        #         keepdim=True,
+        #     )
+        #     # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+        #     neg_x_ent_2 = torch.matmul(
+        #         -0.5 * (z_p**2).transpose(1, 2),
+        #         s_p_sq_r,
+        #     )
+        #     # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+        #     neg_x_ent_3 = torch.matmul(
+        #         z_p.transpose(1, 2),
+        #         (m_p * s_p_sq_r),
+        #     )
+        #     # (B, 1, T_text)
+        #     neg_x_ent_4 = torch.sum(
+        #         -0.5 * (m_p**2) * s_p_sq_r,
+        #         [1],
+        #         keepdim=True,
+        #     )
+        #     # (B, T_feats, T_text)
+        #     neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
+        #     # (B, 1, T_feats, T_text)
+        #     attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+        #     # monotonic attention weight: (B, 1, T_feats, T_text)
+        #     attn = (
+        #         self.maximum_path(
+        #             neg_x_ent,
+        #             attn_mask.squeeze(1),
+        #         )
+        #         .unsqueeze(1)
+        #         .detach()
+        #     )
 
-        # forward duration predictor
-        w = attn.sum(2)  # (B, 1, T_text)
-        dur_nll = self.duration_predictor(x, x_mask, w=w, g=g)
-        dur_nll = dur_nll / torch.sum(x_mask)
+        # # forward duration predictor
+        # w = attn.sum(2)  # (B, 1, T_text)
+        # dur_nll = self.duration_predictor(x, x_mask, w=w, g=g)
+        # dur_nll = dur_nll / torch.sum(x_mask)
 
         # expand the length to match with the feature sequence
         # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
+        # m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
         # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
+        # logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
 
         # get random segments
         z_segments, z_start_idxs = get_random_segments(
@@ -425,8 +548,6 @@ class VITSGenerator(torch.nn.Module):
 
         return (
             wav,
-            dur_nll,
-            attn,
             z_start_idxs,
             x_mask,
             y_mask,
@@ -484,7 +605,7 @@ class VITSGenerator(torch.nn.Module):
         """
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(
-            label_xml, label_xml_lengths, midi_xml, tempo_xml, beat_xml
+            label_xml, label_xml_lengths, None, midi_xml, beat_xml
         )
         g = None
         if self.spks is not None:
@@ -512,78 +633,80 @@ class VITSGenerator(torch.nn.Module):
             # forward flow
             z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
-            # monotonic alignment search
-            s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
-            # (B, 1, T_text)
-            neg_x_ent_1 = torch.sum(
-                -0.5 * math.log(2 * math.pi) - logs_p,
-                [1],
-                keepdim=True,
-            )
-            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p**2).transpose(1, 2),
-                s_p_sq_r,
-            )
-            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            neg_x_ent_3 = torch.matmul(
-                z_p.transpose(1, 2),
-                (m_p * s_p_sq_r),
-            )
-            # (B, 1, T_text)
-            neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p**2) * s_p_sq_r,
-                [1],
-                keepdim=True,
-            )
-            # (B, T_feats, T_text)
-            neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
-            # (B, 1, T_feats, T_text)
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            # monotonic attention weight: (B, 1, T_feats, T_text)
-            attn = self.maximum_path(
-                neg_x_ent,
-                attn_mask.squeeze(1),
-            ).unsqueeze(1)
-            dur = attn.sum(2)  # (B, 1, T_text)
+            # # monotonic alignment search
+            # s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
+            # # (B, 1, T_text)
+            # neg_x_ent_1 = torch.sum(
+            #     -0.5 * math.log(2 * math.pi) - logs_p,
+            #     [1],
+            #     keepdim=True,
+            # )
+            # # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+            # neg_x_ent_2 = torch.matmul(
+            #     -0.5 * (z_p**2).transpose(1, 2),
+            #     s_p_sq_r,
+            # )
+            # # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+            # neg_x_ent_3 = torch.matmul(
+            #     z_p.transpose(1, 2),
+            #     (m_p * s_p_sq_r),
+            # )
+            # # (B, 1, T_text)
+            # neg_x_ent_4 = torch.sum(
+            #     -0.5 * (m_p**2) * s_p_sq_r,
+            #     [1],
+            #     keepdim=True,
+            # )
+            # # (B, T_feats, T_text)
+            # neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
+            # # (B, 1, T_feats, T_text)
+            # attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+            # # monotonic attention weight: (B, 1, T_feats, T_text)
+            # attn = self.maximum_path(
+            #     neg_x_ent,
+            #     attn_mask.squeeze(1),
+            # ).unsqueeze(1)
+            # dur = attn.sum(2)  # (B, 1, T_text)
 
             # forward decoder with random segments
             wav = self.decoder(z * y_mask, g=g)
         else:
-            # duration
-            if dur is None:
-                logw = self.duration_predictor(
-                    x,
-                    x_mask,
-                    g=g,
-                    inverse=True,
-                    noise_scale=noise_scale_dur,
-                )
-                w = torch.exp(logw) * x_mask * alpha
-                dur = torch.ceil(w)
-            y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
-            y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            attn = self._generate_path(dur, attn_mask)
+            # # duration
+            # if dur is None:
+            #     logw = self.duration_predictor(
+            #         x,
+            #         x_mask,
+            #         g=g,
+            #         inverse=True,
+            #         noise_scale=noise_scale_dur,
+            #     )
+            #     w = torch.exp(logw) * x_mask * alpha
+            #     dur = torch.ceil(w)
+            # y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
+            # y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
+            # attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+            # attn = self._generate_path(dur, attn_mask)
 
-            # expand the length to match with the feature sequence
-            # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            m_p = torch.matmul(
-                attn.squeeze(1),
-                m_p.transpose(1, 2),
-            ).transpose(1, 2)
-            # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            logs_p = torch.matmul(
-                attn.squeeze(1),
-                logs_p.transpose(1, 2),
-            ).transpose(1, 2)
+            # # expand the length to match with the feature sequence
+            # # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
+            # m_p = torch.matmul(
+            #     attn.squeeze(1),
+            #     m_p.transpose(1, 2),
+            # ).transpose(1, 2)
+            # # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
+            # logs_p = torch.matmul(
+            #     attn.squeeze(1),
+            #     logs_p.transpose(1, 2),
+            # ).transpose(1, 2)
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
-            z = self.flow(z_p, y_mask, g=g, inverse=True)
-            wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
+            z = self.flow(z_p, x_mask, g=g, inverse=True)
+            wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
-        return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
+        # return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
+        return wav.squeeze(1), None, None
+        # return wav.squeeze(1)
 
     def _generate_path(self, dur: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Generate path a.k.a. monotonic attention.

@@ -1,4 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """VITS module for GAN-SVS task."""
@@ -338,6 +339,7 @@ class VITS(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
+                ds=ds,
                 label_lab=label_lab,
                 label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
@@ -366,6 +368,7 @@ class VITS(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
+                ds=ds,
                 label_lab=label_lab,
                 label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
@@ -395,6 +398,7 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        ds: torch.Tensor,
         label_lab: Optional[torch.Tensor] = None,
         label_lab_lengths: Optional[torch.Tensor] = None,
         label_xml: Optional[torch.Tensor] = None,
@@ -450,6 +454,7 @@ class VITS(AbsGANSVS):
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
+                ds=ds,
                 label_lab=label_lab,
                 label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
@@ -478,7 +483,7 @@ class VITS(AbsGANSVS):
             self._cache = outs
 
         # parse outputs
-        singing_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
+        singing_hat_, start_idxs, _, z_mask, outs_ = outs
         _, z_p, m_p, logs_p, _, logs_q = outs_
         singing_ = get_segments(
             x=singing,
@@ -496,22 +501,23 @@ class VITS(AbsGANSVS):
         with autocast(enabled=False):
             mel_loss = self.mel_loss(singing_hat_, singing_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-            dur_loss = torch.sum(dur_nll.float())
+            # dur_loss = torch.sum(dur_nll.float())
             adv_loss = self.generator_adv_loss(p_hat)
             feat_match_loss = self.feat_match_loss(p_hat, p)
 
             mel_loss = mel_loss * self.lambda_mel
             kl_loss = kl_loss * self.lambda_kl
-            dur_loss = dur_loss * self.lambda_dur
+            # dur_loss = dur_loss * self.lambda_dur
             adv_loss = adv_loss * self.lambda_adv
             feat_match_loss = feat_match_loss * self.lambda_feat_match
-            loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
+            # loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
+            loss = mel_loss + kl_loss + adv_loss + feat_match_loss
 
         stats = dict(
             generator_loss=loss.item(),
             generator_mel_loss=mel_loss.item(),
             generator_kl_loss=kl_loss.item(),
-            generator_dur_loss=dur_loss.item(),
+            # generator_dur_loss=dur_loss.item(),
             generator_adv_loss=adv_loss.item(),
             generator_feat_match_loss=feat_match_loss.item(),
         )
@@ -537,6 +543,7 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        ds: torch.Tensor,
         label_lab: Optional[torch.Tensor] = None,
         label_lab_lengths: Optional[torch.Tensor] = None,
         label_xml: Optional[torch.Tensor] = None,
@@ -592,6 +599,7 @@ class VITS(AbsGANSVS):
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
+                ds=ds,
                 label_lab=label_lab,
                 label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
@@ -620,7 +628,8 @@ class VITS(AbsGANSVS):
             self._cache = outs
 
         # parse outputs
-        singing_hat_, _, _, start_idxs, *_ = outs
+        # remove dp loss
+        singing_hat_, start_idxs, *_ = outs
         singing_ = get_segments(
             x=singing,
             start_idxs=start_idxs * self.generator.upsample_factor,
@@ -769,4 +778,5 @@ class VITS(AbsGANSVS):
                 alpha=alpha,
                 max_len=max_len,
             )
-        return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
+        # return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
+        return dict(wav=wav.view(-1))

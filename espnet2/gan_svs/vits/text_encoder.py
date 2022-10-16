@@ -1,4 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Text encoder module in VITS.
@@ -50,7 +51,6 @@ class TextEncoder(torch.nn.Module):
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         midi_dim: int = 129,
-        tempo_dim: int = 128,
         beat_dim: int = 128,
     ):
         """Initialize TextEncoder module.
@@ -104,15 +104,14 @@ class TextEncoder(torch.nn.Module):
         )
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
         self.pitch_embedding = torch.nn.Embedding(midi_dim, attention_dim)
-        self.tempo_embedding = torch.nn.Embedding(tempo_dim, attention_dim)
         self.beat_embedding = torch.nn.Embedding(beat_dim, attention_dim)
 
     def forward(
         self,
         x: torch.Tensor,
         x_lengths: torch.Tensor,
+        ds: torch.Tensor,
         note_pitch: torch.Tensor,
-        note_tempo: torch.Tensor,
         note_beat: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
@@ -130,10 +129,9 @@ class TextEncoder(torch.nn.Module):
         """
         x = self.emb(x) * math.sqrt(self.attention_dim)
         note_pitch = self.pitch_embedding(note_pitch)
-        note_tempo = self.tempo_embedding(note_tempo)
+        # note_ds = self.beat_embedding(ds)
         note_beat = self.beat_embedding(note_beat)
-
-        x = x + note_pitch + note_tempo + note_beat
+        x = x + note_pitch + note_beat
         x_mask = (
             make_non_pad_mask(x_lengths)
             .to(
