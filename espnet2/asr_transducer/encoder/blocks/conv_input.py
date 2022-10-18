@@ -48,7 +48,7 @@ class ConvInput(torch.nn.Module):
 
             output_proj = conv_size2 * ((input_size // 2) // 2)
 
-            self.subsampling_factor = 4
+            self.subsampling_factor = 6
 
             self.create_new_mask = self.create_new_vgg_mask
         else:
