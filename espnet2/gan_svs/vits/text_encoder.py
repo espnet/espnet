@@ -52,6 +52,7 @@ class TextEncoder(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
         midi_dim: int = 129,
         beat_dim: int = 128,
+        use_visinger: bool = True,
     ):
         """Initialize TextEncoder module.
 
@@ -105,6 +106,7 @@ class TextEncoder(torch.nn.Module):
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
         self.pitch_embedding = torch.nn.Embedding(midi_dim, attention_dim)
         self.beat_embedding = torch.nn.Embedding(beat_dim, attention_dim)
+        self.use_visinger = use_visinger
 
     def forward(
         self,
@@ -146,7 +148,9 @@ class TextEncoder(torch.nn.Module):
 
         # convert the channel first (B, attention_dim, T_text)
         x = x.transpose(1, 2)
-        stats = self.proj(x) * x_mask
-        m, logs = stats.split(stats.size(1) // 2, dim=1)
-
-        return x, m, logs, x_mask
+        if not self.use_visinger:
+            stats = self.proj(x) * x_mask
+            m, logs = stats.split(stats.size(1) // 2, dim=1)
+            return x, m, logs, x_mask
+        else:
+            return x, None, None, x_mask

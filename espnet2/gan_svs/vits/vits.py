@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
+from espnet2.gan_svs.vits.loss import PitchLoss
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -68,6 +69,7 @@ class VITS(AbsGANSVS):
         odim: int,
         sampling_rate: int = 22050,
         generator_type: str = "vits_generator",
+        use_visinger: bool = True,
         generator_params: Dict[str, Any] = {
             "midi_dim": 129,
             "midi_embed_integration_type": "add",
@@ -227,6 +229,8 @@ class VITS(AbsGANSVS):
             #   where idim represents #vocabularies and odim represents
             #   the input acoustic feature dimension.
             generator_params.update(vocabs=idim, aux_channels=odim)
+        self.use_visinger = use_visinger
+        generator_params.update(use_visinger=self.use_visinger)
         self.generator = generator_class(
             **generator_params,
         )
@@ -247,6 +251,7 @@ class VITS(AbsGANSVS):
             **mel_loss_params,
         )
         self.kl_loss = KLDivergenceLoss()
+        self.pitch_loss = PitchLoss()
 
         # coefficients
         self.lambda_adv = lambda_adv
@@ -484,7 +489,10 @@ class VITS(AbsGANSVS):
 
         # parse outputs
         singing_hat_, start_idxs, _, z_mask, outs_ = outs
-        _, z_p, m_p, logs_p, _, logs_q = outs_
+        if not self.use_visinger:
+            _, z_p, m_p, logs_p, _, logs_q = outs_
+        else:
+            _, z_p, m_p, logs_p, _, logs_q, pred_pitch, gt_pitch = outs_
         singing_ = get_segments(
             x=singing,
             start_idxs=start_idxs * self.generator.upsample_factor,
@@ -511,7 +519,12 @@ class VITS(AbsGANSVS):
             adv_loss = adv_loss * self.lambda_adv
             feat_match_loss = feat_match_loss * self.lambda_feat_match
             # loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
-            loss = mel_loss + kl_loss + adv_loss + feat_match_loss
+
+            pitch_loss = 0
+            if self.use_visinger:
+                pitch_loss = self.pitch_loss(pred_pitch, gt_pitch)
+
+            loss = mel_loss + kl_loss + adv_loss + feat_match_loss + pitch_loss
 
         stats = dict(
             generator_loss=loss.item(),
@@ -520,6 +533,7 @@ class VITS(AbsGANSVS):
             # generator_dur_loss=dur_loss.item(),
             generator_adv_loss=adv_loss.item(),
             generator_feat_match_loss=feat_match_loss.item(),
+            pitch_loss=pitch_loss.item(),
         )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

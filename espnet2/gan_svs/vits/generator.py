@@ -25,6 +25,8 @@ from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_svs.vits.length_regulator import LengthRegulator
+from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
+from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet2.gan_svs.vits.modules import Projection, sequence_mask
 from espnet.nets.pytorch_backend.transformer.embedding import (
@@ -101,6 +103,7 @@ class VITSGenerator(torch.nn.Module):
         stochastic_duration_predictor_flows: int = 4,
         stochastic_duration_predictor_dds_conv_layers: int = 3,
         use_sdp: bool = False,
+        use_visinger: bool = True,
     ):
         """Initialize VITS generator module.
 
@@ -204,6 +207,7 @@ class VITSGenerator(torch.nn.Module):
             use_conformer_conv=use_conformer_conv_in_text_encoder,
             midi_dim=midi_dim,
             beat_dim=beat_dim,
+            use_visinger=use_visinger,
         )
 
         self.decoder = HiFiGANGenerator(
@@ -242,7 +246,10 @@ class VITSGenerator(torch.nn.Module):
             use_weight_norm=use_weight_norm_in_flow,
             use_only_mean=use_only_mean_in_flow,
         )
-        self.project = Projection(hidden_channels, hidden_channels)
+        self.use_visinger = use_visinger
+        if self.use_visinger:
+            self.project = Projection(hidden_channels, hidden_channels)
+
         # TODO(kan-bayashi): Add deterministic version as an option
         self.use_sdp = use_sdp
         if use_sdp:
@@ -264,6 +271,16 @@ class VITSGenerator(torch.nn.Module):
             )
 
         self.lr = LengthRegulator()
+
+        self.pitch_predictor = PitchPredictor(
+            hidden_channels=hidden_channels,
+            attention_dim=hidden_channels,
+        )
+
+        self.frame_prior_net = FramePriorNet(
+            attention_dim=hidden_channels,
+            blocks=4,
+        )
 
         self.upsample_factor = int(np.prod(decoder_upsample_scales))
         self.spks = None
@@ -357,11 +374,6 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # forward text encoder
-        # print("label_xml", label_xml.shape)
-        # print("label_xml_lengths", label_xml_lengths)
-        # print("feats", feats.shape)
-        # print("feats_lengths", feats_lengths)
-        # print("label_xml_lengths", label_xml_lengths)
         for i, length in enumerate(label_xml_lengths):
             if length == label_xml.shape[1]:
                 label_xml_lengths[i] = feats.shape[2]
@@ -388,13 +400,11 @@ class VITSGenerator(torch.nn.Module):
             label_xml = label_xml[:, : feats.shape[2]]
             midi_xml = midi_xml[:, : feats.shape[2]]
             beat_xml = beat_xml[:, : feats.shape[2]]
-        # print("label_xml_lengths222", label_xml_lengths)
-        # print("label_xml22222", label_xml.shape)
+
         x, m_p, logs_p, x_mask = self.text_encoder(
             label_xml, label_xml_lengths, ds, midi_xml, beat_xml
         )
-        # print("m_p shape1", m_p.shape)
-        # print("logs_p shape1", logs_p.shape)
+
         # calculate global conditioning
         g = None
         if self.spks is not None:
@@ -415,50 +425,12 @@ class VITSGenerator(torch.nn.Module):
             else:
                 g = g + g_
 
-        # w = beat_xml.unsqueeze(1)
-        # logw_ = w * x_mask
-        # logw = self.duration_predictor(x, x_mask, beat_xml, g=g)
-        # logw = torch.mul(logw.squeeze(1), beat_xml).unsqueeze(1)
-        # dur_nll = torch.sum((logw - logw_) ** 2, [1, 2])
-        # x_frame, frame_pitch, x_lengths = self.lr(
-        #     x, midi_xml, beat_xml, beat_xml_lengths
-        # )
-        # x_frame = x_frame.to(x.device)
-
-        # x_mask = torch.unsqueeze(sequence_mask(x_lengths, x_frame.size(2)), 1).to(
-        #     x.dtype
-        # )  # 更新x_mask矩阵
-        # x_mask = x_mask.to(x.device)
-
-        # # position encoding
-        # # TODO: modify PositionalEncoding, shape and transpose problem
-        # max_len = x_frame.size(2)
-        # d_model = x_frame.size(1)
-        # batch_size = x_frame.size(0)
-
-        # pe = torch.zeros(batch_size, max_len, d_model)
-        # position = torch.arange(0, max_len).unsqueeze(1)
-        # div_term = torch.exp(
-        #     torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
-        # )
-        # pe[:, :, 0::2] = torch.sin(position * div_term)
-        # pe[:, :, 1::2] = torch.cos(position * div_term)
-        # pe = pe.transpose(1, 2).to(x_frame.device)
-        # x_frame = x_frame + pe
+        # TODO: modify PositionalEncoding, shape and transpose problem
 
         # self.pos_encoder = PositionalEncoding(
         #     d_model=x_frame.size(1), dropout_rate=0.1, max_len=x_frame.size(2)
         # )
         # x_frame = self.pos_encoder(x_frame)
-
-        # m_p, logs_p = self.project(x_frame, x_mask)
-
-        # x_mask = torch.unsqueeze(sequence_mask(label_xml_lengths, x.size(2)), 1).to(
-        #     x.dtype
-        # )  # 更新x_mask矩阵
-        # x_mask = x_mask.to(x.device)
-        # print("x", x.shape)
-        # print("xmask", x_mask.shape)
 
         # position encoding
         max_len = x.size(2)
@@ -474,14 +446,25 @@ class VITSGenerator(torch.nn.Module):
         pe[:, :, 1::2] = torch.cos(position * div_term)
         pe = pe.transpose(1, 2).to(x.device)
         x = x + pe
-        # m_p, logs_p = self.project(x, x_mask)
 
-        # print("m_p shape", m_p.shape)
-        # print("logs_p shape", logs_p.shape)
+        if self.use_visinger:
+            pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
+            pred_pitch = torch.squeeze(pred_pitch, 1)
+            # print(pred_pitch.shape)
+
+            gt_pitch = torch.log(440 * (2 ** ((midi_xml - 69) / 12)))  # log f0
+            # print("gt_pitch", gt_pitch.shape)
+
+            # x_mask_sum = torch.sum(x_mask)
+            # lf0 = lf0.squeeze()
+            # l_pitch = torch.sum((gt_lf0 - lf0) ** 2, 1) / x_mask_sum
+
+            x = self.frame_prior_net(x, pitch_embedding, x_mask)
+            m_p, logs_p = self.project(x, x_mask)
+
         # forward posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
-        # print("m_q shape", m_q.shape)
-        # print("logs_q shape", logs_q.shape)
+
         # forward flow
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
@@ -551,7 +534,7 @@ class VITSGenerator(torch.nn.Module):
             z_start_idxs,
             x_mask,
             y_mask,
-            (z, z_p, m_p, logs_p, m_q, logs_q),
+            (z, z_p, m_p, logs_p, m_q, logs_q, pred_pitch, gt_pitch),
         )
 
     def inference(
@@ -698,6 +681,26 @@ class VITSGenerator(torch.nn.Module):
             #     attn.squeeze(1),
             #     logs_p.transpose(1, 2),
             # ).transpose(1, 2)
+
+            if self.use_visinger:
+                # position encoding
+                max_len = x.size(2)
+                d_model = x.size(1)
+                batch_size = x.size(0)
+
+                pe = torch.zeros(batch_size, max_len, d_model)
+                position = torch.arange(0, max_len).unsqueeze(1)
+                div_term = torch.exp(
+                    torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
+                )
+                pe[:, :, 0::2] = torch.sin(position * div_term)
+                pe[:, :, 1::2] = torch.cos(position * div_term)
+                pe = pe.transpose(1, 2).to(x.device)
+                x = x + pe
+
+                _, pitch_embedding = self.pitch_predictor(x, x_mask)
+                x = self.frame_prior_net(x, pitch_embedding, x_mask)
+                m_p, logs_p = self.project(x, x_mask)
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
