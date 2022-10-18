@@ -76,10 +76,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         report_cer: bool = False,
         report_wer: bool = False,
         extract_feats_in_collect_stats: bool = True,
-    ):
-        assert check_argument_types()
-
+    ) -> None:
+        """Construct an ESPnetASRTransducerModel object."""
         super().__init__()
+
+        assert check_argument_types()
 
         # The following labels ID are reserved: 0 (blank) and vocab_size - 1 (sos/eos)
         self.vocab_size = vocab_size

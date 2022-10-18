@@ -94,7 +94,7 @@ class ASRTransducerTask(AbsTask):
             parser: Transducer arguments parser.
 
         """
-        group = parser.add_argument_group(description="Task related")
+        group = parser.add_argument_group(description="Task related.")
 
         required = parser.get_default("required")
         required += ["token_list"]
@@ -103,121 +103,112 @@ class ASRTransducerTask(AbsTask):
             "--token_list",
             type=str_or_none,
             default=None,
-            help="A text mapping int-id to token",
+            help="Integer-string mapper for tokens.",
         )
         group.add_argument(
             "--input_size",
             type=int_or_none,
             default=None,
-            help="The number of input dimension of the feature",
+            help="The number of dimensions for input features.",
         )
         group.add_argument(
             "--init",
-            type=lambda x: str_or_none(x.lower()),
+            type=str_or_none,
             default=None,
-            help="The initialization method",
-            choices=[
-                "chainer",
-                "chainer_espnet1",
-                "xavier_uniform",
-                "xavier_normal",
-                "kaiming_uniform",
-                "kaiming_normal",
-                None,
-            ],
+            help="Type of model initialization to use.",
         )
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRTransducerModel),
-            help="The keyword arguments for model class.",
+            help="The keyword arguments for the model class.",
         )
         group.add_argument(
             "--encoder_conf",
             action=NestedDictAction,
             default={},
-            help="The keyword arguments for encoder class.",
+            help="The keyword arguments for the encoder class.",
         )
         group.add_argument(
             "--joint_network_conf",
             action=NestedDictAction,
             default={},
-            help="The keyword arguments for joint network class.",
+            help="The keyword arguments for the joint network class.",
         )
-        group = parser.add_argument_group(description="Preprocess related")
+        group = parser.add_argument_group(description="Preprocess related.")
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
             default=True,
-            help="Apply preprocessing to data or not",
+            help="Whether to apply preprocessing to input data.",
         )
         group.add_argument(
             "--token_type",
             type=str,
             default="bpe",
             choices=["bpe", "char", "word", "phn"],
-            help="The text will be tokenized " "in the specified level token",
+            help="The type of tokens to use during tokenization.",
         )
         group.add_argument(
             "--bpemodel",
             type=str_or_none,
             default=None,
-            help="The model file of sentencepiece",
+            help="The path of the sentencepiece model.",
         )
         parser.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
-            help="non_linguistic_symbols file path",
+            help="The 'non_linguistic_symbols' file path.",
         )
         parser.add_argument(
             "--cleaner",
             type=str_or_none,
             choices=[None, "tacotron", "jaconv", "vietnamese"],
             default=None,
-            help="Apply text cleaning",
+            help="Text cleaner to use.",
         )
         parser.add_argument(
             "--g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
-            help="Specify g2p method if --token_type=phn",
+            help="g2p method to use if --token_type=phn.",
         )
         parser.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
-            help="Scale the maximum amplitude to the given value.",
+            help="Normalization value for maximum amplitude scaling.",
         )
         parser.add_argument(
             "--rir_scp",
             type=str_or_none,
             default=None,
-            help="The file path of rir scp file.",
+            help="The RIR SCP file path.",
         )
         parser.add_argument(
             "--rir_apply_prob",
             type=float,
             default=1.0,
-            help="The probability for applying RIR convolution.",
+            help="The probability of the applied RIR convolution.",
         )
         parser.add_argument(
             "--noise_scp",
             type=str_or_none,
             default=None,
-            help="The file path of noise scp file.",
+            help="The path of noise SCP file.",
         )
         parser.add_argument(
             "--noise_apply_prob",
             type=float,
             default=1.0,
-            help="The probability applying Noise adding.",
+            help="The probability of the applied noise addition.",
         )
         parser.add_argument(
             "--noise_db_range",
             type=str,
             default="13_15",
-            help="The range of noise decibel level.",
+            help="The range of the noise decibel level.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -421,11 +412,11 @@ class ASRTransducerTask(AbsTask):
             **args.model_conf,
         )
 
-        # 8. Initialize
+        # 8. Initialize model
         if args.init is not None:
             raise NotImplementedError(
                 "Currently not supported.",
-                "Initialization will be reworked in a short future.",
+                "Initialization part will be reworked in a short future.",
             )
 
         assert check_return_type(model)

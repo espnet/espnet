@@ -164,6 +164,22 @@ def test_encoder(input_conf, body_conf, main_conf):
 
     _ = encoder(sequence, sequence_len)
 
+    # For each test with Conformer block, we do the same testing with Branchformer
+    _branchformer_flag = False
+
+    for b in body_conf:
+        if b["block_type"] == "conformer":
+            b["block_type"] = "branchformer"
+
+            _branchformer_flag = True
+
+    if _branchformer_flag:
+        branchformer_encoder = Encoder(
+            input_size, body_conf, input_conf=input_conf, main_conf=main_conf
+        )
+
+        _ = branchformer_encoder(sequence, sequence_len)
+
 
 @pytest.mark.parametrize(
     "input_conf, body_conf",
@@ -180,9 +196,11 @@ def test_block_type(input_conf, body_conf):
 @pytest.mark.parametrize(
     "body_conf",
     [
+        [{"block_type": "branchformer", "hidden_size": 4}],
         [{"block_type": "conformer", "hidden_size": 4}],
         [{"block_type": "conv1d"}],
         [{"block_type": "conv1d", "output_size": 8}, {}],
+        [{"block_type": "branchformer", "hidden_size": 4, "linear_size": 2}],
         [{"block_type": "conformer", "hidden_size": 4, "linear_size": 2}],
     ],
 )
@@ -221,16 +239,29 @@ def test_too_short_utterance(input_conf, inputs):
         _ = encoder(sequence, sequence_len)
 
 
-def test_wrong_subsampling_factor():
+@pytest.mark.parametrize(
+    "body_conf",
+    [
+        [
+            {
+                "block_type": "branchformer",
+                "hidden_size": 4,
+                "linear_size": 2,
+                "conv_mod_kernel_size": 1,
+            }
+        ],
+        [
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "linear_size": 2,
+                "conv_mod_kernel_size": 1,
+            }
+        ],
+    ],
+)
+def test_wrong_subsampling_factor(body_conf):
     input_conf = {"block_type": "conv2d", "subsampling_factor": 8}
-    body_conf = [
-        {
-            "block_type": "conformer",
-            "hidden_size": 4,
-            "linear_size": 2,
-            "conv_mod_kernel_size": 1,
-        }
-    ]
 
     with pytest.raises(ValueError):
         _ = Encoder(8, body_conf, input_conf=input_conf)
@@ -241,6 +272,43 @@ def test_wrong_subsampling_factor():
     [
         [
             {"block_type": "conv1d", "output_size": 8, "kernel_size": 1},
+            {
+                "block_type": "branchformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
+            {"block_type": "conv1d", "output_size": 8, "kernel_size": 1},
+            {
+                "block_type": "conformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
+            {
+                "block_type": "branchformer",
+                "hidden_size": 8,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+            {
+                "block_type": "branchformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
+            {
+                "block_type": "branchformer",
+                "hidden_size": 8,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
             {
                 "block_type": "conformer",
                 "hidden_size": 4,

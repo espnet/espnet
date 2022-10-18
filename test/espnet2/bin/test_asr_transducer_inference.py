@@ -73,18 +73,27 @@ def asr_config_file(tmp_path: Path, token_list):
     return tmp_path / "asr" / "config.yaml"
 
 
-@pytest.fixture(params=["conv2d", "vgg"])
+@pytest.fixture(
+    params=[
+        "conv2d_branchformer",
+        "vgg_branchformer",
+        "conv2d_conformer",
+        "vgg_conformer",
+    ]
+)
 def asr_stream_config_file(request, tmp_path: Path, token_list):
+    main_type = request.param.split("_")[1]
+
     enc_body_conf = (
-        "{'body_conf': [{'block_type': 'conformer', 'hidden_size': 4, "
+        "{'body_conf': [{'block_type': '%s', 'hidden_size': 4, "
         "'linear_size': 4, 'conv_mod_kernel_size': 3},"
         "{'block_type': 'conv1d', 'kernel_size': 2, 'output_size': 2, "
         "'batch_norm': True, 'relu': True}], "
         "'main_conf': {'dynamic_chunk_training': True',"
         "'short_chunk_size': 1, 'left_chunk_size': 1}}"
-    )
+    ) % (main_type)
 
-    if request.param == "vgg":
+    if request.param.startswith("vgg"):
         enc_body_conf = enc_body_conf[:-1] + (",'input_conf': {'vgg_like': True}}")
 
     decoder_conf = "{'hidden_size': 4}"
