@@ -116,7 +116,7 @@ svs_conf:
         average_by_layers: false         # whether to average loss value by #layers of each discriminator
         include_final_outputs: true      # whether to include final outputs for loss calculation
     mel_loss_params:
-        fs: 22050          # must be the same as the training data
+        fs: 24000          # must be the same as the training data
         n_fft: 1024        # fft points
         hop_length: 256    # hop size
         win_length: null   # window length
@@ -131,7 +131,7 @@ svs_conf:
     lambda_dur: 1.0        # loss scaling coefficient for duration loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
-    sampling_rate: 22050          # needed in the inference for saving wav
+    sampling_rate: 24000          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
 
 ##########################################################
