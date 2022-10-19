@@ -149,12 +149,12 @@ class Speech2Feat:
             # until we get a tensor
             while isinstance(output, tuple):
                 output = output[0]
-                if path not in self.tuple_warn:
+                if not isinstance(output, tuple) and path not in self.tuple_warn:
                     self.tuple_warn.append(path)
                     if isinstance(output, torch.Tensor):
                         logging.warning(
                             f"{path} has tuple output, "
-                            + f"only the tensor {output.size()} from the 1st element is stored"
+                            + f"only the tensor of size {output.size()} from the 1st element is stored"
                         )
                     else:
                         logging.warning(
@@ -268,14 +268,16 @@ class Speech2Feat:
                     pad_dims = set(
                         [dim for dim, len_ in enumerate(v.size()) if len_ == max_len]
                     )
-                    if k in self.pad_dict.keys():
-                        pad_dims = self.pad_dict[k].intersection(pad_dims)
                     if len(pad_dims) == 0:
                         raise ValueError(
                             "No padding dimension found. "
                             + f"Tensor has shape {v.size()} but "
                             + f"the guessed padded length is {max_len}"
                         )
+                    if k in self.pad_dict.keys():
+                        pad_dims = self.pad_dict[k].intersection(pad_dims)
+                    if len(pad_dims) == 0:
+                        raise ValueError("Inconsistent padding dimension found.")
                     self.pad_dict[k] = pad_dims
 
                     if self.dim_search_done:
