@@ -42,7 +42,7 @@ class ConvInput(torch.nn.Module):
                 torch.nn.ReLU(),
                 torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d(kernel_1, 2),
+                torch.nn.MaxPool2d((kernel_1, 2)),
                 torch.nn.Conv2d(conv_size1, conv_size2, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
                 torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=1),
@@ -52,7 +52,7 @@ class ConvInput(torch.nn.Module):
 
             output_proj = conv_size2 * ((input_size // kernel_1) // 2)
 
-            self.kernel_1 = kernel_1
+            self.stride_1 = kernel_1
         else:
             kernel_2, stride_2, conv_2_output_size = sub_factor_to_params(
                 subsampling_factor,
@@ -119,6 +119,6 @@ class ConvInput(torch.nn.Module):
 
         """
         if self.vgg_like:
-            return ((size * 2) * self.kernel_1) + 1
+            return ((size * 2) * self.stride_1) + 1
 
         return ((size + 2) * 2) + (self.kernel_2 - 1) * self.stride_2
