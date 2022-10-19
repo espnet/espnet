@@ -87,12 +87,18 @@ def validate_input_block(
 
     if configuration.get("subsampling_factor") is None:
         configuration["subsampling_factor"] = 4
+    sub_factor = configuration["subsampling_factor"]
 
     if vgg_like:
         conv_size = configuration.get("conv_size", (64, 128))
 
         if isinstance(conv_size, int):
             conv_size = (conv_size, conv_size)
+
+        assert sub_factor in {
+            4,
+            6,
+        }, "Subsampling factor for the VGG2L block should be either 4 or 6."
     else:
         conv_size = configuration.get("conv_size", None)
 
@@ -101,12 +107,10 @@ def validate_input_block(
 
     if next_block_type == "conv1d":
         if vgg_like:
-            output_size = conv_size[1] * ((input_size // 2) // 2)
+            output_size = conv_size[1] * ((input_size // int(sub_factor / 2)) // 2)
         else:
             if conv_size is None:
                 conv_size = body_first_conf.get("output_size", 64)
-
-            sub_factor = configuration["subsampling_factor"]
 
             _, _, conv_osize = sub_factor_to_params(sub_factor, input_size)
             assert (
