@@ -5,9 +5,9 @@
 
 import argparse
 import logging
-import sys
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
@@ -18,15 +18,14 @@ import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.utils import config_argparse
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.transform.spectrogram import logmelspectrogram
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper
-
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -44,7 +43,9 @@ def build_asr_model(
     task = ASRTask if not args.enh_s2t_task else EnhS2TTask
 
     if args.quantize_asr_model:
-        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion("1.5.0"):
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with "
                 "torch version < 1.5.0. Switch to qint8 dtype instead."
@@ -124,9 +125,9 @@ class Speech2Feat:
         self.dtype = args.dtype
         self.device = args.device
         self.batch_size = args.batch_size
-        self.skip_pad = [] # Name of features that should not be unpadded
-        self.pad_dict = {} # Dimensions to pad for each padded tensor
-        self.batch_dict = {} # Batch dimension for module outputs
+        self.skip_pad = []  # Name of features that should not be unpadded
+        self.pad_dict = {}  # Dimensions to pad for each padded tensor
+        self.batch_dict = {}  # Batch dimension for module outputs
         self.tuple_warn = []
         self.dim_search_done = False
         self.feats_dict = None
@@ -163,9 +164,9 @@ class Speech2Feat:
 
             # Stack multiple layers from from frontend.upstream
             if (
-                path == "frontend.upstream" and 
-                isinstance(output,    list) and 
-                isinstance(output[0], torch.Tensor)
+                path == "frontend.upstream"
+                and isinstance(output, list)
+                and isinstance(output[0], torch.Tensor)
             ):
                 output = torch.stack(output, dim=1)
 
@@ -235,7 +236,7 @@ class Speech2Feat:
         # If we use a batch size larger than one, try to unpad the tensors
         if self.batch_size > 1:
             frontend_max_len = frontend_out_lens.max().item()
-            encoder_max_len  = encoder_out_lens.max().item()
+            encoder_max_len = encoder_out_lens.max().item()
 
             for k, v in self.feats_dict.items():
                 if "frontend" in k and k not in self.skip_pad:
@@ -246,14 +247,17 @@ class Speech2Feat:
                     continue
 
                 try:
-                    pad_dims = set([dim for dim, len_ in enumerate(v.size()) 
-                        if len_ == max_len]) 
+                    pad_dims = set(
+                        [dim for dim, len_ in enumerate(v.size()) if len_ == max_len]
+                    )
                     if k in self.pad_dict.keys():
                         pad_dims = self.pad_dict[k].intersection(pad_dims)
                     if len(pad_dims) == 0:
-                        raise ValueError("No padding dimension found. " + 
-                            f"Tensor has shape {v.size()} but " + 
-                            f"the guessed padded length is {max_len}")
+                        raise ValueError(
+                            "No padding dimension found. "
+                            + f"Tensor has shape {v.size()} but "
+                            + f"the guessed padded length is {max_len}"
+                        )
                     self.pad_dict[k] = pad_dims
 
                     if self.dim_search_done:
@@ -263,10 +267,10 @@ class Speech2Feat:
                             unpad_feat = v.select(dim=batch_dim, index=batch_idx)
                             for pad_dim in pad_dims:
                                 split = [
-                                            encoder_out_len.item(),
-                                            v.size(pad_dim) - encoder_out_len.item(),
-                                        ]
-                                unpad_feat = unpad_feat.split(split, dim=pad_dim-1)[0]
+                                    encoder_out_len.item(),
+                                    v.size(pad_dim) - encoder_out_len.item(),
+                                ]
+                                unpad_feat = unpad_feat.split(split, dim=pad_dim - 1)[0]
                             unpad_feats.append(unpad_feat)
                         self.feats_dict[k] = unpad_feats
                 except ValueError as ve:
@@ -284,22 +288,30 @@ class Speech2Feat:
         # Identify the batch dimension
         for k, v in self.feats_dict.items():
             if not self.dim_search_done:
-                batch_dim = set([dim for dim, len_ in enumerate(v.size()) 
-                    if len_ == self.batch_size])
+                batch_dim = set(
+                    [
+                        dim
+                        for dim, len_ in enumerate(v.size())
+                        if len_ == self.batch_size
+                    ]
+                )
                 if k in self.batch_dict.keys():
                     batch_dim = self.batch_dict[k].intersection(batch_dim)
                 self.batch_dict[k] = batch_dim
             else:
                 batch_dim = list(self.batch_dict[k])
                 if len(batch_dim) == 0:
-                    raise ValueError(f"Cannot find batch dimension for tensor from " + \
-                        f"module output {k}")
+                    raise ValueError(
+                        f"Cannot find batch dimension for tensor from "
+                        + f"module output {k}"
+                    )
                 if len(batch_dim) > 1:
-                    raise ValueError(f"Found multiple batch dimension for tensor from " + \
-                        f"module output {k}")
+                    raise ValueError(
+                        f"Found multiple batch dimension for tensor from "
+                        + f"module output {k}"
+                    )
                 if not isinstance(self.feats_dict[k], list):
                     self.feats_dict[k] = self.feats_dict[k].transpose(0, batch_dim[0])
-
 
     def __iter__(self):
         """Iterate through dataset to compute model activations
@@ -344,7 +356,7 @@ class Speech2Feat:
                 )
                 raise
             d = ModelDownloader()
-            #kwargs.update(**d.download_and_unpack(model_tag))
+            # kwargs.update(**d.download_and_unpack(model_tag))
             args = Namespace(**vars(args), **d.download_and_unpack(model_tag))
 
         return Speech2Feat(args)
@@ -384,20 +396,26 @@ def inference(
     # 3. Find all the feature names returned
     iter_ = iter(speech2feat)
     for i, _ in enumerate(speech2feat.data_loader):
-        if i == 0: continue # Make sure it is not the last batch for iter_
-        if i > 2: break # 100
+        if i == 0:
+            continue  # Make sure it is not the last batch for iter_
+        if i > 2:
+            break  # 100
         try:
             _, feats_dict = next(iter_)
         except StopIteration:
-            raise ValueError("Something went wrong. " + 
-                "data_loader and iter_ should be of the same length.")
+            raise ValueError(
+                "Something went wrong. "
+                + "data_loader and iter_ should be of the same length."
+            )
     speech2feat.dim_search_done = True
     if args.batch_size > 1 and len(speech2feat.skip_pad) > 0:
         logging.info(f"Skip unpadding {speech2feat.skip_pad} as it is unsuccessful")
 
     if len(feats_dict.items()) == 0:
-        logging.error(f"No module outputs found to save." + \
-            " Make sure the module name specified by --output_modules exists.")
+        logging.error(
+            f"No module outputs found to save."
+            + " Make sure the module name specified by --output_modules exists."
+        )
 
     # Open a writer for each feature type
     os.makedirs(args.output_dir, exist_ok=True)
@@ -556,17 +574,18 @@ def add_writer_arguments(parser: argparse.ArgumentParser):
 
 def get_parser(base_parser: argparse.ArgumentParser = None):
     class ArgumentDefaultsRawTextHelpFormatter(
-            argparse.RawTextHelpFormatter,
-            argparse.ArgumentDefaultsHelpFormatter,
-        ):
-            pass
+        argparse.RawTextHelpFormatter,
+        argparse.ArgumentDefaultsHelpFormatter,
+    ):
+        pass
+
     parser = config_argparse.ArgumentParser(
         description="Precompute ASR model features from dataset",
         formatter_class=ArgumentDefaultsRawTextHelpFormatter,
         parents=[base_parser] if base_parser is not None else [],
-        conflict_handler="resolve"
+        conflict_handler="resolve",
     )
-    
+
     parser.set_defaults(required=["output_dir"])
 
     group = parser.add_argument_group("common options")
@@ -577,7 +596,7 @@ def get_parser(base_parser: argparse.ArgumentParser = None):
         default="float32",
         choices=["float16", "float32", "float64"],
         help="Data type",
-    )    
+    )
     parser.add_argument(
         "--ngpu",
         type=int,
@@ -595,7 +614,7 @@ def get_parser(base_parser: argparse.ArgumentParser = None):
 
 
 def main(cmd=None):
-    parser = ASRTask.get_parser() # Parse ASR task arguments
+    parser = ASRTask.get_parser()  # Parse ASR task arguments
     parser = get_parser(parser)
     args = parser.parse_args()
     inference(args)
