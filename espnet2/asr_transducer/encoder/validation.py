@@ -107,7 +107,7 @@ def validate_input_block(
 
     if next_block_type == "conv1d":
         if vgg_like:
-            output_size = conv_size[1] * ((input_size // int(sub_factor / 2)) // 2)
+            output_size = conv_size[1] * ((input_size // 2) // 2)
         else:
             if conv_size is None:
                 conv_size = body_first_conf.get("output_size", 64)

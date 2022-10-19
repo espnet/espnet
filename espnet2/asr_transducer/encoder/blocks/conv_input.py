@@ -50,7 +50,7 @@ class ConvInput(torch.nn.Module):
                 torch.nn.MaxPool2d((2, 2)),
             )
 
-            output_proj = conv_size2 * ((input_size // kernel_1) // 2)
+            output_proj = conv_size2 * ((input_size // 2) // 2)
 
             self.stride_1 = kernel_1
         else:
