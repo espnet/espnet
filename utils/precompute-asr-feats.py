@@ -162,13 +162,31 @@ class Speech2Feat:
                             + f"only the 1st element of type {type(output)} is stored"
                         )
 
-            # Stack multiple layers from from frontend.upstream
+            """
+            Custom code to convert module output of other types 
+            to torch.Tensor goes here
+            """ 
+
+            # Stack multiple layers from frontend.upstream
+            # Here we assume output of frontend.upstream is 
+            # a list of layer tensor output
             if (
                 path == "frontend.upstream"
                 and isinstance(output, list)
                 and isinstance(output[0], torch.Tensor)
             ):
                 output = torch.stack(output, dim=1)
+
+            """
+            Custom code to convert module output of other types 
+            to torch.Tensor ends here
+            """ 
+
+            # Output should always be torch.Tensor
+            if not isinstance(output, torch.Tensor):
+                raise ValueError(f"{path} has output of type {type(output)}. " + 
+                    f"You may need to convert the output to torch.Tensor " + 
+                    f"by putting you code here.")
 
             self.feats_dict[path] = output
 
@@ -278,6 +296,7 @@ class Speech2Feat:
                         if k not in self.skip_pad:
                             logging.warning(f"Skipped unpadding for {k}: ")
                             logging.warning(ve)
+                            logging.warning(f"If this is undesirable, you may change batch size to 1")
                         self.skip_pad.append(k)
                     else:
                         raise ValueError(
