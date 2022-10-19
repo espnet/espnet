@@ -398,8 +398,8 @@ def inference(
     for i, _ in enumerate(speech2feat.data_loader):
         if i == 0:
             continue  # Make sure it is not the last batch for iter_
-        if i > 2:
-            break  # 100
+        if i > 50:
+            break
         try:
             _, feats_dict = next(iter_)
         except StopIteration:
