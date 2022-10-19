@@ -1,25 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SPH2PIPE_VERSION=2.5
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
     exit 1;
 fi
 
-
-if [ ! -e sph2pipe_v2.5.tar.gz ]; then
-    wget -T 10 https://github.com/espnet/kaldi-bin/releases/download/v0.0.2/sph2pipe_v2.5.tar.gz || \
-	wget -T 10 -t 3 http://www.openslr.org/resources/3/sph2pipe_v2.5.tar.gz || \
-	wget --no-check-certificate -T 10  https://sourceforge.net/projects/kaldi/files/sph2pipe_v2.5.tar.gz
+unames="$(uname -s)"
+if [[ ${unames} =~ MINGW || ${unames} =~ MSYS ]]; then
+    # FIXME(kamo): CYGWIN may be okay
+    echo "Warning: sph2pipe might not be able to be built with ${unames}. Please use CYGWIN. Exit with doing nothing"
+    exit 0
 fi
 
-if [ ! -e sph2pipe_v2.5 ]; then
-    tar --no-same-owner -xzf sph2pipe_v2.5.tar.gz
+if [ ! -e sph2pipe-${SPH2PIPE_VERSION}.tar.gz ]; then
+    wget -nv -T 10 -t 3 -O sph2pipe-${SPH2PIPE_VERSION}.tar.gz \
+	    https://github.com/burrmill/sph2pipe/archive/${SPH2PIPE_VERSION}.tar.gz
 fi
 
-(
-    set -euo pipefail
-	cd sph2pipe_v2.5
-	gcc -o sph2pipe  *.c -lm
-)
+if [ ! -e sph2pipe-${SPH2PIPE_VERSION} ]; then
+    tar --no-same-owner -xzf sph2pipe-${SPH2PIPE_VERSION}.tar.gz
+    rm -rf sph2pipe && ln -s  sph2pipe-${SPH2PIPE_VERSION} sph2pipe
+fi
+
+make -C sph2pipe

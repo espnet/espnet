@@ -6,6 +6,12 @@ if [ $# != 0 ]; then
     echo "Usage: $0"
     exit 1;
 fi
+unames="$(uname -s)"
+if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
+    echo "Warning: This script may not work with ${unames}. Exit with doing nothing"
+    exit 0
+fi
+
 
 if [ ! -e PESQ.zip ]; then
     wget --tries=3 --no-check-certificate \
