@@ -15,6 +15,7 @@ SECONDS=0
 stage=1
 stop_stage=100000
 log "$0 $*"
+gt=false
 . utils/parse_options.sh
 
 . ./db.sh
@@ -42,7 +43,11 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/prepare_slurp_data_transcript.py ${SLURP}
+    if ${gt}; then
+        python3 local/prepare_slurp_data_gold_transcript.py ${SLURP}
+    else
+        python3 local/prepare_slurp_data_transcript.py ${SLURP}
+    fi
     for x in test devel train; do
         for f in text transcript wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}

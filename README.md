@@ -28,10 +28,25 @@
 | [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
-| [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
 
 ESPnet is an end-to-end speech processing toolkit covering end-to-end speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, and so on.
 ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for various speech processing experiments.
+
+## Tutorial Series
+- 2019 Tutorial at Interspeech
+  - [Material](https://github.com/espnet/interspeech2019-tutorial)
+- 2021 Tutorial at CMU
+  - [Online video](https://youtu.be/2mRz3wH1vd0)
+  - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb)
+- 2022 Tutorial at CMU
+  - Usage of ESPnet (ASR as an example)
+    - [Online video](https://youtu.be/YDN8cVjxSik)
+    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.ipynb)
+  - Add new models/tasks to ESPnet
+    - [Online video](https://youtu.be/Css3XAes7SU)
+    - [Material](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb)
+
+
 ## Key Features
 
 ### Kaldi style complete recipe
@@ -42,7 +57,8 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Support numbers of `SLU` recipes (CATSLU-MAPS, FSC, Grabo, IEMOCAP, JDCINAL, SNIPS, SLURP, SWBD-DA, etc.)
 - Support numbers of `SE/SS` recipes (DNS-IS2020, LibriMix, SMS-WSJ, VCTK-noisyreverb, WHAM!, WHAMR!, WSJ-2mix, etc.)
 - Support voice conversion recipe (VCC2020 baseline)
-- Support speaker diarization recipe (mini_librispeech)
+- Support speaker diarization recipe (mini_librispeech, librimix)
+- Support singing voice synthesis recipe (ofuton_p_utagoe_db)
 
 ### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -177,13 +193,33 @@ Demonstration
     - En / Jp / Zn / Nl / And more...
 - Supports using context from previous utterances
 - Supports using other tasks like SE in pipeline manner
+- Supports Two Pass SLU that combines audio and ASR transcript
 Demonstration
 - Performing noisy spoken language understanding using speech enhancement model followed by spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
+- Performing two pass spoken language understanding where the second pass model attends on both acoustic and semantic information.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1p2cbGIPpIIcynuDl4ZVHDpmNPl8Nh_ci?usp=sharing)
 - Integrated to [Huggingface Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See SLU demo on multiple languages: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU)
 
 
 ### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
+
+### SVS: Singing Voice Synthesis
+- Framework merge from [Muskits](https://github.com/SJTMusicTeam/Muskits)
+- Architecture
+  - RNN-based non-autoregressive model
+  - Xiaoice
+  - Sequence-to-sequence Transformer (with GLU-based encoder)
+  - MLP singer
+  - Tacotron-singing (in progress)
+  - DiffSinger (to be published)
+  - VISinger (in progress)
+- Support multi-speaker & multilingual singing synthesis
+  - Speaker ID embedding
+  - Language ID embedding
+  - Global sytle token (GST) embedding
+- Various language support
+  - Jp / En / Kr / Zh
+- Tight integration with neural vocoders (the same as TTS)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
