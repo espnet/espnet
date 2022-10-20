@@ -31,8 +31,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     """ESPnet2ASRTransducerModel module definition.
 
     Args:
-        vocab_size: Size of complete vocabulary (w/ EOS and blank included).
-        token_list: List of token
+        vocab_size: Size of complete vocabulary (w/ SOS/EOS and blank included).
+        token_list: List of tokens in vocabulary (minus reserved tokens).
         frontend: Frontend module.
         specaug: SpecAugment module.
         normalize: Normalization module.
@@ -47,7 +47,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         auxiliary_lm_loss_smoothing: Smoothing rate for LM loss' label smoothing.
         ignore_id: Initial padding ID.
         sym_space: Space symbol.
-        sym_blank: Blank Symbol
+        sym_blank: Blank Symbol.
         report_cer: Whether to report Character Error Rate during validation.
         report_wer: Whether to report Word Error Rate during validation.
         extract_feats_in_collect_stats: Whether to use extract_feats stats collection.
@@ -69,7 +69,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         auxiliary_ctc_weight: float = 0.0,
         auxiliary_ctc_dropout_rate: float = 0.0,
         auxiliary_lm_loss_weight: float = 0.0,
-        auxiliary_lm_loss_smoothing: float = 0.0,
+        auxiliary_lm_loss_smoothing: float = 0.05,
         ignore_id: int = -1,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
@@ -82,7 +82,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         assert check_argument_types()
 
-        # The following labels ID are reserved: 0 (blank) and vocab_size - 1 (sos/eos)
+        # The following labels ID are reserved:
+        #    - 0: Blank symbol.
+        #    - 1: Unknown symbol.
+        #    - vocab_size - 1: SOS/EOS symbol.
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
@@ -110,7 +113,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         if self.use_auxiliary_lm_loss:
             self.lm_lin = torch.nn.Linear(decoder.output_size, vocab_size)
-            self.lm_loss_smoothing = auxiliary_lm_loss_smoothing
+
+            eps = auxiliary_lm_loss_smoothing / (vocab_size - 1)
+
+            self.lm_loss_smooth_neg = eps
+            self.lm_loss_smooth_pos = (1 - auxiliary_lm_loss_smoothing) + eps
 
         self.transducer_weight = transducer_weight
         self.fastemit_lambda = fastemit_lambda
@@ -207,8 +214,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         stats = dict(
             loss=loss.detach(),
             loss_transducer=loss_trans.detach(),
-            aux_ctc_loss=loss_ctc.detach() if loss_ctc > 0.0 else None,
-            aux_lm_loss=loss_lm.detach() if loss_lm > 0.0 else None,
+            loss_aux_ctc=loss_ctc.detach() if loss_ctc > 0.0 else None,
+            loss_aux_lm=loss_lm.detach() if loss_lm > 0.0 else None,
             cer_transducer=cer_trans,
             wer_transducer=wer_trans,
         )
@@ -432,7 +439,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         decoder_out: torch.Tensor,
         target: torch.Tensor,
     ) -> torch.Tensor:
-        """Compute LM loss.
+        """Compute LM loss (i.e.: Cross-entropy with smoothing).
 
         Args:
             decoder_out: Decoder output sequences. (B, U, D_dec)
@@ -442,26 +449,21 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             loss_lm: LM loss value.
 
         """
-        lm_loss_in = self.lm_lin(decoder_out[:, :-1, :]).view(-1, self.vocab_size)
-        lm_target = target.view(-1).type(torch.int64)
+        batch_size = decoder_out.size(0)
+
+        logp = torch.log_softmax(
+            self.lm_lin(decoder_out[:, :-1, :]).view(-1, self.vocab_size),
+            dim=1,
+        )
+        target = target.view(-1).type(torch.int64)
+        ignore = (target == 0).unsqueeze(1)
 
         with torch.no_grad():
-            true_dist = lm_loss_in.clone()
-            true_dist.fill_(self.lm_loss_smoothing / (self.vocab_size - 1))
+            true_dist = logp.clone().fill_(self.lm_loss_smooth_neg)
 
-            # Ignore blank ID (0)
-            ignore = lm_target == 0
-            lm_target = lm_target.masked_fill(ignore, 0)
+            true_dist.scatter_(1, target.unsqueeze(1), self.lm_loss_smooth_pos)
 
-            true_dist.scatter_(1, lm_target.unsqueeze(1), (1 - self.lm_loss_smoothing))
-
-        loss_lm = torch.nn.functional.kl_div(
-            torch.log_softmax(lm_loss_in, dim=1),
-            true_dist,
-            reduction="none",
-        )
-        loss_lm = loss_lm.masked_fill(ignore.unsqueeze(1), 0).sum() / decoder_out.size(
-            0
-        )
+        loss_lm = torch.nn.functional.kl_div(logp, true_dist, reduction="none")
+        loss_lm = loss_lm.masked_fill(ignore, 0).sum() / batch_size
 
         return loss_lm
