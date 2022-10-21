@@ -588,14 +588,14 @@ and a prune-by-value method. Where K is equal to beam_size + beta.</p>
 <span class="target" id="module-espnet2.asr_transducer.espnet_transducer_model"></span><p>ESPnet2 ASR Transducer model.</p>
 <dl class="class">
 <dt id="espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr_transducer.espnet_transducer_model.</code><code class="sig-name descname">ESPnetASRTransducerModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], encoder: espnet2.asr_transducer.encoder.encoder.Encoder, decoder: espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder, joint_network: espnet2.asr_transducer.joint_network.JointNetwork, transducer_weight: float = 1.0, fastemit_lambda: float = 0.0, auxiliary_ctc_weight: float = 0.0, auxiliary_ctc_dropout_rate: float = 0.0, auxiliary_lm_loss_weight: float = 0.0, auxiliary_lm_loss_smoothing: float = 0.0, ignore_id: int = -1, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', report_cer: bool = False, report_wer: bool = False, extract_feats_in_collect_stats: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr_transducer/espnet_transducer_model.html#ESPnetASRTransducerModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr_transducer.espnet_transducer_model.</code><code class="sig-name descname">ESPnetASRTransducerModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], encoder: espnet2.asr_transducer.encoder.encoder.Encoder, decoder: espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder, joint_network: espnet2.asr_transducer.joint_network.JointNetwork, transducer_weight: float = 1.0, fastemit_lambda: float = 0.0, auxiliary_ctc_weight: float = 0.0, auxiliary_ctc_dropout_rate: float = 0.0, auxiliary_lm_loss_weight: float = 0.0, auxiliary_lm_loss_smoothing: float = 0.05, ignore_id: int = -1, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', report_cer: bool = False, report_wer: bool = False, extract_feats_in_collect_stats: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr_transducer/espnet_transducer_model.html#ESPnetASRTransducerModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>ESPnet2ASRTransducerModel module definition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>vocab_size</strong> – Size of complete vocabulary (w/ EOS and blank included).</p></li>
-<li><p><strong>token_list</strong> – List of token</p></li>
+<li><p><strong>vocab_size</strong> – Size of complete vocabulary (w/ SOS/EOS and blank included).</p></li>
+<li><p><strong>token_list</strong> – List of tokens in vocabulary (minus reserved tokens).</p></li>
 <li><p><strong>frontend</strong> – Frontend module.</p></li>
 <li><p><strong>specaug</strong> – SpecAugment module.</p></li>
 <li><p><strong>normalize</strong> – Normalization module.</p></li>
@@ -610,7 +610,7 @@ and a prune-by-value method. Where K is equal to beam_size + beta.</p>
 <li><p><strong>auxiliary_lm_loss_smoothing</strong> – Smoothing rate for LM loss’ label smoothing.</p></li>
 <li><p><strong>ignore_id</strong> – Initial padding ID.</p></li>
 <li><p><strong>sym_space</strong> – Space symbol.</p></li>
-<li><p><strong>sym_blank</strong> – Blank Symbol</p></li>
+<li><p><strong>sym_blank</strong> – Blank Symbol.</p></li>
 <li><p><strong>report_cer</strong> – Whether to report Character Error Rate during validation.</p></li>
 <li><p><strong>report_wer</strong> – Whether to report Word Error Rate during validation.</p></li>
 <li><p><strong>extract_feats_in_collect_stats</strong> – Whether to use extract_feats stats collection.</p></li>
@@ -1687,7 +1687,7 @@ v: Transformed value tensor. (B, H, T_2, d_k)</p>
 <p>Construct an ConformerConvolution object.</p>
 <dl class="method">
 <dt id="espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">cache: Optional[torch.Tensor] = None</em>, <em class="sig-param">right_context: int = 0</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/convolution.html#ConformerConvolution.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">cache: Optional[torch.Tensor] = None</em>, <em class="sig-param">mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">right_context: int = 0</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/convolution.html#ConformerConvolution.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute convolution module.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

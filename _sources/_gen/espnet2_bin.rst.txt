@@ -1084,23 +1084,6 @@ asr_transducer_train.py
     
     optional arguments:
       --config CONFIG       Give config file in yaml format (default: None)
-      --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                            The 'non_linguistic_symbols' file path. (default: None)
-      --cleaner {None,tacotron,jaconv,vietnamese}
-                            Text cleaner to use. (default: None)
-      --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                            g2p method to use if --token_type=phn. (default: None)
-      --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
-                            Normalization value for maximum amplitude scaling. (default: None)
-      --rir_scp RIR_SCP     The RIR SCP file path. (default: None)
-      --rir_apply_prob RIR_APPLY_PROB
-                            The probability of the applied RIR convolution. (default: 1.0)
-      --noise_scp NOISE_SCP
-                            The path of noise SCP file. (default: None)
-      --noise_apply_prob NOISE_APPLY_PROB
-                            The probability of the applied noise addition. (default: 1.0)
-      --noise_db_range NOISE_DB_RANGE
-                            The range of the noise decibel level. (default: 13_15)
     
     Common configuration:
       --print_config        Print the config file and exit (default: False)
@@ -1434,7 +1417,7 @@ asr_transducer_train.py
                             The number of dimensions for input features. (default: None)
       --init INIT           Type of model initialization to use. (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for the model class. (default: {'transducer_weight': 1.0, 'fastemit_lambda': 0.0, 'auxiliary_ctc_weight': 0.0, 'auxiliary_ctc_dropout_rate': 0.0, 'auxiliary_lm_loss_weight': 0.0, 'auxiliary_lm_loss_smoothing': 0.0, 'ignore_id': -1, 'sym_space': '<space>', 'sym_blank': '<blank>', 'report_cer': False, 'report_wer': False, 'extract_feats_in_collect_stats': True})
+                            The keyword arguments for the model class. (default: {'transducer_weight': 1.0, 'fastemit_lambda': 0.0, 'auxiliary_ctc_weight': 0.0, 'auxiliary_ctc_dropout_rate': 0.0, 'auxiliary_lm_loss_weight': 0.0, 'auxiliary_lm_loss_smoothing': 0.05, 'ignore_id': -1, 'sym_space': '<space>', 'sym_blank': '<blank>', 'report_cer': False, 'report_wer': False, 'extract_feats_in_collect_stats': True})
       --encoder_conf ENCODER_CONF
                             The keyword arguments for the encoder class. (default: {})
       --joint_network_conf JOINT_NETWORK_CONF
@@ -1447,6 +1430,23 @@ asr_transducer_train.py
       --token_type {bpe,char,word,phn}
                             The type of tokens to use during tokenization. (default: bpe)
       --bpemodel BPEMODEL   The path of the sentencepiece model. (default: None)
+      --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
+                            The 'non_linguistic_symbols' file path. (default: None)
+      --cleaner {None,tacotron,jaconv,vietnamese}
+                            Text cleaner to use. (default: None)
+      --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
+                            g2p method to use if --token_type=phn. (default: None)
+      --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
+                            Normalization value for maximum amplitude scaling. (default: None)
+      --rir_scp RIR_SCP     The RIR SCP file path. (default: None)
+      --rir_apply_prob RIR_APPLY_PROB
+                            The probability of the applied RIR convolution. (default: 1.0)
+      --noise_scp NOISE_SCP
+                            The path of noise SCP file. (default: None)
+      --noise_apply_prob NOISE_APPLY_PROB
+                            The probability of the applied noise addition. (default: 1.0)
+      --noise_db_range NOISE_DB_RANGE
+                            The range of the noise decibel level. (default: 13_15)
       --frontend {default,sliding_window}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF

@@ -201,8 +201,8 @@
     <span class="sd">&quot;&quot;&quot;ESPnet2ASRTransducerModel module definition.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        vocab_size: Size of complete vocabulary (w/ EOS and blank included).</span>
-<span class="sd">        token_list: List of token</span>
+<span class="sd">        vocab_size: Size of complete vocabulary (w/ SOS/EOS and blank included).</span>
+<span class="sd">        token_list: List of tokens in vocabulary (minus reserved tokens).</span>
 <span class="sd">        frontend: Frontend module.</span>
 <span class="sd">        specaug: SpecAugment module.</span>
 <span class="sd">        normalize: Normalization module.</span>
@@ -217,7 +217,7 @@
 <span class="sd">        auxiliary_lm_loss_smoothing: Smoothing rate for LM loss&#39; label smoothing.</span>
 <span class="sd">        ignore_id: Initial padding ID.</span>
 <span class="sd">        sym_space: Space symbol.</span>
-<span class="sd">        sym_blank: Blank Symbol</span>
+<span class="sd">        sym_blank: Blank Symbol.</span>
 <span class="sd">        report_cer: Whether to report Character Error Rate during validation.</span>
 <span class="sd">        report_wer: Whether to report Word Error Rate during validation.</span>
 <span class="sd">        extract_feats_in_collect_stats: Whether to use extract_feats stats collection.</span>
@@ -239,7 +239,7 @@
         <span class="n">auxiliary_ctc_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">auxiliary_ctc_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">auxiliary_lm_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">auxiliary_lm_loss_smoothing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">auxiliary_lm_loss_smoothing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
@@ -252,7 +252,10 @@
 
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
-        <span class="c1"># The following labels ID are reserved: 0 (blank) and vocab_size - 1 (sos/eos)</span>
+        <span class="c1"># The following labels ID are reserved:</span>
+        <span class="c1">#    - 0: Blank symbol.</span>
+        <span class="c1">#    - 1: Unknown symbol.</span>
+        <span class="c1">#    - vocab_size - 1: SOS/EOS symbol.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -280,7 +283,11 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_auxiliary_lm_loss</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lm_lin</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smoothing</span> <span class="o">=</span> <span class="n">auxiliary_lm_loss_smoothing</span>
+
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">auxiliary_lm_loss_smoothing</span> <span class="o">/</span> <span class="p">(</span><span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smooth_neg</span> <span class="o">=</span> <span class="n">eps</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smooth_pos</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">auxiliary_lm_loss_smoothing</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">transducer_weight</span> <span class="o">=</span> <span class="n">transducer_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fastemit_lambda</span> <span class="o">=</span> <span class="n">fastemit_lambda</span>
@@ -377,8 +384,8 @@
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">loss_transducer</span><span class="o">=</span><span class="n">loss_trans</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
-            <span class="n">aux_ctc_loss</span><span class="o">=</span><span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">aux_lm_loss</span><span class="o">=</span><span class="n">loss_lm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_lm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">loss_aux_ctc</span><span class="o">=</span><span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">loss_aux_lm</span><span class="o">=</span><span class="n">loss_lm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_lm</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">cer_transducer</span><span class="o">=</span><span class="n">cer_trans</span><span class="p">,</span>
             <span class="n">wer_transducer</span><span class="o">=</span><span class="n">wer_trans</span><span class="p">,</span>
         <span class="p">)</span>
@@ -602,7 +609,7 @@
         <span class="n">decoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute LM loss.</span>
+        <span class="sd">&quot;&quot;&quot;Compute LM loss (i.e.: Cross-entropy with smoothing).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            decoder_out: Decoder output sequences. (B, U, D_dec)</span>
@@ -612,27 +619,22 @@
 <span class="sd">            loss_lm: LM loss value.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">lm_loss_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm_lin</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span>
-        <span class="n">lm_target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">logp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_lin</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">ignore</span> <span class="o">=</span> <span class="p">(</span><span class="n">target</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-            <span class="n">true_dist</span> <span class="o">=</span> <span class="n">lm_loss_in</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-            <span class="n">true_dist</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smoothing</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">true_dist</span> <span class="o">=</span> <span class="n">logp</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smooth_neg</span><span class="p">)</span>
 
-            <span class="c1"># Ignore blank ID (0)</span>
-            <span class="n">ignore</span> <span class="o">=</span> <span class="n">lm_target</span> <span class="o">==</span> <span class="mi">0</span>
-            <span class="n">lm_target</span> <span class="o">=</span> <span class="n">lm_target</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">ignore</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">true_dist</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smooth_pos</span><span class="p">)</span>
 
-            <span class="n">true_dist</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">lm_target</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm_loss_smoothing</span><span class="p">))</span>
-
-        <span class="n">loss_lm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">lm_loss_in</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-            <span class="n">true_dist</span><span class="p">,</span>
-            <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">loss_lm</span> <span class="o">=</span> <span class="n">loss_lm</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">ignore</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span>
-            <span class="mi">0</span>
-        <span class="p">)</span>
+        <span class="n">loss_lm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">kl_div</span><span class="p">(</span><span class="n">logp</span><span class="p">,</span> <span class="n">true_dist</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="n">loss_lm</span> <span class="o">=</span> <span class="n">loss_lm</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span><span class="n">ignore</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">batch_size</span>
 
         <span class="k">return</span> <span class="n">loss_lm</span></div>
 </pre></div>
