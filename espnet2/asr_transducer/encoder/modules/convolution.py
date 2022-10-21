@@ -89,7 +89,7 @@ class ConformerConvolution(torch.nn.Module):
         x = torch.nn.functional.glu(x, dim=1)
 
         if mask is not None:
-            x.masked_fill(mask.unsqueeze(1).expand_as(x), 0.0)
+            x.masked_fill_(mask.unsqueeze(1).expand_as(x), 0.0)
 
         if self.lorder > 0:
             if cache is None:
