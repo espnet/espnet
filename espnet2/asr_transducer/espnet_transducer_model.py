@@ -31,8 +31,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
     """ESPnet2ASRTransducerModel module definition.
 
     Args:
-        vocab_size: Size of complete vocabulary (w/ EOS and blank included).
-        token_list: List of token
+        vocab_size: Size of complete vocabulary (w/ SOS/EOS and blank included).
+        token_list: List of tokens in vocabulary (minus reserved tokens).
         frontend: Frontend module.
         specaug: SpecAugment module.
         normalize: Normalization module.
@@ -47,7 +47,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         auxiliary_lm_loss_smoothing: Smoothing rate for LM loss' label smoothing.
         ignore_id: Initial padding ID.
         sym_space: Space symbol.
-        sym_blank: Blank Symbol
+        sym_blank: Blank Symbol.
         report_cer: Whether to report Character Error Rate during validation.
         report_wer: Whether to report Word Error Rate during validation.
         extract_feats_in_collect_stats: Whether to use extract_feats stats collection.

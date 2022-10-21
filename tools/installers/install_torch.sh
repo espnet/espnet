@@ -5,6 +5,18 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
+unames="$(uname -s)"
+if [[ ${unames} =~ Linux ]]; then
+    os_type=linux
+elif [[ ${unames} =~ Darwin ]]; then
+    os_type=macos
+elif [[ ${unames} =~ MINGW || ${unames} =~ CYGWIN || ${unames} =~ MSYS ]]; then
+    os_type=windows
+else
+    os_type=unknown
+fi
+
+
 if [ $# -ne 3 ]; then
     log "Usage: $0 <use_conda| true or false> <torch_version> <cuda_version>"
     exit 1
@@ -18,8 +30,20 @@ elif [ $# -eq 3 ]; then
     torch_version="$2"
     cuda_version="$3"
 fi
+
 if [ "${cuda_version}" = cpu ] || [ "${cuda_version}" = CPU ]; then
     cuda_version=
+fi
+
+if [ -n "${cuda_version}" ] && [ "${os_type}" = macos ]; then
+    log "Error: cuda is not supported for MacOS"
+    exit 1
+fi
+
+if [ "${os_type}" == macos ]; then
+    pip_cpu_module_suffix=
+else
+    pip_cpu_module_suffix="+cpu"
 fi
 
 
@@ -76,8 +100,8 @@ install_torch(){
     else
         if $(pytorch_plus 1.10.0); then
             if [ -z "${cuda_version}" ]; then
-                log python3 -m pip install "torch==${torch_version}+cpu" "torchaudio==$1+cpu" -f https://download.pytorch.org/whl/torch_stable.html
-                python3 -m pip install "torch==${torch_version}+cpu" "torchaudio==$1+cpu" -f https://download.pytorch.org/whl/torch_stable.html
+                log python3 -m pip install "torch==${torch_version}${pip_cpu_module_suffix}" "torchaudio==$1${pip_cpu_module_suffix}" -f https://download.pytorch.org/whl/torch_stable.html
+                python3 -m pip install "torch==${torch_version}${pip_cpu_module_suffix}" "torchaudio==$1${pip_cpu_module_suffix}" -f https://download.pytorch.org/whl/torch_stable.html
             else
                 if [ "${cuda_version}" = "$2" ]; then
                     log python3 -m pip install "torch==${torch_version}" "torchaudio==$1"
@@ -89,8 +113,8 @@ install_torch(){
             fi
         else
             if [ -z "${cuda_version}" ]; then
-                log python3 -m pip install "torch==${torch_version}+cpu" "torchaudio==$1" -f https://download.pytorch.org/whl/torch_stable.html
-                python3 -m pip install "torch==${torch_version}+cpu" "torchaudio==$1" -f https://download.pytorch.org/whl/torch_stable.html
+                log python3 -m pip install "torch==${torch_version}${pip_cpu_module_suffix}" "torchaudio==$1" -f https://download.pytorch.org/whl/torch_stable.html
+                python3 -m pip install "torch==${torch_version}${pip_cpu_module_suffix}" "torchaudio==$1" -f https://download.pytorch.org/whl/torch_stable.html
             else
                 if [ "${cuda_version}" = "$2" ]; then
                     log python3 -m pip install "torch==${torch_version}" "torchaudio==$1"
