@@ -56,6 +56,7 @@ encoder_conf:
       pos_enc_dropout_rate: 0.2
     input_conf:
       vgg_like: True
+      subsampling_factor: 6
     body_conf:
     - block_type: conformer
       linear_size: 1024

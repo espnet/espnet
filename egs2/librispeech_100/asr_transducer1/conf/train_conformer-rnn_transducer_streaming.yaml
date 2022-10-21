@@ -60,6 +60,7 @@ encoder_conf:
       left_chunk_size: 4
     input_conf:
       vgg_like: True
+      subsampling_factor: 6
     body_conf:
     - block_type: conformer
       linear_size: 1024
