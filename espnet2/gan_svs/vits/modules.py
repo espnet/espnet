@@ -15,8 +15,7 @@ class Projection(torch.nn.Module):
         self.proj = torch.nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, x, x_mask):
-        # print("xmask",x_mask.shape)
-        # print("self.proj(x)",self.proj(x).shape)
+        # x shape: (B, attention_dim, T_text)
         stats = self.proj(x) * x_mask
         m_p, logs_p = torch.split(stats, self.out_channels, dim=1)
         return m_p, logs_p

@@ -202,7 +202,7 @@ class DurationPredictor(torch.nn.Module):
         self.in_channels = channels + 1
         self.filter_channels = filter_channels
         self.kernel_size = kernel_size
-        self.p_dropout = dropout_rate
+        self.dropout_rate = dropout_rate
         self.gin_channels = gin_channels
 
         self.drop = torch.nn.Dropout(dropout_rate)
@@ -219,14 +219,14 @@ class DurationPredictor(torch.nn.Module):
         if gin_channels != 0:
             self.cond = torch.nn.Conv1d(gin_channels, channels, 1)
 
-    def forward(self, x, x_mask, beat_xml, g=None):
+    def forward(self, x, x_mask, beat_lab, g=None):
         x = torch.detach(x)
-        beat_xml = torch.detach(beat_xml)
+        beat_lab = torch.detach(beat_lab)
         # tempo_xml = torch.detach(tempo_xml)
         # print("tempo shape",tempo_xml.shape)
 
-        beat_xml = beat_xml.unsqueeze(1)
-        x = torch.cat((x, beat_xml), 1)
+        beat_lab = beat_lab.unsqueeze(1)
+        x = torch.cat((x, beat_lab), 1)
         # tempo_xml = tempo_xml.unsqueeze(1)
         # x = torch.cat((x, tempo_xml), 1)
         if g is not None:

@@ -13,6 +13,7 @@
 svs: vits
 svs_conf:
     use_visinger: true
+    use_dp: true
     # generator related
     generator_type: vits_generator
     generator_params:

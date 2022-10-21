@@ -12,7 +12,6 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
-from espnet2.gan_svs.vits.loss import PitchLoss
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -70,6 +69,7 @@ class VITS(AbsGANSVS):
         sampling_rate: int = 22050,
         generator_type: str = "vits_generator",
         use_visinger: bool = True,
+        use_dp: bool = True,
         generator_params: Dict[str, Any] = {
             "midi_dim": 129,
             "midi_embed_integration_type": "add",
@@ -189,6 +189,8 @@ class VITS(AbsGANSVS):
         lambda_feat_match: float = 2.0,
         lambda_dur: float = 1.0,
         lambda_kl: float = 1.0,
+        lambda_pitch: float = 1.0,
+        lambda_phoneme: float = 1.0,
         cache_generator_outputs: bool = True,
     ):
         """Initialize VITS module.
@@ -230,7 +232,9 @@ class VITS(AbsGANSVS):
             #   the input acoustic feature dimension.
             generator_params.update(vocabs=idim, aux_channels=odim)
         self.use_visinger = use_visinger
+        self.use_dp = use_dp
         generator_params.update(use_visinger=self.use_visinger)
+        generator_params.update(use_dp=self.use_dp)
         self.generator = generator_class(
             **generator_params,
         )
@@ -251,7 +255,8 @@ class VITS(AbsGANSVS):
             **mel_loss_params,
         )
         self.kl_loss = KLDivergenceLoss()
-        self.pitch_loss = PitchLoss()
+        self.ctc_loss = torch.nn.CTCLoss(idim - 1, reduction="mean")
+        self.mse_loss = torch.nn.MSELoss()
 
         # coefficients
         self.lambda_adv = lambda_adv
@@ -259,6 +264,8 @@ class VITS(AbsGANSVS):
         self.lambda_kl = lambda_kl
         self.lambda_feat_match = lambda_feat_match
         self.lambda_dur = lambda_dur
+        self.lambda_pitch = lambda_pitch
+        self.lambda_phoneme = lambda_phoneme
 
         # cache
         self.cache_generator_outputs = cache_generator_outputs
@@ -492,7 +499,22 @@ class VITS(AbsGANSVS):
         if not self.use_visinger:
             _, z_p, m_p, logs_p, _, logs_q = outs_
         else:
-            _, z_p, m_p, logs_p, _, logs_q, pred_pitch, gt_pitch = outs_
+            if self.use_dp:
+                (
+                    _,
+                    z_p,
+                    m_p,
+                    logs_p,
+                    _,
+                    logs_q,
+                    pred_pitch,
+                    gt_pitch,
+                    logw,
+                    logw_gt,
+                    log_probs,
+                ) = outs_
+            else:
+                _, z_p, m_p, logs_p, _, logs_q, pred_pitch, gt_pitch = outs_
         singing_ = get_segments(
             x=singing,
             start_idxs=start_idxs * self.generator.upsample_factor,
@@ -509,32 +531,65 @@ class VITS(AbsGANSVS):
         with autocast(enabled=False):
             mel_loss = self.mel_loss(singing_hat_, singing_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-            # dur_loss = torch.sum(dur_nll.float())
             adv_loss = self.generator_adv_loss(p_hat)
             feat_match_loss = self.feat_match_loss(p_hat, p)
 
+            if self.use_visinger:
+                pitch_loss = self.mse_loss(pred_pitch, gt_pitch)
+                if self.use_dp:
+                    ctc_loss = self.ctc_loss(
+                        log_probs, label_xml, feats_lengths, label_xml_lengths
+                    )
+                    dur_loss = self.mse_loss(logw, logw_gt)
+
             mel_loss = mel_loss * self.lambda_mel
             kl_loss = kl_loss * self.lambda_kl
-            # dur_loss = dur_loss * self.lambda_dur
+
             adv_loss = adv_loss * self.lambda_adv
             feat_match_loss = feat_match_loss * self.lambda_feat_match
+            if self.use_visinger:
+                pitch_loss = pitch_loss * self.lambda_pitch
+                if self.use_dp:
+                    ctc_loss = ctc_loss * self.lambda_phoneme
+                    dur_loss = dur_loss * self.lambda_dur
             # loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
 
-            pitch_loss = 0
+            loss = mel_loss + kl_loss + adv_loss + feat_match_loss
             if self.use_visinger:
-                pitch_loss = self.pitch_loss(pred_pitch, gt_pitch)
+                loss += pitch_loss
+            if self.use_dp:
+                loss += dur_loss
+                loss += ctc_loss
 
-            loss = mel_loss + kl_loss + adv_loss + feat_match_loss + pitch_loss
-
-        stats = dict(
-            generator_loss=loss.item(),
-            generator_mel_loss=mel_loss.item(),
-            generator_kl_loss=kl_loss.item(),
-            # generator_dur_loss=dur_loss.item(),
-            generator_adv_loss=adv_loss.item(),
-            generator_feat_match_loss=feat_match_loss.item(),
-            pitch_loss=pitch_loss.item(),
-        )
+        if self.use_visinger:
+            if not self.use_dp:
+                stats = dict(
+                    generator_loss=loss.item(),
+                    generator_mel_loss=mel_loss.item(),
+                    generator_kl_loss=kl_loss.item(),
+                    generator_adv_loss=adv_loss.item(),
+                    generator_feat_match_loss=feat_match_loss.item(),
+                    pitch_loss=pitch_loss.item(),
+                )
+            else:
+                stats = dict(
+                    generator_loss=loss.item(),
+                    generator_mel_loss=mel_loss.item(),
+                    generator_kl_loss=kl_loss.item(),
+                    generator_dur_loss=dur_loss.item(),
+                    generator_adv_loss=adv_loss.item(),
+                    generator_feat_match_loss=feat_match_loss.item(),
+                    pitch_loss=pitch_loss.item(),
+                    ctc_loss=ctc_loss.item(),
+                )
+        else:
+            stats = dict(
+                generator_loss=loss.item(),
+                generator_mel_loss=mel_loss.item(),
+                generator_kl_loss=kl_loss.item(),
+                generator_adv_loss=adv_loss.item(),
+                generator_feat_match_loss=feat_match_loss.item(),
+            )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -734,6 +789,11 @@ class VITS(AbsGANSVS):
             dtype=torch.long,
             device=text.device,
         )
+        label_lab_lengths = torch.tensor(
+            [label_lab.size(1)],
+            dtype=torch.long,
+            device=text.device,
+        )
         if sids is not None:
             sids = sids.view(1)
         if lids is not None:
@@ -756,6 +816,7 @@ class VITS(AbsGANSVS):
                 feats=feats,
                 feats_lengths=feats_lengths,
                 label_lab=label_lab,
+                label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
                 label_xml_lengths=label_xml_lengths,
                 midi_lab=midi_lab,
@@ -775,6 +836,7 @@ class VITS(AbsGANSVS):
                 text=text,
                 text_lengths=text_lengths,
                 label_lab=label_lab,
+                label_lab_lengths=label_lab_lengths,
                 label_xml=label_xml,
                 label_xml_lengths=label_xml_lengths,
                 midi_lab=midi_lab,

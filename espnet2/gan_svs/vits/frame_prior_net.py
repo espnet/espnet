@@ -2,9 +2,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 
-import math
-from typing import Optional
-
 import torch
 import torch.nn.functional as F
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder

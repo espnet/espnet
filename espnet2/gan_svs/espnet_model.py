@@ -267,15 +267,15 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     :, : midiFrame_lab_lengths.max()
                 ]  # for data-parallel
 
-                # Extract Syllable Level label, midi, tempo, beat information from Frame Level
+                # Extract Syllable Level label, midi, tempo, beat from Frame Level
                 (
-                    label_lab_after,
+                    _label_lab_after,
                     label_lab_lengths_after,
-                    midi_lab_after,
+                    _midi_lab_after,
                     midi_lab_lengths_after,
-                    tempo_lab_after,
+                    _tempo_lab_after,
                     tempo_lab_lengths_after,
-                    beat_lab_after,
+                    _beat_lab_after,
                     beat_lab_lengths_after,
                 ) = self.score_feats_extract(
                     label=labelFrame_lab,
@@ -339,9 +339,65 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 # calculate durations, represent syllable encoder outputs to feats mapping
                 # Syllable Level duration info needs phone & midi
                 ds = []
+                l1 = len(_label_lab_after)
+
+                for i in range(l1):
+                    end_index = label_xml_lengths_after[i] - 1
+                    while (
+                        end_index >= 0
+                        and label_xml_after[i][end_index] == 0
+                        and midi_xml_after[i][end_index] == 0
+                    ):
+                        label_xml_lengths_after[i] -= 1
+                        midi_xml_lengths_after[i] -= 1
+                        tempo_xml_lengths_after[i] -= 1
+                        beat_xml_lengths_after[i] -= 1
+                        end_index -= 1
+                    end_index = label_lab_lengths_after[i] - 1
+                    while (
+                        end_index >= 0
+                        and _label_lab_after[i][end_index] == 0
+                        and _midi_lab_after[i][end_index] == 0
+                    ):
+                        label_lab_lengths_after[i] -= 1
+                        midi_lab_lengths_after[i] -= 1
+                        tempo_lab_lengths_after[i] -= 1
+                        beat_lab_lengths_after[i] -= 1
+                        end_index -= 1
+                    assert label_xml_lengths_after[i] >= label_lab_lengths_after[i]
+
+                l2 = label_xml_lengths_after.max()
+
+                label_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                label_lab_after[:, : label_lab_lengths_after.max()] = _label_lab_after[
+                    :, : label_lab_lengths_after.max()
+                ]
+                midi_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                midi_lab_after[:, : midi_lab_lengths_after.max()] = _midi_lab_after[
+                    :, : midi_lab_lengths_after.max()
+                ]
+                tempo_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                tempo_lab_after[:, : tempo_lab_lengths_after.max()] = _tempo_lab_after[
+                    :, : tempo_lab_lengths_after.max()
+                ]
+                beat_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                beat_lab_after[:, : beat_lab_lengths_after.max()] = _beat_lab_after[
+                    :, : beat_lab_lengths_after.max()
+                ]
+
                 for i, _ in enumerate(labelFrame_lab_lengths):
                     assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
                     assert label_lab_lengths[i] == midi_lab_lengths[i]
+                    assert labelFrame_xml_lengths[i] == midiFrame_xml_lengths[i]
+                    assert label_xml_lengths[i] == midi_xml_lengths[i]
 
                     frame_length = labelFrame_lab_lengths[i]
                     _phoneFrame = labelFrame_lab[i, :frame_length]
@@ -464,6 +520,11 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
                     ds.append(torch.tensor(ds_tmp))
                 ds = pad_list(ds, pad_value=0).to(label_lab_after.device)
+                label_lab_after = label_lab_after[:, : label_lab_lengths_after.max()]
+                midi_lab_after = midi_lab_after[:, : midi_lab_lengths_after.max()]
+                tempo_lab_after = tempo_lab_after[:, : tempo_lab_lengths_after.max()]
+                beat_lab_after = beat_lab_after[:, : beat_lab_lengths_after.max()]
+
                 label_xml_after = label_xml_after[:, : label_xml_lengths_after.max()]
                 tempo_xml_after = tempo_xml_after[:, : tempo_xml_lengths_after.max()]
                 beat_xml_after = beat_xml_after[:, : beat_xml_lengths_after.max()]

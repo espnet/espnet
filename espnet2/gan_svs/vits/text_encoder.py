@@ -112,7 +112,6 @@ class TextEncoder(torch.nn.Module):
         self,
         x: torch.Tensor,
         x_lengths: torch.Tensor,
-        ds: torch.Tensor,
         note_pitch: torch.Tensor,
         note_beat: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:

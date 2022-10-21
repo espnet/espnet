@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
@@ -102,7 +103,7 @@ class VITSGenerator(torch.nn.Module):
         stochastic_duration_predictor_dropout_rate: float = 0.5,
         stochastic_duration_predictor_flows: int = 4,
         stochastic_duration_predictor_dds_conv_layers: int = 3,
-        use_sdp: bool = False,
+        use_dp: bool = True,
         use_visinger: bool = True,
     ):
         """Initialize VITS generator module.
@@ -247,21 +248,13 @@ class VITSGenerator(torch.nn.Module):
             use_only_mean=use_only_mean_in_flow,
         )
         self.use_visinger = use_visinger
+        self.use_dp = use_dp
         if self.use_visinger:
             self.project = Projection(hidden_channels, hidden_channels)
 
         # TODO(kan-bayashi): Add deterministic version as an option
-        self.use_sdp = use_sdp
-        if use_sdp:
-            self.duration_predictor = StochasticDurationPredictor(
-                channels=hidden_channels,
-                kernel_size=stochastic_duration_predictor_kernel_size,
-                dropout_rate=stochastic_duration_predictor_dropout_rate,
-                flows=stochastic_duration_predictor_flows,
-                dds_conv_layers=stochastic_duration_predictor_dds_conv_layers,
-                global_channels=global_channels,
-            )
-        else:
+
+        if use_dp:
             self.duration_predictor = DurationPredictor(
                 channels=hidden_channels,
                 filter_channels=256,
@@ -280,6 +273,12 @@ class VITSGenerator(torch.nn.Module):
         self.frame_prior_net = FramePriorNet(
             attention_dim=hidden_channels,
             blocks=4,
+        )
+
+        self.phoneme_predictor = PhonemePredictor(
+            vocabs=vocabs,
+            attention_dim=hidden_channels,
+            blocks=2,
         )
 
         self.upsample_factor = int(np.prod(decoder_upsample_scales))
@@ -373,38 +372,6 @@ class VITSGenerator(torch.nn.Module):
                 - Tensor: Posterior encoder projected scale (B, H, T_feats).
 
         """
-        # forward text encoder
-        for i, length in enumerate(label_xml_lengths):
-            if length == label_xml.shape[1]:
-                label_xml_lengths[i] = feats.shape[2]
-        if label_xml.shape[1] < feats.shape[2]:
-            label_xml = F.pad(
-                input=label_xml,
-                pad=(0, feats.shape[2] - label_xml.shape[1], 0, 0),
-                mode="constant",
-                value=0,
-            )
-            midi_xml = F.pad(
-                input=midi_xml,
-                pad=(0, feats.shape[2] - midi_xml.shape[1], 0, 0),
-                mode="constant",
-                value=0,
-            )
-            beat_xml = F.pad(
-                input=beat_xml,
-                pad=(0, feats.shape[2] - beat_xml.shape[1], 0, 0),
-                mode="constant",
-                value=0,
-            )
-        else:
-            label_xml = label_xml[:, : feats.shape[2]]
-            midi_xml = midi_xml[:, : feats.shape[2]]
-            beat_xml = beat_xml[:, : feats.shape[2]]
-
-        x, m_p, logs_p, x_mask = self.text_encoder(
-            label_xml, label_xml_lengths, ds, midi_xml, beat_xml
-        )
-
         # calculate global conditioning
         g = None
         if self.spks is not None:
@@ -424,6 +391,52 @@ class VITSGenerator(torch.nn.Module):
                 g = g_
             else:
                 g = g + g_
+
+        # forward text encoder
+        if not self.use_dp:
+            # align frame length
+            for i, length in enumerate(label_xml_lengths):
+                if length == label_xml.shape[1]:
+                    label_xml_lengths[i] = feats.shape[2]
+            if label_xml.shape[1] < feats.shape[2]:
+                label_xml = F.pad(
+                    input=label_xml,
+                    pad=(0, feats.shape[2] - label_xml.shape[1], 0, 0),
+                    mode="constant",
+                    value=0,
+                )
+                midi_xml = F.pad(
+                    input=midi_xml,
+                    pad=(0, feats.shape[2] - midi_xml.shape[1], 0, 0),
+                    mode="constant",
+                    value=0,
+                )
+                beat_xml = F.pad(
+                    input=beat_xml,
+                    pad=(0, feats.shape[2] - beat_xml.shape[1], 0, 0),
+                    mode="constant",
+                    value=0,
+                )
+            else:
+                label_xml = label_xml[:, : feats.shape[2]]
+                midi_xml = midi_xml[:, : feats.shape[2]]
+                beat_xml = beat_xml[:, : feats.shape[2]]
+
+            x, m_p, logs_p, x_mask = self.text_encoder(
+                label_xml, label_xml_lengths, midi_xml, beat_xml
+            )
+        else:
+            x, m_p, logs_p, x_mask = self.text_encoder(
+                label_lab, label_lab_lengths, midi_lab, beat_lab
+            )
+            w = ds.unsqueeze(1)
+            logw_gt = w * x_mask
+            logw = self.duration_predictor(x, x_mask, beat_lab, g=g)
+            logw = torch.mul(logw.squeeze(1), beat_lab).unsqueeze(1)
+
+            x, frame_pitch, x_lengths = self.lr(x, midi_lab, ds, midi_lab_lengths)
+
+            x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
 
         # TODO: modify PositionalEncoding, shape and transpose problem
 
@@ -450,14 +463,10 @@ class VITSGenerator(torch.nn.Module):
         if self.use_visinger:
             pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
             pred_pitch = torch.squeeze(pred_pitch, 1)
-            # print(pred_pitch.shape)
-
-            gt_pitch = torch.log(440 * (2 ** ((midi_xml - 69) / 12)))  # log f0
-            # print("gt_pitch", gt_pitch.shape)
-
-            # x_mask_sum = torch.sum(x_mask)
-            # lf0 = lf0.squeeze()
-            # l_pitch = torch.sum((gt_lf0 - lf0) ** 2, 1) / x_mask_sum
+            if not self.use_dp:
+                gt_pitch = torch.log(440 * (2 ** ((midi_xml - 69) / 12)))  # log f0
+            else:
+                gt_pitch = torch.log(440 * (2 ** ((frame_pitch - 69) / 12)))
 
             x = self.frame_prior_net(x, pitch_embedding, x_mask)
             m_p, logs_p = self.project(x, x_mask)
@@ -465,59 +474,12 @@ class VITSGenerator(torch.nn.Module):
         # forward posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
 
+        # phoneme predictor
+        if self.use_dp:
+            log_probs = self.phoneme_predictor(z, y_mask)
+
         # forward flow
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
-
-        # # monotonic alignment search
-        # with torch.no_grad():
-        #     # negative cross-entropy
-        #     s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
-        #     # (B, 1, T_text)
-        #     neg_x_ent_1 = torch.sum(
-        #         -0.5 * math.log(2 * math.pi) - logs_p,
-        #         [1],
-        #         keepdim=True,
-        #     )
-        #     # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-        #     neg_x_ent_2 = torch.matmul(
-        #         -0.5 * (z_p**2).transpose(1, 2),
-        #         s_p_sq_r,
-        #     )
-        #     # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-        #     neg_x_ent_3 = torch.matmul(
-        #         z_p.transpose(1, 2),
-        #         (m_p * s_p_sq_r),
-        #     )
-        #     # (B, 1, T_text)
-        #     neg_x_ent_4 = torch.sum(
-        #         -0.5 * (m_p**2) * s_p_sq_r,
-        #         [1],
-        #         keepdim=True,
-        #     )
-        #     # (B, T_feats, T_text)
-        #     neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
-        #     # (B, 1, T_feats, T_text)
-        #     attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-        #     # monotonic attention weight: (B, 1, T_feats, T_text)
-        #     attn = (
-        #         self.maximum_path(
-        #             neg_x_ent,
-        #             attn_mask.squeeze(1),
-        #         )
-        #         .unsqueeze(1)
-        #         .detach()
-        #     )
-
-        # # forward duration predictor
-        # w = attn.sum(2)  # (B, 1, T_text)
-        # dur_nll = self.duration_predictor(x, x_mask, w=w, g=g)
-        # dur_nll = dur_nll / torch.sum(x_mask)
-
-        # expand the length to match with the feature sequence
-        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        # m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
-        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        # logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
 
         # get random segments
         z_segments, z_start_idxs = get_random_segments(
@@ -529,13 +491,44 @@ class VITSGenerator(torch.nn.Module):
         # forward decoder with random segments
         wav = self.decoder(z_segments, g=g)
 
-        return (
-            wav,
-            z_start_idxs,
-            x_mask,
-            y_mask,
-            (z, z_p, m_p, logs_p, m_q, logs_q, pred_pitch, gt_pitch),
-        )
+        if self.use_visinger:
+            if self.use_dp:
+                return (
+                    wav,
+                    z_start_idxs,
+                    x_mask,
+                    y_mask,
+                    (
+                        z,
+                        z_p,
+                        m_p,
+                        logs_p,
+                        m_q,
+                        logs_q,
+                        pred_pitch,
+                        gt_pitch,
+                        logw,
+                        logw_gt,
+                        log_probs,
+                    ),
+                )
+            else:
+                return (
+                    wav,
+                    z_start_idxs,
+                    x_mask,
+                    y_mask,
+                    (z, z_p, m_p, logs_p, m_q, logs_q, pred_pitch, gt_pitch),
+                )
+
+        else:
+            return (
+                wav,
+                z_start_idxs,
+                x_mask,
+                y_mask,
+                (z, z_p, m_p, logs_p, m_q, logs_q),
+            )
 
     def inference(
         self,
@@ -544,6 +537,7 @@ class VITSGenerator(torch.nn.Module):
         feats: Optional[torch.Tensor] = None,
         feats_lengths: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
+        label_lab_lengths: Optional[torch.Tensor] = None,
         label_xml: Optional[torch.Tensor] = None,
         label_xml_lengths: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
@@ -587,9 +581,14 @@ class VITSGenerator(torch.nn.Module):
 
         """
         # encoder
-        x, m_p, logs_p, x_mask = self.text_encoder(
-            label_xml, label_xml_lengths, None, midi_xml, beat_xml
-        )
+        if self.use_dp:
+            x, m_p, logs_p, x_mask = self.text_encoder(
+                label_lab, label_lab_lengths, midi_lab, beat_lab
+            )
+        else:
+            x, m_p, logs_p, x_mask = self.text_encoder(
+                label_xml, label_xml_lengths, midi_xml, beat_xml
+            )
         g = None
         if self.spks is not None:
             # (B, global_channels, 1)
@@ -616,73 +615,22 @@ class VITSGenerator(torch.nn.Module):
             # forward flow
             z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
-            # # monotonic alignment search
-            # s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
-            # # (B, 1, T_text)
-            # neg_x_ent_1 = torch.sum(
-            #     -0.5 * math.log(2 * math.pi) - logs_p,
-            #     [1],
-            #     keepdim=True,
-            # )
-            # # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            # neg_x_ent_2 = torch.matmul(
-            #     -0.5 * (z_p**2).transpose(1, 2),
-            #     s_p_sq_r,
-            # )
-            # # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
-            # neg_x_ent_3 = torch.matmul(
-            #     z_p.transpose(1, 2),
-            #     (m_p * s_p_sq_r),
-            # )
-            # # (B, 1, T_text)
-            # neg_x_ent_4 = torch.sum(
-            #     -0.5 * (m_p**2) * s_p_sq_r,
-            #     [1],
-            #     keepdim=True,
-            # )
-            # # (B, T_feats, T_text)
-            # neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
-            # # (B, 1, T_feats, T_text)
-            # attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            # # monotonic attention weight: (B, 1, T_feats, T_text)
-            # attn = self.maximum_path(
-            #     neg_x_ent,
-            #     attn_mask.squeeze(1),
-            # ).unsqueeze(1)
-            # dur = attn.sum(2)  # (B, 1, T_text)
-
             # forward decoder with random segments
             wav = self.decoder(z * y_mask, g=g)
         else:
-            # # duration
-            # if dur is None:
-            #     logw = self.duration_predictor(
-            #         x,
-            #         x_mask,
-            #         g=g,
-            #         inverse=True,
-            #         noise_scale=noise_scale_dur,
-            #     )
-            #     w = torch.exp(logw) * x_mask * alpha
-            #     dur = torch.ceil(w)
-            # y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
-            # y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
-            # attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            # attn = self._generate_path(dur, attn_mask)
-
-            # # expand the length to match with the feature sequence
-            # # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            # m_p = torch.matmul(
-            #     attn.squeeze(1),
-            #     m_p.transpose(1, 2),
-            # ).transpose(1, 2)
-            # # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-            # logs_p = torch.matmul(
-            #     attn.squeeze(1),
-            #     logs_p.transpose(1, 2),
-            # ).transpose(1, 2)
-
             if self.use_visinger:
+                if self.use_dp:
+                    logw = self.duration_predictor(x, x_mask, beat_lab, g=g)
+                    logw = torch.mul(logw.squeeze(1), beat_lab).unsqueeze(1)
+                    w = logw * x_mask
+                    w = w.squeeze(1).to(torch.long)
+
+                    x, frame_pitch, x_lengths = self.lr(
+                        x, midi_lab, w, label_lab_lengths
+                    )
+                    x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
+                    print("x_lengths", x_lengths)
+                    print("x_mask", x_mask.shape)
                 # position encoding
                 max_len = x.size(2)
                 d_model = x.size(1)

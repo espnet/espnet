@@ -5,14 +5,15 @@ import torch
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 
 
-class PitchPredictor(torch.nn.Module):
+class PhonemePredictor(torch.nn.Module):
     def __init__(
         self,
+        vocabs: int,
         hidden_channels: int = 192,
         attention_dim: int = 192,
         attention_heads: int = 2,
         linear_units: int = 768,
-        blocks: int = 6,
+        blocks: int = 2,
         positionwise_layer_type: str = "conv1d",
         positionwise_conv_kernel_size: int = 3,
         positional_encoding_layer_type: str = "rel_pos",
@@ -27,7 +28,7 @@ class PitchPredictor(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
     ):
         super().__init__()
-        self.pitch_net = Encoder(
+        self.phoneme_predictor = Encoder(
             idim=-1,
             input_layer=None,
             attention_dim=attention_dim,
@@ -47,12 +48,14 @@ class PitchPredictor(torch.nn.Module):
             use_cnn_module=use_conformer_conv,
             cnn_module_kernel=conformer_kernel_size,
         )
-        self.proj = torch.nn.Conv1d(hidden_channels, 1, 1)
+        self.linear1 = torch.nn.Linear(hidden_channels, vocabs)
 
     def forward(self, x, x_mask):
         x = x * x_mask
         x = x.transpose(1, 2)
-        pitch_embedding, _ = self.pitch_net(x, x_mask)
-        pitch_embedding = pitch_embedding.transpose(1, 2)
-        pred_pitch = self.proj(pitch_embedding) * x_mask
-        return pred_pitch, pitch_embedding
+        phoneme_embedding, _ = self.phoneme_predictor(x, x_mask)
+        phoneme_embedding = phoneme_embedding.transpose(1, 2)
+        x1 = self.linear1(phoneme_embedding.transpose(1, 2))
+        x1 = x1.log_softmax(2)
+        # print("shape", x1.shape)
+        return x1.transpose(0, 1)

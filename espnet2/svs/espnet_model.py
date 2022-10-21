@@ -262,13 +262,13 @@ class ESPnetSVSModel(AbsESPnetModel):
 
                 # Extract Syllable Level label, midi, tempo, beat from Frame Level
                 (
-                    label_lab_after,
+                    _label_lab_after,
                     label_lab_lengths_after,
-                    midi_lab_after,
+                    _midi_lab_after,
                     midi_lab_lengths_after,
-                    tempo_lab_after,
+                    _tempo_lab_after,
                     tempo_lab_lengths_after,
-                    beat_lab_after,
+                    _beat_lab_after,
                     beat_lab_lengths_after,
                 ) = self.score_feats_extract(
                     label=labelFrame_lab,
@@ -332,9 +332,65 @@ class ESPnetSVSModel(AbsESPnetModel):
                 # calculate durations for feature mapping
                 # Syllable Level duration info needs phone & midi
                 ds = []
+                l1 = len(_label_lab_after)
+
+                for i in range(l1):
+                    end_index = label_xml_lengths_after[i] - 1
+                    while (
+                        end_index >= 0
+                        and label_xml_after[i][end_index] == 0
+                        and midi_xml_after[i][end_index] == 0
+                    ):
+                        label_xml_lengths_after[i] -= 1
+                        midi_xml_lengths_after[i] -= 1
+                        tempo_xml_lengths_after[i] -= 1
+                        beat_xml_lengths_after[i] -= 1
+                        end_index -= 1
+                    end_index = label_lab_lengths_after[i] - 1
+                    while (
+                        end_index >= 0
+                        and _label_lab_after[i][end_index] == 0
+                        and _midi_lab_after[i][end_index] == 0
+                    ):
+                        label_lab_lengths_after[i] -= 1
+                        midi_lab_lengths_after[i] -= 1
+                        tempo_lab_lengths_after[i] -= 1
+                        beat_lab_lengths_after[i] -= 1
+                        end_index -= 1
+                    assert label_xml_lengths_after[i] >= label_lab_lengths_after[i]
+
+                l2 = label_xml_lengths_after.max()
+
+                label_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                label_lab_after[:, : label_lab_lengths_after.max()] = _label_lab_after[
+                    :, : label_lab_lengths_after.max()
+                ]
+                midi_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                midi_lab_after[:, : midi_lab_lengths_after.max()] = _midi_lab_after[
+                    :, : midi_lab_lengths_after.max()
+                ]
+                tempo_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                tempo_lab_after[:, : tempo_lab_lengths_after.max()] = _tempo_lab_after[
+                    :, : tempo_lab_lengths_after.max()
+                ]
+                beat_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                    label_xml_after.device
+                )
+                beat_lab_after[:, : beat_lab_lengths_after.max()] = _beat_lab_after[
+                    :, : beat_lab_lengths_after.max()
+                ]
+
                 for i, _ in enumerate(labelFrame_lab_lengths):
                     assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
                     assert label_lab_lengths[i] == midi_lab_lengths[i]
+                    assert labelFrame_xml_lengths[i] == midiFrame_xml_lengths[i]
+                    assert label_xml_lengths[i] == midi_xml_lengths[i]
 
                     frame_length = labelFrame_lab_lengths[i]
                     _phoneFrame = labelFrame_lab[i, :frame_length]
@@ -346,9 +402,9 @@ class ESPnetSVSModel(AbsESPnetModel):
                             frame_length -= 1
                             feats_lengths[i] -= 1
 
-                    syllable_length = label_lab_lengths_after[i]
-                    _phoneSyllable = label_lab_after[i, :syllable_length]
-                    _midiSyllable = midi_lab_after[i, :syllable_length]
+                    syllable_length = label_xml_lengths_after[i]
+                    _phoneSyllable = label_xml_after[i, :syllable_length]
+                    _midiSyllable = midi_xml_after[i, :syllable_length]
 
                     start_index = 0
                     ds_tmp = []
@@ -358,64 +414,47 @@ class ESPnetSVSModel(AbsESPnetModel):
                         _findMidi = _midiSyllable[index]
                         _length = 0
                         if flag_finish == 1:
-                            # Remove unused note(label = 0, midi = 0)
-                            for xml_index in range(index, label_xml_lengths_after[i]):
-                                assert label_xml_after[i][xml_index] == 0
-                                assert midi_xml_after[i][xml_index] == 0
-                                tempo_xml_after[i][xml_index] = 0
-                                beat_xml_after[i][xml_index] = 0
-                            # Fix error in _phoneSyllable & _midiSyllable
-                            assert label_lab_after[i, index] == 0
-                            assert midi_lab_after[i, index] == 0
-                            tempo_lab_after[i, index] = 0
-                            beat_lab_after[i, index] = 0
-                            label_lab_lengths_after[i] -= 1
-                            midi_lab_lengths_after[i] -= 1
-                            tempo_lab_lengths_after[i] -= 1
-                            beat_lab_lengths_after[i] -= 1
-                            label_xml_lengths_after[i] = label_lab_lengths_after[i]
-                            midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
-                            tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
-                            beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
+                            for _ in range(syllable_length - index):
+                                ds_tmp.append(0)
+                            assert len(ds_tmp) == syllable_length
                         else:
-                            if (
-                                _findPhone != label_xml_after[i][index]
-                                or _findMidi != midi_xml_after[i][index]
+                            if index >= label_lab_lengths_after[i] or (
+                                index < label_lab_lengths_after[i]
+                                and (
+                                    _findPhone != label_lab_after[i][index]
+                                    or _findMidi != midi_lab_after[i][index]
+                                )
                             ):
-                                for xml_start in range(
-                                    index + 1, label_xml_lengths_after[i] - 1
+                                # If duration is too short,
+                                # add missing phone into label_lab sequence
+                                label_lab_lengths_after[i] += 1
+                                midi_lab_lengths_after[i] += 1
+                                tempo_lab_lengths_after[i] += 1
+                                beat_lab_lengths_after[i] += 1
+                                assert label_lab_lengths_after[i] <= len(
+                                    label_lab_after[i]
+                                )
+                                for lab_index in range(
+                                    label_lab_lengths_after[i] - 1, index, -1
                                 ):
-                                    if (
-                                        _findPhone == label_xml_after[i][xml_start]
-                                        and _findMidi == midi_xml_after[i][xml_start]
-                                    ):
-                                        delta = xml_start - index
-                                        for xml_index in range(
-                                            index, label_xml_lengths_after[i] - delta
-                                        ):
-                                            label_xml_after[i][
-                                                xml_index
-                                            ] = label_xml_after[i][xml_index + delta]
-                                            midi_xml_after[i][
-                                                xml_index
-                                            ] = midi_xml_after[i][xml_index + delta]
-                                            tempo_xml_after[i][
-                                                xml_index
-                                            ] = tempo_xml_after[i][xml_index + delta]
-                                            beat_xml_after[i][
-                                                xml_index
-                                            ] = beat_xml_after[i][xml_index + delta]
-                                        for xml_index in range(
-                                            label_xml_lengths_after[i] - delta,
-                                            label_xml_lengths_after[i],
-                                        ):
-                                            label_xml_after[i][xml_index] = 0
-                                            midi_xml_after[i][xml_index] = 0
-                                            tempo_xml_after[i][xml_index] = 0
-                                            beat_xml_after[i][xml_index] = 0
-                                        break
-                                assert _findPhone == label_xml_after[i][index]
-                                assert _findMidi == midi_xml_after[i][index]
+                                    label_lab_after[i][lab_index] = label_lab_after[i][
+                                        lab_index - 1
+                                    ]
+                                    midi_lab_after[i][lab_index] = midi_lab_after[i][
+                                        lab_index - 1
+                                    ]
+                                    tempo_lab_after[i][lab_index] = tempo_lab_after[i][
+                                        lab_index - 1
+                                    ]
+                                    beat_lab_after[i][lab_index] = beat_lab_after[i][
+                                        lab_index - 1
+                                    ]
+                                label_lab_after[i][index] = label_xml_after[i][index]
+                                midi_lab_after[i][index] = midi_xml_after[i][index]
+                                tempo_lab_after[i][index] = tempo_xml_after[i][index]
+                                beat_lab_after[i][index] = beat_xml_after[i][index]
+                                assert _findPhone == label_lab_after[i][index]
+                                assert _findMidi == midi_lab_after[i][index]
                             for indexFrame in range(start_index, frame_length):
                                 if (
                                     _phoneFrame[indexFrame] == _findPhone
@@ -430,26 +469,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                                     flag_finish = 1
                                     ds_tmp.append(_length)
                                     start_index = indexFrame
-                                    if syllable_length < label_xml_lengths_after[i]:
-                                        for xml_index in range(
-                                            syllable_length, label_xml_lengths_after[i]
-                                        ):
-                                            assert label_xml_after[i][xml_index] == 0
-                                            assert midi_xml_after[i][xml_index] == 0
-                                            tempo_xml_after[i][xml_index] == 0
-                                            beat_xml_after[i][xml_index] == 0
-                                        label_xml_lengths_after[
-                                            i
-                                        ] = label_lab_lengths_after[i]
-                                        midi_xml_lengths_after[
-                                            i
-                                        ] = midi_lab_lengths_after[i]
-                                        tempo_xml_lengths_after[
-                                            i
-                                        ] = tempo_lab_lengths_after[i]
-                                        beat_xml_lengths_after[
-                                            i
-                                        ] = beat_lab_lengths_after[i]
                                     break
                     assert (
                         sum(ds_tmp) == frame_length and sum(ds_tmp) == feats_lengths[i]
@@ -458,7 +477,17 @@ class ESPnetSVSModel(AbsESPnetModel):
                     ds.append(torch.tensor(ds_tmp))
                 ds = pad_list(ds, pad_value=0).to(label_lab_after.device)
 
-            #
+                label_lab_after = label_lab_after[:, : label_lab_lengths_after.max()]
+                midi_lab_after = midi_lab_after[:, : midi_lab_lengths_after.max()]
+                tempo_lab_after = tempo_lab_after[:, : tempo_lab_lengths_after.max()]
+                beat_lab_after = beat_lab_after[:, : beat_lab_lengths_after.max()]
+
+                label_xml_after = label_xml_after[:, : label_xml_lengths_after.max()]
+                midi_xml_after = midi_xml_after[:, : midi_xml_lengths_after.max()]
+                tempo_xml_after = tempo_xml_after[:, : tempo_xml_lengths_after.max()]
+                beat_xml_after = beat_xml_after[:, : beat_xml_lengths_after.max()]
+
+            # TODO(Yuning): pitch_extract hasn't been tested
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
                     input=singing,
@@ -846,13 +875,13 @@ class ESPnetSVSModel(AbsESPnetModel):
 
             # Extract Syllable Level label, midi, tempo, beat from Frame Level
             (
-                label_lab_after,
+                _label_lab_after,
                 label_lab_lengths_after,
-                midi_lab_after,
+                _midi_lab_after,
                 midi_lab_lengths_after,
-                tempo_lab_after,
+                _tempo_lab_after,
                 tempo_lab_lengths_after,
-                beat_lab_after,
+                _beat_lab_after,
                 beat_lab_lengths_after,
             ) = self.score_feats_extract(
                 label=labelFrame_lab,
@@ -916,9 +945,65 @@ class ESPnetSVSModel(AbsESPnetModel):
             # calculate durations, represent syllable encoder outputs to feats mapping
             # Syllable Level duration info needs phone & midi
             ds = []
+            l1 = len(_label_lab_after)
+
+            for i in range(l1):
+                end_index = label_xml_lengths_after[i] - 1
+                while (
+                    end_index >= 0
+                    and label_xml_after[i][end_index] == 0
+                    and midi_xml_after[i][end_index] == 0
+                ):
+                    label_xml_lengths_after[i] -= 1
+                    midi_xml_lengths_after[i] -= 1
+                    tempo_xml_lengths_after[i] -= 1
+                    beat_xml_lengths_after[i] -= 1
+                    end_index -= 1
+                end_index = label_lab_lengths_after[i] - 1
+                while (
+                    end_index >= 0
+                    and _label_lab_after[i][end_index] == 0
+                    and _midi_lab_after[i][end_index] == 0
+                ):
+                    label_lab_lengths_after[i] -= 1
+                    midi_lab_lengths_after[i] -= 1
+                    tempo_lab_lengths_after[i] -= 1
+                    beat_lab_lengths_after[i] -= 1
+                    end_index -= 1
+                assert label_xml_lengths_after[i] >= label_lab_lengths_after[i]
+
+            l2 = label_xml_lengths_after.max()
+
+            label_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                label_xml_after.device
+            )
+            label_lab_after[:, : label_lab_lengths_after.max()] = _label_lab_after[
+                :, : label_lab_lengths_after.max()
+            ]
+            midi_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                label_xml_after.device
+            )
+            midi_lab_after[:, : midi_lab_lengths_after.max()] = _midi_lab_after[
+                :, : midi_lab_lengths_after.max()
+            ]
+            tempo_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                label_xml_after.device
+            )
+            tempo_lab_after[:, : tempo_lab_lengths_after.max()] = _tempo_lab_after[
+                :, : tempo_lab_lengths_after.max()
+            ]
+            beat_lab_after = torch.zeros(l1, l2, dtype=torch.int64).to(
+                label_xml_after.device
+            )
+            beat_lab_after[:, : beat_lab_lengths_after.max()] = _beat_lab_after[
+                :, : beat_lab_lengths_after.max()
+            ]
+
             for i, _ in enumerate(labelFrame_lab_lengths):
                 assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
                 assert label_lab_lengths[i] == midi_lab_lengths[i]
+                assert labelFrame_xml_lengths[i] == midiFrame_xml_lengths[i]
+                assert label_xml_lengths[i] == midi_xml_lengths[i]
 
                 frame_length = labelFrame_lab_lengths[i]
                 _phoneFrame = labelFrame_lab[i, :frame_length]
@@ -929,9 +1014,9 @@ class ESPnetSVSModel(AbsESPnetModel):
                     if _phoneFrame[index] == 0 and _midiFrame[index] == 0:
                         frame_length -= 1
 
-                syllable_length = label_lab_lengths_after[i]
-                _phoneSyllable = label_lab_after[i, :syllable_length]
-                _midiSyllable = midi_lab_after[i, :syllable_length]
+                syllable_length = label_xml_lengths_after[i]
+                _phoneSyllable = label_xml_after[i, :syllable_length]
+                _midiSyllable = midi_xml_after[i, :syllable_length]
 
                 start_index = 0
                 ds_tmp = []
@@ -941,64 +1026,45 @@ class ESPnetSVSModel(AbsESPnetModel):
                     _findMidi = _midiSyllable[index]
                     _length = 0
                     if flag_finish == 1:
-                        # Remove unused note(label = 0, midi = 0)
-                        for xml_index in range(index, label_xml_lengths_after[i]):
-                            assert label_xml_after[i][xml_index] == 0
-                            assert midi_xml_after[i][xml_index] == 0
-                            tempo_xml_after[i][xml_index] = 0
-                            beat_xml_after[i][xml_index] = 0
-                        # Fix error in _phoneSyllable & _midiSyllable
-                        assert label_lab_after[i, index] == 0
-                        assert midi_lab_after[i, index] == 0
-                        tempo_lab_after[i, index] = 0
-                        beat_lab_after[i, index] = 0
-                        label_lab_lengths_after[i] -= 1
-                        midi_lab_lengths_after[i] -= 1
-                        tempo_lab_lengths_after[i] -= 1
-                        beat_lab_lengths_after[i] -= 1
-                        label_xml_lengths_after[i] = label_lab_lengths_after[i]
-                        midi_xml_lengths_after[i] = midi_lab_lengths_after[i]
-                        tempo_xml_lengths_after[i] = tempo_lab_lengths_after[i]
-                        beat_xml_lengths_after[i] = beat_lab_lengths_after[i]
+                        for _ in range(syllable_length - index):
+                            ds_tmp.append(0)
+                        assert len(ds_tmp) == syllable_length
                     else:
-                        if (
-                            _findPhone != label_xml_after[i][index]
-                            or _findMidi != midi_xml_after[i][index]
+                        if index >= label_lab_lengths_after[i] or (
+                            index < label_lab_lengths_after[i]
+                            and (
+                                _findPhone != label_lab_after[i][index]
+                                or _findMidi != midi_lab_after[i][index]
+                            )
                         ):
-                            for xml_start in range(
-                                index + 1, label_xml_lengths_after[i] - 1
+                            # If duration is too short,
+                            # add missing phone into label_lab sequence
+                            label_lab_lengths_after[i] += 1
+                            midi_lab_lengths_after[i] += 1
+                            tempo_lab_lengths_after[i] += 1
+                            beat_lab_lengths_after[i] += 1
+                            assert label_lab_lengths_after[i] <= len(label_lab_after[i])
+                            for lab_index in range(
+                                label_lab_lengths_after[i] - 1, index, -1
                             ):
-                                if (
-                                    _findPhone == label_xml_after[i][xml_start]
-                                    and _findMidi == midi_xml_after[i][xml_start]
-                                ):
-                                    delta = xml_start - index
-                                    for xml_index in range(
-                                        index, label_xml_lengths_after[i] - delta
-                                    ):
-                                        label_xml_after[i][xml_index] = label_xml_after[
-                                            i
-                                        ][xml_index + delta]
-                                        midi_xml_after[i][xml_index] = midi_xml_after[
-                                            i
-                                        ][xml_index + delta]
-                                        tempo_xml_after[i][xml_index] = tempo_xml_after[
-                                            i
-                                        ][xml_index + delta]
-                                        beat_xml_after[i][xml_index] = beat_xml_after[
-                                            i
-                                        ][xml_index + delta]
-                                    for xml_index in range(
-                                        label_xml_lengths_after[i] - delta,
-                                        label_xml_lengths_after[i],
-                                    ):
-                                        label_xml_after[i][xml_index] = 0
-                                        midi_xml_after[i][xml_index] = 0
-                                        tempo_xml_after[i][xml_index] = 0
-                                        beat_xml_after[i][xml_index] = 0
-                                    break
-                            assert _findPhone == label_xml_after[i][index]
-                            assert _findMidi == midi_xml_after[i][index]
+                                label_lab_after[i][lab_index] = label_lab_after[i][
+                                    lab_index - 1
+                                ]
+                                midi_lab_after[i][lab_index] = midi_lab_after[i][
+                                    lab_index - 1
+                                ]
+                                tempo_lab_after[i][lab_index] = tempo_lab_after[i][
+                                    lab_index - 1
+                                ]
+                                beat_lab_after[i][lab_index] = beat_lab_after[i][
+                                    lab_index - 1
+                                ]
+                            label_lab_after[i][index] = label_xml_after[i][index]
+                            midi_lab_after[i][index] = midi_xml_after[i][index]
+                            tempo_lab_after[i][index] = tempo_xml_after[i][index]
+                            beat_lab_after[i][index] = beat_xml_after[i][index]
+                            assert _findPhone == label_lab_after[i][index]
+                            assert _findMidi == midi_lab_after[i][index]
                         for indexFrame in range(start_index, frame_length):
                             if (
                                 _phoneFrame[indexFrame] == _findPhone
@@ -1013,26 +1079,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                                 flag_finish = 1
                                 ds_tmp.append(_length)
                                 start_index = indexFrame
-                                if syllable_length < label_xml_lengths_after[i]:
-                                    for xml_index in range(
-                                        syllable_length, label_xml_lengths_after[i]
-                                    ):
-                                        assert label_xml_after[i][xml_index] == 0
-                                        assert midi_xml_after[i][xml_index] == 0
-                                        tempo_xml_after[i][xml_index] == 0
-                                        beat_xml_after[i][xml_index] == 0
-                                    label_xml_lengths_after[
-                                        i
-                                    ] = label_lab_lengths_after[i]
-                                    midi_xml_lengths_after[i] = midi_lab_lengths_after[
-                                        i
-                                    ]
-                                    tempo_xml_lengths_after[
-                                        i
-                                    ] = tempo_lab_lengths_after[i]
-                                    beat_xml_lengths_after[i] = beat_lab_lengths_after[
-                                        i
-                                    ]
                                 break
                 assert sum(ds_tmp) == frame_length
 
