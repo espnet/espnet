@@ -15,8 +15,9 @@ Expects data to be in:
 Required packages:
     Pillow
 """
-import os
 import argparse
+import os
+
 import numpy as np
 from PIL import Image
 
