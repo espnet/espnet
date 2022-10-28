@@ -1,14 +1,16 @@
 """Prepare the IAM handwriting dataset for ESPnet ASR training
 
 Usage:
-    python local/data_prep.py [--feature_dim 100] [--downsampling_factor 0.5]
+    python local/data_prep.py 
+        [--feature_dim 100] 
+        [--downsampling_factor 0.5]
 
 Expects data to be in:
     downloads/
-        lines.txt        # labels from IAM Handwriting dataset (from ascii.tgz)
+        lines.txt      # labels for IAM dataset (from ascii.tgz)
         lines/
-            */*/*.png    # "lines" images from IAM Handwriting dataset (from lines.tgz)
-        train.txt        # id's for train/valid/test splits
+            */*/*.png  # "lines" data for IAM dataset (from lines.tgz)
+        train.txt      # id's for train/valid/test splits
         valid.txt
         test.txt
 
@@ -25,21 +27,22 @@ from espnet.utils.cli_writers import file_writer_helper
 
 
 def prepare_text(lines_file_path, output_dir, split_ids):
-    """Create 'text' file (map of ids to transcriptions) in Kaldi format
+    """Create 'text' file (map of ids to transcripts) in Kaldi format
 
     Parameters
     ----------
     lines_file_path : str
-        The file path of the full "lines.txt" label file of the IAM dataset
+        The file path of the "lines.txt" label file of the IAM dataset
     output_dir : str
         The folder path for output, e.g. data/
     split_ids : list of str
-        a list of example ids to process, used to define train/valid/test splits
+        a list of ids to process, e.g. train/valid/test splits
 
     Returns
     -------
     skipped_ids : list of str
-        a list of ids that were skipped due to having an empty transcription
+        a list of ids that were skipped,
+        e.g. due to having an empty transcription
     """
     output_lines = []
     skipped_ids = []
@@ -63,7 +66,7 @@ def prepare_text(lines_file_path, output_dir, split_ids):
                 transcription = transcription.strip()
 
                 if transcription == "":
-                    print(f"Line {line_id} has an empty transcription, skipping it")
+                    print(f"Line {line_id} has an empty transcript, skipping")
                     skipped_ids.append(line_id)
                     continue
 
@@ -85,14 +88,12 @@ def prepare_utt2spk_spk2utt(output_dir, split_ids, ids_to_skip=[]):
     output_dir : str
         The folder path for output, e.g. data/
     split_ids : list of str
-        a list of example ids to process, used to define train/valid/test splits
+        a list of example ids to process, e.g. train/valid/test splits
     ids_to_skip : list of str
-        A list of ids to exclude from the output, e.g. used to ignore the ones
-        that were skipped due to an empty transcription
+        A list of ids to exclude from the output,
+        e.g. to ignore previously skipped ids due to empty transcript
     """
-    output_lines = [
-        f"{line_id} {line_id}\n" for line_id in split_ids if line_id not in ids_to_skip
-    ]
+    output_lines = [f"{x} {x}\n" for x in split_ids if x not in ids_to_skip]
     output_lines.sort()
 
     with open(os.path.join(output_dir, "utt2spk"), "w") as out_file:
@@ -117,19 +118,23 @@ def prepare_feats(
     output_dir : str
         The folder path for output, e.g. data/
     split_ids : list of str
-        a list of example ids to process, used to define train/valid/test splits
+        a list of ids to process, e.g. train/valid/test splits
     ids_to_skip : list of str
-        A list of ids to exclude from the output, e.g. used to ignore the ones
-        that were skipped due to an empty transcription
+        A list of ids to exclude from the output,
+        e.g. to ignore previously skipped ids due to empty transcript
     feature_dim : int (default=100)
-        The hidden dimension for each feature matrix, all images are resized to this height
+        The hidden dimension for each feature matrix,
+        all images are resized to this height
     downsampling_factor : float (default=0.5)
-        A multiplier for the width dimension (analogous to the 'time' dimension in ASR) of each image,
-        used to reduce the length for faster training. Empirically, a value of 0.5 is found to achieve the
-        best performance
+        A multiplier for the width dimension (analogous to the 'time'
+        dimension in ASR) of each image, used to reduce the length for
+        faster training. Empirically, a value of 0.5 is found to achieve
+        the best performance for this dataset
     """
+    output_ark = os.path.join(output_dir, "feats.ark")
+    output_scp = os.path.join(output_dir, "feats.scp")
     writer = file_writer_helper(
-        wspecifier=f'ark,scp:{os.path.join(output_dir, "feats.ark")},{os.path.join(output_dir, "feats.scp")}',
+        wspecifier=f"ark,scp:{output_ark},{output_scp}",
         filetype="mat",
         write_num_frames=f"ark,t:{output_dir}/num_frames.txt",
         compress=False,
@@ -147,8 +152,10 @@ def prepare_feats(
             img_dir, dir, f"{dir}-{subdir}", f"{dir}-{subdir}-{index}.png"
         )
         with Image.open(img_path) as img:
-            # resize images to common height (feature_dim) and downsample width by downsampling_factor
-            n_frames = int((img.width / img.height * feature_dim) * downsampling_factor)
+            # resize images to common height (feature_dim)
+            # and downsample width by downsampling_factor
+            aspect_ratio = img.width / img.height
+            n_frames = int((aspect_ratio * feature_dim) * downsampling_factor)
             img = img.resize((n_frames, feature_dim))
             img_arr = np.array(img, dtype=np.float32).transpose()
             assert img_arr.shape[1] == feature_dim
@@ -161,7 +168,9 @@ def prepare_feats(
             total_length += img_arr.shape[0]
 
     print(
-        f'Extracted features for {num_processed} examples to {os.path.join(output_dir, "feats.scp")}, average length is {total_length / num_processed:.02f}'
+        f"Extracted features for {num_processed} examples "
+        f"to {os.path.join(output_dir, 'feats.scp')},"
+        f"average length is {total_length / num_processed:.02f}"
     )
 
 
@@ -181,7 +190,7 @@ if __name__ == "__main__":
         "--downsampling_factor",
         type=float,
         default=0.5,
-        help="Factor to downsample the length of each image feature to, the average length will be about 1500 * downsampling_factor",
+        help="Factor to downsample the length of each image feature to",
     )
 
     args = parser.parse_args()
