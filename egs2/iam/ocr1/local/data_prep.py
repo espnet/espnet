@@ -1,8 +1,8 @@
 """Prepare the IAM handwriting dataset for ESPnet ASR training
 
 Usage:
-    python local/data_prep.py 
-        [--feature_dim 100] 
+    python local/data_prep.py
+        [--feature_dim 100]
         [--downsampling_factor 0.5]
 
 Expects data to be in:
