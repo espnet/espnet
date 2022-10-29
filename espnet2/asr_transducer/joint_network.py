@@ -26,8 +26,8 @@ class JointNetwork(torch.nn.Module):
         joint_space_size: int = 256,
         joint_activation_type: str = "tanh",
         **activation_parameters,
-    ):
-        """Joint network initializer."""
+    ) -> None:
+        """Construct a JointNetwork object."""
         super().__init__()
 
         self.lin_enc = torch.nn.Linear(encoder_size, joint_space_size)

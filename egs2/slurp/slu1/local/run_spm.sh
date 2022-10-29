@@ -1,0 +1,1 @@
+../scripts/text/run_spm.sh
