@@ -135,7 +135,9 @@ class ASRTransducerTask(AbsTask):
             default={},
             help="The keyword arguments for the joint network class.",
         )
+
         group = parser.add_argument_group(description="Preprocess related.")
+
         group.add_argument(
             "--use_preprocessor",
             type=str2bool,
@@ -155,56 +157,56 @@ class ASRTransducerTask(AbsTask):
             default=None,
             help="The path of the sentencepiece model.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
             help="The 'non_linguistic_symbols' file path.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--cleaner",
             type=str_or_none,
             choices=[None, "tacotron", "jaconv", "vietnamese"],
             default=None,
             help="Text cleaner to use.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
             help="g2p method to use if --token_type=phn.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
             help="Normalization value for maximum amplitude scaling.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_scp",
             type=str_or_none,
             default=None,
             help="The RIR SCP file path.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_apply_prob",
             type=float,
             default=1.0,
             help="The probability of the applied RIR convolution.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_scp",
             type=str_or_none,
             default=None,
             help="The path of noise SCP file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_apply_prob",
             type=float,
             default=1.0,
             help="The probability of the applied noise addition.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_db_range",
             type=str,
             default="13_15",

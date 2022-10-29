@@ -30,15 +30,19 @@ class ConvInput(torch.nn.Module):
         """Construct a ConvInput object."""
         super().__init__()
 
+        self.subsampling_factor = subsampling_factor
+
         if vgg_like:
             conv_size1, conv_size2 = conv_size
+
+            kernel_1 = int(subsampling_factor / 2)
 
             self.conv = torch.nn.Sequential(
                 torch.nn.Conv2d(1, conv_size1, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
                 torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d((3, 2)),
+                torch.nn.MaxPool2d((kernel_1, 2)),
                 torch.nn.Conv2d(conv_size1, conv_size2, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
                 torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=1),
@@ -48,9 +52,7 @@ class ConvInput(torch.nn.Module):
 
             output_proj = conv_size2 * ((input_size // 2) // 2)
 
-            self.subsampling_factor = 4
-
-            self.create_new_mask = self.create_new_vgg_mask
+            self.stride_1 = kernel_1
         else:
             kernel_2, stride_2, conv_2_output_size = sub_factor_to_params(
                 subsampling_factor,
@@ -66,11 +68,8 @@ class ConvInput(torch.nn.Module):
 
             output_proj = conv_size * conv_2_output_size
 
-            self.subsampling_factor = subsampling_factor
             self.kernel_2 = kernel_2
             self.stride_2 = stride_2
-
-            self.create_new_mask = self.create_new_conv2d_mask
 
         self.vgg_like = vgg_like
         self.min_frame_length = 7 if subsampling_factor < 6 else 11
@@ -105,39 +104,9 @@ class ConvInput(torch.nn.Module):
             x = self.output(x)
 
         if mask is not None:
-            mask = self.create_new_mask(mask)
+            mask = mask[:, : x.size(1)]
 
         return x, mask
-
-    def create_new_vgg_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        """Create a new mask for VGG output sequences.
-
-        Args:
-            mask: Mask of input sequences. (B, T)
-
-        Returns:
-            mask: Mask of output sequences. (B, sub(T))
-
-        """
-        vgg1_t_len = mask.size(1) - (mask.size(1) % 3)
-        mask = mask[:, :vgg1_t_len][:, ::3]
-
-        vgg2_t_len = mask.size(1) - (mask.size(1) % 2)
-        mask = mask[:, :vgg2_t_len][:, ::2]
-
-        return mask
-
-    def create_new_conv2d_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        """Create new conformer mask for Conv2d output sequences.
-
-        Args:
-            mask: Mask of input sequences. (B, T)
-
-        Returns:
-            mask: Mask of output sequences. (B, sub(T))
-
-        """
-        return mask[:, :-2:2][:, : -(self.kernel_2 - 1) : self.stride_2]
 
     def get_size_before_subsampling(self, size: int) -> int:
         """Return the original size before subsampling for a given size.
@@ -150,6 +119,6 @@ class ConvInput(torch.nn.Module):
 
         """
         if self.vgg_like:
-            return ((size * 2) * 3) + 1
+            return ((size * 2) * self.stride_1) + 1
 
         return ((size + 2) * 2) + (self.kernel_2 - 1) * self.stride_2
