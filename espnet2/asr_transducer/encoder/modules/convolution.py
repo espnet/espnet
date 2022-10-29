@@ -70,6 +70,7 @@ class ConformerConvolution(torch.nn.Module):
         self,
         x: torch.Tensor,
         cache: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
         right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute convolution module.
@@ -86,6 +87,9 @@ class ConformerConvolution(torch.nn.Module):
         """
         x = self.pointwise_conv1(x.transpose(1, 2))
         x = torch.nn.functional.glu(x, dim=1)
+
+        if mask is not None:
+            x.masked_fill_(mask.unsqueeze(1).expand_as(x), 0.0)
 
         if self.lorder > 0:
             if cache is None:
