@@ -202,6 +202,9 @@
     <span class="s2">&quot;espeak_ng_dutch&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_english_us_vits&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_hindi&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_italian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_ukrainian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_polish&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
     <span class="s2">&quot;korean_jaso&quot;</span><span class="p">,</span>
@@ -655,6 +658,20 @@
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_hindi&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
                 <span class="n">language</span><span class="o">=</span><span class="s2">&quot;hi&quot;</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
+                <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_italian&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
+                <span class="n">language</span><span class="o">=</span><span class="s2">&quot;it&quot;</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
+                <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_polish&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
+                <span class="n">language</span><span class="o">=</span><span class="s2">&quot;pl&quot;</span><span class="p">,</span>
                 <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
                 <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
