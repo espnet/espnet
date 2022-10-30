@@ -73,7 +73,7 @@ def build_asr_model(
     asr_model.to(dtype=getattr(torch, args.dtype)).eval()
 
     if args.quantize_asr_model:
-        logging.info("Use quantized asr model for decoding.")
+        logging.info("Use quantized asr model for precomputing features.")
 
         asr_model = torch.quantization.quantize_dynamic(
             asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
@@ -388,7 +388,7 @@ def inference(
 ):
     assert check_argument_types()
     if args.ngpu > 1:
-        raise NotImplementedError("only single GPU decoding is supported")
+        raise NotImplementedError("only single GPU is supported to precompute features")
 
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     if args.verbose > 0:
