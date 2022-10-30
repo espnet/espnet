@@ -229,6 +229,8 @@
         <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">src_vocab_size</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">src_vocab_size</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src_vocab_size</span> <span class="o">=</span> <span class="n">src_vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
@@ -403,7 +405,7 @@
 
         <span class="c1"># for data-parallel</span>
         <span class="n">src_text</span> <span class="o">=</span> <span class="n">src_text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
-        <span class="n">src_text</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">src_text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
+        <span class="n">src_text</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">src_text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
         <span class="n">src_text_lengths</span> <span class="o">=</span> <span class="n">src_text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
