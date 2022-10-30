@@ -160,6 +160,7 @@ DCASE=
 TEDX_SPANISH=downloads
 OFUTON=
 OPENCPOP=
+M_AILABS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

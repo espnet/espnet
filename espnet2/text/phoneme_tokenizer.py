@@ -33,6 +33,9 @@ g2p_choices = [
     "espeak_ng_dutch",
     "espeak_ng_english_us_vits",
     "espeak_ng_hindi",
+    "espeak_ng_italian",
+    "espeak_ng_ukrainian",
+    "espeak_ng_polish",
     "g2pk",
     "g2pk_no_space",
     "korean_jaso",
@@ -509,6 +512,20 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "espeak_ng_hindi":
             self.g2p = Phonemizer(
                 language="hi",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_italian":
+            self.g2p = Phonemizer(
+                language="it",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_polish":
+            self.g2p = Phonemizer(
+                language="pl",
                 backend="espeak",
                 with_stress=True,
                 preserve_punctuation=True,

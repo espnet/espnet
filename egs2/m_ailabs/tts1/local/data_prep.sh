@@ -1,0 +1,1 @@
+../../../../egs/m_ailabs/tts1/local/data_prep.sh
