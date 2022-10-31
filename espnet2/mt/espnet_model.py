@@ -59,6 +59,8 @@ class ESPnetMTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
+        self.src_sos = src_vocab_size - 1 if src_vocab_size else None
+        self.src_eos = src_vocab_size - 1 if src_vocab_size else None
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
@@ -233,7 +235,7 @@ class ESPnetMTModel(AbsESPnetModel):
 
         # for data-parallel
         src_text = src_text[:, : src_text_lengths.max()]
-        src_text, _ = add_sos_eos(src_text, self.sos, self.eos, self.ignore_id)
+        src_text, _ = add_sos_eos(src_text, self.src_sos, self.src_eos, self.ignore_id)
         src_text_lengths = src_text_lengths + 1
 
         if self.frontend is not None:
