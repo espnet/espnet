@@ -1,6 +1,6 @@
 import copy
 import logging
-from re import I
+import contextlib
 from typing import Optional, Tuple, Union
 
 import humanfriendly
@@ -10,9 +10,6 @@ from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
-# need to pad/trim waveform to this length (30 sec),
-# whisper would complain otherwise
-WHISPER_WAV_INPUT_LEN = 480000
 
 class WhisperFrontend(AbsFrontend):
     """Speech Representation Using Encoder Outputs from OpenAI's Whisper Model:
@@ -27,6 +24,7 @@ class WhisperFrontend(AbsFrontend):
         hop_length: int = 160,
         n_mels: int = 80,
         whisper_model: str = 'small',
+        freeze_weights: bool = True,
         download_dir: str = None,
     ):
         try:
@@ -69,17 +67,10 @@ class WhisperFrontend(AbsFrontend):
                                 )
         self.whisper.eval()
 
+        self.freeze_weights = freeze_weights
+
     def output_size(self) -> int:
         return self.whisper.encoder.ln_post.normalized_shape[-1]
-
-    def calc_whisper_encode_olens(
-        self, 
-        mel_lens: torch.Tensor
-    ) -> torch.Tensor:
-        return 1 + ( mel_lens - \
-                    self.whisper.encoder.conv2.kernel_size[0] + \
-                    2 * self.whisper.encoder.conv2.padding[0] ) // \
-                    self.whisper.encoder.conv2.stride[0]
 
     def log_mel_spectrogram(
         self,
@@ -115,7 +106,8 @@ class WhisperFrontend(AbsFrontend):
 
     def whisper_encode(
         self,
-        input: torch.Tensor, 
+        input: torch.Tensor,
+        ilens: torch.Tensor = None,
     ) -> torch.Tensor:
         whisper_encoder = self.whisper.encoder
         
@@ -123,14 +115,28 @@ class WhisperFrontend(AbsFrontend):
         x = F.gelu(whisper_encoder.conv2(x))
         x = x.permute(0, 2, 1)
 
-        x = (x + whisper_encoder.positional_embedding[:x.size(1), :]).to(x.dtype)
+        n_frames = x.size(1)
+        max_pos = whisper_encoder.positional_embedding.size(0)
+        if n_frames <= max_pos:
+            x = (x + whisper_encoder.positional_embedding[:x.size(1), :]).to(x.dtype)
+        else:
+            x = (x[:, :max_pos, :] + whisper_encoder.positional_embedding)
 
         for block in whisper_encoder.blocks:
             x = block(x)
 
         x = whisper_encoder.ln_post(x)
 
-        return x
+        if ilens is not None:
+            olens =  1 + ( ilens - \
+                        whisper_encoder.conv2.kernel_size[0] + \
+                        2 * whisper_encoder.conv2.padding[0] ) // \
+                        whisper_encoder.conv2.stride[0]
+            olens = torch.clamp(olens, max=max_pos)
+        else:
+            olens = None
+
+        return x, olens
 
     def forward(
         self, 
@@ -139,7 +145,7 @@ class WhisperFrontend(AbsFrontend):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         feats, feats_lens = self.log_mel_spectrogram(input, input_lengths)
 
-        feats = self.whisper_encode(feats)
-        feats_lens = self.calc_whisper_encode_olens(feats_lens)
+        with torch.no_grad() if self.freeze_weights else contextlib.nullcontext():
+            feats, feats_lens = self.whisper_encode(feats, feats_lens)
 
         return feats, feats_lens

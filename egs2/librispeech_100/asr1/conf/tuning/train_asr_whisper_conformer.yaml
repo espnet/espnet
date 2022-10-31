@@ -1,6 +1,16 @@
 frontend: whisper
 frontend_conf:
-    whisper_model: small
+    whisper_model: medium
+    freeze_weights: true
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024
+    output_size: 256
+
+normalize: utterance_mvn
+normalize_conf:
+    norm_vars: true
 
 encoder: conformer
 encoder_conf:
@@ -8,9 +18,9 @@ encoder_conf:
     attention_heads: 4
     linear_units: 1024
     num_blocks: 12
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.1
+    dropout_rate: 0.2
+    positional_dropout_rate: 0.2
+    attention_dropout_rate: 0.2
     input_layer: conv2d
     normalize_before: true
     macaron_style: true
@@ -21,25 +31,23 @@ encoder_conf:
     use_cnn_module: true
     cnn_module_kernel: 31
 
+
 decoder: transformer
 decoder_conf:
     attention_heads: 4
     linear_units: 2048
     num_blocks: 6
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
+    dropout_rate: 0.2
+    positional_dropout_rate: 0.2
+    self_attention_dropout_rate: 0.2
+    src_attention_dropout_rate: 0.2
 
 model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
+    extract_feats_in_collect_stats: false
 
-frontend_conf:
-    n_fft: 512
-    win_length: 400
-    hop_length: 160
 
 seed: 2022
 log_interval: 400   
@@ -50,7 +58,8 @@ sort_batch: descending          # how to sort created batches
 batch_type: numel
 batch_bins: 4000000
 accum_grad: 4
-max_epoch: 70
+grad_clip: 2.0
+max_epoch: 50
 patience: none
 init: none
 best_model_criterion:
@@ -66,7 +75,23 @@ cudnn_benchmark: false
 optim: adam
 optim_conf:
     lr: 0.0005
-    weight_decay: 0.000001
+    weight_decay: 1.0e-06
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 15000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 128
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.12
+    num_time_mask: 5
