@@ -1,6 +1,6 @@
 """Error Calculator module for Transducer."""
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 
@@ -9,7 +9,7 @@ from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
 
 
-class ErrorCalculator(object):
+class ErrorCalculator:
     """Calculate CER and WER for transducer models.
 
     Args:
@@ -32,8 +32,8 @@ class ErrorCalculator(object):
         sym_blank: str,
         report_cer: bool = False,
         report_wer: bool = False,
-    ):
-        """Construct an ErrorCalculatorTransducer."""
+    ) -> None:
+        """Construct an ErrorCalculatorTransducer object."""
         super().__init__()
 
         self.beam_search = BeamSearchTransducer(
@@ -53,8 +53,10 @@ class ErrorCalculator(object):
         self.report_cer = report_cer
         self.report_wer = report_wer
 
-    def __call__(self, encoder_out: torch.Tensor, target: torch.Tensor):
-        """Calculate sentence-level WER/CER score for Transducer model.
+    def __call__(
+        self, encoder_out: torch.Tensor, target: torch.Tensor
+    ) -> Tuple[Optional[float], Optional[float]]:
+        """Calculate sentence-level WER or/and CER score for Transducer model.
 
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)

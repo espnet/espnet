@@ -36,8 +36,12 @@ scheduler_conf:
 # The maximum random gain (in dB) for each source before the mixing.
 # The gain (in dB) of each source is unifromly sampled in
 # [-dynamic_mixing_gain_db, dynamic_mixing_gain_db]
-dynamic_mixing: True
-dynamic_mixing_gain_db: 2.0
+preprocessor: dynamic_mixing
+preprocessor_conf:
+    ref_num: 2
+    dynamic_mixing_gain_db: 0.0
+    source_scp_name: "spk1.scp"
+    mixture_source_name: "speech_mix"
 
 encoder: conv
 encoder_conf:

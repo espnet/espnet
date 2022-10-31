@@ -737,7 +737,7 @@ if ! "${skip_eval}"; then
                         ${_ref_scp} \
                         ${_inf_scp} \
                         --ref_channel ${ref_channel} \
-                        --flexible_numspk True
+                        --flexible_numspk true
 
                 for spk in $(seq "${spk_num}"); do
                     for protocol in ${scoring_protocol}; do

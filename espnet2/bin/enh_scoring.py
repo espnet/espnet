@@ -14,6 +14,7 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
+from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
@@ -36,7 +37,8 @@ def scoring(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    assert len(ref_scp) == len(inf_scp), ref_scp
+    if not flexible_numspk:
+        assert len(ref_scp) == len(inf_scp), ref_scp
     num_spk = len(ref_scp)
 
     keys = [
@@ -121,7 +123,7 @@ def scoring(
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
                 # save permutation assigned script file
-                if not flexible_numspk:
+                if i < len(ref_scp):
                     writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
 
 
@@ -166,7 +168,7 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)
-    group.add_argument("--flexible_numspk", type=bool, default=False)
+    group.add_argument("--flexible_numspk", type=str2bool, default=False)
 
     return parser
 
