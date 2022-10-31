@@ -248,7 +248,7 @@ class G2pk:
         to_syl=False,
         no_space=False,
         explicit_space=False,
-        space_symbol="<space>"
+        space_symbol="<space>",
     ):
         self.descritive = descritive
         self.group_vowels = group_vowels
