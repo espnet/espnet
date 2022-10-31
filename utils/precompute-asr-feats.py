@@ -129,6 +129,8 @@ class Speech2Feat:
         self.pad_dict = {}  # Dimensions to pad for each padded tensor
         self.batch_dict = {}  # Batch dimension for module outputs
         self.tuple_warn = []
+        self.vague_warn = []
+        self.vague_unpad = args.vague_unpad
         self.dim_search_done = False
         self.feats_dict = None
 
@@ -266,8 +268,22 @@ class Speech2Feat:
 
                 try:
                     pad_dims = set(
-                        [dim for dim, len_ in enumerate(v.size()) if len_ == max_len]
-                    )
+                        [dim for dim, len_ in enumerate(v.size()) if len_ == max_len])
+                    if self.vague_unpad:
+                        for dim, len_ in enumerate(v.size()):
+                            if len_ <= max_len+2 and len_ >= max_len-2:
+                                pad_dims.add(dim)
+                                if self.dim_search_done and k not in self.vague_warn:
+                                    self.vague_warn.append(k)
+                                    logging.warning(
+                                        f"Unpadding {k} dimension with slightly wrong length. "
+                                        + f"Tensor has shape {v.size()} but "
+                                        + f"the guessed padded length is {max_len}. "
+                                        + "This may cause slightly inconsistent length in original "
+                                        + "feature and precomputed feature. "
+                                        + "If this is undesirable, use --vague_unpad=false or "
+                                        + "set batch size to 1"
+                                    )
                     if len(pad_dims) == 0:
                         raise ValueError(
                             "No padding dimension found. "
@@ -287,8 +303,8 @@ class Speech2Feat:
                             unpad_feat = v.select(dim=batch_dim, index=batch_idx)
                             for pad_dim in pad_dims:
                                 split = [
-                                    encoder_out_len.item(),
-                                    v.size(pad_dim) - encoder_out_len.item(),
+                                    min(encoder_out_len.item(), v.size(pad_dim)),
+                                    max(v.size(pad_dim) - encoder_out_len.item(), 0),
                                 ]
                                 unpad_feat = unpad_feat.split(split, dim=pad_dim - 1)[0]
                             unpad_feats.append(unpad_feat)
@@ -421,6 +437,7 @@ def inference(
             continue  # Make sure it is not the last batch for iter_
         if i > 50:
             break
+        logging.info(f"Running model {i}/50 times to find batch and padding dimension")
         try:
             _, feats_dict = next(iter_)
         except StopIteration:
@@ -555,6 +572,15 @@ def add_precompute_feature_arguments(parser: argparse.ArgumentParser):
         encoder and encoders are module names, and * means any module.
         Remarks:
         1. Use frontend.upstream instead of frontend.upstream.upstream.model.encoder.layers.* for WavLM""",
+    )
+    group.add_argument(
+        "--vague_unpad",
+        type=str2bool,
+        default=True,
+        help="""Ignore any slight inconsistency (+/-2)
+        between guessed pad length and actual pad length.
+        This may cause inconsistent length between original 
+        and precomputed features.""",
     )
     parser.add_argument(
         "--skip_pad_modules",
