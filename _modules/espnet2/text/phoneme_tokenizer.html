@@ -207,6 +207,7 @@
     <span class="s2">&quot;espeak_ng_polish&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;g2pk_explicit_space&quot;</span><span class="p">,</span>
     <span class="s2">&quot;korean_jaso&quot;</span><span class="p">,</span>
     <span class="s2">&quot;korean_jaso_no_space&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2p_is&quot;</span><span class="p">,</span>
@@ -414,12 +415,20 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">descritive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">group_vowels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">to_syl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">descritive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">group_vowels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">to_syl</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">explicit_space</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">space_symbol</span><span class="o">=</span><span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">descritive</span> <span class="o">=</span> <span class="n">descritive</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">group_vowels</span> <span class="o">=</span> <span class="n">group_vowels</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">to_syl</span> <span class="o">=</span> <span class="n">to_syl</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span> <span class="o">=</span> <span class="n">no_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">explicit_space</span> <span class="o">=</span> <span class="n">explicit_space</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span> <span class="o">=</span> <span class="n">space_symbol</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -439,6 +448,10 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span><span class="p">:</span>
             <span class="c1"># remove space which represents word serapater</span>
             <span class="n">phones</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">phones</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">explicit_space</span><span class="p">:</span>
+            <span class="c1"># replace space as explicit space symbol</span>
+            <span class="n">phones</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span> <span class="k">if</span> <span class="n">s</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span><span class="p">,</span> <span class="n">phones</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">phones</span></div>
 
 
@@ -680,6 +693,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">G2pk</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">G2pk</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2pk_explicit_space&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">G2pk</span><span class="p">(</span><span class="n">explicit_space</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_english_us_vits&quot;</span><span class="p">:</span>
             <span class="c1"># VITS official implementation-like processing</span>
             <span class="c1"># Reference: https://github.com/jaywalnut310/vits</span>
