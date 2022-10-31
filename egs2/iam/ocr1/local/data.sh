@@ -39,8 +39,8 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Stage 1.2: Data Preparation - generating text, utt2spk, spk2utt, and feats.scp for train/valid/test splits"
     if [ -e ${data_dir} ]; then
-        echo "Directory ${data_dir} already exists, removing it"
-        rm -rf ${data_dir}
+        echo "Error: directory ${data_dir} already exists, to re-generate please first remove it manually"
+        exit 1
     fi
     python local/data_prep.py --feature_dim ${feature_dim} --downsampling_factor ${downsampling_factor}
 fi

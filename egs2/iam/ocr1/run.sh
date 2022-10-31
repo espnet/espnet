@@ -9,7 +9,7 @@ train_set="train"
 valid_set="valid"
 test_set="test"
 
-asr_tag="conformer_full_vocab"
+asr_config=conf/train_asr_conformer.yaml
 
 ./asr.sh \
     --lang en \
@@ -19,8 +19,7 @@ asr_tag="conformer_full_vocab"
     --feats_type extracted \
     --use_lm false \
     --nbpe 82 \
-    --asr_tag ${asr_tag} \
-    --asr_config conf/train_asr_conformer.yaml \
+    --asr_config ${asr_config} \
     --stage 1 \
     --ngpu 4 \
     --gpu_inference true \
