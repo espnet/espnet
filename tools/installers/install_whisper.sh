@@ -46,6 +46,8 @@ EOF
 )
 echo "cuda_version=${cuda_version}"
 
+# hash of tested commit: 9e653bd0ea0f1e9493cb4939733e9de249493cfb
+
 if "${torch_110_plus}" && "${python_37_plus}"; then
     python -m pip install git+https://github.com/openai/whisper.git 
 else
