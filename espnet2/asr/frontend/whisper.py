@@ -11,6 +11,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 class WhisperFrontend(AbsFrontend):
     """Speech Representation Using Encoder Outputs from OpenAI's Whisper Model:
+
     URL: https://github.com/openai/whisper
     """
 
