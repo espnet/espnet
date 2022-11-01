@@ -76,7 +76,7 @@ frontend_choices = ClassChoices(
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
         fused=FusedFrontends,
-        whisper=WhisperFrontend
+        whisper=WhisperFrontend,
     ),
     type_check=AbsFrontend,
     default="default",
