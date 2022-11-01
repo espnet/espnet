@@ -58,7 +58,6 @@
 |decode_asr_asr_model_valid.acc.best/test_all|77809|1669969|54.2|38.1|7.8|4.0|49.9|99.7|
 |decode_asr_asr_model_valid.acc.best/dev_all|31622|610500|53.4|38.7|7.9|3.5|50.1|99.5|
 
-
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
