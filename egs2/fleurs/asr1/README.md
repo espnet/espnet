@@ -8,8 +8,10 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `e534106b837ff6cdd29977a52983c022ff1afb0f`
   - Commit date: `Sun Sep 11 22:31:23 2022 -0400`
+- Pretrained Model: https://huggingface.co/espnet/wanchichen_fleurs_asr_conformer_scctc
 
 ## asr_train_asr_conformer_scctc_raw_all_bpe6500_sp
+
 ### Language Identification
 |dataset|Accuracy|
 |---|---|
