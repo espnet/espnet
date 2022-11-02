@@ -38,6 +38,7 @@ g2p_choices = [
     "espeak_ng_polish",
     "g2pk",
     "g2pk_no_space",
+    "g2pk_explicit_space",
     "korean_jaso",
     "korean_jaso_no_space",
     "g2p_is",
@@ -266,12 +267,20 @@ class G2pk:
     """
 
     def __init__(
-        self, descritive=False, group_vowels=False, to_syl=False, no_space=False
+        self,
+        descritive=False,
+        group_vowels=False,
+        to_syl=False,
+        no_space=False,
+        explicit_space=False,
+        space_symbol="<space>",
     ):
         self.descritive = descritive
         self.group_vowels = group_vowels
         self.to_syl = to_syl
         self.no_space = no_space
+        self.explicit_space = explicit_space
+        self.space_symbol = space_symbol
         self.g2p = None
 
     def __call__(self, text) -> List[str]:
@@ -291,6 +300,10 @@ class G2pk:
         if self.no_space:
             # remove space which represents word serapater
             phones = list(filter(lambda s: s != " ", phones))
+
+        if self.explicit_space:
+            # replace space as explicit space symbol
+            phones = list(map(lambda s: s if s != " " else self.space_symbol, phones))
         return phones
 
 
@@ -534,6 +547,8 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = G2pk(no_space=False)
         elif g2p_type == "g2pk_no_space":
             self.g2p = G2pk(no_space=True)
+        elif g2p_type == "g2pk_explicit_space":
+            self.g2p = G2pk(explicit_space=True, space_symbol=space_symbol)
         elif g2p_type == "espeak_ng_english_us_vits":
             # VITS official implementation-like processing
             # Reference: https://github.com/jaywalnut310/vits
