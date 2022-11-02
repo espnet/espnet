@@ -968,6 +968,7 @@ class SVSPreprocessor(AbsPreprocessor):
         label_name: str = "label",
         midi_name: str = "midi",
         fs: np.int32 = 0,
+        time_shift: np.int32 = 0.0125,
         align: list = [
             "singing",
             "label_lab",
@@ -975,6 +976,12 @@ class SVSPreprocessor(AbsPreprocessor):
             "tempo_lab",
             "beat_lab",
         ],  # TODO(Tao): add to args
+        phn_seg: dict = {
+            1: [1],
+            2: [0.25, 1],
+            3: [0.1, 0.5, 1],
+            4: [0.05, 0.1, 0.5, 1],
+        },
     ):
         super().__init__(train)
         self.train = train
@@ -983,8 +990,10 @@ class SVSPreprocessor(AbsPreprocessor):
         self.label_name = label_name
         self.midi_name = midi_name
         self.fs = fs
+        self.time_shift = time_shift
         self.singing_volume_normalize = singing_volume_normalize
         self.align = align
+        self.phn_seg = phn_seg
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -1030,64 +1039,32 @@ class SVSPreprocessor(AbsPreprocessor):
             lab_len = len(text)
             text = " ".join(text)
             text = self.text_cleaner(text)
-            tokens = self.tokenizer.text2tokens(text)
-            text_ints = self.token_id_converter.tokens2ids(tokens)
+            text = text.split(" ")
+            text_ints = self.token_id_converter.tokens2ids(text)
             data.pop(self.label_name)
 
             # Load xml info
-            # TODO(Yuning): It can only work on Japanese dataset now.
-            # Syllable2phoneme mismatch and more languags settings need to be settled.
             syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
             midis = []
             xml_timeseq = []
             phn_cnt = 0
+            sp = []
             for i in range(len(syllables)):
                 # NOTE: Some phonemes are tagged differently
                 phn = self.tokenizer.text2tokens_svs(syllables[i])
+                sp.append(phn)
                 phn_num = len(phn)
+                if syllables[i] == "":  # multi note in one syllable
+                    phn_num = 1
                 phn_cnt += phn_num
                 for _ in range(phn_num):
                     midis.append(notemidis[i])
-                if phn_num == 1:
-                    xml_timeseq.append([notetimeseq[i][0], notetimeseq[i][1]])
-                elif phn_num == 2:
-                    t = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.25
-                    )
-                    xml_timeseq.append([notetimeseq[i][0], t])
-                    xml_timeseq.append([t, notetimeseq[i][1]])
-                elif phn_num == 3:
-                    t1 = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    )
-                    t2 = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
-                    )
-                    xml_timeseq.append([notetimeseq[i][0], t1])
-                    xml_timeseq.append([t1, t2])
-                    xml_timeseq.append([t2, notetimeseq[i][1]])
-                elif phn_num == 4:
-                    t1 = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.05
-                    )
-                    t2 = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.1
-                    )
-                    t3 = (
-                        notetimeseq[i][0]
-                        + (notetimeseq[i][1] - notetimeseq[i][0]) * 0.5
-                    )
-                    xml_timeseq.append([notetimeseq[i][0], t1])
-                    xml_timeseq.append([t1, t2])
-                    xml_timeseq.append([t2, t3])
-                    xml_timeseq.append([t3, notetimeseq[i][1]])
-                else:
-                    raise ValueError("Syllable to phoneme conversion error!")
+                st = notetimeseq[i][0]
+                dur = notetimeseq[i][1] - notetimeseq[i][0]
+                for k in range(phn_num):
+                    et = notetimeseq[i][0] + dur * self.phn_seg[phn_num][k]
+                    xml_timeseq.append([st, et])
+                    st = et
             assert phn_cnt == lab_len
             data.pop(self.midi_name)
 
@@ -1107,8 +1084,9 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_lab[start:end] = text_ints[i]
                 midiseq_lab[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
-                beatseq_lab[start:end] = int(beat_num * tempo + 0.5)
+                beatseq_lab[start:end] = int(
+                    (timeseq[i][1] - timeseq[i][0]) / self.time_shift + 0.5
+                )
 
             labelseq_lab.astype(np.int64)
             midiseq_lab.astype(np.int64)
@@ -1136,8 +1114,9 @@ class SVSPreprocessor(AbsPreprocessor):
                     end = nsamples
                 labelseq_xml[start:end] = text_ints[i]
                 midiseq_xml[start:end] = midis[i]
-                beat_num = (timeseq[i][1] - timeseq[i][0]) * tempo / 60
-                beatseq_xml[start:end] = int(beat_num * tempo + 0.5)
+                beatseq_xml[start:end] = int(
+                    (timeseq[i][1] - timeseq[i][0]) / self.time_shift + 0.5
+                )
 
             labelseq_xml.astype(np.int64)
             midiseq_xml.astype(np.int64)
@@ -1150,6 +1129,7 @@ class SVSPreprocessor(AbsPreprocessor):
             data["beat_xml"] = beatseq_xml
 
         if self.text_name in data and self.tokenizer is not None:
+            # FIX ME (Yuning): wrong transfer happen in pyopenjtalk
             text = data[self.text_name]
             if not isinstance(text, np.ndarray):
                 if not isinstance(text, str):
@@ -1158,7 +1138,6 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-        # TODO(Yuning) allow the tuple type
 
         # align frame length with singing
         length = min([len(data[key]) for key in data.keys() if key in self.align])
