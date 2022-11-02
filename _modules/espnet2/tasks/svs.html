@@ -156,9 +156,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>espnet2.tasks.svs</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.tasks.svs</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -213,6 +213,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.utils.griffin_lim</span> <span class="kn">import</span> <span class="n">Spectrogram2Waveform</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span><span class="p">,</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
+
+<span class="c1"># TODO(Yuning): Add singing augmentation</span>
 
 <span class="n">feats_extractor_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="s2">&quot;feats_extract&quot;</span><span class="p">,</span>
@@ -383,6 +385,7 @@
                 <span class="s2">&quot;pyopenjtalk_accent_with_pause&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pypinyin_g2p_phone_without_prosody&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">,</span>
             <span class="p">],</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -430,6 +433,8 @@
                 <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>
                 <span class="n">g2p_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span>
                 <span class="n">fs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
+                <span class="n">time_shift</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feats_extract_conf</span><span class="p">[</span><span class="s2">&quot;hop_length&quot;</span><span class="p">]</span>
+                <span class="o">/</span> <span class="n">args</span><span class="o">.</span><span class="n">feats_extract_conf</span><span class="p">[</span><span class="s2">&quot;fs&quot;</span><span class="p">],</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>

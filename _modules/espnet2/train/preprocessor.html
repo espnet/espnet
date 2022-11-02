@@ -156,9 +156,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>espnet2.train.preprocessor</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.train.preprocessor</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -1138,6 +1138,7 @@
         <span class="n">label_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;label&quot;</span><span class="p">,</span>
         <span class="n">midi_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;midi&quot;</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">time_shift</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span> <span class="o">=</span> <span class="mf">0.0125</span><span class="p">,</span>
         <span class="n">align</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;singing&quot;</span><span class="p">,</span>
             <span class="s2">&quot;label_lab&quot;</span><span class="p">,</span>
@@ -1145,6 +1146,12 @@
             <span class="s2">&quot;tempo_lab&quot;</span><span class="p">,</span>
             <span class="s2">&quot;beat_lab&quot;</span><span class="p">,</span>
         <span class="p">],</span>  <span class="c1"># TODO(Tao): add to args</span>
+        <span class="n">phn_seg</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="mi">4</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="p">},</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">train</span>
@@ -1153,8 +1160,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="o">=</span> <span class="n">label_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span> <span class="o">=</span> <span class="n">midi_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">=</span> <span class="n">time_shift</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="o">=</span> <span class="n">singing_volume_normalize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">align</span> <span class="o">=</span> <span class="n">align</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span> <span class="o">=</span> <span class="n">phn_seg</span>
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">token_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;token_list is required if token_type is not None&quot;</span><span class="p">)</span>
@@ -1200,64 +1209,32 @@
             <span class="n">lab_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_cleaner</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-            <span class="n">text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label_name</span><span class="p">)</span>
 
             <span class="c1"># Load xml info</span>
-            <span class="c1"># TODO(Yuning): It can only work on Japanese dataset now.</span>
-            <span class="c1"># Syllable2phoneme mismatch and more languags settings need to be settled.</span>
             <span class="n">syllables</span><span class="p">,</span> <span class="n">notemidis</span><span class="p">,</span> <span class="n">notetimeseq</span><span class="p">,</span> <span class="n">tempo</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span><span class="p">]</span>
             <span class="n">midis</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">xml_timeseq</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">phn_cnt</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">sp</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">syllables</span><span class="p">)):</span>
                 <span class="c1"># NOTE: Some phonemes are tagged differently</span>
                 <span class="n">phn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens_svs</span><span class="p">(</span><span class="n">syllables</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">sp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phn</span><span class="p">)</span>
                 <span class="n">phn_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">phn</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">syllables</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>  <span class="c1"># multi note in one syllable</span>
+                    <span class="n">phn_num</span> <span class="o">=</span> <span class="mi">1</span>
                 <span class="n">phn_cnt</span> <span class="o">+=</span> <span class="n">phn_num</span>
                 <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">phn_num</span><span class="p">):</span>
                     <span class="n">midis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">notemidis</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-                <span class="k">if</span> <span class="n">phn_num</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]])</span>
-                <span class="k">elif</span> <span class="n">phn_num</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                    <span class="n">t</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.25</span>
-                    <span class="p">)</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">t</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t</span><span class="p">,</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]])</span>
-                <span class="k">elif</span> <span class="n">phn_num</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-                    <span class="n">t1</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.1</span>
-                    <span class="p">)</span>
-                    <span class="n">t2</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.5</span>
-                    <span class="p">)</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">t1</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t2</span><span class="p">,</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]])</span>
-                <span class="k">elif</span> <span class="n">phn_num</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-                    <span class="n">t1</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.05</span>
-                    <span class="p">)</span>
-                    <span class="n">t2</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.1</span>
-                    <span class="p">)</span>
-                    <span class="n">t3</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="o">+</span> <span class="p">(</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">0.5</span>
-                    <span class="p">)</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">t1</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t2</span><span class="p">,</span> <span class="n">t3</span><span class="p">])</span>
-                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">t3</span><span class="p">,</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]])</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Syllable to phoneme conversion error!&quot;</span><span class="p">)</span>
+                <span class="n">st</span> <span class="o">=</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">dur</span> <span class="o">=</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">phn_num</span><span class="p">):</span>
+                    <span class="n">et</span> <span class="o">=</span> <span class="n">notetimeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">dur</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span><span class="p">[</span><span class="n">phn_num</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
+                    <span class="n">xml_timeseq</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">st</span><span class="p">,</span> <span class="n">et</span><span class="p">])</span>
+                    <span class="n">st</span> <span class="o">=</span> <span class="n">et</span>
             <span class="k">assert</span> <span class="n">phn_cnt</span> <span class="o">==</span> <span class="n">lab_len</span>
             <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span><span class="p">)</span>
 
@@ -1277,8 +1254,9 @@
                     <span class="n">end</span> <span class="o">=</span> <span class="n">nsamples</span>
                 <span class="n">labelseq_lab</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">midiseq_lab</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">midis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">beat_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">tempo</span> <span class="o">/</span> <span class="mi">60</span>
-                <span class="n">beatseq_lab</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">beat_num</span> <span class="o">*</span> <span class="n">tempo</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+                <span class="n">beatseq_lab</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">+</span> <span class="mf">0.5</span>
+                <span class="p">)</span>
 
             <span class="n">labelseq_lab</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">midiseq_lab</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
@@ -1306,8 +1284,9 @@
                     <span class="n">end</span> <span class="o">=</span> <span class="n">nsamples</span>
                 <span class="n">labelseq_xml</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">midiseq_xml</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">midis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">beat_num</span> <span class="o">=</span> <span class="p">(</span><span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">tempo</span> <span class="o">/</span> <span class="mi">60</span>
-                <span class="n">beatseq_xml</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">beat_num</span> <span class="o">*</span> <span class="n">tempo</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+                <span class="n">beatseq_xml</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">timeseq</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">+</span> <span class="mf">0.5</span>
+                <span class="p">)</span>
 
             <span class="n">labelseq_xml</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">midiseq_xml</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
@@ -1320,6 +1299,7 @@
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_xml&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatseq_xml</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_name</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># FIX ME (Yuning): wrong transfer happen in pyopenjtalk</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -1328,7 +1308,6 @@
                 <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
                 <span class="n">_text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
                 <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_text_ints</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="c1"># TODO(Yuning) allow the tuple type</span>
 
         <span class="c1"># align frame length with singing</span>
         <span class="n">length</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">align</span><span class="p">])</span>

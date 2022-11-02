@@ -156,9 +156,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>espnet2.svs.espnet_model</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.svs.espnet_model</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -432,13 +432,13 @@
 
                 <span class="c1"># Extract Syllable Level label, midi, tempo, beat from Frame Level</span>
                 <span class="p">(</span>
-                    <span class="n">label_lab_after</span><span class="p">,</span>
+                    <span class="n">_label_lab_after</span><span class="p">,</span>
                     <span class="n">label_lab_lengths_after</span><span class="p">,</span>
-                    <span class="n">midi_lab_after</span><span class="p">,</span>
+                    <span class="n">_midi_lab_after</span><span class="p">,</span>
                     <span class="n">midi_lab_lengths_after</span><span class="p">,</span>
-                    <span class="n">tempo_lab_after</span><span class="p">,</span>
+                    <span class="n">_tempo_lab_after</span><span class="p">,</span>
                     <span class="n">tempo_lab_lengths_after</span><span class="p">,</span>
-                    <span class="n">beat_lab_after</span><span class="p">,</span>
+                    <span class="n">_beat_lab_after</span><span class="p">,</span>
                     <span class="n">beat_lab_lengths_after</span><span class="p">,</span>
                 <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_feats_extract</span><span class="p">(</span>
                     <span class="n">label</span><span class="o">=</span><span class="n">labelFrame_lab</span><span class="p">,</span>
@@ -502,9 +502,65 @@
                 <span class="c1"># calculate durations for feature mapping</span>
                 <span class="c1"># Syllable Level duration info needs phone &amp; midi</span>
                 <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">l1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_label_lab_after</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">l1</span><span class="p">):</span>
+                    <span class="n">end_index</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                    <span class="k">while</span> <span class="p">(</span>
+                        <span class="n">end_index</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                        <span class="ow">and</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                        <span class="ow">and</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="p">):</span>
+                        <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">midi_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">tempo_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">beat_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">end_index</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">end_index</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                    <span class="k">while</span> <span class="p">(</span>
+                        <span class="n">end_index</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                        <span class="ow">and</span> <span class="n">_label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                        <span class="ow">and</span> <span class="n">_midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="p">):</span>
+                        <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                        <span class="n">end_index</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="k">assert</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+                <span class="n">l2</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+                <span class="n">label_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">label_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_label_lab_after</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="p">:</span> <span class="n">label_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="p">]</span>
+                <span class="n">midi_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">midi_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_midi_lab_after</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="p">:</span> <span class="n">midi_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="p">]</span>
+                <span class="n">tempo_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">tempo_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_tempo_lab_after</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="p">:</span> <span class="n">tempo_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="p">]</span>
+                <span class="n">beat_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">beat_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">beat_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_beat_lab_after</span><span class="p">[</span>
+                    <span class="p">:,</span> <span class="p">:</span> <span class="n">beat_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="p">]</span>
+
                 <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labelFrame_lab_lengths</span><span class="p">):</span>
                     <span class="k">assert</span> <span class="n">labelFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midiFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                     <span class="k">assert</span> <span class="n">label_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midi_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">assert</span> <span class="n">labelFrame_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midiFrame_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="k">assert</span> <span class="n">label_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midi_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
                     <span class="n">frame_length</span> <span class="o">=</span> <span class="n">labelFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                     <span class="n">_phoneFrame</span> <span class="o">=</span> <span class="n">labelFrame_lab</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">frame_length</span><span class="p">]</span>
@@ -516,9 +572,9 @@
                             <span class="n">frame_length</span> <span class="o">-=</span> <span class="mi">1</span>
                             <span class="n">feats_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
 
-                    <span class="n">syllable_length</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                    <span class="n">_phoneSyllable</span> <span class="o">=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
-                    <span class="n">_midiSyllable</span> <span class="o">=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
+                    <span class="n">syllable_length</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                    <span class="n">_phoneSyllable</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
+                    <span class="n">_midiSyllable</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
 
                     <span class="n">start_index</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="n">ds_tmp</span> <span class="o">=</span> <span class="p">[]</span>
@@ -528,64 +584,47 @@
                         <span class="n">_findMidi</span> <span class="o">=</span> <span class="n">_midiSyllable</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
                         <span class="n">_length</span> <span class="o">=</span> <span class="mi">0</span>
                         <span class="k">if</span> <span class="n">flag_finish</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                            <span class="c1"># Remove unused note(label = 0, midi = 0)</span>
-                            <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-                                <span class="k">assert</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                <span class="k">assert</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                            <span class="c1"># Fix error in _phoneSyllable &amp; _midiSyllable</span>
-                            <span class="k">assert</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                            <span class="k">assert</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                            <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                            <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                            <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                            <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                            <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                            <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                            <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                            <span class="n">midi_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                            <span class="n">tempo_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                            <span class="n">beat_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">syllable_length</span> <span class="o">-</span> <span class="n">index</span><span class="p">):</span>
+                                <span class="n">ds_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">)</span> <span class="o">==</span> <span class="n">syllable_length</span>
                         <span class="k">else</span><span class="p">:</span>
-                            <span class="k">if</span> <span class="p">(</span>
-                                <span class="n">_findPhone</span> <span class="o">!=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
-                                <span class="ow">or</span> <span class="n">_findMidi</span> <span class="o">!=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span>
+                                <span class="n">index</span> <span class="o">&lt;</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                                <span class="ow">and</span> <span class="p">(</span>
+                                    <span class="n">_findPhone</span> <span class="o">!=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                    <span class="ow">or</span> <span class="n">_findMidi</span> <span class="o">!=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="p">)</span>
                             <span class="p">):</span>
-                                <span class="k">for</span> <span class="n">xml_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                    <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                                <span class="c1"># If duration is too short,</span>
+                                <span class="c1"># add missing phone into label_lab sequence</span>
+                                <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="k">assert</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span>
+                                    <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                                <span class="p">)</span>
+                                <span class="k">for</span> <span class="n">lab_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                                    <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
                                 <span class="p">):</span>
-                                    <span class="k">if</span> <span class="p">(</span>
-                                        <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_start</span><span class="p">]</span>
-                                        <span class="ow">and</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_start</span><span class="p">]</span>
-                                    <span class="p">):</span>
-                                        <span class="n">delta</span> <span class="o">=</span> <span class="n">xml_start</span> <span class="o">-</span> <span class="n">index</span>
-                                        <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                            <span class="n">index</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">delta</span>
-                                        <span class="p">):</span>
-                                            <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
-                                                <span class="n">xml_index</span>
-                                            <span class="p">]</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                            <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
-                                                <span class="n">xml_index</span>
-                                            <span class="p">]</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                            <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
-                                                <span class="n">xml_index</span>
-                                            <span class="p">]</span> <span class="o">=</span> <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                            <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
-                                                <span class="n">xml_index</span>
-                                            <span class="p">]</span> <span class="o">=</span> <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                        <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                            <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">delta</span><span class="p">,</span>
-                                            <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                        <span class="p">):</span>
-                                            <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                            <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                            <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                            <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                        <span class="k">break</span>
-                                <span class="k">assert</span> <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
-                                <span class="k">assert</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                    <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                        <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                    <span class="p">]</span>
+                                    <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                        <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                    <span class="p">]</span>
+                                    <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                        <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                    <span class="p">]</span>
+                                    <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                        <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                    <span class="p">]</span>
+                                <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="k">assert</span> <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="k">assert</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
                             <span class="k">for</span> <span class="n">indexFrame</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_index</span><span class="p">,</span> <span class="n">frame_length</span><span class="p">):</span>
                                 <span class="k">if</span> <span class="p">(</span>
                                     <span class="n">_phoneFrame</span><span class="p">[</span><span class="n">indexFrame</span><span class="p">]</span> <span class="o">==</span> <span class="n">_findPhone</span>
@@ -600,26 +639,6 @@
                                     <span class="n">flag_finish</span> <span class="o">=</span> <span class="mi">1</span>
                                     <span class="n">ds_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_length</span><span class="p">)</span>
                                     <span class="n">start_index</span> <span class="o">=</span> <span class="n">indexFrame</span>
-                                    <span class="k">if</span> <span class="n">syllable_length</span> <span class="o">&lt;</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-                                        <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                            <span class="n">syllable_length</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                        <span class="p">):</span>
-                                            <span class="k">assert</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                            <span class="k">assert</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                            <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                            <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                        <span class="n">label_xml_lengths_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                        <span class="n">midi_xml_lengths_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                        <span class="n">tempo_xml_lengths_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                        <span class="n">beat_xml_lengths_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                                     <span class="k">break</span>
                     <span class="k">assert</span> <span class="p">(</span>
                         <span class="nb">sum</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">)</span> <span class="o">==</span> <span class="n">frame_length</span> <span class="ow">and</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">)</span> <span class="o">==</span> <span class="n">feats_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -628,7 +647,17 @@
                     <span class="n">ds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">))</span>
                 <span class="n">ds</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label_lab_after</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-            <span class="c1">#</span>
+                <span class="n">label_lab_after</span> <span class="o">=</span> <span class="n">label_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">midi_lab_after</span> <span class="o">=</span> <span class="n">midi_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">tempo_lab_after</span> <span class="o">=</span> <span class="n">tempo_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">beat_lab_after</span> <span class="o">=</span> <span class="n">beat_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">beat_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+                <span class="n">label_xml_after</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">midi_xml_after</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">tempo_xml_after</span> <span class="o">=</span> <span class="n">tempo_xml_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">beat_xml_after</span> <span class="o">=</span> <span class="n">beat_xml_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">beat_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+            <span class="c1"># TODO(Yuning): pitch_extract hasn&#39;t been tested</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
                     <span class="nb">input</span><span class="o">=</span><span class="n">singing</span><span class="p">,</span>
@@ -1016,13 +1045,13 @@
 
             <span class="c1"># Extract Syllable Level label, midi, tempo, beat from Frame Level</span>
             <span class="p">(</span>
-                <span class="n">label_lab_after</span><span class="p">,</span>
+                <span class="n">_label_lab_after</span><span class="p">,</span>
                 <span class="n">label_lab_lengths_after</span><span class="p">,</span>
-                <span class="n">midi_lab_after</span><span class="p">,</span>
+                <span class="n">_midi_lab_after</span><span class="p">,</span>
                 <span class="n">midi_lab_lengths_after</span><span class="p">,</span>
-                <span class="n">tempo_lab_after</span><span class="p">,</span>
+                <span class="n">_tempo_lab_after</span><span class="p">,</span>
                 <span class="n">tempo_lab_lengths_after</span><span class="p">,</span>
-                <span class="n">beat_lab_after</span><span class="p">,</span>
+                <span class="n">_beat_lab_after</span><span class="p">,</span>
                 <span class="n">beat_lab_lengths_after</span><span class="p">,</span>
             <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_feats_extract</span><span class="p">(</span>
                 <span class="n">label</span><span class="o">=</span><span class="n">labelFrame_lab</span><span class="p">,</span>
@@ -1086,9 +1115,65 @@
             <span class="c1"># calculate durations, represent syllable encoder outputs to feats mapping</span>
             <span class="c1"># Syllable Level duration info needs phone &amp; midi</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">l1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_label_lab_after</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">l1</span><span class="p">):</span>
+                <span class="n">end_index</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">while</span> <span class="p">(</span>
+                    <span class="n">end_index</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="p">):</span>
+                    <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">midi_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">tempo_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">beat_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">end_index</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="n">end_index</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">while</span> <span class="p">(</span>
+                    <span class="n">end_index</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">_label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">_midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">end_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="p">):</span>
+                    <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+                    <span class="n">end_index</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">assert</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="n">l2</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+            <span class="n">label_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">label_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_label_lab_after</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="p">:</span> <span class="n">label_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">midi_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">midi_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_midi_lab_after</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="p">:</span> <span class="n">midi_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">tempo_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">tempo_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_tempo_lab_after</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="p">:</span> <span class="n">tempo_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="p">]</span>
+            <span class="n">beat_lab_after</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">label_xml_after</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">beat_lab_after</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">beat_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span> <span class="o">=</span> <span class="n">_beat_lab_after</span><span class="p">[</span>
+                <span class="p">:,</span> <span class="p">:</span> <span class="n">beat_lab_lengths_after</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+            <span class="p">]</span>
+
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labelFrame_lab_lengths</span><span class="p">):</span>
                 <span class="k">assert</span> <span class="n">labelFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midiFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="k">assert</span> <span class="n">label_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midi_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="n">labelFrame_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midiFrame_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="n">label_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">midi_xml_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
 
                 <span class="n">frame_length</span> <span class="o">=</span> <span class="n">labelFrame_lab_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
                 <span class="n">_phoneFrame</span> <span class="o">=</span> <span class="n">labelFrame_lab</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">frame_length</span><span class="p">]</span>
@@ -1099,9 +1184,9 @@
                     <span class="k">if</span> <span class="n">_phoneFrame</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">_midiFrame</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                         <span class="n">frame_length</span> <span class="o">-=</span> <span class="mi">1</span>
 
-                <span class="n">syllable_length</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                <span class="n">_phoneSyllable</span> <span class="o">=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
-                <span class="n">_midiSyllable</span> <span class="o">=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
+                <span class="n">syllable_length</span> <span class="o">=</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">_phoneSyllable</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
+                <span class="n">_midiSyllable</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">syllable_length</span><span class="p">]</span>
 
                 <span class="n">start_index</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">ds_tmp</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1111,64 +1196,45 @@
                     <span class="n">_findMidi</span> <span class="o">=</span> <span class="n">_midiSyllable</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
                     <span class="n">_length</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="k">if</span> <span class="n">flag_finish</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                        <span class="c1"># Remove unused note(label = 0, midi = 0)</span>
-                        <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-                            <span class="k">assert</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                            <span class="k">assert</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                            <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                            <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="c1"># Fix error in _phoneSyllable &amp; _midiSyllable</span>
-                        <span class="k">assert</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                        <span class="k">assert</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                        <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                        <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                        <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                        <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                        <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
-                        <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="n">midi_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="n">tempo_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="n">beat_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">syllable_length</span> <span class="o">-</span> <span class="n">index</span><span class="p">):</span>
+                            <span class="n">ds_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">)</span> <span class="o">==</span> <span class="n">syllable_length</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="p">(</span>
-                            <span class="n">_findPhone</span> <span class="o">!=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
-                            <span class="ow">or</span> <span class="n">_findMidi</span> <span class="o">!=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span>
+                            <span class="n">index</span> <span class="o">&lt;</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                            <span class="ow">and</span> <span class="p">(</span>
+                                <span class="n">_findPhone</span> <span class="o">!=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="ow">or</span> <span class="n">_findMidi</span> <span class="o">!=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="p">)</span>
                         <span class="p">):</span>
-                            <span class="k">for</span> <span class="n">xml_start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+                            <span class="c1"># If duration is too short,</span>
+                            <span class="c1"># add missing phone into label_lab sequence</span>
+                            <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="n">midi_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="n">beat_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">assert</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                            <span class="k">for</span> <span class="n">lab_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                                <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
                             <span class="p">):</span>
-                                <span class="k">if</span> <span class="p">(</span>
-                                    <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_start</span><span class="p">]</span>
-                                    <span class="ow">and</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_start</span><span class="p">]</span>
-                                <span class="p">):</span>
-                                    <span class="n">delta</span> <span class="o">=</span> <span class="n">xml_start</span> <span class="o">-</span> <span class="n">index</span>
-                                    <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                        <span class="n">index</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">delta</span>
-                                    <span class="p">):</span>
-                                        <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                        <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                        <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_xml_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                        <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_xml_after</span><span class="p">[</span>
-                                            <span class="n">i</span>
-                                        <span class="p">][</span><span class="n">xml_index</span> <span class="o">+</span> <span class="n">delta</span><span class="p">]</span>
-                                    <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                        <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">delta</span><span class="p">,</span>
-                                        <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                                    <span class="p">):</span>
-                                        <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                        <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                        <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                        <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-                                    <span class="k">break</span>
-                            <span class="k">assert</span> <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
-                            <span class="k">assert</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                                <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                    <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                <span class="p">]</span>
+                                <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                    <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                <span class="p">]</span>
+                                <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                    <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                <span class="p">]</span>
+                                <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">lab_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span>
+                                    <span class="n">lab_index</span> <span class="o">-</span> <span class="mi">1</span>
+                                <span class="p">]</span>
+                            <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="n">tempo_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="n">beat_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="k">assert</span> <span class="n">_findPhone</span> <span class="o">==</span> <span class="n">label_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
+                            <span class="k">assert</span> <span class="n">_findMidi</span> <span class="o">==</span> <span class="n">midi_lab_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">index</span><span class="p">]</span>
                         <span class="k">for</span> <span class="n">indexFrame</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_index</span><span class="p">,</span> <span class="n">frame_length</span><span class="p">):</span>
                             <span class="k">if</span> <span class="p">(</span>
                                 <span class="n">_phoneFrame</span><span class="p">[</span><span class="n">indexFrame</span><span class="p">]</span> <span class="o">==</span> <span class="n">_findPhone</span>
@@ -1183,26 +1249,6 @@
                                 <span class="n">flag_finish</span> <span class="o">=</span> <span class="mi">1</span>
                                 <span class="n">ds_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_length</span><span class="p">)</span>
                                 <span class="n">start_index</span> <span class="o">=</span> <span class="n">indexFrame</span>
-                                <span class="k">if</span> <span class="n">syllable_length</span> <span class="o">&lt;</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-                                    <span class="k">for</span> <span class="n">xml_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
-                                        <span class="n">syllable_length</span><span class="p">,</span> <span class="n">label_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                    <span class="p">):</span>
-                                        <span class="k">assert</span> <span class="n">label_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                        <span class="k">assert</span> <span class="n">midi_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                        <span class="n">tempo_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                        <span class="n">beat_xml_after</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">xml_index</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-                                    <span class="n">label_xml_lengths_after</span><span class="p">[</span>
-                                        <span class="n">i</span>
-                                    <span class="p">]</span> <span class="o">=</span> <span class="n">label_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                    <span class="n">midi_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi_lab_lengths_after</span><span class="p">[</span>
-                                        <span class="n">i</span>
-                                    <span class="p">]</span>
-                                    <span class="n">tempo_xml_lengths_after</span><span class="p">[</span>
-                                        <span class="n">i</span>
-                                    <span class="p">]</span> <span class="o">=</span> <span class="n">tempo_lab_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                                    <span class="n">beat_xml_lengths_after</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_lab_lengths_after</span><span class="p">[</span>
-                                        <span class="n">i</span>
-                                    <span class="p">]</span>
                                 <span class="k">break</span>
                 <span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ds_tmp</span><span class="p">)</span> <span class="o">==</span> <span class="n">frame_length</span>
 

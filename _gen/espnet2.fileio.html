@@ -169,8 +169,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>espnet2.fileio package</li>
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">espnet2.fileio package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.fileio.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -356,6 +356,12 @@ The difference including:
 <section id="espnet2-fileio-xml-scp">
 <span id="id5"></span><h2>espnet2.fileio.xml_scp<a class="headerlink" href="#espnet2-fileio-xml-scp" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.xml_scp"></span><dl class="class">
+<dt id="espnet2.fileio.xml_scp.NOTE">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">NOTE</code><span class="sig-paren">(</span><em class="sig-param">lyric</em>, <em class="sig-param">pitch</em>, <em class="sig-param">st</em>, <em class="sig-param">et</em>, <em class="sig-param">dur</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#NOTE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.NOTE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.fileio.xml_scp.XMLScpReader">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">XMLScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
@@ -378,6 +384,34 @@ key4 /some/path/d.xml
 <dl class="method">
 <dt id="espnet2.fileio.xml_scp.XMLScpReader.keys">
 <code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.fileio.xml_scp.XMLScpWriter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">XMLScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Writer class for ‘midi.scp’</p>
+<p class="rubric">Examples</p>
+<p>key1 /some/path/a.musicxml
+key2 /some/path/b.musicxml
+key3 /some/path/c.musicxml
+key4 /some/path/d.musicxml
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">XMLScpWriter</span><span class="p">(</span><span class="s1">&#39;./data/&#39;</span><span class="p">,</span> <span class="s1">&#39;./data/xml.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xml_obj</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;bb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xml_obj</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.xml_scp.XMLScpWriter.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.xml_scp.XMLScpWriter.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter.get_path" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

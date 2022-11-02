@@ -156,9 +156,9 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
-      <li>espnet2.text.phoneme_tokenizer</li>
+      <li><a href="../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.text.phoneme_tokenizer</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -191,6 +191,7 @@
     <span class="s2">&quot;pyopenjtalk_prosody&quot;</span><span class="p">,</span>
     <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">,</span>
     <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pypinyin_g2p_phone_without_prosody&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_german&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_french&quot;</span><span class="p">,</span>
@@ -378,6 +379,27 @@
         <span class="c1"># Remove the case of individual tones as a phoneme</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
     <span class="p">]</span>
+    <span class="k">return</span> <span class="n">phones</span></div>
+
+
+<div class="viewcode-block" id="pypinyin_g2p_phone_without_prosody"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone_without_prosody">[docs]</a><span class="k">def</span> <span class="nf">pypinyin_g2p_phone_without_prosody</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="kn">from</span> <span class="nn">pypinyin</span> <span class="kn">import</span> <span class="n">Style</span><span class="p">,</span> <span class="n">pinyin</span>
+    <span class="kn">from</span> <span class="nn">pypinyin.style._utils</span> <span class="kn">import</span> <span class="n">get_finals</span><span class="p">,</span> <span class="n">get_initials</span>
+
+    <span class="n">phones</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">phone</span> <span class="ow">in</span> <span class="n">pinyin</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">Style</span><span class="o">.</span><span class="n">NORMAL</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">initial</span> <span class="o">=</span> <span class="n">get_initials</span><span class="p">(</span><span class="n">phone</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">get_finals</span><span class="p">(</span><span class="n">phone</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">initial</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">initial</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;un&quot;</span><span class="p">:</span>
+                    <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;vn&quot;</span>
+                <span class="k">elif</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;uan&quot;</span><span class="p">:</span>
+                    <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;van&quot;</span>
+            <span class="k">if</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;ue&quot;</span><span class="p">:</span>
+                <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;ve&quot;</span>
+        <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">phones</span></div>
 
 
@@ -605,6 +627,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pypinyin_g2p</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pypinyin_g2p_phone</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pypinyin_g2p_phone_without_prosody&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pypinyin_g2p_phone_without_prosody</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
                 <span class="n">language</span><span class="o">=</span><span class="s2">&quot;ar&quot;</span><span class="p">,</span>
