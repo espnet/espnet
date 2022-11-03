@@ -1,0 +1,16 @@
+grad_clip: 5.0
+batch_type: folded
+batch_size: 256
+optim: adam
+optim_conf:
+    lr: 0.1
+lm: seq_rnn
+lm_conf:
+    unit: 650
+    nlayers: 2
+
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
