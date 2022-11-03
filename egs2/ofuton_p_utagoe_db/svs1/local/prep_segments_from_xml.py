@@ -112,7 +112,7 @@ def make_segment(file_id, labels, tempo, threshold=13.5):
         segment.add(label.start, label.end, label.label_id, label.note)
         # Split by breath mark
         for arti in label.note.articulations:
-            if arti.name == "breath mark":
+            if arti.name in ["breath mark", "up bow"]:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
 
