@@ -79,7 +79,7 @@ frontend: s3prl
 frontend_conf:
     frontend_conf:
         upstream: wav2vec2_url  # Note: If the upstream is changed, please change the input_size in the preencoder.
-        upstream_ckpt: https://dl.fbaipublicfiles.com/fairseq/wav2vec/xlsr2_300m.pt
+        path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
     download_dir: ./hub
     multilayer_feature: True
 
