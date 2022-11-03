@@ -26,11 +26,11 @@ train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
 # text related processing arguments
-g2p=pyopenjtalk
+g2p=pypinyin_g2p_phone_without_prosody
 cleaner=none
 
 ./svs.sh \
-    --lang jp \
+    --lang zh \
     --local_data_opts "--stage 0" \
     --feats_type raw \
     --pitch_extract None \
