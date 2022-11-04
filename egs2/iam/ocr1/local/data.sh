@@ -32,6 +32,10 @@ data_dir=data/
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Stage 1.1: Downloading the IAM Handwriting dataset with username ${iam_username} and password ${iam_password}"
+    if [ -z "${IAM}" ]; then
+        log "Fill the value of 'IAM' of db.sh"
+        exit 1
+    fi
     mkdir -p ${IAM}
     local/download_and_untar.sh ${IAM} ${iam_username} ${iam_password}
 fi
