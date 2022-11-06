@@ -3,9 +3,9 @@
 
 """E-Branchformer encoder definition.
 Reference:
-    Kwangyoun Kim, Felix Wu, Yifan Peng, Jing Pan, 
+    Kwangyoun Kim, Felix Wu, Yifan Peng, Jing Pan,
     Prashant Sridhar, Kyu J. Han, Shinji Watanabe,
-    "E-Branchformer: Branchformer with Enhanced merging 
+    "E-Branchformer: Branchformer with Enhanced merging
     for speech recognition," in SLT 2022.
 """
 
@@ -32,8 +32,6 @@ from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
@@ -55,11 +53,8 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         attn: standard self-attention or efficient attention, optional
         cgmlp: ConvolutionalGatingMLP, optional
         dropout_rate (float): dropout probability
-        merge_method (str): concat, learned_ave, fixed_ave
-        cgmlp_weight (float): weight of the cgmlp branch, between 0 and 1,
-            used if merge_method is fixed_ave
-        attn_branch_drop_rate (float): probability of dropping the attn branch,
-            used if merge_method is learned_ave
+        merge_conv_kernel (int): kernel size of the depth-wise convolution in the merge module
+        merge_stride (int): stride size of the depth-wise convolution in the merge module
     """
 
     def __init__(
@@ -70,9 +65,6 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         feed_forward: Optional[torch.nn.Module],
         feed_forward_macaron: Optional[torch.nn.Module],
         dropout_rate: float,
-        merge_method: str,
-        cgmlp_weight: float = 0.5,
-        attn_branch_drop_rate: float = 0.0,
         merge_conv_kernel: int = 3,
         merge_stride: int = 1,
     ):
@@ -84,10 +76,6 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         self.size = size
         self.attn = attn
         self.cgmlp = cgmlp
-        self.merge_method = merge_method
-        self.cgmlp_weight = cgmlp_weight
-        self.attn_branch_drop_rate = attn_branch_drop_rate
-        self.use_two_branches = (attn is not None) and (cgmlp is not None)
 
         self.feed_forward = feed_forward
         self.feed_forward_macaron = feed_forward_macaron
@@ -106,63 +94,16 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 
-        if self.use_two_branches:
-            if merge_method == "concat":
-                self.merge_proj = torch.nn.Linear(size + size, size)
-
-            elif merge_method == "concat_conv":
-                self.depthwise_conv_fusion = torch.nn.Conv1d(
-                        size + size,
-                        size + size,
-                        kernel_size=merge_conv_kernel,
-                        stride=merge_stride,
-                        padding=(merge_conv_kernel - 1) // 2,
-                        groups=size + size,
-                        bias=True,
-                )
-                self.merge_proj = torch.nn.Linear(size + size, size)
-
-            elif merge_method == "learned_ave":
-                # attention-based pooling for two branches
-                self.pooling_proj1 = torch.nn.Linear(size, 1)
-                self.pooling_proj2 = torch.nn.Linear(size, 1)
-
-                # linear projections for calculating merging weights
-                self.weight_proj1 = torch.nn.Linear(size, 1)
-                self.weight_proj2 = torch.nn.Linear(size, 1)
-
-                # linear projection after weighted average
-                self.merge_proj = torch.nn.Linear(size, size)
-
-            elif merge_method == "fixed_ave":
-                assert (
-                    0.0 <= cgmlp_weight <= 1.0
-                ), "cgmlp weight should be between 0.0 and 1.0"
-
-                # remove the other branch if only one branch is used
-                if cgmlp_weight == 0.0:
-                    self.use_two_branches = False
-                    self.cgmlp = None
-                    self.norm_mlp = None
-                elif cgmlp_weight == 1.0:
-                    self.use_two_branches = False
-                    self.attn = None
-                    self.norm_mha = None
-
-                # linear projection after weighted average
-                self.merge_proj = torch.nn.Linear(size, size)
-
-            elif merge_method == "learned_scalar_ave":
-                self.attn_weight = nn.Parameter(torch.Tensor(1))
-                self.cgmlp_weight = nn.Parameter(torch.Tensor(1))
-
-                self.merge_proj = torch.nn.Linear(size, size)
-
-            else:
-                raise ValueError(f"unknown merge method: {merge_method}")
-
-        else:
-            self.merge_proj = torch.nn.Identity()
+        self.depthwise_conv_fusion = torch.nn.Conv1d(
+                size + size,
+                size + size,
+                kernel_size=merge_conv_kernel,
+                stride=merge_stride,
+                padding=(merge_conv_kernel - 1) // 2,
+                groups=size + size,
+                bias=True,
+        )
+        self.merge_proj = torch.nn.Linear(size + size, size)
 
     def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
@@ -221,95 +162,11 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             x2 = self.dropout(x2)
 
         # Merge two branches
-        if self.use_two_branches:
-            if self.merge_method == "concat":
-                x = x + self.dropout(self.merge_proj(torch.cat([x1, x2], dim=-1)))
-            elif self.merge_method == "concat_conv":
-                x_concat = torch.cat([x1, x2], dim=-1)
-                x_tmp = x_concat.transpose(1, 2)
-                x_tmp = self.depthwise_conv_fusion(x_tmp)
-                x_tmp = x_tmp.transpose(1, 2)
-                x = x + self.dropout(self.merge_proj(x_concat + x_tmp))
-
-            elif self.merge_method == "learned_ave":
-                if (
-                    self.training
-                    and self.attn_branch_drop_rate > 0
-                    and torch.rand(1).item() < self.attn_branch_drop_rate
-                ):
-                    # Drop the attn branch
-                    w1, w2 = 0.0, 1.0
-                else:
-                    # branch1
-                    score1 = (
-                        self.pooling_proj1(x1).transpose(1, 2) / self.size**0.5
-                    )  # (batch, 1, time)
-                    if mask is not None:
-                        min_value = float(
-                            numpy.finfo(
-                                torch.tensor(0, dtype=score1.dtype).numpy().dtype
-                            ).min
-                        )
-                        score1 = score1.masked_fill(mask.eq(0), min_value)
-                        score1 = torch.softmax(score1, dim=-1).masked_fill(
-                            mask.eq(0), 0.0
-                        )
-                    else:
-                        score1 = torch.softmax(score1, dim=-1)
-                    pooled1 = torch.matmul(score1, x1).squeeze(1)  # (batch, size)
-                    weight1 = self.weight_proj1(pooled1)  # (batch, 1)
-
-                    # branch2
-                    score2 = (
-                        self.pooling_proj2(x2).transpose(1, 2) / self.size**0.5
-                    )  # (batch, 1, time)
-                    if mask is not None:
-                        min_value = float(
-                            numpy.finfo(
-                                torch.tensor(0, dtype=score2.dtype).numpy().dtype
-                            ).min
-                        )
-                        score2 = score2.masked_fill(mask.eq(0), min_value)
-                        score2 = torch.softmax(score2, dim=-1).masked_fill(
-                            mask.eq(0), 0.0
-                        )
-                    else:
-                        score2 = torch.softmax(score2, dim=-1)
-                    pooled2 = torch.matmul(score2, x2).squeeze(1)  # (batch, size)
-                    weight2 = self.weight_proj2(pooled2)  # (batch, 1)
-
-                    # normalize weights of two branches
-                    merge_weights = torch.softmax(
-                        torch.cat([weight1, weight2], dim=-1), dim=-1
-                    )  # (batch, 2)
-                    merge_weights = merge_weights.unsqueeze(-1).unsqueeze(
-                        -1
-                    )  # (batch, 2, 1, 1)
-                    w1, w2 = merge_weights[:, 0], merge_weights[:, 1]  # (batch, 1, 1)
-
-                x = x + self.dropout(self.merge_proj(w1 * x1 + w2 * x2))
-            elif self.merge_method == "fixed_ave":
-                x = x + self.dropout(
-                    self.merge_proj(
-                        (1.0 - self.cgmlp_weight) * x1 + self.cgmlp_weight * x2
-                    )
-                )
-            elif self.merge_method == "learned_scalar_ave":
-                x = x + self.dropout(
-                    self.merge_proj(
-                        self.att_weight * x1 + self.cgmlp_weight * x2
-                    )
-                )
-            else:
-                raise RuntimeError(f"unknown merge method: {self.merge_method}")
-        else:
-            if self.attn is None:
-                x = x + self.dropout(self.merge_proj(x2))
-            elif self.cgmlp is None:
-                x = x + self.dropout(self.merge_proj(x1))
-            else:
-                # This should not happen
-                raise RuntimeError("Both branches are not None, which is unexpected.")
+        x_concat = torch.cat([x1, x2], dim=-1)
+        x_tmp = x_concat.transpose(1, 2)
+        x_tmp = self.depthwise_conv_fusion(x_tmp)
+        x_tmp = x_tmp.transpose(1, 2)
+        x = x + self.dropout(self.merge_proj(x_concat + x_tmp))
 
         if self.feed_forward is not None:
             # feed forward module
@@ -342,9 +199,6 @@ class EBranchformerEncoder(AbsEncoder):
         cgmlp_conv_kernel: int = 31,
         use_linear_after_conv: bool = False,
         gate_activation: str = "identity",
-        merge_method: str = "concat",
-        cgmlp_weight: Union[float, List[float]] = 0.5,
-        attn_branch_drop_rate: Union[float, List[float]] = 0.0,
         num_blocks: int = 12,
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
@@ -455,22 +309,6 @@ class EBranchformerEncoder(AbsEncoder):
                 dropout_rate,
                 activation,
             )
-        elif positionwise_layer_type == "conv1d":
-            positionwise_layer = MultiLayeredConv1d
-            positionwise_layer_args = (
-                output_size,
-                linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
-        elif positionwise_layer_type == "conv1d-linear":
-            positionwise_layer = Conv1dLinear
-            positionwise_layer_args = (
-                output_size,
-                linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
         elif positionwise_layer_type is None:
             logging.warning("no macaron ffn")
         else:
@@ -524,22 +362,6 @@ class EBranchformerEncoder(AbsEncoder):
             gate_activation,
         )
 
-        if isinstance(cgmlp_weight, float):
-            cgmlp_weight = [cgmlp_weight] * num_blocks
-        if len(cgmlp_weight) != num_blocks:
-            raise ValueError(
-                f"Length of cgmlp_weight ({len(cgmlp_weight)}) should be equal to "
-                f"num_blocks ({num_blocks})"
-            )
-
-        if isinstance(attn_branch_drop_rate, float):
-            attn_branch_drop_rate = [attn_branch_drop_rate] * num_blocks
-        if len(attn_branch_drop_rate) != num_blocks:
-            raise ValueError(
-                f"Length of attn_branch_drop_rate ({len(attn_branch_drop_rate)}) "
-                f"should be equal to num_blocks ({num_blocks})"
-            )
-
         self.encoders = repeat(
             num_blocks,
             lambda lnum: EBranchformerEncoderLayer(
@@ -551,9 +373,6 @@ class EBranchformerEncoder(AbsEncoder):
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
                 positionwise_layer(*positionwise_layer_args) if use_ffn and macaron_ffn else None,
                 dropout_rate,
-                merge_method,
-                cgmlp_weight[lnum],
-                attn_branch_drop_rate[lnum],
                 merge_conv_kernel,
                 merge_stride,
             ),
