@@ -28,13 +28,12 @@ db_root=${TALROMUR2}
 
 full_set=full
 train_set=train
-deveval_set=deveval
 dev_set=dev
 eval_set=eval1
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
-    if [ ${db_root}=="downloads" ]; then
+    if [ ${db_root} == "downloads" ]; then
         log "Non-default db root provided, skipping download..."
     else
         ./local/data_download.sh "${db_root}"
@@ -60,7 +59,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # make scp, utt2spk, and spk2utt
     find ${db_root}/s* -follow -name "*.wav" | sort | while read -r filename;do
-        spk_id=$(basename $(dirname $(dirname ${filename})))
+        spk_dir=$(dirname ${filename})
+        spk_id=$(basename "$(dirname ${spk_dir})")
         id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         echo "${id} ${filename}" >> ${scp}
         echo "${id} ${spk_id}" >> ${utt2spk}
@@ -79,7 +79,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         find ${db_root}/alignments/ -name "*.TextGrid" -type f | while read -r filepath;do
             #filepath is .../<spk_id>/<filename>
             FULLPATH=$(realpath ${filepath})
-            spk_id=$(basename $(dirname ${filepath}))
+            spk_id=$(basename "$(dirname ${filepath})")
             filename=$(basename $filepath)
             if [ ! -e data/alignments/$filename ]; then
                 ln -s $FULLPATH data/alignments/$filename 
@@ -94,7 +94,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # make text using the original text
     # cleaning and phoneme conversion are performed on-the-fly during the training
     echo "Collecting text prompts"
-    for path in ${db_root}/s*
+    for path in "${db_root}"/s*
     do
         speaker_id=$(basename ${path})
         paste -d " " \
