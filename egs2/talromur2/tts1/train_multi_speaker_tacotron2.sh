@@ -13,11 +13,10 @@ test_sets="${valid_set} ${eval_set}"
     --valid_set "$valid_set" \
     --test_sets "$test_sets" \
     --srctexts "data/$train_set/text" \
-    --expdir "$expdir" \
-    --local_data_opts "all"
+    --expdir "$expdir"
 
 # # Since ice-g2p phonetization is very slow, dump phonemized text at first
-./local/phonetize.sh all
+./local/phonetize.sh
 
 # Run from stage 2
 ./run.sh \

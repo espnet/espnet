@@ -16,45 +16,39 @@ stop_stage=2
 
 . utils/parse_options.sh
 
-if [ $# -ne 1 ]; then
-    log "Error: Only speaker id is required. It should be one of the values [a, b, c, d, e, f, g, h]"
-    exit 2
-fi
-
-speaker_id=$1
-
-if [ $speaker_id = "all" ]; then
-    ./local/data_multi_speaker.sh
-    exit 0
-fi
-
 . ./path.sh || exit 1
 . ./cmd.sh || exit 1
 . ./db.sh || exit 1
 
-if [ -z "${TALROMUR}" ]; then
+if [ -z "${TALROMUR2}" ]; then
    log "Fill the value of 'TALROMUR' of db.sh"
    exit 1
 fi
-db_root=${TALROMUR}
+db_root=${TALROMUR2}
 
-full_set=full_${speaker_id}
-train_set=train_${speaker_id}
-train_dev=dev_${speaker_id}
-eval_set=eval1_${speaker_id}
+full_set=full
+train_set=train
+deveval_set=deveval
+dev_set=dev
+eval_set=eval1
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
-    local/data_download.sh "${db_root}"
+    if [ ${db_root}=="downloads" ]; then
+        log "Non-default db root provided, skipping download..."
+    else
+        ./local/data_download.sh "${db_root}"
+    fi
 fi
+
+# set filenames
+scp=data/${full_set}/wav.scp
+utt2spk=data/${full_set}/utt2spk
+spk2utt=data/${full_set}/spk2utt
+text=data/${full_set}/text
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Preparation"
-    # set filenames
-    scp=data/${full_set}/wav.scp
-    utt2spk=data/${full_set}/utt2spk
-    spk2utt=data/${full_set}/spk2utt
-    text=data/${full_set}/text
 
     # check file existence
     [ ! -e data/${full_set} ] && mkdir -p data/${full_set}
@@ -62,52 +56,69 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     [ -e ${utt2spk} ] && rm ${utt2spk}
     [ -e ${spk2utt} ] && rm ${spk2utt}
     [ -e ${text} ] && rm ${text}
+    [ -e data/alignments ] && rm -r data/alignments
 
     # make scp, utt2spk, and spk2utt
-    find ${db_root}/${speaker_id} -follow -name "*.wav" | sort | while read -r filename;do
+    find ${db_root}/s* -follow -name "*.wav" | sort | while read -r filename;do
+        spk_id=$(basename $(dirname $(dirname ${filename})))
         id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         echo "${id} ${filename}" >> ${scp}
-        echo "${id} ${speaker_id}" >> ${utt2spk}
+        echo "${id} ${spk_id}" >> ${utt2spk}
     done
+    sort ${utt2spk} > ${utt2spk}_sorted
+    mv ${utt2spk}_sorted ${utt2spk}
+    sort ${scp} > ${scp}_sorted
+    mv ${scp}_sorted ${scp}
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
-    # Trim leading and trailing silences from audio using sox
-    python local/data_utils.py ${db_root}/alignments/${speaker_id}/audio ${scp}
+    if [ -e ${db_root}/alignments ]
+    then
+        # Collect all alignment files in one directory
+        echo "Gathering alignment data"
+        mkdir -p data/alignments
+        find ${db_root}/alignments/ -name "*.TextGrid" -type f | while read -r filepath;do
+            #filepath is .../<spk_id>/<filename>
+            FULLPATH=$(realpath ${filepath})
+            spk_id=$(basename $(dirname ${filepath}))
+            filename=$(basename $filepath)
+            if [ ! -e data/alignments/$filename ]; then
+                ln -s $FULLPATH data/alignments/$filename 
+            fi
+        done
 
-    # make text usign the original text
+        # Trim leading and trailing silences from audio using sox
+        echo "Trimming audio"
+        python local/data_utils.py data/alignments ${scp}
+    fi
+
+    # make text using the original text
     # cleaning and phoneme conversion are performed on-the-fly during the training
-    paste -d " " \
-        <(cut -f 1 < ${db_root}/${speaker_id}/index.tsv) \
-        <(cut -f 4 < ${db_root}/${speaker_id}/index.tsv) \
-        >> ${text}
-
+    echo "Collecting text prompts"
+    for path in ${db_root}/s*
+    do
+        speaker_id=$(basename ${path})
+        paste -d " " \
+            <(cut -f 1 < ${db_root}/${speaker_id}/index.tsv) \
+            <(cut -f 3 < ${db_root}/${speaker_id}/index.tsv) \
+            >> ${text}
+    done
+    sort ${text} > ${text}_sorted
+    mv ${text}_sorted ${text}
+    echo "Validating data directory"
+    utils/fix_data_dir.sh data/${full_set}
     utils/validate_data_dir.sh --no-feats data/${full_set}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 2: utils/subset_data_dir.sh"
-    if [ -e val_utts.txt ]; then rm val_utts.txt; fi
-    if [ -e test_utts.txt ]; then rm test_utts.txt; fi
-    if [ -e train_utts.txt ]; then rm train_utts.txt; fi
 
-    # make evaluation and devlopment sets
-    paste -d " " \
-        <(cut -f 1 < ${db_root}/split/${speaker_id}_val.txt) \
-        >> val_utts.txt
-    paste -d " " \
-        <(cut -f 1 < ${db_root}/split/${speaker_id}_test.txt) \
-        >> test_utts.txt
-    paste -d " " \
-        <(cut -f 1 < ${db_root}/split/${speaker_id}_train.txt) \
-        >> train_utts.txt
+    ./local/split_train_dev_test.py \
+        --data_dir "data/${full_set}" \
+        --train_dir "data/${train_set}" \
+        --dev_dir "data/${dev_set}" \
+        --test_dir "data/${eval_set}"
 
-    head val_utts.txt
-    head data/full_g/wav.scp
-    utils/subset_data_dir.sh --utt-list val_utts.txt data/${full_set} data/${train_dev}
-    utils/subset_data_dir.sh --utt-list test_utts.txt data/${full_set} data/${eval_set}
-    utils/subset_data_dir.sh --utt-list train_utts.txt data/${full_set} data/${train_set}
 
-    rm val_utts.txt test_utts.txt train_utts.txt
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
