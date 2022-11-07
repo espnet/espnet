@@ -123,7 +123,7 @@ class Conformer(torch.nn.Module):
         residual = x
 
         x = self.norm_conv(x)
-        x, _ = self.conv_mod(x)
+        x, _ = self.conv_mod(x, mask=mask)
         x = residual + self.dropout(x)
 
         residual = x

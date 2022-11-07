@@ -1,5 +1,6 @@
-from espnet_model_zoo.downloader import ModelDownloader
 import sys
+
+from espnet_model_zoo.downloader import ModelDownloader
 
 model_name = sys.argv[1]
 d = ModelDownloader()
