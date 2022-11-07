@@ -20,7 +20,7 @@ fi
 cd "${download_dir}"
 if [ ! -e "talromur2.done" ]; then
     echo "fetching the Talrómur 2 dataset"
-    wget https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/167/talromur2.zip
+    wget https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/298/talromur2-v2.zip
     unzip *.zip
     rm ./*.zip
     touch talromur2.done
