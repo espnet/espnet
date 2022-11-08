@@ -326,7 +326,7 @@ class ASRTask(AbsTask):
             nargs="+",
             default=[],
             help="Auxillary tasks to train on using CTC loss. "
-            'Data file should be in same dir as training data and have same name as task',
+            "Data file should be in same dir as training data and have same name as task",
         )
 
         for class_choices in cls.class_choices_list:
@@ -377,7 +377,9 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
-                aux_task_names = cls.optional_data_names(train=train, aux_tasks = args.aux_ctc_tasks)
+                aux_task_names=cls.optional_data_names(
+                    train=train, aux_tasks=args.aux_ctc_tasks
+                ),
             )
         else:
             retval = None

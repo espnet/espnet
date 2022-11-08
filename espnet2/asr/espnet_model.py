@@ -219,14 +219,15 @@ class ESPnetASRModel(AbsESPnetModel):
                     if idx_key in self.aux_ctc:
                         aux_data_key = self.aux_ctc[idx_key]
                         aux_data_tensor = kwargs.get(aux_data_key, None)
-                        aux_data_lengths = kwargs.get(aux_data_key+"_lengths", None)
-                    
+                        aux_data_lengths = kwargs.get(aux_data_key + "_lengths", None)
+
                         if aux_data_tensor is not None and aux_data_lengths is not None:
                             loss_ic, cer_ic = self._calc_ctc_loss(
-                                intermediate_out, encoder_out_lens, aux_data_tensor, aux_data_lengths
+                                intermediate_out,
+                                encoder_out_lens,
+                                aux_data_tensor,
+                                aux_data_lengths,
                             )
-                            
-                # condition on asr text by default
                 if loss_ic is None:
                     loss_ic, cer_ic = self._calc_ctc_loss(
                         intermediate_out, encoder_out_lens, text, text_lengths
