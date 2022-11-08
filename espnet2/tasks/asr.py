@@ -320,6 +320,14 @@ class ASRTask(AbsTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--aux_ctc_tasks",
+            type=str,
+            nargs="+",
+            default=[],
+            help="Auxillary tasks to train on using CTC loss. "
+            'Data file should be in same dir as training data and have same name as task',
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -369,6 +377,7 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
+                aux_task_names = cls.optional_data_names(train=train, aux_tasks = args.aux_ctc_tasks)
             )
         else:
             retval = None
@@ -388,9 +397,13 @@ class ASRTask(AbsTask):
 
     @classmethod
     def optional_data_names(
-        cls, train: bool = True, inference: bool = False
+        cls, train: bool = True, inference: bool = False, aux_tasks: list = []
     ) -> Tuple[str, ...]:
-        retval = ()
+        if not inference:
+            retval = tuple(aux_tasks)
+            logging.info(f"Optional Data Names: {retval }")
+        else:
+            retval = ()
         assert check_return_type(retval)
         return retval
 

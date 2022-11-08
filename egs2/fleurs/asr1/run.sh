@@ -13,9 +13,9 @@ test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
 nlsyms_txt=data/nlsyms.txt
 monolingual_asr_config=conf/train_asr.yaml
-multilingual_asr_config=conf/tuning/train_asr_hubert_large_ll60k_transformer.yaml
+multilingual_asr_config=conf/tuning/train_asr_conformer_hier_lid_utt.yaml
 lm_config=conf/train_lm.yaml
-inference_config=conf/decode.yaml
+inference_config=conf/decode_lid.yaml
 
 if [[ "zh" == *"${lang}"* ]]; then
   nbpe=2500
@@ -30,9 +30,35 @@ else
 fi
 
 if [[ "all" == *"${lang}"* ]]; then
+
+  # pre-processing steps
   ./asr.sh \
+      --stage 0 \
+      --stop_stage 10 \
       --lang "${lang}" \
       --local_data_opts "--stage 0 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
+      --audio_format "wav" \
+      --use_lm false \
+      --feats_normalize utt_mvn \
+      --lm_config "${lm_config}" \
+      --token_type bpe \
+      --nbpe $nbpe \
+      --bpe_nlsyms "${nlsyms_txt}" \
+      --feats_type raw \
+      --speed_perturb_factors "0.9 1.0 1.1" \
+      --asr_config "${multilingual_asr_config}" \
+      --train_set "${train_set}" \
+      --valid_set "${train_dev}" \
+      --test_sets "${test_set}" \
+      --bpe_train_text "data/${train_set}/text" \
+      --lm_train_text "data/${train_set}/text" "$@" 
+
+  # create auxillary labels once pre-processing is finished
+  python local/create_lids.py
+
+  ./asr.sh \
+      --stage 11 \
+      --lang "${lang}" \
       --audio_format "wav" \
       --use_lm false \
       --feats_normalize utt_mvn \
@@ -49,7 +75,8 @@ if [[ "all" == *"${lang}"* ]]; then
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
       --lm_train_text "data/${train_set}/text" \
-      --local_score_opts "--score_lang_id true" "$@" 
+      --local_score_opts "--score_lang_id true" "$@" \
+      --asr_args "--allow_variable_data_keys True --train_data_path_and_name_and_type dump/raw/train_all_sp/lid_utt,lid_utt,text" \
 else
   ./asr.sh \
       --lang "${lang}" \
