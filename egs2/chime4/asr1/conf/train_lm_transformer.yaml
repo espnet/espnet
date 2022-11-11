@@ -1,7 +1,3 @@
-optim: adam
-max_epoch: 30
-batch_type: folded
-batch_size: 1024 # 300 for word LMs
 lm: transformer
 lm_conf:
     pos_enc: null
@@ -11,17 +7,23 @@ lm_conf:
     unit: 2048
     layer: 16
     dropout_rate: 0.1
-val_scheduler_criterion:
--    - valid
-     - loss
-early_stopping_criterion:
--    - valid
-     - loss
-     - min
+
+# optimization related
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 150000
+accum_grad: 4
+max_epoch: 2
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
 best_model_criterion:
 -   - valid
     - loss
     - min
 keep_nbest_models: 10
-grad_clip: 5.0
-grad_clip_type: 2.0

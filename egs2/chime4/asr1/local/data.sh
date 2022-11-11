@@ -85,12 +85,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/real_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
     local/simu_enhan_chime4_data_prep.sh beamformit_5mics ${PWD}/enhan/beamformit_5mics
 
-    # prepare data for 6ch track:
-    #  (1) {tr05,dt05,et05}_simu_isolated_6ch_track
-    local/simu_ext_chime4_data_prep.sh --track 6 isolated_6ch_track ${PWD}/local/nn-gev/data/audio/16kHz
-    #  (2) {tr05,dt05,et05}_real_isolated_6ch_track
-    local/real_ext_chime4_data_prep.sh --track 6 isolated_6ch_track ${CHIME4}/data/audio/16kHz/isolated_6ch_track
-
     # Additionally use WSJ clean data. Otherwise the encoder decoder is not well trained
     local/wsj_data_prep.sh ${WSJ0}/??-{?,??}.? ${WSJ1}/??-{?,??}.?
     local/wsj_format_data.sh
