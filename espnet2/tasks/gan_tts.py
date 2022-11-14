@@ -5,7 +5,7 @@
 
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Iterable
 
 import numpy as np
 import torch
@@ -343,7 +343,7 @@ class GANTTSTask(AbsTask):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: ESPnetGANTTSModel,
+        cls, args: argparse.Namespace, model: ESPnetGANTTSModel, param_groups: Iterable[Dict] = None
     ) -> List[torch.optim.Optimizer]:
         # check
         assert hasattr(model.tts, "generator")
@@ -353,19 +353,21 @@ class GANTTSTask(AbsTask):
         optim_g_class = optim_classes.get(args.optim)
         if optim_g_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
+
+        params = model.tts.generator.parameters() if param_groups is None else param_groups
         if args.sharded_ddp:
             try:
                 import fairscale
             except ImportError:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim_g = fairscale.optim.oss.OSS(
-                params=model.tts.generator.parameters(),
+                params=params,
                 optim=optim_g_class,
                 **args.optim_conf,
             )
         else:
             optim_g = optim_g_class(
-                model.tts.generator.parameters(), **args.optim_conf,
+                params, **args.optim_conf,
             )
         optimizers = [optim_g]
 

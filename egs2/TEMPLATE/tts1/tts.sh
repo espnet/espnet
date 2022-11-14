@@ -307,7 +307,7 @@ if ! "${skip_data_prep}"; then
         log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
         # [Task dependent] Need to create data.sh for new corpus
         local_data_opts+="--token_type ${token_type} --g2p ${g2p}"
-        local/data.sh "${local_data_opts}"
+        local/data.sh ${local_data_opts}
     fi
 
 
@@ -970,6 +970,7 @@ if ! "${skip_eval}"; then
                 # Use groundtruth of durations
                 _teacher_dir="${teacher_dumpdir}/${dset}"
                 _ex_opts+="--data_path_and_name_and_type ${_teacher_dir}/durations,durations,text_int "
+                _ex_opts+="--use_teacher_forcing true "
                 # Overwrite speech arguments if use knowledge distillation
                 if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
                     _speech_data="${_teacher_dir}/denorm"

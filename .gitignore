@@ -38,6 +38,7 @@ egs*/*/*/enhan
 egs*/*/*/exp
 egs*/*/*/fbank
 egs*/*/*/mfcc
+egs*/*/*/sniper
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/textgrids

@@ -95,7 +95,7 @@ class FastSpeech2Loss(torch.nn.Module):
         # calculate loss
         l1_loss = self.l1_criterion(before_outs, ys)
         if after_outs is not None:
-            l1_loss += self.l1_criterion(after_outs, ys)
+            l1_loss = l1_loss + self.l1_criterion(after_outs, ys)
         duration_loss = self.duration_criterion(d_outs, ds)
         pitch_loss = self.mse_criterion(p_outs, ps)
         energy_loss = self.mse_criterion(e_outs, es)

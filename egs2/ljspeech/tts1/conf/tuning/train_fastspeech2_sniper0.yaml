@@ -26,7 +26,7 @@ tts_conf:             # keyword arguments for the selected model
     duration_predictor_layers: 2      # number of layers of duration predictor
     duration_predictor_chans: 256     # number of channels of duration predictor
     duration_predictor_kernel_size: 3 # filter size of duration predictor
-    postnet_layers: 5                 # number of layers of postnset
+    postnet_layers: 5                 # number of layers of postnet
     postnet_filts: 5                  # filter size of conv layers in postnet
     postnet_chans: 256                # number of channels of conv layers in postnet
     use_masking: True                 # whether to apply masking for padded part in loss calculation
@@ -79,20 +79,27 @@ scheduler_conf:        # keyword arguments for selected scheduler
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 800  # number of iterations per epoch
-max_epoch: 1000           # number of epochs
+max_epoch: 400           # number of epochs
 grad_clip: 1.0            # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 accum_grad: 8             # gradient accumulation
 batch_bins: 3000000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
+resume: true
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 1            # number of workers of data loader
 train_dtype: float32      # dtype in training
 log_interval: null        # log interval in iterations
 keep_nbest_models: 1      # number of models to keep
-num_att_plot: 3           # number of attention figures to be saved in every check
+num_att_plot: 0           # number of attention figures to be saved in every check
 seed: 0                   # random seed number
+val_teacher_forcing: true
+#save_epochs:
+#    - 100
+#    - 200
+#    - 300
+#    - 400
 best_model_criterion:     # criterion to save the best models
 -   - valid
     - loss
@@ -107,14 +114,10 @@ best_model_criterion:     # criterion to save the best models
 use_sniper: true
 sniper_dir: sniper/fastspeech2
 sniper_conf:
+    max_param_sparsity: 75
     exclude_params:
-        - batch_norm
+        - norm
+        - embed
+    restore_init_values: true
     schedule:    # epoch: sparsity
-        0: 60
-        100: 40
-        250: 20
-        450: 10
-        700: 0
-
-
-
+        0: 0

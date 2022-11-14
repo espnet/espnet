@@ -59,18 +59,19 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     [ -e ${text} ] && rm ${text}
     [ -e ${durations} ] && rm ${durations}
 
+    wavs_dir="${db_root}/LJSpeech-1.1/wavs"
     # make scp, utt2spk, and spk2utt
-    find ${db_root}/LJSpeech-1.1 -follow -name "*.wav" | sort | while read -r filename; do
+    find "${wavs_dir}" -name "*.wav" | sort | while read -r filename; do
         id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         echo "${id} ${filename}" >> ${scp}
         echo "${id} LJ" >> ${utt2spk}
     done
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
-    if [ "${token_type}" = 'phn' ] && [ -z "${g2p}" ]; then  # text should be phonemes!
+    if [ "${token_type}" = 'phn' ] && { [[ -z "${g2p}" ]] || [[ "${g2p}" = "none" ]]; };  then  # text should be phonemes!
         log "Using phonemes for text"
         python scripts/utils/mfa_format.py validate  # please check: no output means all are ok
-        python scripts/utils/mfa_format.py durations
+        python scripts/utils/mfa_format.py durations --wavs_dir "${wavs_dir}"
     else
         # make text using the original text
         # cleaning and phoneme conversion are performed on-the-fly during the training
@@ -86,10 +87,10 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: utils/subset_data_dir.sg"
     # make evaluation and devlopment sets
-    utils/subset_data_dir.sh --last data/train 500 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --last data/train 2620 data/deveval
+    utils/subset_data_dir.sh --last data/deveval 1310 data/${eval_set}
+    utils/subset_data_dir.sh --first data/deveval 1310 data/${train_dev}
+    n=$(( $(wc -l < data/train/wav.scp) - 2620 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 fi
 

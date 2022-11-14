@@ -29,7 +29,6 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,
 )
 
-from sniper.sniper import log_nonzeros_count
 
 class FastSpeech2(AbsTTS):
     """FastSpeech2 module.
@@ -496,6 +495,7 @@ class FastSpeech2(AbsTTS):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
+        is_inference: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -514,6 +514,7 @@ class FastSpeech2(AbsTTS):
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
             joint_training (bool): Whether to perform joint training with vocoder.
+            is_inference (bool): Set to true if you want to validate without teacher forcing.
 
         Returns:
             Tensor: Loss scalar value.
@@ -551,7 +552,7 @@ class FastSpeech2(AbsTTS):
             spembs=spembs,
             sids=sids,
             lids=lids,
-            is_inference=False,
+            is_inference=is_inference,
         )
 
         # modify mod part of groundtruth

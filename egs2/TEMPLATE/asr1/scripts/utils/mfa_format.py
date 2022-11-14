@@ -158,7 +158,7 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
 
 
 def validate(args):
-    valid = False
+    valid = True
     tg_paths = sorted(Path(args.textgrid_dir).glob('*.TextGrid'))
     for tg_path in tg_paths:
         filename = tg_path.stem

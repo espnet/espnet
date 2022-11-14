@@ -6,7 +6,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union, Callable
 
 import humanfriendly
 import numpy as np
@@ -35,7 +35,7 @@ from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.kwargs2args import kwargs2args
 
-from sniper.sniper import SniperTraining, log_nonzeros_count
+from sniper.sniper import SniperTraining
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -81,6 +81,8 @@ class TrainerOptions:
     early_stopping_criterion: Sequence[str]
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
+    val_teacher_forcing: bool
+    save_epochs: Sequence[int]
     unused_parameters: bool
     wandb_model_log_interval: int
     create_graph_in_tensorboard: bool
@@ -161,9 +163,9 @@ class Trainer:
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
         plot_attention_iter_factory: Optional[AbsIterFactory],
-        sniper: Union[SniperTraining, None],
         trainer_options,
         distributed_option: DistributedOption,
+        sniper: SniperTraining = None,
     ) -> None:
         """Perform training. This method performs the main process of training."""
         assert check_argument_types()
@@ -207,6 +209,10 @@ class Trainer:
                 scaler=scaler,
                 ngpu=trainer_options.ngpu,
             )
+            if sniper is not None:
+                sniper.resume_from(reporter.get_epoch(), optimizers, schedulers)
+
+        save_epochs = set(trainer_options.save_epochs) if trainer_options.save_epochs else set()
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == trainer_options.max_epoch + 1:
@@ -292,6 +298,7 @@ class Trainer:
                     summary_writer=train_summary_writer,
                     options=trainer_options,
                     distributed_option=distributed_option,
+                    sniper=sniper,
                 )
 
             with reporter.observe("valid") as sub_reporter:
@@ -428,15 +435,15 @@ class Trainer:
 
                 for e in range(1, iepoch):
                     p = output_dir / f"{e}epoch.pth"
-                    if p.exists() and e not in nbests:
+                    if p.exists() and e not in nbests and e not in save_epochs:
                         p.unlink()
                         _removed.append(str(p))
                 if len(_removed) != 0:
                     logging.info("The model files were removed: " + ", ".join(_removed))
 
             if sniper is not None:
-                # log_nonzeros_count(model.tts)
                 sniper.step()
+                # trainer_options.grad_clip = sniper.sparse_max_norm
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:
@@ -479,6 +486,7 @@ class Trainer:
         summary_writer,
         options: TrainerOptions,
         distributed_option: DistributedOption,
+        sniper: SniperTraining = None,
     ) -> bool:
         assert check_argument_types()
 
@@ -628,6 +636,9 @@ class Trainer:
                     loss.backward()
 
             if iiter % accum_grad == 0:
+                # grad_dic = {x[0]: x[1].grad for x in model.named_parameters()}
+                # torch.save(grad_dic, Path(options.output_dir) / 'grads.pt')
+
                 if scaler is not None:
                     # Unscales the gradients of optimizer's assigned params in-place
                     for iopt, optimizer in enumerate(optimizers):
@@ -698,17 +709,26 @@ class Trainer:
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
-                reporter.register(
-                    dict(
-                        {
-                            f"optim{i}_lr{j}": pg["lr"]
-                            for i, optimizer in enumerate(optimizers)
-                            for j, pg in enumerate(optimizer.param_groups)
-                            if "lr" in pg
-                        },
-                        train_time=time.perf_counter() - start_time,
-                    ),
-                )
+                if sniper is None or sniper.param_groups is None:
+                    lr_dict = {
+                        f"optim{i}_lr{j}": pg["lr"]
+                        for i, optimizer in enumerate(optimizers)
+                        for j, pg in enumerate(optimizer.param_groups)
+                        if "lr" in pg
+                    }
+                elif sniper.track_pg_index < 0:
+                    lr_dict = {
+                        f"optim{i}_lr_{pg['name']}": pg["lr"]
+                        for i, optimizer in enumerate(optimizers)
+                        for pg in optimizer.param_groups
+                        if "lr" in pg
+                    }
+                else:
+                    lr_dict = {
+                        f"optim{i}_lr0": optimizer.param_groups[sniper.track_pg_index]["lr"]
+                        for i, optimizer in enumerate(optimizers)
+                    }
+                reporter.register(dict(lr_dict, train_time=time.perf_counter() - start_time))
                 start_time = time.perf_counter()
 
             # NOTE(kamo): Call log_message() after next()
@@ -759,7 +779,7 @@ class Trainer:
             if no_forward_run:
                 continue
 
-            retval = model(**batch)
+            retval = model(**batch, is_inference=not options.val_teacher_forcing)
             if isinstance(retval, dict):
                 stats = retval["stats"]
                 weight = retval["weight"]

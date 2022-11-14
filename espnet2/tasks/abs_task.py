@@ -7,7 +7,7 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
 
 import humanfriendly
 import numpy as np
@@ -566,6 +566,18 @@ class AbsTask(ABC):
             help="Enable tensorboard logging",
         )
         group.add_argument(
+            "--val_teacher_forcing",
+            type=str2bool,
+            default=True,
+            help="Whether to use teacher forcing during validation",
+        )
+        group.add_argument(
+            "--save_epochs",
+            type=list,
+            default=[],
+            help="Which epochs to save during training",
+        )
+        group.add_argument(
             "--create_graph_in_tensorboard",
             type=str2bool,
             default=False,
@@ -838,7 +850,7 @@ class AbsTask(ABC):
             "--sniper_conf",
             action=NestedDictAction,
             default=dict(),
-            help="Config which should contain exclude_params and schedule",
+            help="Config which should contain schedule and exclude_params",
         )
 
         cls.trainer.add_arguments(parser)
@@ -849,7 +861,7 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: torch.nn.Module,
+        cls, args: argparse.Namespace, model: torch.nn.Module, param_groups: List[Dict] = None
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
@@ -859,14 +871,16 @@ class AbsTask(ABC):
         optim_class = optim_classes.get(args.optim)
         if optim_class is None:
             raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
+
+        params = model.parameters() if param_groups is None else param_groups
         if args.sharded_ddp:
             if fairscale is None:
                 raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
             optim = fairscale.optim.oss.OSS(
-                params=model.parameters(), optim=optim_class, **args.optim_conf
+                params=params, optim=optim_class, **args.optim_conf
             )
         else:
-            optim = optim_class(model.parameters(), **args.optim_conf)
+            optim = optim_class(params, **args.optim_conf)
 
         optimizers = [optim]
         return optimizers
@@ -1126,8 +1140,60 @@ class AbsTask(ABC):
                     logging.info(f"Setting {k}.requires_grad = False")
                     p.requires_grad = False
 
+
+        # 7. Build iterator factories
+        if args.multiple_iterator:
+            train_iter_factory = cls.build_multiple_iter_factory(
+                args=args, distributed_option=distributed_option, mode="train",
+            )
+        else:
+            train_iter_factory = cls.build_iter_factory(
+                args=args, distributed_option=distributed_option, mode="train",
+            )
+        valid_iter_factory = cls.build_iter_factory(
+            args=args, distributed_option=distributed_option, mode="valid",
+        )
+        if not args.use_matplotlib and args.num_att_plot != 0:
+            args.num_att_plot = 0
+            logging.info("--use_matplotlib false => Changing --num_att_plot to 0")
+
+        if args.num_att_plot != 0:
+            plot_attention_iter_factory = cls.build_iter_factory(
+                args=args, distributed_option=distributed_option, mode="plot_att",
+            )
+        else:
+            plot_attention_iter_factory = None
+
+        if args.use_sniper:
+            sniper = SniperTraining(sniper_dir=args.sniper_dir, device=device, logger=logging.root)
+            data_loader = train_iter_factory.build_iter(epoch=1)
+            batch_iterator = (batch for utt_id, batch in data_loader)
+            model_builder = lambda: cls.build_model(args)
+            def get_loss_fn(model, batch):
+                retval = model(**batch)
+                return retval["loss"] if isinstance(retval, dict) else retval[0]
+            sniper.train(
+                **args.sniper_conf,
+                model=model,
+                model_builder=model_builder,
+                snip_module_name="tts",
+                batch_iterator=batch_iterator,
+                get_loss_fn=get_loss_fn,
+                # optimizers=optimizers,
+                # max_norm=args.grad_clip,
+                train_dtype=args.train_dtype,
+                resume=args.resume,
+                optim_lr=args.optim_conf["lr"],
+            )
+            # args.grad_clip *= sniper.grad_scaling
+            # logging.info(f'New grad_clip is {grad_clip}')
+            param_groups = None if sniper.param_groups is None else sniper.param_groups
+        else:
+            sniper = None
+            param_groups = None
+
         # 3. Build optimizer
-        optimizers = cls.build_optimizers(args, model=model)
+        optimizers = cls.build_optimizers(args, model=model, param_groups=param_groups)
 
         # 4. Build schedulers
         schedulers = []
@@ -1229,53 +1295,6 @@ class AbsTask(ABC):
                     if args.ngpu > 0
                     else "cpu",
                 )
-
-            # 7. Build iterator factories
-            if args.multiple_iterator:
-                train_iter_factory = cls.build_multiple_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
-                )
-            else:
-                train_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
-                )
-            valid_iter_factory = cls.build_iter_factory(
-                args=args, distributed_option=distributed_option, mode="valid",
-            )
-            if not args.use_matplotlib and args.num_att_plot != 0:
-                args.num_att_plot = 0
-                logging.info("--use_matplotlib false => Changing --num_att_plot to 0")
-
-            if args.num_att_plot != 0:
-                plot_attention_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="plot_att",
-                )
-            else:
-                plot_attention_iter_factory = None
-
-            if args.use_sniper:
-                sniper = SniperTraining(sniper_dir=args.sniper_dir, device=device, logger=logging.root)
-                data_loader = train_iter_factory.build_iter(epoch=1)
-                batch_iterator = (batch for utt_id, batch in data_loader)
-                schedule = args.sniper_conf["schedule"]
-                exclude_params = args.sniper_conf["exclude_params"]
-
-                def get_loss_fn(model, batch):
-                    retval = model(**batch)
-                    return retval["loss"] if isinstance(retval, dict) else retval[0]
-                sniper.train(
-                    schedule=schedule,
-                    model=model,
-                    model_builder=lambda: cls.build_model(args),
-                    snip_module_name="tts",
-                    batch_iterator=batch_iterator,
-                    get_loss_fn=get_loss_fn,
-                    exclude_params=exclude_params,
-                    train_dtype=train_dtype,
-                    epoch=0
-                )
-            else:
-                sniper = None
 
             # 8. Start training
             if args.use_wandb:
