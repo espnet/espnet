@@ -67,6 +67,9 @@ sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
+postprocess_word_boundary='  '   # word boundary for post process
+postprocess_sil_token="\<SIL\>"  # silence injection tokens in post process
+postprocess_sil_prob=0.5         # silence injection probability in post process
 
 # Ngram language model related
 use_ngram=true      # Whether to use n-gram modeling (Current version must set to true)
@@ -195,6 +198,9 @@ Options:
     --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
     --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma or a file containing 1 symbol per line . (default="${bpe_nlsyms}").
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+    --postprocess_word_boundary # word boundary for post process (default="${postprocess_word_boundary}").
+    --postprocess_sil_token     # silence injection tokens in post process (default="${postprocess_sil_token}").
+    --postprocess_sil_prob      # silence injection probability in post process (default="${postprocess_sil_prob}").
 
     # Ngram language model related
     --use_ngram       # Whether to use n-gram modeling (Current version must set to true)
@@ -671,112 +677,27 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh "${data_feats}/${dset}"
         done
 
-        # shellcheck disable=SC2002
-        cat ${lm_train_text} | awk ' { if( NF != 2 ) print $0; } ' > "${data_feats}/lm_train.txt"
     fi
 
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+        _logdir="${tokenlist_dir}/logdir"
+
+        # shellcheck disable=SC2002
+        cat ${lm_train_text} | awk ' { if( NF != 2 ) print $0; } ' > "${data_feats}/lm_train.txt"
+
         if [ "${token_type}" = bpe ]; then
             log "Stage 6: Generate token_list from ${bpe_train_text} using BPE"
 
-            mkdir -p "${bpedir}"
-            # shellcheck disable=SC2002
-            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
-
-            if [ -n "${bpe_nlsyms}" ]; then
-                if test -f "${bpe_nlsyms}"; then
-                    bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
-                    _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
-                else
-                    _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
-                fi
-            else
-                _opts_spm=""
-            fi
-
-            spm_train \
-                --input="${bpedir}"/train.txt \
-                --vocab_size="${nbpe}" \
-                --model_type="${bpemode}" \
-                --model_prefix="${bpeprefix}" \
-                --character_coverage=${bpe_char_cover} \
-                --input_sentence_size="${bpe_input_sentence_size}" \
-                ${_opts_spm}
-
-            {
-            echo "${blank}"
-            echo "${oov}"
-            # Remove <unk>, <s>, </s> from the vocabulary
-            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-            echo "${sos_eos}"
-            } > "${token_list}"
+            log "Error: not supported --token_type '${token_type}'"
+            exit 2
 
         elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
-            log "Stage 6: Generate character level token_list from ${data_feats}/${train_set}/text"
-            cut -d ' ' -f2- "${data_feats}/${train_set}/text" > "${data_feats}/lm_train.txt"
+            log "Stage 6: Generate character/word level token_list from ${data_feats}/lm_train.txt"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for uasr and also used as ignore-index in the other task
-            ${python} -m espnet2.bin.tokenize_text  \
-                --token_type "${token_type}" \
-                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --write_vocabulary true \
-                --add_symbol "<s>:0" \
-                --add_symbol "<pad>:1" \
-                --add_symbol "</s>:2" \
-                --add_symbol "<unk>:3"
-            cut -d ' ' -f2- "data/${train_set}/text" > "${unpaired_text}"
-            cp "data/${valid_set}/text" "${data_feats}/${valid_set}/unpaired_text"
-
-            # for dev text we need to keep utterance ids to compute PER
-            if [ -f ${lm_dev_text} ]; then
-                log "Generate phone level token_list from ${lm_dev_text}"
-                cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
-                ${python} -m espnet2.bin.tokenize_text \
-                    --token_type ${token_type} \
-                    --input ${lm_dev_text}\
-                    --output "${data_feats}/${valid_set}/tokens.txt" \
-                    --text_output "${data_feats}/${valid_set}/char.txt" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary false \
-                    --write_text true \
-                    --cutoff 0 \
-                    --field "2-"
-
-                paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/char.txt" \
-                > "${data_feats}/${valid_set}/unpaired_text"
-            fi
-
-            if [ -f ${lm_test_text} ]; then
-                log "Generate phone level token_list from ${lm_test_text}"
-                cut -d ' ' -f1 "${lm_test_text}" > "${data_feats}/${test_sets}/utt_ids"
-                ${python} -m espnet2.bin.tokenize_text \
-                    --token_type ${token_type} \
-                    --input ${lm_test_text}\
-                    --output "${data_feats}/${test_sets}/tokens.txt" \
-                    --text_output "${data_feats}/${test_sets}/char.txt" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary false \
-                    --write_text true \
-                    --cutoff 0 \
-                    --field "2-"
-
-                paste -d ' ' "${data_feats}/${test_sets}/utt_ids" "${data_feats}/${test_sets}/char.txt" \
-                > "${data_feats}/${test_sets}/unpaired_text"
-            fi
-
-            _logdir="${uasr_stats_dir}/logdir"
-
-            word_boundary='  ' # double space
-            sil_token="\<SIL\>"
-            sil_prob=0.5
-
-            # split text
+            # split text for parallel tokenization
             split_dir=${phndir}/split${nj}
             split_text=""
             mkdir -p ${split_dir}
@@ -789,21 +710,21 @@ if ! "${skip_data_prep}"; then
 
             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.log.JOB \
             ${python} -m espnet2.bin.tokenize_text \
-                --token_type ${token_type} \
+                --token_type ${token_type} ${_opts} \
+                --cleaner "${cleaner}" \
                 --input ${split_dir}/JOB/text \
                 --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/phones_nosil.txt \
-                --g2p "${g2p}" \
+                --text_output ${split_dir}/JOB/unpaired_text_nosil \
                 --write_vocabulary true \
                 --write_text true \
                 --cutoff 2
 
              ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.log.JOB \
              ${python} pyscripts/text/post_processing.py \
-               --word_boundary "${word_boundary}" \
-               --sil_prob ${sil_prob} \
-               --sil_token ${sil_token} \
-               --input_text "${split_dir}/JOB/phones_nosil.txt" \
+               --word_boundary "${postprocess_word_boundary}" \
+               --sil_prob ${postprocess_sil_token} \
+               --sil_token ${postprocess_sil_prob} \
+               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
                --output_text "${split_dir}/JOB/unpaired_text" \
                --output_vocab "${split_dir}/JOB/tokens_post.txt"
 
@@ -811,21 +732,35 @@ if ! "${skip_data_prep}"; then
                     --split_dir ${split_dir} \
                     --num_splits ${nj} \
                     --output_dir "${data_feats}/${train_set}" \
+                    --add_symbol "<blank>" \
                     --add_symbol "<s>" \
                     --add_symbol "<pad>" \
                     --add_symbol "</s>" \
-                            --add_symbol "<unk>" \
+                    --add_symbol "<unk>" \
                     --add_symbol "<SIL>"
 
+            # Note(Dongji): for dev text we can keep utterance ids to compute PER
+            log "Generate char level token_list from ${lm_dev_text}"
+            cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
+            ${python} -m espnet2.bin.tokenize_text \
+                --token_type ${token_type} ${_opts} \
+                --cleaner "${cleaner}" \
+                --input ${lm_dev_text}\
+                --output "${data_feats}/${valid_set}/tokens.txt" \
+                --text_output "${data_feats}/${valid_set}/char.tmp" \
+                --write_vocabulary false \
+                --write_text true \
+                --cutoff 0 \
+                --field "2-"
+
+            # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal 
+            # evaluation (however, the results with unpaired text are not suppose to be used for model 
+            # selection)
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/char.tmp" \
+            > "${data_feats}/${valid_set}/unpaired_text"
 
         elif [ "${token_type}" == phn ]; then
             log "Stage 6: Generate phone level token_list from ${lm_train_text}"
-
-            _logdir="${uasr_stats_dir}/logdir"
-
-            word_boundary='  ' # double space
-            sil_token="\<SIL\>"
-            sil_prob=0.5
 
             # split text
             split_dir=${phndir}/split${nj}
@@ -835,45 +770,6 @@ if ! "${skip_data_prep}"; then
                 mkdir -p ${split_dir}/${n}
                 split_text="${split_text} ${split_dir}/${n}/text"
             done
-
-            cat ${lm_train_text} | awk ' { if( NF > 0 ) print $0; } ' > "${data_feats}/lm_train.txt"
-
-            # for dev text we need to keep utterance ids to compute PER
-            if [ -f ${lm_dev_text} ]; then
-                log "Generate phone level token_list from ${lm_dev_text}"
-                cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
-                ${python} -m espnet2.bin.tokenize_text \
-                    --token_type phn \
-                    --input ${lm_dev_text}\
-                    --output "${data_feats}/${valid_set}/tokens.txt" \
-                    --text_output "${data_feats}/${valid_set}/phones" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary false \
-                    --write_text true \
-                    --cutoff 0 \
-                    --field "2-"
-
-                paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/phones" \
-                > "${data_feats}/${valid_set}/unpaired_text"
-            fi
-
-            if [ -f ${lm_test_text} ]; then
-                log "Generate phone level token_list from ${lm_test_text}"
-                cut -d ' ' -f1 "${lm_test_text}" > "${data_feats}/${test_sets}/utt_ids"
-                ${python} -m espnet2.bin.tokenize_text \
-                    --token_type phn \
-                    --input ${lm_test_text}\
-                    --output "${data_feats}/${test_sets}/tokens.txt" \
-                    --text_output "${data_feats}/${test_sets}/phones" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary false \
-                    --write_text true \
-                    --cutoff 0 \
-                    --field "2-"
-
-                paste -d ' ' "${data_feats}/${test_sets}/utt_ids" "${data_feats}/${test_sets}/phones" \
-                > "${data_feats}/${test_sets}/unpaired_text"
-            fi
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
@@ -882,7 +778,7 @@ if ! "${skip_data_prep}"; then
                 --token_type phn \
                 --input ${split_dir}/JOB/text \
                 --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/phones_nosil.txt \
+                --text_output ${split_dir}/JOB/unpaired_text_nosil \
                 --g2p "${g2p}" \
                 --write_vocabulary true \
                 --write_text true \
@@ -890,10 +786,10 @@ if ! "${skip_data_prep}"; then
 
              ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.log.JOB \
              ${python} pyscripts/text/post_processing.py \
-               --word_boundary "${word_boundary}" \
-               --sil_prob ${sil_prob} \
-               --sil_token ${sil_token} \
-               --input_text "${split_dir}/JOB/phones_nosil.txt" \
+               --word_boundary "${postprocess_word_boundary}" \
+               --sil_prob ${postprocess_sil_token} \
+               --sil_token ${postprocess_sil_prob} \
+               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
                --output_text "${split_dir}/JOB/unpaired_text" \
                --output_vocab "${split_dir}/JOB/tokens_post.txt" \
                --reduce_vocab
@@ -902,11 +798,30 @@ if ! "${skip_data_prep}"; then
                     --split_dir ${split_dir} \
                     --num_splits ${nj} \
                     --output_dir "${data_feats}/${train_set}" \
+                    --add_symbol "<blank>" \
                     --add_symbol "<s>" \
                     --add_symbol "<pad>" \
                     --add_symbol "</s>" \
-                            --add_symbol "<unk>" \
+                    --add_symbol "<unk>" \
                     --add_symbol "<SIL>"
+
+            # Note(Dongji): for dev text we need to keep utterance ids to compute PER
+            log "Generate phone level token_list from ${lm_dev_text}"
+            cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
+            ${python} -m espnet2.bin.tokenize_text \
+                --token_type phn \
+                --input ${lm_dev_text}\
+                --output "${data_feats}/${valid_set}/tokens.txt" \
+                --text_output "${data_feats}/${valid_set}/phones" \
+                --g2p "${g2p}" \
+                --write_vocabulary false \
+                --write_text true \
+                --cutoff 0 \
+                --field "2-"
+
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/phones" \
+            > "${data_feats}/${valid_set}/unpaired_text"
+
         else
             log "Error: not supported --token_type '${token_type}'"
             exit 2
