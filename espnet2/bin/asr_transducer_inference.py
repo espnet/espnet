@@ -36,13 +36,6 @@ from espnet.utils.cli_utils import get_commandline_args
 class Speech2Text:
     """Speech2Text class for Transducer models.
 
-    Examples:
-        >>> import soundfile
-        >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
-        >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
-        [(text, token, token_int, hypothesis object), ...]
-
     Args:
         asr_train_config: ASR model training config path.
         asr_model_file: ASR model path.
@@ -90,6 +83,9 @@ class Speech2Text:
         right_context: int = 0,
         display_partial_hypotheses: bool = False,
     ) -> None:
+        """Construct a Speech2Text object."""
+        super().__init__()
+
         assert check_argument_types()
 
         asr_model, asr_train_args = ASRTransducerTask.build_model_from_file(

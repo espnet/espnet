@@ -500,6 +500,7 @@ if ! "${skip_data_prep}"; then
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
@@ -562,7 +563,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # Derive the the frame length and feature dimension
@@ -1287,7 +1288,7 @@ if ! "${skip_eval}"; then
                 _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
                 _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
                 ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                    ../../../utils/calculate_rtf.py \
+                    calculate_rtf.py \
                         --log-dir ${_logdir} \
                         --log-name "asr_inference" \
                         --input-shift ${_sample_shift} \

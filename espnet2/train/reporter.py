@@ -527,7 +527,7 @@ class Reporter:
 
             plt.plot(epochs, y, label=key, marker="x")
         plt.legend()
-        plt.title(f"epoch vs {key2}")
+        plt.title(f"{key2} vs epoch")
         # Force integer tick for x-axis
         plt.gca().get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
         plt.xlabel("epoch")

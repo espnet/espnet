@@ -262,7 +262,7 @@ class STTask(AbsTask):
             "--src_token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", "none"],
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -361,6 +361,8 @@ class STTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
+        if args.src_token_type == "none":
+            args.src_token_type = None
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
