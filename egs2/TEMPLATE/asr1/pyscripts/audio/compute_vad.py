@@ -11,6 +11,7 @@ from scipy.signal import lfilter
 
 import kaldiio
 import numpy as np
+import resampy
 import soundfile as sf
 from tqdm import tqdm
 from typeguard import check_argument_types
