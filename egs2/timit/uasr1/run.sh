@@ -25,12 +25,8 @@ inference_config=conf/decode_uasr.yaml
 
 ./uasr.sh \
     --lang en \
-    --stage 16 \
-    --stop_stage 17 \
-    --local_data_opts "" \
     --token_type "${token_type}" \
     --ngpu 1 \
-    --nj 1 \
     --silence_trim false \
     --use_lm false \
     --use_feature_clustering true \
