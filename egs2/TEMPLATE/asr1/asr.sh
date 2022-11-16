@@ -552,7 +552,7 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # Derive the the frame length and feature dimension
