@@ -1,0 +1,154 @@
+# minibatch related
+batch_type: folded
+batch_size: 16  # A6000 x 1
+accum_grad: 2
+grad_clip: 1
+max_epoch: 31
+patience: 10
+# The initialization method for model parameters
+init: xavier_uniform
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - train
+    - loss
+    - min
+keep_nbest_models: 10
+num_att_plot: 3
+unused_parameters: true
+freeze_param: [
+    "s2t_model.frontend.upstream",
+]
+init_param: [
+    "../enh1/exp/enh_train_enh_beamformer_wpd_ci_sdr_shorttap_raw/valid.loss.best.pth:separator:enh_model.separator",
+    "../asr1/exp/asr_train_asr_conformer_wavlm2_raw_en_char/valid.acc.best.pth:frontend:s2t_model.frontend",
+    "../asr1/exp/asr_train_asr_conformer_wavlm2_raw_en_char/valid.acc.best.pth:preencoder:s2t_model.preencoder",
+    "../asr1/exp/asr_train_asr_conformer_wavlm2_raw_en_char/valid.acc.best.pth:encoder:s2t_model.encoder",
+    "../asr1/exp/asr_train_asr_conformer_wavlm2_raw_en_char/valid.acc.best.pth:ctc:s2t_model.ctc",
+    "../asr1/exp/asr_train_asr_conformer_wavlm2_raw_en_char/valid.acc.best.pth:decoder:s2t_model.decoder",
+]
+
+# network architecture
+enh_encoder: stft
+enh_encoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 128
+    use_builtin_complex: False
+enh_decoder: stft
+enh_decoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 128
+enh_separator: wpe_beamformer
+enh_separator_conf:
+    num_spk: 1
+    loss_type: spectrum
+    use_wpe: False
+    wnet_type: blstmp
+    wlayers: 3
+    wunits: 512
+    wprojs: 512
+    wdropout_rate: 0.0
+    taps: 3
+    delay: 3
+    use_dnn_mask_for_wpe: True
+    use_beamformer: True
+    bnet_type: blstmp
+    blayers: 3
+    bunits: 512
+    bprojs: 512
+    badim: 320
+    ref_channel: 4
+    use_noise_mask: True
+    beamformer_type: wpd_souden
+    bdropout_rate: 0.0
+enh_criterions:
+  # The first criterion
+  - name: ci_sdr
+    conf:
+        filter_length: 512
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+        weight: 0.1
+
+# network architecture
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+asr_preencoder: linear
+asr_preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+# encoder related
+asr_encoder: conformer
+asr_encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d2
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 15
+
+# decoder related
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+model_conf:
+    calc_enh_loss: false
+    bypass_enh_prob: 0.0
+
+optim: sgd
+optim_conf:
+    lr: 0.001
+    momentum: 0.9
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 100
+    num_freq_mask: 4
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
