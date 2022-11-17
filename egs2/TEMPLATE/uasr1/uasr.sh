@@ -109,7 +109,7 @@ num_splits_uasr=1           # Number of splitting for lm corpus.
 
 
 # k2-decoding related
-use_k2=true   # Whether to use k2-based decoder.
+use_k2=false  # Whether to use k2-based decoder.
 k2_lexicon=   # Specify a lexicon for k2-based decoding.
 k2_lang_dir=  # Specify a directory to store lexicon and graphs for k2-based decoding.
 k2_graph_dir= # Specify the HLG graph directory.
@@ -243,10 +243,6 @@ Options:
     --k2_lexicon        # Specify a lexicon for k2-based decoding (default="${k2_lexicon}").
     --k2_lang_dir       # Specify a directory to store lexicon and graphs for k2-based decoding (default="${k2_lang_dir}").
     --k2_graph_dir      # Specify the HLG graph directory (default="${k2_graph_dir}").
-    --k2_ctc_decoding   # Whether to use k2-based ctc decoding (default="${k2_ctc_decoding}").
-    --k2_use_nbest_rescoring # Whether to use neural models for nbest rescoring (default="${use_nbest_rescoring}").
-    --k2_num_paths      # The number of k2.random paths (default="${k2_num_paths}").
-    --k2_nll_batch_size # batch size for nbest rescoring (default="${k2_nll_path}").
     --k2_config         # Detailed configurations for k2-based decoding (default="${k2_config}").
 
     # Decoding related
@@ -342,30 +338,31 @@ unpaired_text_and_scp="${unpaired_text}-${unpaired_text_scp}"
 bpemodel=none
 if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
-    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-    bpeprefix="${bpedir}"/bpe
+    tokendir="${token_listdir}/bpe_${bpemode}${nbpe}"
+    bpeprefix="${tokendir}"/bpe
     bpemodel="${bpeprefix}".model
-    bpetoken_list="${bpedir}"/tokens.txt
+    bpetoken_list="${tokendir}"/tokens.txt
 elif [ "${token_type}" = char ]; then
-    chartoken_list="${token_listdir}"/char/tokens.txt
-    token_list="${chartoken_list}"
+    tokendir="${token_listdir}"/char
+    token_list="${tokendir}"/tokens.txt
 elif [ "${token_type}" = phn ]; then
-    phndir="${token_listdir}"/"phn_${g2p}"
-    phntoken_list="${phndir}"/lm/tokens.txt
-    token_list="${phntoken_list}"
+    tokendir="${token_listdir}"/"phn_${g2p}"
+    token_list="${tokendir}"/lm/tokens.txt
 elif [ "${token_type}" = word ]; then
     # NOTE: keep for future development.
     # shellcheck disable=SC2034
     wordtoken_list="${token_listdir}"/word/tokens.txt
+    tokendir="${token_listdir}"/word
     token_list="${wordtoken_list}"
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
 fi
 
-# Check if use lattice loss
+# Check if use k2 decoding
+# Question(jiatong): neet to put it after the tokenizer, we should not do anything like `paste` here
 if ${use_k2}; then
-    [ -z "${k2_lang_dir}" ] && k2_lang_dir="${phndir}/lang"
+    [ -z "${k2_lang_dir}" ] && k2_lang_dir="${tokendir}/lang"
     mkdir -p "${k2_lang_dir}"
     if [ -z "${k2_lexicon}" ]; then
         k2_lexicon="${k2_lang_dir}/lexicon.txt"
@@ -382,7 +379,7 @@ if ${use_k2}; then
     fi
     token_list="${k2_lang_dir}/tokens.txt"
 
-    [ -z "${graph_dir}" ] && graph_dir="${phndir}/graph"
+    [ -z "${graph_dir}" ] && graph_dir="${tokendir}/graph"
     mkdir -p "${graph_dir}"
 fi
 
@@ -498,8 +495,6 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
-      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
-      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -698,7 +693,7 @@ if ! "${skip_data_prep}"; then
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
             # split text for parallel tokenization
-            split_dir=${phndir}/split${nj}
+            split_dir=${tokendir}/split${nj}
             split_text=""
             mkdir -p ${split_dir}
             for n in $(seq ${nj}); do
@@ -763,7 +758,7 @@ if ! "${skip_data_prep}"; then
             log "Stage 6: Generate phone level token_list from ${lm_train_text}"
 
             # split text
-            split_dir=${phndir}/split${nj}
+            split_dir=${tokendir}/split${nj}
             split_text=""
             mkdir -p ${split_dir}
             for n in $(seq ${nj}); do
@@ -1038,7 +1033,7 @@ if ! "${skip_train}"; then
             _logdir="${ngram_exp}"
             lmplz -o ${ngram_num} < ${unpaired_text} --discount_fallback --prune 0 0 0 3 >${ngram_exp}/${ngram_num}gram.arpa
             build_binary ${ngram_exp}/${ngram_num}gram.arpa "${kenlm_path}"
-            if "${use_lattice_loss}"; then
+            if "${use_k2}"; then
                 log "Stage 10: Building text lm for lattce loss: train_set=${lm_train_text}"
                 lmplz -o ${ngram_num} < ${lm_train_text} --discount_fallback --prune 0 0 0 3 \
                     >${ngram_exp}/${ngram_num}gram.word.arpa
@@ -1049,7 +1044,7 @@ if ! "${skip_train}"; then
     fi
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        if "${use_lattice_loss}"; then
+        if "${use_k2}"; then
             ${python} pyscripts/k2/prepare_lang.py \
               --k2_lang_dir "${k2_lang_dir}"
 
