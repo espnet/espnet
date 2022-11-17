@@ -8,6 +8,7 @@ from espnet.utils.cli_utils import get_commandline_args
 from typing import Optional
 from tqdm import tqdm
 
+
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Insert silence token",
@@ -16,7 +17,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--split_dir", type=str, required=True)
     parser.add_argument("--num_splits", type=int, required=True)
     parser.add_argument("--output_dir", "-o", required=True, help="Output dir")
-    parser.add_argument("--add_symbol", type=str, help="extra symbol add to vocabulary", action="append")
+    parser.add_argument(
+        "--add_symbol", type=str, help="extra symbol add to vocabulary", action="append"
+    )
     return parser
 
 

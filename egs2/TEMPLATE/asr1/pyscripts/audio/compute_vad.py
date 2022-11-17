@@ -81,8 +81,10 @@ def main():
     import speechproc
 
     # TODO(jiatong): add argument for stride and fs
-    stride = 160
-    fs = 16000
+    assert (
+        args.vad_stride == 160
+    ), "due to the limit of rvad, we only support 160 stride"
+    assert args.vad_fs == 16000, "due to the limit of rvad, we only support 16000 fs"
 
     Path(args.out_scp).parent.mkdir(parents=True, exist_ok=True)
     out_vadscp = Path(args.out_scp)
@@ -98,14 +100,14 @@ def main():
                         wave, rate = soundfile.read(g, dtype=np.int16)
             else:
                 wave, rate = sf.read(wavpath)
-            
-            if args.fs is not None and args.fs != rate:
+
+            if args.vad_fs is not None and args.vad_fs != rate:
                 # FIXME(kamo): To use sox?
                 wave = resampy.resample(
-                    wave.astype(np.float64), rate, args.fs, axis=0
+                    wave.astype(np.float64), rate, args.vad_fs, axis=0
                 )
-                rate = args.fs
-            
+                rate = args.vad_fs
+
             vads, wav = rvad(speechproc, wave, rate)
 
             start = None
@@ -120,7 +122,8 @@ def main():
                 vad_segs.append((start, len(wav)))
 
             vads = " ".join(
-                "{:.4f}:{:.4f}".format(v[0] / fs, v[1] / fs) for v in vad_segs
+                "{:.4f}:{:.4f}".format(v[0] / args.vad_fs, v[1] / args.vad_fs)
+                for v in vad_segs
             )
             fout.write("{} {}\n".format(uttid, vads))
 

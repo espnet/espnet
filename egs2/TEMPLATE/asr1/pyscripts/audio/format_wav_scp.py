@@ -38,9 +38,7 @@ def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     return tuple(map(int, integers.strip().split(",")))
 
 
-def vad_trim(
-    vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int
-) -> np.array:
+def vad_trim(vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int) -> np.array:
     # Conduct trim wtih vad information
 
     assert check_argument_types()
@@ -57,7 +55,7 @@ def vad_trim(
         orig_end_frame = orig_start_frame + duration
 
         end_frame = start_frame + duration
-        new_wav[start_frame : end_frame] = wav[orig_start_frame : orig_end_frame]
+        new_wav[start_frame:end_frame] = wav[orig_start_frame:orig_end_frame]
 
         start_frame = end_frame
 
