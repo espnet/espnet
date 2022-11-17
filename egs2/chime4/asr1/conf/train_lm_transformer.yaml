@@ -13,7 +13,7 @@ grad_clip: 5.0
 batch_type: numel
 batch_bins: 150000
 accum_grad: 4
-max_epoch: 2
+max_epoch: 30
 
 optim: adam
 optim_conf:
