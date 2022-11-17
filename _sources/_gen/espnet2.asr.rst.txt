@@ -477,6 +477,17 @@ espnet2.asr.decoder.mlm_decoder
     :show-inheritance:
 
 
+.. _espnet2.asr.decoder.hugging_face_transformers_decoder:
+
+espnet2.asr.decoder.hugging_face_transformers_decoder
+-----------------------------------------------------
+
+.. automodule:: espnet2.asr.decoder.hugging_face_transformers_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.decoder.abs_decoder:
 
 espnet2.asr.decoder.abs_decoder

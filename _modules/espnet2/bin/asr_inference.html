@@ -205,6 +205,14 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.length_bonus</span> <span class="kn">import</span> <span class="n">LengthBonus</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForSeq2SeqLM</span>
+    <span class="kn">from</span> <span class="nn">transformers.file_utils</span> <span class="kn">import</span> <span class="n">ModelOutput</span>
+
+    <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">False</span>
+
 
 <div class="viewcode-block" id="Speech2Text"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.Speech2Text">[docs]</a><span class="k">class</span> <span class="nc">Speech2Text</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Speech2Text class</span>
@@ -246,6 +254,8 @@
         <span class="n">quantize_lm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
         <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder_max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
@@ -340,8 +350,47 @@
                 <span class="o">**</span><span class="n">transducer_conf</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">beam_search</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">decoder</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;HuggingFaceTransformersDecoder&quot;</span>
+            <span class="ow">and</span> <span class="n">hugging_face_decoder</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_transformers_available</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                    <span class="s2">&quot;`transformers` is not available.&quot;</span>
+                    <span class="s2">&quot; Please install it via `pip install transformers`&quot;</span>
+                    <span class="s2">&quot; or `cd /path/to/espnet/tools &amp;&amp; . ./activate_python.sh&quot;</span>
+                    <span class="s2">&quot; &amp;&amp; ./installers/install_transformers.sh`.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+                <span class="n">decoder</span><span class="o">.</span><span class="n">model_name_or_path</span>
+            <span class="p">)</span>
+
+            <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hugging_face_model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                <span class="p">)</span>
+                <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+                <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">encoder</span>
+
+            <span class="k">del</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span>
+            <span class="k">del</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span>
+
+            <span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">linear_in</span>
+            <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+            <span class="n">beam_search</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="kc">None</span>
 
             <span class="n">weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">decoder</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ctc_weight</span><span class="p">,</span>
@@ -399,7 +448,7 @@
 
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span> <span class="ow">or</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span> <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -415,6 +464,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">beam_search</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="n">beam_search_transducer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">hugging_face_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="n">hugging_face_linear_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_beam_size</span> <span class="o">=</span> <span class="n">beam_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_max_length</span> <span class="o">=</span> <span class="n">hugging_face_decoder_max_length</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">=</span> <span class="n">maxlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">=</span> <span class="n">minlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
@@ -501,6 +554,25 @@
             <span class="p">)</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;best hypo: &quot;</span> <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="p">:</span>
+            <span class="n">decoder_start_token_id</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">decoder_start_token_id</span>
+            <span class="p">)</span>
+            <span class="n">yseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">ModelOutput</span><span class="p">(</span>
+                    <span class="n">last_hidden_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_linear_in</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">decoder_start_token_id</span><span class="o">=</span><span class="n">decoder_start_token_id</span><span class="p">,</span>
+                <span class="n">num_beams</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_beam_size</span><span class="p">,</span>
+                <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_max_length</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="p">[</span><span class="n">Hypothesis</span><span class="p">(</span><span class="n">yseq</span><span class="o">=</span><span class="n">yseq</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;best hypo: &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+                <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
@@ -601,6 +673,8 @@
     <span class="n">quantize_lm</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">hugging_face_decoder</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">hugging_face_decoder_max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -649,6 +723,8 @@
         <span class="n">quantize_lm</span><span class="o">=</span><span class="n">quantize_lm</span><span class="p">,</span>
         <span class="n">quantize_modules</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span>
         <span class="n">quantize_dtype</span><span class="o">=</span><span class="n">quantize_dtype</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder</span><span class="o">=</span><span class="n">hugging_face_decoder</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder_max_length</span><span class="o">=</span><span class="n">hugging_face_decoder_max_length</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -889,6 +965,8 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--lm_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;RNNLM weight&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ngram_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ngram weight&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--streaming&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hugging_face_decoder&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hugging_face_decoder_max_length&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
 
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--transducer_conf&quot;</span><span class="p">,</span>

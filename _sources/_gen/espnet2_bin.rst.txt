@@ -158,6 +158,8 @@ asr_inference.py
                             [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
                             [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                             [--streaming STREAMING]
+                            [--hugging_face_decoder HUGGING_FACE_DECODER]
+                            [--hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH]
                             [--transducer_conf TRANSDUCER_CONF]
                             [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
     
@@ -240,6 +242,8 @@ asr_inference.py
       --ngram_weight NGRAM_WEIGHT
                             ngram weight (default: 0.9)
       --streaming STREAMING
+      --hugging_face_decoder HUGGING_FACE_DECODER
+      --hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH
       --transducer_conf TRANSDUCER_CONF
                             The keyword arguments for transducer beam search.
                             (default: None)
@@ -432,7 +436,8 @@ asr_train.py
                         [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                         [--joint_net_conf JOINT_NET_CONF]
                         [--use_preprocessor USE_PREPROCESSOR]
-                        [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
+                        [--token_type {bpe,char,word,phn,hugging_face}]
+                        [--bpemodel BPEMODEL]
                         [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                         [--cleaner {None,tacotron,jaconv,vietnamese}]
                         [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
@@ -454,7 +459,7 @@ asr_train.py
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
-                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
+                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
                         [--decoder_conf DECODER_CONF]
     
     base parser
@@ -804,7 +809,7 @@ asr_train.py
     
       --use_preprocessor USE_PREPROCESSOR
                             Apply preprocessing to data or not (default: True)
-      --token_type {bpe,char,word,phn}
+      --token_type {bpe,char,word,phn,hugging_face}
                             The text will be tokenized in the specified level token (default: bpe)
       --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
       --cleaner {None,tacotron,jaconv,vietnamese}
@@ -852,7 +857,7 @@ asr_train.py
                             The postencoder type (default: None)
       --postencoder_conf POSTENCODER_CONF
                             The keyword arguments for postencoder (default: {})
-      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
+      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
@@ -2219,7 +2224,7 @@ enh_s2t_train.py
                             [--asr_encoder_conf ASR_ENCODER_CONF]
                             [--asr_postencoder {hugging_face_transformers,None}]
                             [--asr_postencoder_conf ASR_POSTENCODER_CONF]
-                            [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
+                            [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
                             [--asr_decoder_conf ASR_DECODER_CONF]
                             [--st_preencoder {sinc,linear,None}]
                             [--st_preencoder_conf ST_PREENCODER_CONF]
@@ -2597,7 +2602,7 @@ enh_s2t_train.py
       --enh_model_conf ENH_MODEL_CONF
                             The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
       --asr_model_conf ASR_MODEL_CONF
-                            The keyword arguments for asr submodel class. (default: {'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
+                            The keyword arguments for asr submodel class. (default: {'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
       --st_model_conf ST_MODEL_CONF
                             The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
       --diar_model_conf DIAR_MODEL_CONF
@@ -2666,7 +2671,7 @@ enh_s2t_train.py
                             The asr_postencoder type (default: None)
       --asr_postencoder_conf ASR_POSTENCODER_CONF
                             The keyword arguments for asr_postencoder (default: {})
-      --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
+      --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
                             The asr_decoder type (default: rnn)
       --asr_decoder_conf ASR_DECODER_CONF
                             The keyword arguments for asr_decoder (default: {})
@@ -4235,6 +4240,31 @@ hubert_train.py
                             The encoder type (default: hubert_pretrain)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
+.. _hugging_face_export_vocabulary.py:
+
+hugging_face_export_vocabulary.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+    usage: hugging_face_export_vocabulary.py [-h]
+                                             [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                                             --output OUTPUT --model_name_or_path
+                                             MODEL_NAME_OR_PATH
+                                             [--add_symbol ADD_SYMBOL]
+    
+    Export Hugging Face vocabulary
+    
+    optional arguments:
+      --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                            The verbose level of logging (default: INFO)
+      --output OUTPUT, -o OUTPUT
+                            Output text. - indicates sys.stdout (default: None)
+      --model_name_or_path MODEL_NAME_OR_PATH
+                            Hugging Face model name or path (default: None)
+      --add_symbol ADD_SYMBOL
+                            Append symbol e.g. --add_symbol '<blank>:0'
+                            --add_symbol '<unk>:1' (default: [])
 .. _launch.py:
 
 launch.py

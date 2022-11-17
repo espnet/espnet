@@ -156,6 +156,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-transducer-decoder">espnet2.asr.decoder.transducer_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-transformer-decoder">espnet2.asr.decoder.transformer_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-mlm-decoder">espnet2.asr.decoder.mlm_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-hugging-face-transformers-decoder">espnet2.asr.decoder.hugging_face_transformers_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-abs-decoder">espnet2.asr.decoder.abs_decoder</a></li>
 </ul>
 </li>
@@ -344,7 +345,7 @@
 <span id="id3"></span><h2>espnet2.asr.espnet_model<a class="headerlink" href="#espnet2-asr-espnet-model" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.espnet_model"></span><dl class="class">
 <dt id="espnet2.asr.espnet_model.ESPnetASRModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', extract_feats_in_collect_stats: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>CTC-attention hybrid Encoder-Decoder model</p>
 <dl class="method">
@@ -1178,7 +1179,7 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.asr.postencoder.hugging_face_transformers_postencoder"></span><p>Hugging Face Transformers PostEncoder.</p>
 <dl class="class">
 <dt id="espnet2.asr.postencoder.hugging_face_transformers_postencoder.HuggingFaceTransformersPostEncoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.hugging_face_transformers_postencoder.</code><code class="sig-name descname">HuggingFaceTransformersPostEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">model_name_or_path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/postencoder/hugging_face_transformers_postencoder.html#HuggingFaceTransformersPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.hugging_face_transformers_postencoder.HuggingFaceTransformersPostEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.hugging_face_transformers_postencoder.</code><code class="sig-name descname">HuggingFaceTransformersPostEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">model_name_or_path: str</em>, <em class="sig-param">length_adaptor_n_layers: int = 0</em>, <em class="sig-param">lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/postencoder/hugging_face_transformers_postencoder.html#HuggingFaceTransformersPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.hugging_face_transformers_postencoder.HuggingFaceTransformersPostEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder</span></code></a></p>
 <p>Hugging Face Transformers PostEncoder.</p>
 <p>Initialize the module.</p>
@@ -2638,8 +2639,60 @@ x: decoded token score before softmax (batch, maxlen_out, token)</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-decoder-hugging-face-transformers-decoder">
+<span id="id44"></span><h2>espnet2.asr.decoder.hugging_face_transformers_decoder<a class="headerlink" href="#espnet2-asr-decoder-hugging-face-transformers-decoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.decoder.hugging_face_transformers_decoder"></span><p>Hugging Face Transformers Decoder.</p>
+<dl class="class">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">HuggingFaceTransformersDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">model_name_or_path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<p>Hugging Face Transformers Decoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_output_size</strong> – dimension of encoder attention</p></li>
+<li><p><strong>model_name_or_path</strong> – Hugging Face Transformers model name</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward decoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hs_pad</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>hlens</strong> – (batch)</p></li>
+<li><p><strong>ys_in_pad</strong> – input tensor (batch, maxlen_out, #mels)</p></li>
+<li><p><strong>ys_in_lens</strong> – (batch)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>tuple containing:</p>
+<dl class="simple">
+<dt>x: decoded token score before softmax (batch, maxlen_out, token)</dt><dd><p>if use_output_layer is True,</p>
+</dd>
+</dl>
+<p>olens: (batch, )</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(tuple)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.reload_pretrained_parameters">
+<code class="sig-name descname">reload_pretrained_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.reload_pretrained_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.reload_pretrained_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-decoder-abs-decoder">
-<span id="id44"></span><h2>espnet2.asr.decoder.abs_decoder<a class="headerlink" href="#espnet2-asr-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id45"></span><h2>espnet2.asr.decoder.abs_decoder<a class="headerlink" href="#espnet2-asr-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.abs_decoder"></span><dl class="class">
 <dt id="espnet2.asr.decoder.abs_decoder.AbsDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.abs_decoder.</code><code class="sig-name descname">AbsDecoder</code><a class="reference internal" href="../_modules/espnet2/asr/decoder/abs_decoder.html#AbsDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="Permalink to this definition">¶</a></dt>

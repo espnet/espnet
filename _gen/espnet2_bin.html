@@ -343,6 +343,8 @@ Input/output arguments:
                         [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
                         [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                         [--streaming STREAMING]
+                        [--hugging_face_decoder HUGGING_FACE_DECODER]
+                        [--hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH]
                         [--transducer_conf TRANSDUCER_CONF]
                         [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
 
@@ -425,6 +427,8 @@ Beam-search related:
   --ngram_weight NGRAM_WEIGHT
                         ngram weight (default: 0.9)
   --streaming STREAMING
+  --hugging_face_decoder HUGGING_FACE_DECODER
+  --hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH
   --transducer_conf TRANSDUCER_CONF
                         The keyword arguments for transducer beam search.
                         (default: None)
@@ -613,7 +617,8 @@ Text converter related:
                     [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                     [--joint_net_conf JOINT_NET_CONF]
                     [--use_preprocessor USE_PREPROCESSOR]
-                    [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
+                    [--token_type {bpe,char,word,phn,hugging_face}]
+                    [--bpemodel BPEMODEL]
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                     [--cleaner {None,tacotron,jaconv,vietnamese}]
                     [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
@@ -635,7 +640,7 @@ Text converter related:
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,None}]
                     [--postencoder_conf POSTENCODER_CONF]
-                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
+                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
                     [--decoder_conf DECODER_CONF]
 
 base parser
@@ -985,7 +990,7 @@ Optimizer related:
 
   --use_preprocessor USE_PREPROCESSOR
                         Apply preprocessing to data or not (default: True)
-  --token_type {bpe,char,word,phn}
+  --token_type {bpe,char,word,phn,hugging_face}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
   --cleaner {None,tacotron,jaconv,vietnamese}
@@ -1033,7 +1038,7 @@ Optimizer related:
                         The postencoder type (default: None)
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
-  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
+  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})
@@ -2388,7 +2393,7 @@ SeparateSpeech related:
                         [--asr_encoder_conf ASR_ENCODER_CONF]
                         [--asr_postencoder {hugging_face_transformers,None}]
                         [--asr_postencoder_conf ASR_POSTENCODER_CONF]
-                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
+                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
                         [--asr_decoder_conf ASR_DECODER_CONF]
                         [--st_preencoder {sinc,linear,None}]
                         [--st_preencoder_conf ST_PREENCODER_CONF]
@@ -2766,7 +2771,7 @@ Optimizer related:
   --enh_model_conf ENH_MODEL_CONF
                         The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
   --asr_model_conf ASR_MODEL_CONF
-                        The keyword arguments for asr submodel class. (default: {&#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True})
+                        The keyword arguments for asr submodel class. (default: {&#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;lang_token_id&#39;: -1})
   --st_model_conf ST_MODEL_CONF
                         The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
   --diar_model_conf DIAR_MODEL_CONF
@@ -2835,7 +2840,7 @@ Optimizer related:
                         The asr_postencoder type (default: None)
   --asr_postencoder_conf ASR_POSTENCODER_CONF
                         The keyword arguments for asr_postencoder (default: {})
-  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
+  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
                         The asr_decoder type (default: rnn)
   --asr_decoder_conf ASR_DECODER_CONF
                         The keyword arguments for asr_decoder (default: {})
@@ -4399,8 +4404,31 @@ Optimizer related:
 </pre></div>
 </div>
 </section>
+<section id="hugging-face-export-vocabulary-py">
+<span id="id16"></span><h1>hugging_face_export_vocabulary.py<a class="headerlink" href="#hugging-face-export-vocabulary-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: hugging_face_export_vocabulary.py [-h]
+                                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                                         --output OUTPUT --model_name_or_path
+                                         MODEL_NAME_OR_PATH
+                                         [--add_symbol ADD_SYMBOL]
+
+Export Hugging Face vocabulary
+
+optional arguments:
+  --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        The verbose level of logging (default: INFO)
+  --output OUTPUT, -o OUTPUT
+                        Output text. - indicates sys.stdout (default: None)
+  --model_name_or_path MODEL_NAME_OR_PATH
+                        Hugging Face model name or path (default: None)
+  --add_symbol ADD_SYMBOL
+                        Append symbol e.g. --add_symbol &#39;&lt;blank&gt;:0&#39;
+                        --add_symbol &#39;&lt;unk&gt;:1&#39; (default: [])
+</pre></div>
+</div>
+</section>
 <section id="launch-py">
-<span id="id16"></span><h1>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h1>
+<span id="id17"></span><h1>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: launch.py [-h] [--cmd CMD] [--log LOG]
                  [--max_num_log_files MAX_NUM_LOG_FILES] [--ngpu NGPU]
                  [--num_nodes NUM_NODES | --host HOST] [--envfile ENVFILE]
@@ -4452,7 +4480,7 @@ optional arguments:
 </div>
 </section>
 <section id="lm-calc-perplexity-py">
-<span id="id17"></span><h1>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h1>
+<span id="id18"></span><h1>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_calc_perplexity.py [-h] [--config CONFIG]
                              [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                              --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -4495,7 +4523,7 @@ The model configuration related:
 </div>
 </section>
 <section id="lm-train-py">
-<span id="id18"></span><h1>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id19"></span><h1>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -4931,7 +4959,7 @@ Optimizer related:
 </div>
 </section>
 <section id="mt-inference-py">
-<span id="id19"></span><h1>mt_inference.py<a class="headerlink" href="#mt-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id20"></span><h1>mt_inference.py<a class="headerlink" href="#mt-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: mt_inference.py [-h] [--config CONFIG]
                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                        --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -5022,7 +5050,7 @@ Text converter related:
 </div>
 </section>
 <section id="mt-train-py">
-<span id="id20"></span><h1>mt_train.py<a class="headerlink" href="#mt-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id21"></span><h1>mt_train.py<a class="headerlink" href="#mt-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: mt_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -5494,7 +5522,7 @@ Optimizer related:
 </div>
 </section>
 <section id="pack-py">
-<span id="id21"></span><h1>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h1>
+<span id="id22"></span><h1>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t} ...
 
 Pack input files to archive format
@@ -5507,7 +5535,7 @@ optional arguments:
 </div>
 </section>
 <section id="split-scps-py">
-<span id="id22"></span><h1>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h1>
+<span id="id23"></span><h1>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: split_scps.py [-h]
                      [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                      --scps SCPS [SCPS ...] [--names NAMES [NAMES ...]]
@@ -5530,7 +5558,7 @@ optional arguments:
 </div>
 </section>
 <section id="st-inference-py">
-<span id="id23"></span><h1>st_inference.py<a class="headerlink" href="#st-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id24"></span><h1>st_inference.py<a class="headerlink" href="#st-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: st_inference.py [-h] [--config CONFIG]
                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                        --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -5623,7 +5651,7 @@ Text converter related:
 </div>
 </section>
 <section id="st-train-py">
-<span id="id24"></span><h1>st_train.py<a class="headerlink" href="#st-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id25"></span><h1>st_train.py<a class="headerlink" href="#st-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: st_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -6141,7 +6169,7 @@ Optimizer related:
 </div>
 </section>
 <section id="tokenize-text-py">
-<span id="id25"></span><h1>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h1>
+<span id="id26"></span><h1>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tokenize_text.py [-h]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --input INPUT --output OUTPUT [--field FIELD]
@@ -6200,7 +6228,7 @@ write_vocabulary mode related:
 </div>
 </section>
 <section id="tts-inference-py">
-<span id="id26"></span><h1>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id27"></span><h1>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_inference.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -6299,7 +6327,7 @@ Vocoder related:
 </div>
 </section>
 <section id="tts-train-py">
-<span id="id27"></span><h1>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id28"></span><h1>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_train.py [-h] [--config CONFIG] [--print_config]
                     [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                     [--dry_run DRY_RUN]

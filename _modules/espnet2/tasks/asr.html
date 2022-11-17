@@ -178,6 +178,9 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.hugging_face_transformers_decoder</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">HuggingFaceTransformersDecoder</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.mlm_decoder</span> <span class="kn">import</span> <span class="n">MLMDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transducer_decoder</span> <span class="kn">import</span> <span class="n">TransducerDecoder</span>
@@ -325,6 +328,7 @@
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNDecoder</span><span class="p">,</span>
         <span class="n">transducer</span><span class="o">=</span><span class="n">TransducerDecoder</span><span class="p">,</span>
         <span class="n">mlm</span><span class="o">=</span><span class="n">MLMDecoder</span><span class="p">,</span>
+        <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersDecoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
@@ -419,7 +423,7 @@
             <span class="s2">&quot;--token_type&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;phn&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;phn&quot;</span><span class="p">,</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">],</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The text will be tokenized &quot;</span> <span class="s2">&quot;in the specified level token&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>

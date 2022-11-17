@@ -229,17 +229,27 @@
         <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
+        <span class="c1"># In a regular ESPnet recipe, &lt;sos&gt; and &lt;eos&gt; are both &quot;&lt;sos/eos&gt;&quot;</span>
+        <span class="c1"># Pretrained HF Tokenizer needs custom sym_sos and sym_eos</span>
+        <span class="n">sym_sos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sos/eos&gt;&quot;</span><span class="p">,</span>
+        <span class="n">sym_eos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sos/eos&gt;&quot;</span><span class="p">,</span>
         <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">lang_token_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">ctc_weight</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ctc_weight</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">interctc_weight</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">interctc_weight</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_blank</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sym_sos</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_sos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">sym_eos</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_eos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">=</span> <span class="n">ctc_weight</span>
@@ -321,6 +331,11 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="n">extract_feats_in_collect_stats</span>
 
+        <span class="k">if</span> <span class="n">lang_token_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">lang_token_id</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="ESPnetASRModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -347,6 +362,8 @@
             <span class="o">==</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">),</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">text</span><span class="p">[</span><span class="n">text</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span>
 
         <span class="c1"># for data-parallel</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
@@ -639,6 +656,16 @@
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;lang_token_id&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">ys_pad</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">ys_pad_lens</span> <span class="o">+=</span> <span class="mi">1</span>
+
         <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
         <span class="n">ys_in_lens</span> <span class="o">=</span> <span class="n">ys_pad_lens</span> <span class="o">+</span> <span class="mi">1</span>
 
