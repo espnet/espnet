@@ -40,6 +40,8 @@ extra_annotations=/espnet/datasets/CHiME4/CHiME3/data/annotations
 
 # Pretraining of enhancement model
 ./run_enh_pretraining.sh \
+    --stage 1 \
+    --stop_stage 6 \
     --train_set "${enh_train_set}" \
     --valid_set "${enh_valid_set}" \
     --test_sets "${enh_test_sets}" \
@@ -50,6 +52,8 @@ extra_annotations=/espnet/datasets/CHiME4/CHiME3/data/annotations
 
 # Pretraining of ASR model and Language model
 ./run_asr_pretraining.sh \
+    --stage 1 \
+    --stop_stage 11 \
     --train_set "${asr_train_set}" \
     --valid_set "${asr_valid_set}" \
     --test_sets "${asr_test_sets}" \

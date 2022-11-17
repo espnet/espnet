@@ -3,6 +3,8 @@ set -e
 set -u
 set -o pipefail
 
+stage=1
+stop_stage=6
 train_set=
 valid_set=
 test_sets=
@@ -16,8 +18,8 @@ dir=$PWD
 cd ../../enh1
 
 ./enh.sh \
-    --stage 1 \
-    --stop_stage 6 \
+    --stage "${stage}" \
+    --stop_stage "${stop_stage}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
@@ -29,6 +31,6 @@ cd ../../enh1
     --enh_config "${enh_config}" \
     --use_dereverb_ref false \
     --use_noise_ref false \
-    --inference_model "valid.loss.best.pth"
+    --inference_model "valid.loss.best.pth" 
 
 cd $dir
