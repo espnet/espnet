@@ -107,9 +107,17 @@
   - Commit date: `Tue Oct 11 18:59:57 2022 +0900`
 
 ## enh_asr_train_enh_asr_wpd_init_noenhloss_wavlm_conformer_raw_en_char
+
+### Notes
 - Pretrained model: https://huggingface.co/Yoshiki/chime4_enh_asr1_wpd_wavlm_conformer
 - This joint training requires pre-trained models for both Enh and ASR. Each model with the specified configuration must be trained in advance.
-- The language model is also copied from the ASR pre-training recipe.
+- The language model should also match the ASR pre-training recipe.
+
+### How to reproduce the entire training
+- `local/run_multiiris.sh` performs (1) pre-training of the Enh model, (2) pre-training of the ASR model, and (3) joint finetuning of the entire system.
+- The language model is also trained on (2).
+- The final scores will be summarized in `exp/*` similar to `run.sh`.
+
 
 ### WER
 
