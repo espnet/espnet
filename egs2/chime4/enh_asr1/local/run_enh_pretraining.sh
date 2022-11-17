@@ -23,7 +23,7 @@ cd ../../enh1
     --test_sets "${test_sets}" \
     --fs 16k \
     --ngpu 1 \
-    --spk_num 1 \
+    --ref_num 1 \
     --ref_channel "${ref_channel}" \
     --local_data_opts "--extra-annotations ${extra_annotations} --stage 1 --stop-stage 2" \
     --enh_config "${enh_config}" \

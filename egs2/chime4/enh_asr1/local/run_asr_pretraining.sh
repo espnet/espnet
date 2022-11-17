@@ -32,8 +32,6 @@ cd ../../asr1
     --word_vocab_size ${word_vocab_size}   \
     --train_set "${train_set}"             \
     --valid_set "${valid_set}"             \
-    --test_sets "${test_sets}"             \
-    --bpe_train_text "data/${train_set}/text" \
-    --lm_train_text "data/${train_set}/text data/local/other_text/text"
+    --test_sets "${test_sets}"
 
 cd $dir
