@@ -53,6 +53,8 @@ def test_transformers_forward(
 
 @pytest.mark.execution_timeout(30)
 def test_transformers_too_short_utt():
+    if not is_torch_1_8_plus:
+        return
     idim = 400
     postencoder = HuggingFaceTransformersPostEncoder(idim, "akreal/tiny-random-bert", 2)
     x = torch.randn([2, 3, idim], requires_grad=True)
