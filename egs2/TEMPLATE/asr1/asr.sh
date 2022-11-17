@@ -62,6 +62,7 @@ sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
+hugging_face_model_name_or_path="" # Hugging Face model or path for hugging_face tokenizer
 
 # Ngram model related
 use_ngram=false
@@ -306,6 +307,7 @@ bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
+hugging_face_token_list="${token_listdir}/hugging_face_"${hugging_face_model_name_or_path/\//-}/tokens.txt
 # NOTE: keep for future development.
 # shellcheck disable=SC2034
 wordtoken_list="${token_listdir}"/word/tokens.txt
@@ -318,6 +320,9 @@ elif [ "${token_type}" = char ]; then
 elif [ "${token_type}" = word ]; then
     token_list="${wordtoken_list}"
     bpemodel=none
+elif [ "${token_type}" = hugging_face ]; then
+    token_list="${hugging_face_token_list}"
+    bpemodel=${hugging_face_model_name_or_path}
 else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
@@ -348,6 +353,9 @@ if [ -z "${asr_tag}" ]; then
     fi
     if [ "${token_type}" = bpe ]; then
         asr_tag+="${nbpe}"
+    fi
+    if [ "${token_type}" = hugging_face ]; then
+        asr_tag+="_"${hugging_face_model_name_or_path/\//-}
     fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
@@ -386,6 +394,9 @@ if [ -z "${asr_stats_dir}" ]; then
     fi
     if [ "${token_type}" = bpe ]; then
         asr_stats_dir+="${nbpe}"
+    fi
+    if [ "${token_type}" = hugging_face ]; then
+        asr_stats_dir+="_"${hugging_face_model_name_or_path/\//-}
     fi
     if [ -n "${speed_perturb_factors}" ]; then
         asr_stats_dir+="_sp"
@@ -690,7 +701,14 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
+        elif [ "${token_type}" = hugging_face ]; then
+            log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
+                --model_name_or_path "${hugging_face_model_name_or_path}" \
+                --output "${token_list}"
         else
             log "Error: not supported --token_type '${token_type}'"
             exit 2
