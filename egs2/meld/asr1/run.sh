@@ -9,7 +9,7 @@ train_set="train"
 valid_set="valid"
 test_sets="valid test"
 
-asr_config=conf/tuning/train_asr_hubert_transformer_adam_specaug_meld.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decoder_asr.yaml
 
 ./asr.sh \
