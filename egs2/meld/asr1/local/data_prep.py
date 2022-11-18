@@ -60,11 +60,9 @@ for phase in phases:
         text.append(
             f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} {line[3]} {curr_line}"
         )
-        # ffmpeg -i /ocean/projects/cis210027p/zzhou5/data/meld/MELD-RAW/MELD.Raw/dev/dev_splits_complete/dia105_utt9.mp4 -ac 1 -ar 16000 -vn /ocean/projects/cis210027p/zzhou5/data/meld/MELD-RAW/meld.audio/dev2/dia105_utt9.wav
         wav_scp.append(
             f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} ffmpeg -i {meld_root}/wavs/{phase}/dia{line[5]}_utt{line[6]}.mp4 -ac 1 -ar 16000 -f wav -vn -hide_banner -loglevel error - |"
         )
-        # wav_scp.append(f'{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} {meld_root}/wavs/{phase}/dia{line[5]}_utt{line[6]}.wav')
 
     with open(os.path.join("data", phase, "utt2spk"), "w") as f:
         f.write("\n".join(utt2spk))
