@@ -17,7 +17,6 @@ inference_config=conf/decoder_asr.yaml
     --ngpu 1 \
     --inference_config "${inference_config}" \
     --nbpe 850 \
-    --token_type bpe\
     --bpe_nlsyms sadness,surprise,neutral,joy,anger,fear,disgust\
     --max_wav_duration 20 \
     --feats_normalize utterance_mvn\
