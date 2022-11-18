@@ -70,5 +70,3 @@ for phase in phases:
         f.write("\n".join(text))
     with open(os.path.join("data", phase, "wav.scp"), "w") as f:
         f.write("\n".join(wav_scp))
-    with open(os.path.join("data", phase, "transcript"), "w") as f:
-        f.write("")
