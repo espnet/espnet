@@ -6,6 +6,8 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `a7bd6522b32ec6472c13f6a2289dcdff4a846c12`
   - Commit date: `Wed Sep 14 08:34:27 2022 -0400`
+- Pretrained Model
+  - Huggingface Hub: [ [model card](https://huggingface.co/espnet/realzza-meld-asr-hubert-transformer) | [model](https://huggingface.co/espnet/realzza-meld-asr-hubert-transformer/blob/main/exp/asr_train_asr_hubert_transformer_adam_specaug_meld_raw_en_bpe850/valid.acc.ave_5best.pth) ]
 
 ## asr_train_asr_hubert_transformer_adam_specaug_meld_raw_en_bpe850
 - ASR config: conf/tuning/train_asr_hubert_transformer_adam_specaug_meld.yaml
