@@ -39,7 +39,7 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
         frontend.train()
     else:
         frontend.eval()
-    torch.random.manual_seed(14)
+    set_all_random_seed(14)
     x = torch.randn(2, 1000, 2, requires_grad=True)
     x_lengths = torch.LongTensor([1000, 980])
     y, y_lengths = frontend(x, x_lengths)
