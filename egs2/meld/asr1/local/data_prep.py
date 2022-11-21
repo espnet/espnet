@@ -58,10 +58,13 @@ for phase in phases:
             f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} {spk}"
         )
         text.append(
-            f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} {line[3]} {curr_line}"
+            f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} "
+            f"{line[3]} {curr_line}"
         )
         wav_scp.append(
-            f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} ffmpeg -i {meld_root}/wavs/{phase}/dia{line[5]}_utt{line[6]}.mp4 -ac 1 -ar 16000 -f wav -vn -hide_banner -loglevel error - |"
+            f"{spk}-dia{line[5]}-utt{line[6]}-sea{line[7]}-epi{line[8]}-{phase} "
+            f"ffmpeg -i {meld_root}/wavs/{phase}/dia{line[5]}_utt{line[6]}.mp4 -ac 1 "
+            f"-ar 16000 -f wav -vn -hide_banner -loglevel error - |"
         )
 
     with open(os.path.join("data", phase, "utt2spk"), "w") as f:
