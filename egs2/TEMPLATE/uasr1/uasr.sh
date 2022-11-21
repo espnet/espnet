@@ -75,6 +75,7 @@ postprocess_sil_prob=0.5         # silence injection probability in post process
 use_ngram=true      # Whether to use n-gram modeling (Current version must set to true)
 ngram_exp=          # Specify the diretory path for ngram LM experiments
 ngram_num=4         # Specify the n in ngram LM
+kenlm_path=         # Pre-trained ngram LM
 
 # Language model related
 use_lm=true       # Use language model for uasr decoding.
@@ -206,6 +207,7 @@ Options:
     --use_ngram       # Whether to use n-gram modeling (Current version must set to true)
     --ngram_exp       # Specify the diretory path for ngram LM experiments
     --ngram_num       # Specify the n in ngram LM
+    --kenlm_path      # Specify the pre-trained LM path
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
@@ -531,14 +533,16 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: VAD computing for all data"
-
-        # FIXME(jiatong): we now support limited wav format (i.e., only wav or flac for now) to process it
-        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            # FIXME(jiatong): only fs=16000 is supported now
-            scripts/audio/compute_vad.sh  --cmd "${train_cmd}" --nj "${nj}" "${VAD_HOME}" "data/${dset}"
-
-            utils/fix_data_dir.sh data/"${dset}"
-        done
+        if "${silence_trim}"; then
+            # FIXME(jiatong): we now support limited wav format (i.e., only wav or flac for now) to process it
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                # FIXME(jiatong): only fs=16000 is supported now
+                scripts/audio/compute_vad.sh  --cmd "${train_cmd}" --nj "${nj}" "${VAD_HOME}" "data/${dset}"
+                utils/fix_data_dir.sh data/"${dset}"
+            done
+        else
+            log "Skip stage 3: VAD computing for data"
+        fi
     fi
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
@@ -676,7 +680,7 @@ if ! "${skip_data_prep}"; then
 
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-        _logdir="${tokenlist_dir}/logdir"
+        _logdir="${tokendir}/logdir"
 
         # shellcheck disable=SC2002
         cat ${lm_train_text} | awk ' { if( NF != 2 ) print $0; } ' > "${data_feats}/lm_train.txt"
@@ -703,46 +707,39 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.log.JOB \
+            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${split_dir}/JOB/text \
                 --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/unpaired_text_nosil \
+                --text_output ${split_dir}/JOB/unpaired_text \
                 --write_vocabulary true \
                 --write_text true \
                 --cutoff 2
-
-             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.log.JOB \
-             ${python} pyscripts/text/post_processing.py \
-               --word_boundary "${postprocess_word_boundary}" \
-               --sil_prob ${postprocess_sil_token} \
-               --sil_token ${postprocess_sil_prob} \
-               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
-               --output_text "${split_dir}/JOB/unpaired_text" \
-               --output_vocab "${split_dir}/JOB/tokens_post.txt"
 
             ${python} pyscripts/text/combine_text_and_vocab.py \
                     --split_dir ${split_dir} \
                     --num_splits ${nj} \
                     --output_dir "${data_feats}/${train_set}" \
+                    --text_file "unpaired_text" \
+                    --vocab_file "tokens.txt" \
                     --add_symbol "<blank>" \
                     --add_symbol "<s>" \
                     --add_symbol "<pad>" \
                     --add_symbol "</s>" \
                     --add_symbol "<unk>" \
-                    --add_symbol "<SIL>"
+                    --add_symbol "${postprocess_sil_token}"
 
             # Note(Dongji): for dev text we can keep utterance ids to compute PER
-            log "Generate char level token_list from ${lm_dev_text}"
+            log "Tokenize ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${lm_dev_text}\
                 --output "${data_feats}/${valid_set}/tokens.txt" \
-                --text_output "${data_feats}/${valid_set}/char.tmp" \
+                --text_output "${data_feats}/${valid_set}/token.tmp" \
                 --write_vocabulary false \
                 --write_text true \
                 --cutoff 0 \
@@ -751,7 +748,7 @@ if ! "${skip_data_prep}"; then
             # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal 
             # evaluation (however, the results with unpaired text are not suppose to be used for model 
             # selection)
-            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/char.tmp" \
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/token.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
 
         elif [ "${token_type}" == phn ]; then
@@ -768,7 +765,7 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.log.JOB \
+            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type phn \
                 --input ${split_dir}/JOB/text \
@@ -779,7 +776,8 @@ if ! "${skip_data_prep}"; then
                 --write_text true \
                 --cutoff 2 
 
-             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.log.JOB \
+             # FIXME(jiatong): this post process is very hard-coded, need fix
+             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
              ${python} pyscripts/text/post_processing.py \
                --word_boundary "${postprocess_word_boundary}" \
                --sil_prob ${postprocess_sil_token} \
@@ -801,7 +799,7 @@ if ! "${skip_data_prep}"; then
                     --add_symbol "<SIL>"
 
             # Note(Dongji): for dev text we need to keep utterance ids to compute PER
-            log "Generate phone level token_list from ${lm_dev_text}"
+            log "Tokenizer ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type phn \
@@ -1026,6 +1024,7 @@ if ! "${skip_train}"; then
     if "${use_ngram}"; then
         mkdir -p ${ngram_exp}
         [ -z ${kenlm_path} ] && kenlm_path="${ngram_exp}/${ngram_num}gram.bin"
+        # TODO(jiatong): can we add other options? otherwise, this is a muste?
     fi
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         if "${use_ngram}"; then

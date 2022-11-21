@@ -12,7 +12,7 @@ from espnet2.utils.types import str2bool
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Post-process phonemized text file",
+        description="Post-process text file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--word_boundary", type=str, required=True)

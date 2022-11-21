@@ -114,9 +114,9 @@ def main():
             vad_segs = []
             for i, v in enumerate(vads):
                 if start is None and v == 1:
-                    start = i * stride
+                    start = i * args.vad_stride
                 elif start is not None and v == 0:
-                    vad_segs.append((start, i * stride))
+                    vad_segs.append((start, i * args.vad_stride))
                     start = None
             if start is not None:
                 vad_segs.append((start, len(wav)))

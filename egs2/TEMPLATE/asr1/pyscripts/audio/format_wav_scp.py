@@ -197,7 +197,9 @@ def main():
                             rate = args.fs
 
                         if do_vad:
+                            logging.info("conduct triming from {}".format(wave.shape))
                             wave = vad_trim(vad_reader, uttid, wave, rate)
+                            logging.info("conduct triming into {}".format(wave.shape))
 
                         if args.audio_format.endswith("ark"):
                             if "flac" in args.audio_format:

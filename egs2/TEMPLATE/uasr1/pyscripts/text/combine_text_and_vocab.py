@@ -17,6 +17,8 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--split_dir", type=str, required=True)
     parser.add_argument("--num_splits", type=int, required=True)
     parser.add_argument("--output_dir", "-o", required=True, help="Output dir")
+    parser.add_argument("--text_file", type=str, default="unpaired_text")
+    parser.add_argument("--vocab_file", type=str, default="tokens.txt")
     parser.add_argument(
         "--add_symbol", type=str, help="extra symbol add to vocabulary", action="append"
     )
@@ -27,24 +29,26 @@ def combine(
     split_dir: str,
     num_splits: int,
     output_dir: str,
+    text_file: str,
+    vocab_file: str,
     add_symbol: Optional[str],
 ):
     extra_symbol_set = set()
     if add_symbol:
         extra_symbol_set = set(add_symbol)
 
-    output_text = Path(output_dir, "phones.txt")
+    output_text = Path(output_dir, text_file)
     output_text.parent.mkdir(parents=True, exist_ok=True)
     ot_f = output_text.open("w", encoding="utf-8")
 
-    output_vocab = Path(output_dir, "tokens.txt")
+    output_vocab = Path(output_dir, vocab_file)
     output_vocab.parent.mkdir(parents=True, exist_ok=True)
     ov_f = output_vocab.open("w", encoding="utf-8")
 
     vocab_dict = defaultdict(int)
     for i in tqdm(range(num_splits)):
         index = i + 1
-        text_f = Path(split_dir, str(index), "phones.txt").open("r", encoding="utf-8")
+        text_f = Path(split_dir, str(index), text_file).open("r", encoding="utf-8")
         for line in text_f:
             line = line.rstrip()
             if len(line) > 0:
