@@ -55,6 +55,7 @@ max_wav_duration=20  # Maximum duration in second.
 vad_home=            # The directory for vad
                      # TODO(jiatong): add more options and variants of vad for choices
 silence_trim=true    # Whether to apply vad information in audio trimming
+precompute_batchsize=4       # Batchsize for feature pre-computation
 write_collected_feats=false  # Whether to write collected feats for faster training (need more extra spaces)
 
 # Tokenization related
@@ -187,6 +188,7 @@ Options:
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --vad_home         # The directory for vad processing (default="${vad_home}").
     --silence_trim     # Whether to use vad to trim silence (default="${silence_trim}").
+    --precompute_batchsize    # Batchsize for feature pre-computation (default="${precompute_batchsize}").
     --write_collected_feats   # Whether to write collected feats for faster training (default="${write_collected_feats}").
 
     # Tokenization related
@@ -1067,7 +1069,7 @@ if ! "${skip_train}"; then
 
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Build text scp file for RandomTextReader class"
-        ${python} -m espnet2.fileio.make_text_scp \
+        ${python} pyscripts/text/make_text_scp.py \
           --input_text ${unpaired_text} \
           --output_scp ${unpaired_text_scp} \
           --num_digits 11
@@ -1091,6 +1093,7 @@ if ! "${skip_train}"; then
         fi
 
         _opts=
+        _opts+="--batch_size ${precompute_batchsize} "
         if [ -n "${uasr_config}" ]; then
             # To generate the config file: e.g.
             #   % python3 -m espnet2.bin.uasr_train --print_config --optim adam
