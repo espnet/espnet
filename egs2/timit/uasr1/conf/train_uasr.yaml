@@ -1,0 +1,109 @@
+# generator architecture
+generator: conv
+generator_conf: 
+  conv_stride: 1
+  conv_kernel: 4
+  bias: False
+  dropout: 0.1
+  batch_norm: False
+  batch_norm_weight: 30
+  residual: False
+  conv_dilation: 1
+  pad: -1
+
+# discriminator architecture
+discriminator: conv
+discriminator_conf:
+  conv_channels: 384
+  conv_depth: 2
+  conv_kernel: 6
+  conv_dilation: 1
+  causal: True
+  linear_emb: False
+  max_pool: False
+  act_after_linear: False
+  dropout: 0.0
+  weight_norm: False
+
+# segmenter architecture
+segmenter: join
+segmenter_conf:
+  subsample_rate: 0.25
+  mean_pool: True
+  mean_join_pool: False
+  remove_zeros: False
+
+# frontend for usage
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wav2vec2_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        extra_conf:
+            feature_selection: fairseq_layers
+        normalize: False
+    download_dir: ./hub
+    multilayer_feature: False
+    layer: 14
+
+# losses
+losses:
+    - name: discriminator_loss
+      conf:
+        weight: 1.0
+        smoothing: 0.0
+        smoothing_one_side: False
+        reduction: "sum"
+    - name: gradient_penalty
+      conf:
+        weight: 1.5
+        probabilistic_grad_penalty_slicing: False
+        reduction: "sum"
+    - name: smoothness_penalty
+      conf:
+        weight: 0.5
+        reduction: "none"
+    - name: phoneme_diversity_loss
+      conf:
+        weight: 2.0
+    - name: pseudo_label_loss
+      conf:
+        weight: 0.5
+        input_dim: 1024
+        output_dim: 64
+        downsample_rate: 2
+
+# training info
+seed: 0
+log_interval: 1000
+int_pad_value: 1
+use_amp: false
+num_workers: 6
+batch_type: sorted
+batch_size: 16
+accum_grad: 1
+max_epoch: 3000
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - weighted_lm_ppl
+    - min
+keep_nbest_models: 10
+
+optim: adamw
+optim_conf:
+    lr: 0.0004
+    betas:
+        - 0.5
+        - 0.98
+    eps: 1.0e-6
+    weight_decay: 0
+
+optim2: adamw
+optim2_conf:
+    lr: 0.0005
+    betas: 
+       - 0.5
+       - 0.98
+    eps: 1.0e-6
+    weight_decay: 0.0001
