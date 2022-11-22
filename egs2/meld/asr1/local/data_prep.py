@@ -48,7 +48,7 @@ for phase in phases:
             continue
 
         curr_line = " ".join(
-            re.sub("([.,!?()\-\"'])", r" ", line[1])
+            re.sub(r"([.,!?()\-\"])", r" ", line[1])
             .encode("ascii", "ignore")
             .decode()
             .lower()
