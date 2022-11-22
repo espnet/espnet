@@ -279,7 +279,7 @@ class GANTTSTask(AbsTask):
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip() for line in f]
+                token_list = [line[0] + line[1:].rstrip() for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".
