@@ -26,9 +26,9 @@ from espnet2.fileio.read_text import (
     read_label,
 )
 from espnet2.fileio.rttm import RttmReader
+from espnet2.fileio.score_scp import read_score
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
-from espnet2.fileio.score_scp import read_score
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -119,8 +119,12 @@ class AdapterForScoreScpReader(collections.abc.Mapping):
 
     def __getitem__(self, key: str) -> np.ndarray:
         retval = self.loader[key]
-        
-        assert len(retval) == 2 and isinstance(retval[0], int) and isinstance(retval[1], list)
+
+        assert (
+            len(retval) == 2
+            and isinstance(retval[0], int)
+            and isinstance(retval[1], list)
+        )
         tempo = retval[0]
 
         return tempo, retval[1]

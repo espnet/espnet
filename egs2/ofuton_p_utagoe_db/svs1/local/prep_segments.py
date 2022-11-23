@@ -60,7 +60,12 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp", type=str, help="scp folder")
-    parser.add_argument("--threshold", type=int, help="threshold for silence identification.", default=30000)
+    parser.add_argument(
+        "--threshold",
+        type=int,
+        help="threshold for silence identification.",
+        default=30000,
+    )
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["pau"]
     )

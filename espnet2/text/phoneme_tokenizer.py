@@ -645,7 +645,7 @@ class PhonemeTokenizer(AbsTokenizer):
             "ぐぅ": ["g", "w", "u"],
             "ぐぇ": ["g", "w", "e"],
             "ぐぉ": ["g", "w", "o"],
-            "くぉっ": ["k", "w", "o", "cl"]
+            "くぉっ": ["k", "w", "o", "cl"],
         }
         tokens = self.g2p(syllable)
         if syllable in customed_dic:

@@ -10,6 +10,7 @@ from espnet2.fileio.score_scp import XMLReader
 
 """Divide songs into segments according to structured musicXML."""
 
+
 class LabelInfo(object):
     def __init__(self, start, end, label_id, midi):
         self.label_id = label_id
@@ -67,12 +68,16 @@ def get_parser():
     )
     parser.add_argument("scp", type=str, help="scp folder")
     parser.add_argument(
-        "--threshold", type=int, help="threshold for silence identification.", default=30000
+        "--threshold",
+        type=int,
+        help="threshold for silence identification.",
+        default=30000,
     )
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["pau"]
     )
     return parser
+
 
 def make_segment(file_id, tempo, labels, threshold, sil=["P", "B"]):
     segments = []
@@ -134,7 +139,9 @@ if __name__ == "__main__":
             update_text.write("{} ".format(key))
             update_score.write("{}  {}".format(key, tempo))
             for v in val:
-                update_score.write("  {:.3f} {:.3f} {} {}".format(v[0], v[1], v[2], v[3]))
+                update_score.write(
+                    "  {:.3f} {:.3f} {} {}".format(v[0], v[1], v[2], v[3])
+                )
                 update_text.write(" {}".format(v[2]))
             update_score.write("\n")
             update_text.write("\n")

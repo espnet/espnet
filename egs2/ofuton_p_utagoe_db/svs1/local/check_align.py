@@ -8,7 +8,6 @@ from espnet2.fileio.read_text import read_label
 from espnet2.fileio.score_scp import read_score
 from espnet2.text.build_tokenizer import build_tokenizer
 
-
 customed_dic = {
     "へ": ["h", "e"],
     "は": ["h", "a"],
@@ -28,8 +27,9 @@ customed_dic = {
     "ぐぅ": ["g", "w", "u"],
     "ぐぇ": ["g", "w", "e"],
     "ぐぉ": ["g", "w", "o"],
-    "くぉっ": ["k", "w", "o", "cl"]
+    "くぉっ": ["k", "w", "o", "cl"],
 }
+
 
 def compare(key, score, label):
     tokenizer = build_tokenizer(
@@ -55,10 +55,15 @@ def compare(key, score, label):
             elif label[index][2] == p:
                 index += 1
             else:
-                raise ValueError("Mismatch between syllable [{}]->{} and {}-th phonemes ['{}'] in {}. ".format(syb, phns, index, label[index][2], key))
+                raise ValueError(
+                    "Mismatch between syllable [{}]->{} and {}-th phonemes ['{}'] in {}. ".format(
+                        syb, phns, index, label[index][2], key
+                    )
+                )
     if index != len(label):
         raise ValueError("Syllables are shorter than phonemes in {}: ".format(key))
     return score
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -82,5 +87,3 @@ if __name__ == "__main__":
         for v in scores[key][1]:
             update_score.write("  {} {} {} {} {}".format(v[0], v[1], v[2], v[3], v[4]))
         update_score.write("\n")
-
-    

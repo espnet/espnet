@@ -60,35 +60,37 @@ class XMLReader(collections.abc.Mapping):
         prepitch = None
         st = 0
         for note in part.notesAndRests:
-            if not note.isRest: # Note or Chord
+            if not note.isRest:  # Note or Chord
                 lr = note.lyric
                 if note.isChord:
                     for n in note:
-                        if n.pitch != pre_pitch: # Ignore repeat note
+                        if n.pitch != pre_pitch:  # Ignore repeat note
                             note = n
                             break
-                if lr is None or lr == "": # multi note in one syllable
-                    if note.pitch.midi == prepitch: # same pitch
+                if lr is None or lr == "":  # multi note in one syllable
+                    if note.pitch.midi == prepitch:  # same pitch
                         notes_list[-1].dur += note.seconds
                         notes_list[-1].et += note.seconds
-                    else: # different pitch
+                    else:  # different pitch
                         notes_list.append(
                             NOTE(
-                                "—", 
-                                note.pitch.midi, 
-                                st, 
-                                st + note.seconds, 
-                                note.seconds
+                                "—",
+                                note.pitch.midi,
+                                st,
+                                st + note.seconds,
+                                note.seconds,
                             )
                         )
-                elif lr == "br": # <br> is tagged as a note
+                elif lr == "br":  # <br> is tagged as a note
                     if prepitch == 0:
                         notes_list[-1].dur += note.seconds
                         notes_list[-1].et += note.seconds
                     else:
-                        notes_list.append(NOTE("P", 0, st, st + note.seconds, note.seconds))
+                        notes_list.append(
+                            NOTE("P", 0, st, st + note.seconds, note.seconds)
+                        )
                     prepitch = 0
-                else: # normal note for one syllable
+                else:  # normal note for one syllable
                     notes_list.append(
                         NOTE(
                             note.lyric,
@@ -99,10 +101,10 @@ class XMLReader(collections.abc.Mapping):
                         )
                     )
                 prepitch = note.pitch.midi
-                for arti in note.articulations: # <br> is tagged as a notation
-                    if arti.name in ["breath mark"]: # up-bow?
-                        notes_list.append(NOTE("B", 0, st, st, 0))   
-            else: # rest note
+                for arti in note.articulations:  # <br> is tagged as a notation
+                    if arti.name in ["breath mark"]:  # up-bow?
+                        notes_list.append(NOTE("B", 0, st, st, 0))
+            else:  # rest note
                 if prepitch == 0:
                     notes_list[-1].dur += note.seconds
                     notes_list[-1].et += note.seconds
@@ -234,7 +236,13 @@ def read_score(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
         temp_info = []
         for i in range(len(syb_info) // 5):
             temp_info.append(
-                [float(syb_info[i * 5]), float(syb_info[i * 5 + 1]), syb_info[i * 5 + 2], int(syb_info[i * 5 + 3]), syb_info[i * 5 + 4]]
+                [
+                    float(syb_info[i * 5]),
+                    float(syb_info[i * 5 + 1]),
+                    syb_info[i * 5 + 2],
+                    int(syb_info[i * 5 + 3]),
+                    syb_info[i * 5 + 4],
+                ]
             )
         retval[key] = tempo, temp_info
     return retval

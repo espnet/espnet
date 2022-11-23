@@ -123,13 +123,13 @@ class SingingGenerate:
         if label is not None:
             batch.update(label=label)
         if midi is not None:
-            batch.update(midi=midi) 
+            batch.update(midi=midi)
         if beat_phn is not None:
             batch.update(beat_phn=beat_phn)
         if beat_ruled_phn is not None:
             batch.update(beat_ruled_phn=beat_ruled_phn)
         if beat_syb is not None:
-            batch.update(beat_syb=beat_syb)    
+            batch.update(beat_syb=beat_syb)
         if label_lab is not None:
             batch.update(label_lab=label_lab)
         if label_score is not None:

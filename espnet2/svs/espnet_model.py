@@ -46,7 +46,12 @@ def cal_ds(l, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
             same += 1
             i += 1
         cnt = 0
-        while j < ref_len and ref_label[j] == _label and ref_midi[j] == _midi and ref_beat[j] == _beat:
+        while (
+            j < ref_len
+            and ref_label[j] == _label
+            and ref_midi[j] == _midi
+            and ref_beat[j] == _beat
+        ):
             cnt += 1
             j += 1
         ave = int(cnt / same)
@@ -56,6 +61,7 @@ def cal_ds(l, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
         ds.append(cnt)
     assert j == ref_len
     return ds
+
 
 def cal_ds_syb(ds, phn_cnt):
     ds_syb = []
@@ -68,6 +74,7 @@ def cal_ds_syb(ds, phn_cnt):
         for k in range(cnt):
             ds_syb.append(d)
     return ds_syb
+
 
 class ESPnetSVSModel(AbsESPnetModel):
     """ESPnet model for singing voice synthesis task."""
@@ -330,7 +337,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                     for index in range(frame_length):
                         if _phoneFrame[index] == 0 and _midiFrame[index] == 0:
                             frame_length -= 1
-                            feats_lengths[i] -= 1                  
+                            feats_lengths[i] -= 1
                     assert frame_length == feats_lengths[i]
 
                     syllable_length = label_lengths[i]
@@ -338,8 +345,17 @@ class ESPnetSVSModel(AbsESPnetModel):
                     _midiSyllable = midi[i, :syllable_length]
                     _beatSyllable = beat_phn[i, :syllable_length]
 
-                    ds_tmp = cal_ds(syllable_length, _phoneSyllable, _midiSyllable, _beatSyllable, frame_length, _phoneFrame, _midiFrame, _beatFrame)
-                    assert sum(ds_tmp) == frame_length 
+                    ds_tmp = cal_ds(
+                        syllable_length,
+                        _phoneSyllable,
+                        _midiSyllable,
+                        _beatSyllable,
+                        frame_length,
+                        _phoneFrame,
+                        _midiFrame,
+                        _beatFrame,
+                    )
+                    assert sum(ds_tmp) == frame_length
                     ds.append(torch.tensor(ds_tmp))
                     ds_syb_tmp = cal_ds_syb(ds_tmp, phn_cnt[i])
                     ds_syb.append(torch.tensor(ds_syb_tmp))
@@ -414,28 +430,40 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(midi_lab=midi_lab, midi_lab_lengths=midi_lab_lengths_after)
         if midi_score_after is not None:
             midi_score = midi_score_after.to(dtype=torch.long)
-            batch.update(midi_score=midi_score, midi_score_lengths=midi_score_lengths_after)
+            batch.update(
+                midi_score=midi_score, midi_score_lengths=midi_score_lengths_after
+            )
         if label_lab_after is not None:
             label_lab = label_lab_after.to(dtype=torch.long)
             batch.update(label_lab=label_lab, label_lab_lengths=label_lab_lengths_after)
         if label_score_after is not None:
             label_score = label_score_after.to(dtype=torch.long)
-            batch.update(label_score=label_score, label_score_lengths=label_score_lengths_after)
+            batch.update(
+                label_score=label_score, label_score_lengths=label_score_lengths_after
+            )
         if tempo_lab_after is not None:
             tempo_lab = tempo_lab_after.to(dtype=torch.long)
             batch.update(tempo_lab=tempo_lab, tempo_lab_lengths=tempo_lab_lengths_after)
         if tempo_score_after is not None:
             tempo_score = tempo_score_after.to(dtype=torch.long)
-            batch.update(tempo_score=tempo_score, tempo_score_lengths=tempo_score_lengths_after)
+            batch.update(
+                tempo_score=tempo_score, tempo_score_lengths=tempo_score_lengths_after
+            )
         if beat_lab_after is not None:
             beat_lab = beat_lab_after.to(dtype=torch.long)
             batch.update(beat_lab=beat_lab, beat_lab_lengths=beat_lab_lengths_after)
         if beat_score_after is not None:
             beat_phn_score = beat_score_after.to(dtype=torch.long)
-            batch.update(beat_phn_score=beat_phn_score, beat_phn_score_lengths=beat_score_lengths_after)
+            batch.update(
+                beat_phn_score=beat_phn_score,
+                beat_phn_score_lengths=beat_score_lengths_after,
+            )
         if beat_score_syb_after is not None:
             beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
-            batch.update(beat_syb_score=beat_syb_score, beat_syb_score_lengths=beat_score_syb_lengths_after)
+            batch.update(
+                beat_syb_score=beat_syb_score,
+                beat_syb_score_lengths=beat_score_syb_lengths_after,
+            )
         if ds is not None:
             batch.update(ds=ds)
         if ds_syb is not None:
@@ -804,7 +832,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             # Syllable Level duration info needs phone & midi
             ds = []
             ds_syb = []
-            
+
             for i, _ in enumerate(labelFrame_lab_lengths):
                 assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
                 assert label_lab_lengths[i] == midi_lab_lengths[i]
@@ -824,14 +852,23 @@ class ESPnetSVSModel(AbsESPnetModel):
                 _midiSyllable = midi[i, :syllable_length]
                 _beatSyllable = beat_phn[i, :syllable_length]
 
-                ds_tmp = cal_ds(syllable_length, _phoneSyllable, _midiSyllable, _beatSyllable, frame_length, _phoneFrame, _midiFrame, _beatFrame)
-                assert sum(ds_tmp) == frame_length 
+                ds_tmp = cal_ds(
+                    syllable_length,
+                    _phoneSyllable,
+                    _midiSyllable,
+                    _beatSyllable,
+                    frame_length,
+                    _phoneFrame,
+                    _midiFrame,
+                    _beatFrame,
+                )
+                assert sum(ds_tmp) == frame_length
                 ds.append(torch.tensor(ds_tmp))
                 ds_syb_tmp = cal_ds_syb(ds_tmp, phn_cnt[i])
                 ds_syb.append(torch.tensor(ds_syb_tmp))
             ds = pad_list(ds, pad_value=0).to(label_lab.device)
             ds_syb = pad_list(ds_syb, pad_value=0).to(label_lab.device)
-            
+
             label_lab_lengths_after = label_lengths
             midi_lab_lengths_after = midi_lengths
             tempo_lab_lengths_after = label_lengths
@@ -895,7 +932,6 @@ class ESPnetSVSModel(AbsESPnetModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
-        
 
         outs, probs, att_ws = self.svs.inference(**input_dict)
 

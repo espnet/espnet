@@ -1072,10 +1072,10 @@ class SVSPreprocessor(AbsPreprocessor):
                 end = int(et * self.fs) + 1
                 if end > nsamples_score:
                     end = nsamples_score
-                midiseq_score[start: end] = note
+                midiseq_score[start:end] = note
                 dur = et - st
                 _beat_syb = int(dur / self.time_shift + 0.5)
-                beatseq_score_syb[start: end] = _beat_syb
+                beatseq_score_syb[start:end] = _beat_syb
                 phone = phns.split("_")
                 phone_ints = self.token_id_converter.tokens2ids(phone)
                 phn_start = start
@@ -1086,20 +1086,29 @@ class SVSPreprocessor(AbsPreprocessor):
                     if self.phn_seg[phn_num][k] == 1:
                         phn_end = end
                     else:
-                        phn_end = int((st + dur * self.phn_seg[phn_num][k]) * self.fs) + 1
-                    labelseq_score_phn[phn_start: phn_end] = phone_ints[k]
-                    _beat_ruled_phn = int((self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift + 0.5)
-                    beatseq_score_phn[phn_start: phn_end] = _beat_ruled_phn
+                        phn_end = (
+                            int((st + dur * self.phn_seg[phn_num][k]) * self.fs) + 1
+                        )
+                    labelseq_score_phn[phn_start:phn_end] = phone_ints[k]
+                    _beat_ruled_phn = int(
+                        (self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift
+                        + 0.5
+                    )
+                    beatseq_score_phn[phn_start:phn_end] = _beat_ruled_phn
                     pre_seg = self.phn_seg[phn_num][k]
                     phn_start = phn_end
                     # timeseq from lab
                     assert text[index_lab] == phone[k]
                     lab_start = int((lab_timeseq[index_lab][0] - offset) * self.fs)
                     lab_end = int((lab_timeseq[index_lab][1] - offset) * self.fs) + 1
-                    labelseq_lab_phn[lab_start: lab_end] = text_ints[index_lab]
-                    midiseq_lab[lab_start: lab_end] = note
-                    _beat_phn = int((lab_timeseq[index_lab][1] - lab_timeseq[index_lab][0]) / self.time_shift + 0.5)
-                    beatseq_lab_phn[lab_start: lab_end] = _beat_phn
+                    labelseq_lab_phn[lab_start:lab_end] = text_ints[index_lab]
+                    midiseq_lab[lab_start:lab_end] = note
+                    _beat_phn = int(
+                        (lab_timeseq[index_lab][1] - lab_timeseq[index_lab][0])
+                        / self.time_shift
+                        + 0.5
+                    )
+                    beatseq_lab_phn[lab_start:lab_end] = _beat_phn
                     # phone level feature
                     label[index_lab] = text_ints[index_lab]
                     midi[index_lab] = note

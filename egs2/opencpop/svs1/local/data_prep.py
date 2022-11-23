@@ -12,6 +12,7 @@ def makedir(data_url):
         shutil.rmtree(data_url)
     os.makedirs(data_url)
 
+
 def load_midi_note_scp(midi_note_scp):
     # Note(jiatong): midi format is 0-based
     midi_mapping = {}
@@ -37,6 +38,7 @@ def load_midi(args):
         midis[i] = tempo
     return midis
 
+
 def create_score(uid, phns, notes, syb_dur, keep):
     assert len(phns) == len(notes)
     assert len(notes) == len(syb_dur)
@@ -53,13 +55,22 @@ def create_score(uid, phns, notes, syb_dur, keep):
         st += syb_dur[index_phn]
         syb = [phns[index_phn]]
         index_phn += 1
-        if index_phn < len(phns) and syb_dur[index_phn] == syb_dur[index_phn - 1] and notes[index_phn] == notes[index_phn - 1] and keep[index_phn] == 0:
+        if (
+            index_phn < len(phns)
+            and syb_dur[index_phn] == syb_dur[index_phn - 1]
+            and notes[index_phn] == notes[index_phn - 1]
+            and keep[index_phn] == 0
+        ):
             syb.append(phns[index_phn])
             index_phn += 1
         syb = "_".join(syb)
         lyrics_seq.append(syb)
         phns_seq.append(syb)
-        while index_phn < len(phns) and keep[index_phn] == 1 and phns[index_phn] == phns[index_phn - 1]:
+        while (
+            index_phn < len(phns)
+            and keep[index_phn] == 1
+            and phns[index_phn] == phns[index_phn - 1]
+        ):
             lyrics_seq.append("—")
             notes_seq.append(notes[index_phn])
             segs_seq.append([st, st + syb_dur[index_phn]])
@@ -100,7 +111,9 @@ def process_utterance(
     phn_dur = [float(dur) for dur in phn_dur]
     syb_dur = [float(syb) for syb in syb_dur]
     keep = [int(k) for k in keep]
-    lyrics_seq, notes_seq, segs_seq, phns_seq = create_score(uid, phns, notes, syb_dur, keep)
+    lyrics_seq, notes_seq, segs_seq, phns_seq = create_score(
+        uid, phns, notes, syb_dur, keep
+    )
 
     text.write("opencpop_{} {}\n".format(uid, " ".join(phns)))
     utt2spk.write("opencpop_{} {}\n".format(uid, "opencpop"))
@@ -130,8 +143,13 @@ def process_utterance(
 
     score.write("opencpop_{}  {}".format(uid, tempo))
     for i in range(len(lyrics_seq)):
-        score.write("  {:.3f} {:.3f} {} {} {}".format(segs_seq[i][0], segs_seq[i][1], lyrics_seq[i], notes_seq[i], phns_seq[i]))
+        score.write(
+            "  {:.3f} {:.3f} {} {} {}".format(
+                segs_seq[i][0], segs_seq[i][1], lyrics_seq[i], notes_seq[i], phns_seq[i]
+            )
+        )
     score.write("\n")
+
 
 def process_subset(args, set_name, tempos):
     makedir(os.path.join(args.tgt_dir, set_name))
