@@ -127,7 +127,6 @@ class Branchformer(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         left_context: int = 0,
-        right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode chunk of input sequence.
 
@@ -136,7 +135,6 @@ class Branchformer(torch.nn.Module):
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
             mask: Source mask. (B, T_2)
             left_context: Number of frames in left context.
-            right_context: Number of frames in right context.
 
         Returns:
             x: Branchformer output sequences. (B, T, D_block)
@@ -154,19 +152,13 @@ class Branchformer(torch.nn.Module):
             key = x1
         val = key
 
-        if right_context > 0:
-            att_cache = key[:, -(left_context + right_context) : -right_context, :]
-        else:
-            att_cache = key[:, -left_context:, :]
-
+        att_cache = key[:, -left_context:, :]
         x1 = self.self_att(x1, key, val, pos_enc, mask=mask, left_context=left_context)
 
         x2 = self.norm_mlp(x2)
         x2 = self.channel_proj1(x2)
 
-        x2, conv_cache = self.conv_mod(
-            x2, cache=self.cache[1], right_context=right_context
-        )
+        x2, conv_cache = self.conv_mod(x2, cache=self.cache[1])
 
         x2 = self.channel_proj2(x2)
 

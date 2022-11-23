@@ -82,7 +82,7 @@ class ConvInput(torch.nn.Module):
             self.output_size = output_proj
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[torch.Tensor]
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode input sequences.
 

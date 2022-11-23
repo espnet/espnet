@@ -29,8 +29,6 @@ class MultiBlocks(torch.nn.Module):
         self.blocks = torch.nn.ModuleList(block_list)
         self.norm_blocks = norm_class(output_size, **norm_args)
 
-        self.num_blocks = len(block_list)
-
     def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
         """Initialize/Reset encoder streaming cache.
 
@@ -39,8 +37,8 @@ class MultiBlocks(torch.nn.Module):
             device: Device to use for cache tensor.
 
         """
-        for idx in range(self.num_blocks):
-            self.blocks[idx].reset_streaming_cache(left_context, device)
+        for block in self.blocks:
+            block.reset_streaming_cache(left_context, device)
 
     def forward(
         self,
@@ -61,7 +59,7 @@ class MultiBlocks(torch.nn.Module):
             x: Output sequences. (B, T, D_block_N)
 
         """
-        for block_index, block in enumerate(self.blocks):
+        for block in self.blocks:
             x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
 
         x = self.norm_blocks(x)
@@ -74,7 +72,6 @@ class MultiBlocks(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         left_context: int = 0,
-        right_context: int = 0,
     ) -> torch.Tensor:
         """Forward each block of the encoder architecture.
 
@@ -83,19 +80,17 @@ class MultiBlocks(torch.nn.Module):
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
             mask: Source mask. (B, T_2)
             left_context: Number of frames in left context.
-            right_context: Number of frames in right context.
 
         Returns:
             x: MultiBlocks output sequences. (B, T, D_block_N)
 
         """
-        for block_idx, block in enumerate(self.blocks):
+        for block in self.blocks:
             x, pos_enc = block.chunk_forward(
                 x,
                 pos_enc,
                 mask,
                 left_context=left_context,
-                right_context=right_context,
             )
 
         x = self.norm_blocks(x)

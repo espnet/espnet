@@ -71,14 +71,12 @@ class ConformerConvolution(torch.nn.Module):
         x: torch.Tensor,
         cache: Optional[torch.Tensor] = None,
         mask: Optional[torch.Tensor] = None,
-        right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute convolution module.
 
         Args:
             x: ConformerConvolution input sequences. (B, T, D_hidden)
             cache: ConformerConvolution input cache. (1, conv_kernel, D_hidden)
-            right_context: Number of frames in right context.
 
         Returns:
             x: ConformerConvolution output sequences. (B, T, D_hidden)
@@ -96,11 +94,7 @@ class ConformerConvolution(torch.nn.Module):
                 x = torch.nn.functional.pad(x, (self.lorder, 0), "constant", 0.0)
             else:
                 x = torch.cat([cache, x], dim=2)
-
-                if right_context > 0:
-                    cache = x[:, :, -(self.lorder + right_context) : -right_context]
-                else:
-                    cache = x[:, :, -self.lorder :]
+                cache = x[..., -self.lorder :]
 
         x = self.depthwise_conv(x)
         x = self.activation(self.norm(x))
@@ -164,7 +158,6 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         self,
         x: torch.Tensor,
         cache: Optional[torch.Tensor] = None,
-        right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute convolution module.
 
@@ -172,7 +165,6 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
             x: ConvolutionalSpatialGatingUnit input sequences. (B, T, D_hidden)
             cache: ConvolutionalSpationGatingUnit input cache.
                    (1, conv_kernel, D_hidden)
-            right_context: Number of frames in right context.
 
         Returns:
             x: ConvolutionalSpatialGatingUnit output sequences. (B, T, D_hidden // 2)
@@ -187,11 +179,7 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
                 x_g = torch.nn.functional.pad(x_g, (self.lorder, 0), "constant", 0.0)
             else:
                 x_g = torch.cat([cache, x_g], dim=2)
-
-                if right_context > 0:
-                    cache = x_g[:, :, -(self.lorder + right_context) : -right_context]
-                else:
-                    cache = x_g[:, :, -self.lorder :]
+                cache = x_g[..., -self.lorder :]
 
         x_g = self.conv(x_g).transpose(1, 2)
 
