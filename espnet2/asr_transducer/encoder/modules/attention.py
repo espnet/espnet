@@ -202,7 +202,7 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
         mask = mask.unsqueeze(1).unsqueeze(2)
 
         if chunk_mask is not None:
-            mask = chunk_mask.unsqueeze(0).unsqueeze(1) & mask
+            mask = chunk_mask.unsqueeze(0).unsqueeze(1) | mask
 
         scores = scores.masked_fill(mask, float("-inf"))
         self.attn = torch.softmax(scores, dim=-1).masked_fill(mask, 0.0)
