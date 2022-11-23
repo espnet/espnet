@@ -85,14 +85,21 @@ class SingingGenerate:
         self,
         text: torch.Tensor,
         singing: torch.Tensor = None,
+        label: Optional[torch.Tensor] = None,
+        midi: Optional[torch.Tensor] = None,
+        beat_phn: Optional[torch.Tensor] = None,
+        beat_ruled_phn: Optional[torch.Tensor] = None,
+        beat_syb: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         tempo_lab: Optional[torch.Tensor] = None,
         beat_lab: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
+        label_score: Optional[torch.Tensor] = None,
+        midi_score: Optional[torch.Tensor] = None,
+        tempo_score: Optional[torch.Tensor] = None,
+        beat_score_phn: Optional[torch.Tensor] = None,
+        beat_score_syb: Optional[torch.Tensor] = None,
+        phn_cnt: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
@@ -113,24 +120,38 @@ class SingingGenerate:
         batch = dict(
             text=text,
         )
+        if label is not None:
+            batch.update(label=label)
+        if midi is not None:
+            batch.update(midi=midi) 
+        if beat_phn is not None:
+            batch.update(beat_phn=beat_phn)
+        if beat_ruled_phn is not None:
+            batch.update(beat_ruled_phn=beat_ruled_phn)
+        if beat_syb is not None:
+            batch.update(beat_syb=beat_syb)    
         if label_lab is not None:
             batch.update(label_lab=label_lab)
-        if label_xml is not None:
-            batch.update(label_xml=label_xml)
+        if label_score is not None:
+            batch.update(label_score=label_score)
         if midi_lab is not None:
             batch.update(midi_lab=midi_lab)
-        if midi_xml is not None:
-            batch.update(midi_xml=midi_xml)
+        if midi_score is not None:
+            batch.update(midi_score=midi_score)
         if pitch is not None:
             batch.update(pitch=pitch)
         if tempo_lab is not None:
             batch.update(tempo_lab=tempo_lab)
-        if tempo_xml is not None:
-            batch.update(tempo_xml=tempo_xml)
+        if tempo_score is not None:
+            batch.update(tempo_score=tempo_score)
         if beat_lab is not None:
             batch.update(beat_lab=beat_lab)
-        if beat_xml is not None:
-            batch.update(beat_xml=beat_xml)
+        if beat_score_phn is not None:
+            batch.update(beat_score_phn=beat_score_phn)
+        if beat_score_syb is not None:
+            batch.update(beat_score_syb=beat_score_syb)
+        if phn_cnt is not None:
+            batch.update(phn_cnt=phn_cnt)
         if energy is not None:
             batch.update(energy=energy)
         if spembs is not None:

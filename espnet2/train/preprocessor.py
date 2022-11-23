@@ -966,7 +966,7 @@ class SVSPreprocessor(AbsPreprocessor):
         singing_name: str = "singing",
         text_name: str = "text",
         label_name: str = "label",
-        midi_name: str = "midi",
+        midi_name: str = "score",
         fs: np.int32 = 0,
         time_shift: np.int32 = 0.0125,
         align: list = [
@@ -1043,90 +1043,110 @@ class SVSPreprocessor(AbsPreprocessor):
             text_ints = self.token_id_converter.tokens2ids(text)
             data.pop(self.label_name)
 
-            # Load xml info
-            syllables, notemidis, notetimeseq, tempo = data[self.midi_name]
-            midis = []
-            xml_timeseq = []
-            phn_cnt = 0
-            sp = []
-            for i in range(len(syllables)):
-                # NOTE: Some phonemes are tagged differently
-                phn = self.tokenizer.text2tokens_svs(syllables[i])
-                sp.append(phn)
-                phn_num = len(phn)
-                if syllables[i] == "":  # multi note in one syllable
-                    phn_num = 1
-                phn_cnt += phn_num
-                for _ in range(phn_num):
-                    midis.append(notemidis[i])
-                st = notetimeseq[i][0]
-                dur = notetimeseq[i][1] - notetimeseq[i][0]
+            label = np.zeros((lab_len))
+            midi = np.zeros((lab_len))
+            beat_phn = np.zeros((lab_len))
+            beat_ruled_phn = np.zeros((lab_len))
+            beat_syb = np.zeros((lab_len))
+            # Load score info
+            tempo, syb_info = data[self.midi_name]
+            phn_cnt = []
+
+            # Calculate features
+            nsamples_score = int((syb_info[-1][1] - syb_info[0][0]) * self.fs)
+            labelseq_score_phn = np.zeros((nsamples_score))
+            midiseq_score = np.zeros((nsamples_score))
+            beatseq_score_phn = np.zeros((nsamples_score))
+            beatseq_score_syb = np.zeros((nsamples_score))
+            temposeq_score = np.full(nsamples_score, tempo)
+            index_lab = 0
+            nsamples_lab = int((lab_timeseq[-1][1] - lab_timeseq[0][0]) * self.fs)
+            labelseq_lab_phn = np.zeros((nsamples_lab))
+            midiseq_lab = np.zeros((nsamples_lab))
+            beatseq_lab_phn = np.zeros((nsamples_lab))
+            temposeq_lab = np.full(nsamples_lab, tempo)
+            offset = lab_timeseq[0][0]
+
+            for st, et, syb, note, phns in syb_info:
+                start = int(st * self.fs)
+                end = int(et * self.fs) + 1
+                if end > nsamples_score:
+                    end = nsamples_score
+                midiseq_score[start: end] = note
+                dur = et - st
+                _beat_syb = int(dur / self.time_shift + 0.5)
+                beatseq_score_syb[start: end] = _beat_syb
+                phone = phns.split("_")
+                phone_ints = self.token_id_converter.tokens2ids(phone)
+                phn_start = start
+                phn_num = len(phone)
+                phn_cnt.append(phn_num)
+                pre_seg = 0
                 for k in range(phn_num):
-                    et = notetimeseq[i][0] + dur * self.phn_seg[phn_num][k]
-                    xml_timeseq.append([st, et])
-                    st = et
-            assert phn_cnt == lab_len
+                    if self.phn_seg[phn_num][k] == 1:
+                        phn_end = end
+                    else:
+                        phn_end = int((st + dur * self.phn_seg[phn_num][k]) * self.fs) + 1
+                    labelseq_score_phn[phn_start: phn_end] = phone_ints[k]
+                    _beat_ruled_phn = int((self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift + 0.5)
+                    beatseq_score_phn[phn_start: phn_end] = _beat_ruled_phn
+                    pre_seg = self.phn_seg[phn_num][k]
+                    phn_start = phn_end
+                    # timeseq from lab
+                    assert text[index_lab] == phone[k]
+                    lab_start = int((lab_timeseq[index_lab][0] - offset) * self.fs)
+                    lab_end = int((lab_timeseq[index_lab][1] - offset) * self.fs) + 1
+                    labelseq_lab_phn[lab_start: lab_end] = text_ints[index_lab]
+                    midiseq_lab[lab_start: lab_end] = note
+                    _beat_phn = int((lab_timeseq[index_lab][1] - lab_timeseq[index_lab][0]) / self.time_shift + 0.5)
+                    beatseq_lab_phn[lab_start: lab_end] = _beat_phn
+                    # phone level feature
+                    label[index_lab] = text_ints[index_lab]
+                    midi[index_lab] = note
+                    beat_phn[index_lab] = _beat_phn
+                    beat_ruled_phn[index_lab] = _beat_ruled_phn
+                    beat_syb[index_lab] = _beat_syb
+                    index_lab += 1
+
+            assert index_lab == lab_len
             data.pop(self.midi_name)
 
-            # Calculate feature according to label time sequence
-            timeseq = lab_timeseq
-            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
+            phn_cnt = np.array(phn_cnt)
+            label.astype(np.int64)
+            midi.astype(np.int64)
+            beat_phn.astype(np.int64)
+            beat_syb.astype(np.int64)
+            beat_ruled_phn.astype(np.int64)
+            phn_cnt.astype(np.int64)
 
-            labelseq_lab = np.zeros((nsamples))
-            temposeq_lab = np.full(nsamples, tempo)
-            beatseq_lab = np.zeros((nsamples))
-            midiseq_lab = np.zeros((nsamples))
-            offset = timeseq[0][0]
-            for i in range(len(timeseq)):
-                start = int((timeseq[i][0] - offset) * self.fs)
-                end = int((timeseq[i][1] - offset) * self.fs) + 1
-                if end > nsamples:
-                    end = nsamples
-                labelseq_lab[start:end] = text_ints[i]
-                midiseq_lab[start:end] = midis[i]
-                beatseq_lab[start:end] = int(
-                    (timeseq[i][1] - timeseq[i][0]) / self.time_shift + 0.5
-                )
-
-            labelseq_lab.astype(np.int64)
+            labelseq_lab_phn.astype(np.int64)
             midiseq_lab.astype(np.int64)
+            beatseq_lab_phn.astype(np.int64)
             temposeq_lab.astype(np.int64)
-            beatseq_lab.astype(np.int64)
 
+            labelseq_score_phn.astype(np.int64)
+            midiseq_score.astype(np.int64)
+            beatseq_score_phn.astype(np.int64)
+            beatseq_score_syb.astype(np.int64)
+            temposeq_score.astype(np.int64)
+
+            data["label"] = label
+            data["midi"] = midi
+            data["beat_phn"] = beat_phn
+            data["beat_ruled_phn"] = beat_ruled_phn
+            data["beat_syb"] = beat_syb
+            data["phn_cnt"] = phn_cnt
+            data["label_lab"] = labelseq_lab_phn
             data["midi_lab"] = midiseq_lab
+            data["beat_lab"] = beatseq_lab_phn
             data["tempo_lab"] = temposeq_lab
-            data["beat_lab"] = beatseq_lab
-            data["label_lab"] = labelseq_lab
+            data["label_score"] = labelseq_score_phn
+            data["midi_score"] = midiseq_score
+            data["beat_score_phn"] = beatseq_score_phn
+            data["beat_score_syb"] = beatseq_score_syb
+            data["tempo_score"] = temposeq_score
 
-            # Calculate feature according to XML time sequence
-            timeseq = xml_timeseq
-            nsamples = int((timeseq[-1][1] - timeseq[0][0]) * self.fs)
-
-            labelseq_xml = np.zeros((nsamples))
-            midiseq_xml = np.zeros((nsamples))
-            temposeq_xml = np.full(nsamples, tempo)
-            beatseq_xml = np.zeros((nsamples))
-            offset = timeseq[0][0]
-            for i in range(len(timeseq)):
-                start = int((timeseq[i][0] - offset) * self.fs)
-                end = int((timeseq[i][1] - offset) * self.fs) + 1
-                if end > nsamples:
-                    end = nsamples
-                labelseq_xml[start:end] = text_ints[i]
-                midiseq_xml[start:end] = midis[i]
-                beatseq_xml[start:end] = int(
-                    (timeseq[i][1] - timeseq[i][0]) / self.time_shift + 0.5
-                )
-
-            labelseq_xml.astype(np.int64)
-            midiseq_xml.astype(np.int64)
-            temposeq_xml.astype(np.int64)
-            beatseq_xml.astype(np.int64)
-
-            data["midi_xml"] = midiseq_xml
-            data["tempo_xml"] = temposeq_xml
-            data["label_xml"] = labelseq_xml
-            data["beat_xml"] = beatseq_xml
+        # TODO(Yuning): Add score from midi
 
         if self.text_name in data and self.tokenizer is not None:
             # FIX ME (Yuning): wrong transfer happen in pyopenjtalk

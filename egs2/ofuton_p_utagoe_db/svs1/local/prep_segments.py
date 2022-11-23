@@ -27,7 +27,7 @@ class SegInfo(object):
             self.end = end
         self.segs.append((start, end, label))
 
-    def split(self, threshold=10):
+    def split(self, threshold=30):
         seg_num = math.ceil((self.end - self.start) / threshold)
         if seg_num == 1:
             return [self.segs]
@@ -60,16 +60,14 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp", type=str, help="scp folder")
-    parser.add_argument(
-        "threshold", type=int, help="threshold for silence identification."
-    )
+    parser.add_argument("--threshold", type=int, help="threshold for silence identification.", default=30000)
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["pau"]
     )
     return parser
 
 
-def make_segment(file_id, labels, threshold=13.5, sil=["pau", "br", "sil"]):
+def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segments = []
     segment = SegInfo()
     for label in labels:

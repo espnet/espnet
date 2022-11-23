@@ -28,11 +28,7 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
-
-try:
-    from espnet2.fileio.xml_scp import XMLScpReader
-except ImportError or ModuleNotFoundError:
-    XMLScpReader = None  # cannot load XML reader, need instal Muskit
+from espnet2.fileio.score_scp import read_score
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
@@ -107,7 +103,7 @@ class H5FileWrapper:
         return value[()]
 
 
-class AdapterForXMLScpReader(collections.abc.Mapping):
+class AdapterForScoreScpReader(collections.abc.Mapping):
     def __init__(self, loader):
         assert check_argument_types()
         self.loader = loader
@@ -123,32 +119,11 @@ class AdapterForXMLScpReader(collections.abc.Mapping):
 
     def __getitem__(self, key: str) -> np.ndarray:
         retval = self.loader[key]
+        
+        assert len(retval) == 2 and isinstance(retval[0], int) and isinstance(retval[1], list)
+        tempo = retval[0]
 
-        assert len(retval) == 4, len(retval)
-        if (
-            isinstance(retval[0], list)
-            and isinstance(retval[1], np.ndarray)
-            and isinstance(retval[2], np.ndarray)
-            and isinstance(retval[3], float)
-        ):
-            lyrics, notes, segs, tempo = retval
-        else:
-            raise RuntimeError(
-                "Unexpected type: {}, {}, {}, {}".format(
-                    type(retval[0]),
-                    type(retval[1]),
-                    type(retval[2]),
-                    type(retval[3]),
-                )
-            )
-
-        assert (
-            isinstance(lyrics, list)
-            and isinstance(notes, np.ndarray)
-            and isinstance(segs, np.ndarray)
-            and isinstance(tempo, float)
-        )
-        return lyrics, notes, segs, tempo
+        return tempo, retval[1]
 
 
 class AdapterForLabelScpReader(collections.abc.Mapping):
@@ -196,30 +171,13 @@ def sound_loader(path, float_dtype=None):
     return AdapterForSoundScpReader(loader, float_dtype)
 
 
-def xml_loader(path, float_dtype=None):
-    # The file is as follows:
-    #   utterance_id_A /some/where/a.mid
-    #   utterance_id_B /some/where/b.midi
-
-    assert XMLScpReader is not None, (
-        "Cannot load XMLScpReader. ",
-        "Please install Muskit modules via ",
-        "(cd tools && make muskit.done)",
-    )
-    loader = XMLScpReader(fname=path)
-
-    # MIDIScpReader.__getitem__() returns ndarray
-    return AdapterForXMLScpReader(loader)
+def score_loader(path, float_dtype=None):
+    loader = read_score(path)
+    return AdapterForScoreScpReader(loader)
 
 
 def label_loader(path, float_dtype=None):
-    # The file is as follows:
-    #   utterance_id_A /some/where/a.lab
-    #   utterance_id_B /some/where/b.lab
-
     loader = read_label(path)
-
-    # XMLScpReader.__getitem__() returns ndarray
     return AdapterForLabelScpReader(loader)
 
 
@@ -248,7 +206,7 @@ DATA_TYPES = {
         "   ...",
     ),
     "midi": dict(
-        func=xml_loader,
+        func=score_loader,
         kwargs=["float_dtype"],
         help="MIDI format types which supported by sndfile mid, midi, etc."
         "\n\n"
@@ -522,7 +480,6 @@ class ESPnetDataset(AbsDataset):
         for name, loader in self.loader_dict.items():
             try:
                 value = loader[uid]
-                # TODO(Yuning): svs returns tuple, remove "tuple" temporarily
                 if isinstance(value, (list)):
                     value = np.array(value)
                 if not isinstance(

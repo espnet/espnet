@@ -280,22 +280,27 @@ class NaiveRNNDP(AbsSVS):
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
         ds: torch.Tensor,
+        ds_syb: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
         label_lab_lengths: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        label_xml_lengths: Optional[torch.Tensor] = None,
+        label_score: Optional[torch.Tensor] = None,
+        label_score_lengths: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         midi_lab_lengths: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        midi_xml_lengths: Optional[torch.Tensor] = None,
+        midi_score: Optional[torch.Tensor] = None,
+        midi_score_lengths: Optional[torch.Tensor] = None,
         tempo_lab: Optional[torch.Tensor] = None,
         tempo_lab_lengths: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        tempo_xml_lengths: Optional[torch.Tensor] = None,
+        tempo_score: Optional[torch.Tensor] = None,
+        tempo_score_lengths: Optional[torch.Tensor] = None,
         beat_lab: Optional[torch.Tensor] = None,
         beat_lab_lengths: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
-        beat_xml_lengths: Optional[torch.Tensor] = None,
+        beat_phn_score: Optional[torch.Tensor] = None,
+        beat_phn_score_lengths: Optional[torch.Tensor] = None,
+        beat_syb_score: Optional[torch.Tensor] = None,
+        beat_syb_score_lengths: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -326,11 +331,11 @@ class NaiveRNNDP(AbsSVS):
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
         """
-        label = label_xml
-        midi = midi_xml
-        tempo = beat_xml
-        label_lengths = label_xml_lengths
-        midi_lengths = midi_xml_lengths
+        label = label_score
+        midi = midi_score
+        tempo = beat_phn_score
+        label_lengths = label_score_lengths
+        midi_lengths = midi_score_lengths
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -441,15 +446,18 @@ class NaiveRNNDP(AbsSVS):
         self,
         text: torch.Tensor,
         ds: Optional[torch.Tensor] = None,
+        ds_syb: Optional[torch.Tensor] = None,
         feats: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
+        label_score: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
+        midi_score: Optional[torch.Tensor] = None,
         tempo_lab: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
+        tempo_score: Optional[torch.Tensor] = None,
         beat_lab: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
+        beat_phn_score: Optional[torch.Tensor] = None,
+        beat_syb_score: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -469,9 +477,9 @@ class NaiveRNNDP(AbsSVS):
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
         """
-        label = label_xml
-        midi = midi_xml
-        tempo = beat_xml
+        label = label_score
+        midi = midi_score
+        tempo = beat_phn_score
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
