@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import math
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -55,7 +54,6 @@ class Speech2Text:
         streaming: Whether to perform chunk-by-chunk inference.
         chunk_size: Number of frames in chunk AFTER subsampling.
         left_context: Number of frames in left context AFTER subsampling.
-        right_context: Number of frames in right context AFTER subsampling.
         display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
@@ -80,7 +78,6 @@ class Speech2Text:
         streaming: bool = False,
         chunk_size: int = 16,
         left_context: int = 32,
-        right_context: int = 0,
         display_partial_hypotheses: bool = False,
     ) -> None:
         """Construct a Speech2Text object."""
@@ -171,30 +168,33 @@ class Speech2Text:
         self.streaming = streaming
         self.chunk_size = max(chunk_size, 0)
         self.left_context = max(left_context, 0)
-        self.right_context = max(right_context, 0)
 
-        if not streaming or chunk_size == 0:
-            self.streaming = False
-            self.asr_model.encoder.dynamic_chunk_training = False
+        self.streaming = streaming and chunk_size > 0
+        self.asr_model.encoder.dynamic_chunk_training = False
 
         self.n_fft = asr_train_args.frontend_conf.get("n_fft", 512)
         self.hop_length = asr_train_args.frontend_conf.get("hop_length", 128)
+        self.win_length = asr_train_args.frontend_conf.get("win_length", self.n_fft)
 
-        if asr_train_args.frontend_conf.get("win_length", None) is not None:
-            self.frontend_window_size = asr_train_args.frontend_conf["win_length"]
-        else:
-            self.frontend_window_size = self.n_fft
-
-        self.window_size = self.chunk_size + self.right_context
-        self._raw_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
-            self.window_size, self.hop_length
-        )
-
-        self.last_chunk_length = (
-            self.asr_model.encoder.embed.min_frame_length + self.right_context + 1
-        ) * self.hop_length
+        self._raw_ctx = self.compute_raw_size(self.chunk_size + 1)
+        self._chunk_raw_ctx = self.compute_raw_size(self.chunk_size)
+        self._one_chunk_raw_ctx = self.compute_raw_size(1)
 
         self.reset_inference_cache()
+
+    def compute_raw_size(self, size: int):
+        """Return the corresponding number of samples for a given size (in frames).
+
+        Args:
+            size: Number of frames AFTER applying subsampling.
+
+        Returns:
+            : Number of raw samples
+
+        """
+        size_bs = self.asr_model.encoder.embed.get_size_before_subsampling(size)
+
+        return (size_bs - 1) * self.hop_length
 
     def reset_inference_cache(self) -> None:
         """Reset Speech2Text parameters."""
@@ -221,100 +221,41 @@ class Speech2Text:
             feats_lengths: Features sequence length. (1, T_in, F)
 
         """
-        if self.frontend_cache is not None:
-            speech = torch.cat([self.frontend_cache["waveform_buffer"], speech], dim=0)
+        if self.streaming:
+            speech_cache = speech[0 : self._chunk_raw_ctx][-self._one_chunk_raw_ctx :]
 
-        if is_final:
-            if self.streaming and speech.size(0) < self.last_chunk_length:
-                pad = torch.zeros(
-                    self.last_chunk_length - speech.size(0), dtype=speech.dtype
+            if self.frontend_cache is not None:
+                speech = torch.cat([self.frontend_cache, speech])
+            else:
+                speech = torch.nn.functional.pad(
+                    speech,
+                    (self._one_chunk_raw_ctx, 0),
+                    mode="constant",
+                    value=0.0,
                 )
-                speech = torch.cat([speech, pad], dim=0)
+            self.frontend_cache = speech_cache
 
-            speech_to_process = speech
-            waveform_buffer = None
-        else:
-            n_frames = (
-                speech.size(0) - (self.frontend_window_size - self.hop_length)
-            ) // self.hop_length
+            if is_final and speech.size(0) < self._raw_ctx:
+                speech = torch.nn.functional.pad(
+                    speech,
+                    (0, self._raw_ctx - speech.size(0)),
+                    mode="constant",
+                    value=0.0,
+                )
 
-            n_residual = (
-                speech.size(0) - (self.frontend_window_size - self.hop_length)
-            ) % self.hop_length
-
-            speech_to_process = speech.narrow(
-                0,
-                0,
-                (self.frontend_window_size - self.hop_length)
-                + n_frames * self.hop_length,
-            )
-
-            waveform_buffer = speech.narrow(
-                0,
-                speech.size(0)
-                - (self.frontend_window_size - self.hop_length)
-                - n_residual,
-                (self.frontend_window_size - self.hop_length) + n_residual,
-            ).clone()
-
-        speech_to_process = speech_to_process.unsqueeze(0).to(
-            getattr(torch, self.dtype)
-        )
-        lengths = speech_to_process.new_full(
-            [1], dtype=torch.long, fill_value=speech_to_process.size(1)
-        )
-        batch = {"speech": speech_to_process, "speech_lengths": lengths}
+        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+        length = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        batch = {"speech": speech, "speech_lengths": length}
         batch = to_device(batch, device=self.device)
 
-        feats, feats_lengths = self.asr_model._extract_feats(**batch)
+        feats, feats_length = self.asr_model._extract_feats(**batch)
+
         if self.asr_model.normalize is not None:
-            feats, feats_lengths = self.asr_model.normalize(feats, feats_lengths)
+            feats, feats_length = self.asr_model.normalize(feats, feats_length)
 
-        if is_final:
-            if self.frontend_cache is None:
-                pass
-            else:
-                feats = feats.narrow(
-                    1,
-                    math.ceil(
-                        math.ceil(self.frontend_window_size / self.hop_length) / 2
-                    ),
-                    feats.size(1)
-                    - math.ceil(
-                        math.ceil(self.frontend_window_size / self.hop_length) / 2
-                    ),
-                )
-        else:
-            if self.frontend_cache is None:
-                feats = feats.narrow(
-                    1,
-                    0,
-                    feats.size(1)
-                    - math.ceil(
-                        math.ceil(self.frontend_window_size / self.hop_length) / 2
-                    ),
-                )
-            else:
-                feats = feats.narrow(
-                    1,
-                    math.ceil(
-                        math.ceil(self.frontend_window_size / self.hop_length) / 2
-                    ),
-                    feats.size(1)
-                    - 2
-                    * math.ceil(
-                        math.ceil(self.frontend_window_size / self.hop_length) / 2
-                    ),
-                )
+        feats_length = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
 
-        feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
-
-        if is_final:
-            self.frontend_cache = None
-        else:
-            self.frontend_cache = {"waveform_buffer": waveform_buffer}
-
-        return feats, feats_lengths
+        return feats, feats_length
 
     @torch.no_grad()
     def streaming_decode(
@@ -342,12 +283,11 @@ class Speech2Text:
             feats_length,
             self.num_processed_frames,
             left_context=self.left_context,
-            right_context=self.right_context,
         )
 
-        nbest_hyps = self.beam_search(enc_out[0], is_final=is_final)
+        self.num_processed_frames += enc_out.size(1)
 
-        self.num_processed_frames += self.chunk_size
+        nbest_hyps = self.beam_search(enc_out[0], is_final=is_final)
 
         if is_final:
             self.reset_inference_cache()
@@ -462,7 +402,6 @@ def inference(
     streaming: Optional[bool],
     chunk_size: Optional[int],
     left_context: Optional[int],
-    right_context: Optional[int],
     display_partial_hypotheses: bool,
 ) -> None:
     """Transducer model inference.
@@ -495,7 +434,6 @@ def inference(
         streaming: Whether to perform chunk-by-chunk inference.
         chunk_size: Number of frames in chunk AFTER subsampling.
         left_context: Number of frames in left context AFTER subsampling.
-        right_context: Number of frames in right context AFTER subsampling.
         display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
@@ -539,7 +477,6 @@ def inference(
         streaming=streaming,
         chunk_size=chunk_size,
         left_context=left_context,
-        right_context=right_context,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -578,23 +515,25 @@ def inference(
                 if speech2text.streaming:
                     speech = batch["speech"]
 
-                    _steps = len(speech) // speech2text._raw_ctx
-                    _end = 0
+                    _start = 0
+                    _end = len(speech) - speech2text._raw_ctx
 
-                    for i in range(_steps):
-                        _end = (i + 1) * speech2text._raw_ctx
-
+                    while _start < _end:
                         speech2text.streaming_decode(
-                            speech[i * speech2text._raw_ctx : _end], is_final=False
+                            speech[_start : _start + speech2text._raw_ctx],
+                            is_final=False,
                         )
+                        _start += speech2text._chunk_raw_ctx
 
                     final_hyps = speech2text.streaming_decode(
-                        speech[_end : len(speech)], is_final=True
+                        speech[_start:], is_final=True
                     )
                 else:
                     final_hyps = speech2text(**batch)
 
                 results = speech2text.hypotheses_to_results(final_hyps)
+                # print(results[0][0])
+                # exit(1)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, yseq=[], dec_state=None)
@@ -763,12 +702,6 @@ def get_parser():
         type=int,
         default=32,
         help="Number of frames in left context of the chunk AFTER subsampling.",
-    )
-    parser.add_argument(
-        "--right_context",
-        type=int,
-        default=0,
-        help="Number of frames in right context of the chunk AFTER subsampling.",
     )
     parser.add_argument(
         "--display_partial_hypotheses",

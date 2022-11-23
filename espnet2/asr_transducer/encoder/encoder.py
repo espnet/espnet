@@ -59,21 +59,6 @@ class Encoder(torch.nn.Module):
         self.short_chunk_size = main_params["short_chunk_size"]
         self.left_chunk_size = main_params["left_chunk_size"]
 
-    def get_encoder_input_raw_size(self, size: int, hop_length: int) -> int:
-        """Return the corresponding number of sample for a given chunk size, in frames.
-
-        Where size is the number of features frames after applying subsampling.
-
-        Args:
-            size: Number of frames after subsampling.
-            hop_length: Frontend's hop length
-
-        Returns:
-            : Number of raw samples
-
-        """
-        return self.embed.get_size_before_subsampling(size) * hop_length
-
     def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
         """Initialize/Reset encoder streaming cache.
 
@@ -150,7 +135,6 @@ class Encoder(torch.nn.Module):
         x_len: torch.Tensor,
         processed_frames: torch.tensor,
         left_context: int = 32,
-        right_context: int = 0,
     ) -> torch.Tensor:
         """Encode input sequences as chunks.
 
@@ -159,7 +143,6 @@ class Encoder(torch.nn.Module):
             x_len: Encoder input features lengths. (1,)
             processed_frames: Number of frames already seen.
             left_context: Number of frames in left context.
-            right_context: Number of frames in right context.
 
         Returns:
            x: Encoder outputs. (B, T_out, D_enc)
@@ -168,26 +151,24 @@ class Encoder(torch.nn.Module):
         mask = make_source_mask(x_len)
         x, mask = self.embed(x, mask)
 
-        if left_context > 0:
-            processed_mask = (
-                torch.arange(left_context, device=x.device)
-                .view(1, left_context)
-                .flip(1)
-            )
-            processed_mask = processed_mask >= processed_frames
-            mask = torch.cat([processed_mask, mask], dim=1)
+        x = x[:, 1:-1, :]
+        mask = mask[:, 1:-1]
 
         pos_enc = self.pos_enc(x, left_context=left_context)
+
+        processed_mask = (
+            torch.arange(left_context, device=x.device).view(1, left_context).flip(1)
+        )
+
+        processed_mask = processed_mask >= processed_frames
+
+        mask = torch.cat([processed_mask, mask], dim=1)
 
         x = self.encoders.chunk_forward(
             x,
             pos_enc,
             mask,
             left_context=left_context,
-            right_context=right_context,
         )
-
-        if right_context > 0:
-            x = x[:, 0:-right_context, :]
 
         return x
