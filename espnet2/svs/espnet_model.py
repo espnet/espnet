@@ -32,17 +32,17 @@ else:
         yield
 
 
-def cal_ds(l, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
+def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
     ds = []
     i = 0
     j = 0
-    while i < l:
+    while i < ilen:
         _label = label[i]
         _midi = midi[i]
         _beat = beat[i]
         same = 1
         i += 1
-        while i < l and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
+        while ilen < l and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
             same += 1
             i += 1
         cnt = 0
@@ -690,11 +690,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         label_score_lengths = torch.tensor([len(label_score)])
         midi_score_lengths = torch.tensor([len(midi_score)])
         tempo_score_lengths = torch.tensor([len(tempo_score)])
-        beat_score_lengths = torch.tensor([len(beat_score_phn)])
+        beat_score_phn_lengths = torch.tensor([len(beat_score_phn)])
+        beat_score_syb_lengths = torch.tensor([len(beat_score_syb)])
         assert (
             label_score_lengths == midi_score_lengths
             and label_score_lengths == tempo_score_lengths
-            and tempo_score_lengths == beat_score_lengths
+            and tempo_score_lengths == beat_score_phn_lengths
         )
 
         # unsqueeze of singing needed otherwise causing error in STFT dimension
@@ -925,7 +926,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
             input_dict.update(beat_syb_score=beat_syb_score)
         if pitch is not None:
-            batch.update(pitch=pitch)
+            input_dict.update(pitch=pitch)
         if spembs is not None:
             input_dict.update(spembs=spembs)
         if sids is not None:

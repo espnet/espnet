@@ -57,14 +57,14 @@ class XMLReader(collections.abc.Mapping):
         tempo = m[0][2].number
         part = score.parts[0].flat
         notes_list = []
-        prepitch = None
+        prepitch = -1
         st = 0
         for note in part.notesAndRests:
             if not note.isRest:  # Note or Chord
                 lr = note.lyric
                 if note.isChord:
                     for n in note:
-                        if n.pitch != pre_pitch:  # Ignore repeat note
+                        if n.pitch.midi != prepitch:  # Ignore repeat note
                             note = n
                             break
                 if lr is None or lr == "":  # multi note in one syllable

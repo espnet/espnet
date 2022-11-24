@@ -209,13 +209,14 @@ DATA_TYPES = {
         "   utterance_id_b b.wav\n"
         "   ...",
     ),
-    "midi": dict(
+    "score": dict(
         func=score_loader,
         kwargs=["float_dtype"],
-        help="MIDI format types which supported by sndfile mid, midi, etc."
+        help="Return text as is. The text contains tempo and note info.\n"
+        "For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. "
         "\n\n"
-        "   utterance_id_a a.mid\n"
-        "   utterance_id_b b.mid\n"
+        "   utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...\n"
+        "   utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...\n"
         "   ...",
     ),
     "duration": dict(
