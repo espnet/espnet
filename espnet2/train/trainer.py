@@ -443,7 +443,6 @@ class Trainer:
 
             if sniper is not None:
                 sniper.step()
-                # trainer_options.grad_clip = sniper.sparse_max_norm
 
             # 7. If any updating haven't happened, stops the training
             if all_steps_are_invalid:

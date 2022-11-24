@@ -1164,6 +1164,7 @@ class AbsTask(ABC):
         else:
             plot_attention_iter_factory = None
 
+        output_dir = Path(args.output_dir)
         if args.use_sniper:
             sniper = SniperTraining(sniper_dir=args.sniper_dir, device=device, logger=logging.root)
             data_loader = train_iter_factory.build_iter(epoch=1)
@@ -1172,6 +1173,7 @@ class AbsTask(ABC):
             def get_loss_fn(model, batch):
                 retval = model(**batch)
                 return retval["loss"] if isinstance(retval, dict) else retval[0]
+            sniper_resume = args.resume and (output_dir / "checkpoint.pth").exists()
             sniper.train(
                 **args.sniper_conf,
                 model=model,
@@ -1179,14 +1181,10 @@ class AbsTask(ABC):
                 snip_module_name="tts",
                 batch_iterator=batch_iterator,
                 get_loss_fn=get_loss_fn,
-                # optimizers=optimizers,
-                # max_norm=args.grad_clip,
                 train_dtype=args.train_dtype,
-                resume=args.resume,
+                resume=sniper_resume,
                 optim_lr=args.optim_conf["lr"],
             )
-            # args.grad_clip *= sniper.grad_scaling
-            # logging.info(f'New grad_clip is {grad_clip}')
             param_groups = None if sniper.param_groups is None else sniper.param_groups
         else:
             sniper = None
@@ -1213,6 +1211,10 @@ class AbsTask(ABC):
 
             schedulers.append(scheduler)
 
+        if args.use_sniper:
+            sniper.optimizers = optimizers
+            sniper.schedulers = schedulers
+
         logging.info(pytorch_cudnn_version())
         logging.info(model_summary(model))
         for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
@@ -1223,7 +1225,6 @@ class AbsTask(ABC):
         # 5. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done
         #  because they are allowed to modify "args".
-        output_dir = Path(args.output_dir)
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             output_dir.mkdir(parents=True, exist_ok=True)
             with (output_dir / "config.yaml").open("w", encoding="utf-8") as f:
