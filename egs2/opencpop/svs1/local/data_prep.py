@@ -207,6 +207,7 @@ if __name__ == "__main__":
         "--wav_dumpdir", type=str, help="wav dump directoyr (rebit)", default="wav_dump"
     )
     parser.add_argument("--sr", type=int, help="sampling rate (Hz)")
+    parser.add_argument("--g2p", type=str, help="g2p", default="None")
     args = parser.parse_args()
 
     tempos = load_midi(args)

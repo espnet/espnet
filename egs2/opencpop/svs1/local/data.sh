@@ -17,7 +17,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=24000
-g2p=pypinyin_g2p_phone_without_prosody
+g2p=None
 
 log "$0 $*"
 
@@ -45,7 +45,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # we convert the music score to xml format
     python local/data_prep.py ${OPENCPOP} --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
-        --sr ${fs}
+        --sr ${fs} \
+        --g2p ${g2p}
     for src_data in train eval; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score" data/${src_data}
