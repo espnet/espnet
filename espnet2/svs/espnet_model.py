@@ -42,7 +42,7 @@ def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
         _beat = beat[i]
         same = 1
         i += 1
-        while ilen < l and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
+        while i < ilen and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
             same += 1
             i += 1
         cnt = 0
