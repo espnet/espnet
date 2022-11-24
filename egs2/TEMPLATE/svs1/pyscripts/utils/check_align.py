@@ -12,27 +12,7 @@ from espnet2.text.build_tokenizer import build_tokenizer
 
 # If syllable-to-phone tranlation differs from g2p,
 # customed tranlation can be added to customed_dic.
-customed_dic = {
-    "へ": ["h", "e"],
-    "は": ["h", "a"],
-    "シ": ["sh", "I"],
-    "ヴぁ": ["v", "a"],
-    "ヴぃ": ["v", "i"],
-    "ヴぇ": ["v", "e"],
-    "ヴぉ": ["v", "o"],
-    "でぇ": ["dy", "e"],
-    "くぁ": ["k", "w", "a"],
-    "くぃ": ["k", "w", "i"],
-    "くぅ": ["k", "w", "u"],
-    "くぇ": ["k", "w", "e"],
-    "くぉ": ["k", "w", "o"],
-    "ぐぁ": ["g", "w", "a"],
-    "ぐぃ": ["g", "w", "i"],
-    "ぐぅ": ["g", "w", "u"],
-    "ぐぇ": ["g", "w", "e"],
-    "ぐぉ": ["g", "w", "o"],
-    "くぉっ": ["k", "w", "o", "cl"],
-}
+customed_dic = {}
 
 
 def compare(key, score, label):

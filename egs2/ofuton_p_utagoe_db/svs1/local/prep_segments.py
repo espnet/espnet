@@ -4,6 +4,8 @@ import math
 import os
 import sys
 
+"""Generate segments according to label."""
+
 
 class LabelInfo(object):
     def __init__(self, start, end, label_id):

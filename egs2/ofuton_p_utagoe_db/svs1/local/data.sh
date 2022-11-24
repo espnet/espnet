@@ -68,6 +68,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Check alignments"
+    # We align music info at phone level if both annotation (label) and music score (musicXML) are used.
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
         local/check_align.py ${src_data} --g2p ${g2p}

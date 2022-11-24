@@ -8,12 +8,13 @@ import music21 as m21
 
 from espnet2.fileio.score_scp import XMLReader
 
-"""Divide songs into segments according to structured musicXML."""
+"""Generate segments according to structured musicXML."""
+"""Transfer music score (from musicXML) into 'score' format."""
 
 
 class LabelInfo(object):
     def __init__(self, start, end, label_id, midi):
-        self.label_id = label_id
+        self.label_id = label_id  # lyric for each note
         self.midi = midi
         self.start = start
         self.end = end
@@ -74,7 +75,7 @@ def get_parser():
         default=30000,
     )
     parser.add_argument(
-        "--silence", action="append", help="silence_phone", default=["pau"]
+        "--silence", action="append", help="silence_phone", default=["P"]
     )
     return parser
 
@@ -83,6 +84,7 @@ def make_segment(file_id, tempo, labels, threshold, sil=["P", "B"]):
     segments = []
     segment = SegInfo()
     for label in labels:
+        # Divide songs by 'P' (pause) or 'B' (breath)
         if label.label_id in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -138,9 +140,11 @@ if __name__ == "__main__":
             )
             update_text.write("{} ".format(key))
             update_score.write("{}  {}".format(key, tempo))
+            # Note(Yuning): 'score' concludes music info at note level as follows:
+            # start_time end_time syllable midi phones
             for v in val:
                 update_score.write(
-                    "  {:.3f} {:.3f} {} {}".format(v[0], v[1], v[2], v[3])
+                    "  {:.3f} {:.3f} {} {} /".format(v[0], v[1], v[2], v[3])
                 )
                 update_text.write(" {}".format(v[2]))
             update_score.write("\n")

@@ -6,6 +6,9 @@ import librosa
 import miditoolkit
 import numpy as np
 
+"""Generate segments according to structured annotation."""
+"""Transfer music score into 'score' format."""
+
 
 def makedir(data_url):
     if os.path.exists(data_url):
@@ -25,6 +28,8 @@ def load_midi_note_scp(midi_note_scp):
 
 
 def load_midi(args):
+    # Note(Yuning): note duration from '.midi' for Opencpop cannot be used here.
+    # We only extract tempo from '.midi'.
     midis = {}
     for i in range(2001, 2101):
         midi_path = os.path.join(
@@ -40,6 +45,7 @@ def load_midi(args):
 
 
 def create_score(uid, phns, notes, syb_dur, keep):
+    # Transfer into 'score' format
     assert len(phns) == len(notes)
     assert len(notes) == len(syb_dur)
     assert len(syb_dur) == len(keep)
