@@ -20,12 +20,12 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
+from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
 # from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
 # from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
-from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn

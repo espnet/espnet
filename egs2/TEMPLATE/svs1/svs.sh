@@ -469,16 +469,6 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
         
-        #${python} -m espnet2.bin.tokenize_text \
-        #      --token_type "word" -f 2- \
-        #      --input "${data_feats}/srctexts" --output "${token_list}_syb" \
-        #      --non_linguistic_symbols "${nlsyms_txt}" \
-        #      --cleaner "${cleaner}" \
-        #      --g2p "${g2p}" \
-        #      --write_vocabulary true \
-        #      --add_symbol "${blank}:0" \
-        #      --add_symbol "${oov}:1" \
-        #      --add_symbol "${sos_eos}:-1"
     fi
 else
     log "Skip the stages for data preparation"
@@ -605,11 +595,11 @@ if ! "${skip_train}"; then
                 --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
                 --train_data_path_and_name_and_type "${_train_dir}/label,label,duration" \
-                --train_data_path_and_name_and_type "${_train_dir}/score,score,midi" \
+                --train_data_path_and_name_and_type "${_train_dir}/score,score,score" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},singing,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/label,label,duration" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/score,score,midi" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/score,score,score" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},singing,${_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
@@ -712,7 +702,7 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},singing,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/score,score,midi "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/score,score,score "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
@@ -723,7 +713,7 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/label,label,duration "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score,score,midi "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score,score,score "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
@@ -983,7 +973,7 @@ if ! "${skip_eval}"; then
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type "${_data}/label,label,duration" \
-                    --data_path_and_name_and_type "${_data}/score,score,midi" \
+                    --data_path_and_name_and_type "${_data}/score,score,score" \
                     --data_path_and_name_and_type "${_data}/${_scp},singing,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${svs_exp}"/"${inference_model}" \
