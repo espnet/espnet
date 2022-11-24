@@ -691,7 +691,6 @@ class ESPnetSVSModel(AbsESPnetModel):
         midi_score_lengths = torch.tensor([len(midi_score)])
         tempo_score_lengths = torch.tensor([len(tempo_score)])
         beat_score_phn_lengths = torch.tensor([len(beat_score_phn)])
-        beat_score_syb_lengths = torch.tensor([len(beat_score_syb)])
         assert (
             label_score_lengths == midi_score_lengths
             and label_score_lengths == tempo_score_lengths

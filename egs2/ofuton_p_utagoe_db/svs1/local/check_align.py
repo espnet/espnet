@@ -57,17 +57,17 @@ def compare(key, score, label):
         score[i][4] = "_".join(phns)
         for p in phns:
             if index >= len(labels):
-                raise ValueError("Syllables are longer than phonemes in {}".format(key))
+                raise ValueError("Syllables are longer than phones in {}".format(key))
             elif label[index][2] == p:
                 index += 1
             else:
                 raise ValueError(
-                    "Mismatch between syllable [{}]->{} and {}-th phonemes ['{}'] in {}. ".format(
+                    "Mismatch in syllable [{}]->{} and {}-th phones '{}' in {}.".format(
                         syb, phns, index, label[index][2], key
                     )
                 )
     if index != len(label):
-        raise ValueError("Syllables are shorter than phonemes in {}: ".format(key))
+        raise ValueError("Syllables are shorter than phones in {}: ".format(key))
     return score
 
 

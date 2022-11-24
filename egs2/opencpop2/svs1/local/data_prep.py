@@ -149,7 +149,7 @@ def create_score(uid, lyrics, phns, notes, syb_dur, keep):
             for k in range(len(phones)):
                 if phones[k] != phns[index_phn + k]:
                     raise ValueError(
-                        "Mismatch between syllable [{}]->{} and {}-th phonemes ['{}'] in {}. ".format(
+                        "Mismatch of [{}]->{} and {}-th phones '{}' in {}.".format(
                             lyrics[index_syb],
                             phones,
                             index_phn + k,

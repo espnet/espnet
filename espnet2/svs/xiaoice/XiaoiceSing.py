@@ -5,18 +5,15 @@
 """XiaoiceSing related modules."""
 
 import logging
-import random
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch.distributions import Beta
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
     Encoder as ConformerEncoder,
 )
@@ -25,11 +22,7 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import (
-    make_non_pad_mask,
-    make_pad_mask,
-    pad_list,
-)
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
@@ -42,13 +35,14 @@ from espnet.nets.pytorch_backend.transformer.encoder import (  # noqa: H301
 
 class XiaoiceSing(AbsSVS):
     """XiaoiceSing module for Singing Voice Synthesis.
+
     This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
     employs an integrated network for spectrum, F0 and duration modeling. It follows the
     main architecture of FastSpeech while proposing some singing-specific design:
         1) Add features from musical score (e.g.note pitch and length)
         2) Add a residual connection in F0 prediction to attenuate off-key issues
-        3) The duration of all the phonemes in a musical note is accumulated to calculate
-        the syllable duration loss for rhythm enhancement (syllable loss)
+        3) The duration of all the phonemes in a musical note is accumulated to
+        calculate the syllable duration loss for rhythm enhancement (syllable loss)
     .. _`XiaoiceSing: A High-Quality and Integrated Singing Voice Synthesis System`:
         https://arxiv.org/pdf/2006.06261.pdf
     """
@@ -116,6 +110,7 @@ class XiaoiceSing(AbsSVS):
         loss_type: str = "L1",
     ):
         """Initialize XiaoiceSing module.
+
         Args:
             idim (int): Dimension of the inputs.
             odim (int): Dimension of the outputs.
@@ -420,6 +415,7 @@ class XiaoiceSing(AbsSVS):
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
+
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
@@ -430,6 +426,7 @@ class XiaoiceSing(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
+
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
@@ -530,7 +527,7 @@ class XiaoiceSing(AbsSVS):
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        if flag_IsValid == False:
+        if flag_IsValid is False:
             return loss, stats, weight
         else:
             return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
@@ -556,6 +553,7 @@ class XiaoiceSing(AbsSVS):
         lids: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
+
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
             feats (Optional[Tensor]): Feature sequence to extract style (N, idim).
@@ -566,6 +564,7 @@ class XiaoiceSing(AbsSVS):
             alpha (float): Alpha to control the speed.
             use_teacher_forcing (bool): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.
+
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
@@ -630,9 +629,11 @@ class XiaoiceSing(AbsSVS):
         self, hs: torch.Tensor, spembs: torch.Tensor
     ) -> torch.Tensor:
         """Integrate speaker embedding with hidden states.
+
         Args:
             hs (Tensor): Batch of hidden state sequences (B, T_text, adim).
             spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
+
         Returns:
             Tensor: Batch of integrated hidden state sequences (B, T_text, adim).
         """
@@ -651,12 +652,15 @@ class XiaoiceSing(AbsSVS):
 
     def _source_mask(self, ilens: torch.Tensor) -> torch.Tensor:
         """Make masks for self-attention.
+
         Args:
             ilens (LongTensor): Batch of lengths (B,).
+
         Returns:
             Tensor: Mask tensor for self-attention.
                 dtype=torch.uint8 in PyTorch 1.2-
                 dtype=torch.bool in PyTorch 1.2+ (including 1.2)
+
         Examples:
             >>> ilens = [5, 3]
             >>> self._source_mask(ilens)
