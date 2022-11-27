@@ -95,3 +95,43 @@
 |---|---|---|---|
 |dt05_simu_isolated_1ch_track|0.87|7.14|4.51|
 |et05_simu_isolated_1ch_track|0.85|7.47|3.02|
+
+
+# RESULTS
+## Environments
+- date: `Tue Oct 11 02:40:53 UTC 2022`
+- python version: `3.7.4 (default, Aug 13 2019, 20:35:49)  [GCC 7.3.0]`
+- espnet version: `espnet 202207`
+- pytorch version: `pytorch 1.10.1+cu111`
+- Git hash: `8ed83f45d5aa2ca6b3635e44b9c29afb9b5fb600`
+  - Commit date: `Tue Oct 11 18:59:57 2022 +0900`
+
+## enh_asr_train_enh_asr_wpd_init_noenhloss_wavlm_conformer_raw_en_char
+- Pretrained model: https://huggingface.co/Yoshiki/chime4_enh_asr1_wpd_wavlm_conformer
+- This joint training requires pre-trained models for both Enh and ASR. Each model with the specified configuration must be trained in advance.
+- The language model is also copied from the ASR pre-training recipe.
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/dt05_real_isolated_6ch_track|1640|27119|98.8|0.9|0.2|0.2|1.3|16.2|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/dt05_simu_isolated_6ch_track|1640|27120|98.9|0.9|0.2|0.1|1.3|15.2|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/et05_real_isolated_6ch_track|1320|21409|98.4|1.4|0.2|0.2|1.8|20.6|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/et05_simu_isolated_6ch_track|1320|21416|98.9|1.0|0.2|0.1|1.2|15.2|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/dt05_real_isolated_6ch_track|1640|160390|99.7|0.1|0.2|0.2|0.5|16.2|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/dt05_simu_isolated_6ch_track|1640|160400|99.7|0.1|0.2|0.1|0.5|15.2|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/et05_real_isolated_6ch_track|1320|126796|99.5|0.2|0.3|0.2|0.7|20.6|
+|decode_asr_transformer_largelm_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave_10best/et05_simu_isolated_6ch_track|1320|126812|99.7|0.2|0.2|0.1|0.5|15.2|
+
+### Enhancement
+
+|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|
+|enhanced_dt05_simu_isolated_6ch_track|94.48|14.95|14.95|0.00|12.43|
+|enhanced_et05_simu_isolated_6ch_track|94.93|16.08|16.08|0.00|13.98|

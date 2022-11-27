@@ -126,7 +126,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data preparation"
-    
+
     # preparation for original WSJ0 data:
     #  et05_orig_clean, dt05_orig_clean, tr05_orig_clean
     wsj0_data=${CHIME4}/data/WSJ0
