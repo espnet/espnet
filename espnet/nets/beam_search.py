@@ -41,6 +41,7 @@ class BeamSearch(torch.nn.Module):
         token_list: List[str] = None,
         pre_beam_ratio: float = 1.5,
         pre_beam_score_key: str = None,
+        hyp_primer: List[int] = None,
     ):
         """Initialize beam search.
 
@@ -87,6 +88,10 @@ class BeamSearch(torch.nn.Module):
         # set configurations
         self.sos = sos
         self.eos = eos
+
+        # added for OpenAI Whisper decoding
+        self.hyp_primer = hyp_primer
+        
         self.token_list = token_list
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
@@ -104,6 +109,13 @@ class BeamSearch(torch.nn.Module):
             and len(self.part_scorers) > 0
         )
 
+    def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
+        """Set the primer sequence for decoding.
+           Used for OpenAI Whisper models.
+        
+        """
+        self.hyp_primer = hyp_primer
+
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
 
@@ -119,12 +131,17 @@ class BeamSearch(torch.nn.Module):
         for k, d in self.scorers.items():
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
+
+        # NOTE (Shih-Lun): added for OpenAI Whisper ASR
+        primer = [self.sos] if self.hyp_primer is None \
+                            else self.hyp_primer
+
         return [
             Hypothesis(
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
-                yseq=torch.tensor([self.sos], device=x.device),
+                yseq=torch.tensor(primer, device=x.device),
             )
         ]
 

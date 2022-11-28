@@ -22,6 +22,7 @@ from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -279,14 +280,23 @@ class Speech2Text:
 
         if token_type is None:
             tokenizer = None
-        elif token_type == "bpe" or token_type == "hugging_face":
+        elif token_type == "bpe" or token_type == "hugging_face" or "whisper" in token_type:
             if bpemodel is not None:
                 tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
                 tokenizer = None
         else:
             tokenizer = build_tokenizer(token_type=token_type)
-        converter = TokenIDConverter(token_list=token_list)
+
+        if bpemodel not in ["whisper_en", "whisper_multilingual"]:
+            converter = TokenIDConverter(token_list=token_list)
+        else:
+            converter = OpenAIWhisperTokenIDConverter(
+                model_type=bpemodel
+            )
+            beam_search.set_hyp_primer(
+                list(converter.tokenizer.sot_sequence_including_notimestamps)
+            )
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
