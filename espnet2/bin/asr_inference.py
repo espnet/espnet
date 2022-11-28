@@ -244,9 +244,7 @@ class Speech2Text:
                     penalty=penalty,
                     token_list=token_list,
                 )
-                logging.info(
-                    "TimeSyncBeamSearch implementation is selected."
-                )
+                logging.info("TimeSyncBeamSearch implementation is selected.")
             else:
                 beam_search = BeamSearch(
                     beam_size=beam_size,
