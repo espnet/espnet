@@ -164,6 +164,7 @@ IAM=downloads
 OFUTON=
 OPENCPOP=
 M_AILABS=downloads
+PARLAMENT=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
