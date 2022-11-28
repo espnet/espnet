@@ -33,6 +33,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.time_sync_beam_search import TimeSyncBeamSearch
 from espnet.utils.cli_utils import get_commandline_args
 
 try:
@@ -86,6 +87,7 @@ class Speech2Text:
         quantize_dtype: str = "qint8",
         hugging_face_decoder: bool = False,
         hugging_face_decoder_max_length: int = 256,
+        time_sync: bool = False,
     ):
         assert check_argument_types()
 
@@ -229,39 +231,56 @@ class Speech2Text:
                 ngram=ngram_weight,
                 length_bonus=penalty,
             )
-            beam_search = BeamSearch(
-                beam_size=beam_size,
-                weights=weights,
-                scorers=scorers,
-                sos=asr_model.sos,
-                eos=asr_model.eos,
-                vocab_size=len(token_list),
-                token_list=token_list,
-                pre_beam_score_key=None if ctc_weight == 1.0 else "full",
-            )
 
-            # TODO(karita): make all scorers batchfied
-            if batch_size == 1:
-                non_batch = [
-                    k
-                    for k, v in beam_search.full_scorers.items()
-                    if not isinstance(v, BatchScorerInterface)
-                ]
-                if len(non_batch) == 0:
-                    if streaming:
-                        beam_search.__class__ = BatchBeamSearchOnlineSim
-                        beam_search.set_streaming_config(asr_train_config)
-                        logging.info(
-                            "BatchBeamSearchOnlineSim implementation is selected."
-                        )
+            if time_sync:
+                beam_search = TimeSyncBeamSearch(
+                    beam_size=beam_size,
+                    ctc=asr_model.ctc,
+                    sos=asr_model.sos,
+                    decoder=asr_model.decoder,
+                    lm=scorers["lm"] if "lm" in scorers else None,
+                    ctc_weight=ctc_weight,
+                    lm_weight=lm_weight,
+                    penalty=penalty,
+                    token_list=token_list,
+                )
+                logging.info(
+                    "TimeSyncBeamSearch implementation is selected."
+                )
+            else:
+                beam_search = BeamSearch(
+                    beam_size=beam_size,
+                    weights=weights,
+                    scorers=scorers,
+                    sos=asr_model.sos,
+                    eos=asr_model.eos,
+                    vocab_size=len(token_list),
+                    token_list=token_list,
+                    pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                )
+
+                # TODO(karita): make all scorers batchfied
+                if batch_size == 1:
+                    non_batch = [
+                        k
+                        for k, v in beam_search.full_scorers.items()
+                        if not isinstance(v, BatchScorerInterface)
+                    ]
+                    if len(non_batch) == 0:
+                        if streaming:
+                            beam_search.__class__ = BatchBeamSearchOnlineSim
+                            beam_search.set_streaming_config(asr_train_config)
+                            logging.info(
+                                "BatchBeamSearchOnlineSim implementation is selected."
+                            )
+                        else:
+                            beam_search.__class__ = BatchBeamSearch
+                            logging.info("BatchBeamSearch implementation is selected.")
                     else:
-                        beam_search.__class__ = BatchBeamSearch
-                        logging.info("BatchBeamSearch implementation is selected.")
-                else:
-                    logging.warning(
-                        f"As non-batch scorers {non_batch} are found, "
-                        f"fall back to non-batch implementation."
-                    )
+                        logging.warning(
+                            f"As non-batch scorers {non_batch} are found, "
+                            f"fall back to non-batch implementation."
+                        )
 
             beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
             for scorer in scorers.values():
@@ -505,6 +524,7 @@ def inference(
     quantize_dtype: str,
     hugging_face_decoder: bool,
     hugging_face_decoder_max_length: int,
+    time_sync: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -555,6 +575,7 @@ def inference(
         quantize_dtype=quantize_dtype,
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_max_length=hugging_face_decoder_max_length,
+        time_sync=time_sync,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -819,6 +840,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--time_sync",
+        type=str2bool,
+        default=False,
+        help="Time synchronous beam search.",
     )
 
     return parser
