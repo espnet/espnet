@@ -13,10 +13,25 @@ SECONDS=0
 stage=-1
 stop_stage=2
 
+use_mfa=false
+token_type=phn
+g2p=g2p_en_no_space
 log "$0 $*"
-token_type=''
-g2p=''
 . utils/parse_options.sh
+if "${use_mfa}"; then
+    if [ ${token_type} != "phn" ]; then
+        echo "ERROR: token_type must be phn when use_mfa=true."
+        exit 1
+    fi
+    if [ ${g2p} != "none" ]; then
+        echo "ERROR: g2p must be none when use_mfa=true."
+        exit 1
+    fi
+    if ! [ -x "$(command -v mfa)" ]; then
+        echo "ERROR: mfa must be installed when use_mfa=true."
+        exit 1
+    fi
+fi
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -68,7 +83,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     done
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
-    if [ "${token_type}" = 'phn' ] && { [[ -z "${g2p}" ]] || [[ "${g2p}" = "none" ]]; };  then  # text should be phonemes!
+    if "${use_mfa}"; then  # text should be phonemes!
         log "Using phonemes for text"
         python scripts/utils/mfa_format.py validate  # please check: no output means all are ok
         python scripts/utils/mfa_format.py durations --wavs_dir "${wavs_dir}"

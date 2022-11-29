@@ -1,11 +1,11 @@
-set -e
-
-# If you are not using LJSpeech, be sure to define how your dataset is processed in mfa_format.py
-# Three
-
 #!/usr/bin/env bash
-# conda config --append channels conda-forge
-# conda install montreal-forced-aligner
+# Generate MFA alignement
+# You need to install the following tools to run this script:
+# $ conda config --append channels conda-forge
+# $ conda install montreal-forced-aligner
+# If you are not using LJSpeech, be sure to define how your
+# dataset is processed in `scripts/utils/mfa_format.py`.
+set -e
 
 if [[ "$(basename "$(pwd)")" != tts* ]]; then
   echo "You must cd to a tts directory"
@@ -46,8 +46,10 @@ cat "$dict_dir/$dictionary.dict" "$oov_dict" > "$dict_dir/${dictionary}_$dataset
 mfa validate "$wavs_dir" "${dictionary}_$dataset" "$acoustic_model" --brackets ''
 mfa align "$wavs_dir" "${dictionary}_$dataset" "$acoustic_model" ./textgrids
 
+echo "Successfully finished generating MFA alignments."
 
-# Run the below yourself
+# NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
+# please check `egs2/ljspeech/tts1/run_mfa.sh`. For example:
 
 #./run_mfa.sh --stage 0 --stop_stage 0
 #./run_mfa.sh --stage 1 --stop_stage 1

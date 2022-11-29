@@ -1,9 +1,12 @@
-'''
-This script converts files to/from MFA format for use in ESPnet TTS.
+#!/usr/bin/env python3
+
+"""Convert files to/from MFA format for use in ESPnet TTS.
+
 If you wish to add functions to create .lab files for MFA, add them like this:
-    `def make_labs_[dataset]:
-         ...`
-'''
+
+def make_labs_[dataset]:
+     ...
+"""
 
 import argparse
 import os

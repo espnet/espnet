@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Set bash to 'debug' mode, it will exit on :
-# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+# This script is specifically for training with the Montreal Forced Aligner (MFA).
+# Importantly, since MFA uses its own custom phonemes, we set token_type to "phn" and g2p to "none".
+# Also, default config is for FastSpeech2 since it's the one that uses MFA.
 set -e
 set -u
 set -o pipefail
@@ -31,9 +32,10 @@ inference_config=conf/decode_fastspeech.yaml
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
-    --token_type phn \
     --cleaner none \
+    --token_type phn \
     --g2p none \
+    --local_data_opts "--token_type phn --g2p none --use_mfa true" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
