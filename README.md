@@ -13,7 +13,7 @@ To replicate my experiments, please install [Montreal Forced Aligner](https://gi
 
 I am in the middle of editing my pull request to integrate MFA into ESPnet, so it should be easier next time.
 
-The audio samples used for listening experiments are [here](https://icassp2023.web.app/).
+The audio samples used for listening experiments are [here](https://icassp2023.web.app/). Note that the reducing-sparsity models were trained with scaled per-parameter learning rates until the end of 400 epochs, even though the learning rate should have been reset to default when the sparsity went to 0. This has been corrected in the current SNIPER version. 
 
 Additional figures mentioned in the paper, but which i did not have space to add, are:
 
@@ -26,8 +26,9 @@ Comparing FastSpeech2 with and without postnet (L1 loss for no-postnet model is 
 Comparing no learning rate scaling vs scaling by 1/(1-sparsity):
 <img src="paper/scaling_lr_loss.png"/>
 
-Comparing global learning rate scaling vs scaling by parameter:
+Comparing with and without scaling variable per-parameter learning rate:
 <img src="paper/variable_lr_loss.png"/>
+<img src="paper/scaling_var_lr_loss.png"/>
 
 Comparing scaling by parameter without and with max sparsity limit:
 <img src="paper/max_sparsity_loss.png"/>
