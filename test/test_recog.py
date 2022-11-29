@@ -45,7 +45,7 @@ def make_arg(**kwargs):
         char_list=["a", "i", "u", "e", "o"],
         word_list=["<blank>", "<unk>", "ai", "iu", "ue", "eo", "oa", "<eos>"],
         outdir=None,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         report_cer=False,
         report_wer=False,
         sym_space="<space>",

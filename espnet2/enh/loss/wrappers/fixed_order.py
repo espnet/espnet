@@ -38,4 +38,5 @@ class FixedOrderSolver(AbsLossWrapper):
             stats[k] = torch.stack(v, dim=1).mean()
         stats[self.criterion.name] = loss.detach()
 
-        return loss.mean(), dict(stats), {}
+        perm = torch.arange(num_spk).unsqueeze(0).repeat(ref[0].size(0), 1)
+        return loss.mean(), dict(stats), {"perm": perm}

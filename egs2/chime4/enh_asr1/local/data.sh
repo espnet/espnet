@@ -81,9 +81,25 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh --extra_files "utt2category spk1.scp" data/${train_dev} \
         data/dt05_simu_isolated_1ch_track data/dt05_real_isolated_1ch_track
+
+    <data/tr05_simu_isolated_6ch_track/wav.scp awk '{print($1, "SIMU")}' > data/tr05_simu_isolated_6ch_track/utt2category
+    <data/tr05_real_isolated_6ch_track/wav.scp awk '{print($1, "REAL")}' > data/tr05_real_isolated_6ch_track/utt2category
+    <data/dt05_simu_isolated_6ch_track/wav.scp awk '{print($1, "SIMU")}' > data/dt05_simu_isolated_6ch_track/utt2category
+    <data/dt05_real_isolated_6ch_track/wav.scp awk '{print($1, "REAL")}' > data/dt05_real_isolated_6ch_track/utt2category
+
+    utils/combine_data.sh --extra_files "utt2category spk1.scp" \
+        data/tr05_multi_isolated_6ch_track data/tr05_simu_isolated_6ch_track data/tr05_real_isolated_6ch_track
+    utils/combine_data.sh --extra_files "utt2category spk1.scp" \
+        data/dt05_multi_isolated_6ch_track data/dt05_simu_isolated_6ch_track data/dt05_real_isolated_6ch_track
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Srctexts preparation"
     local/chime4_asr_data.sh --stage 2 --stop-stage 2
+
+    for dset in data/*; do
+        if [ -e "${dset}/text" ] && [ ! -e "${dset}/text_spk1" ]; then
+            ln -s text ${dset}/text_spk1
+        fi
+    done
 fi

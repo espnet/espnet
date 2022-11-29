@@ -1,4 +1,6 @@
 import argparse
+import copy
+import os
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -36,6 +38,7 @@ from espnet2.enh.loss.criterions.time_domain import (
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.mixit_solver import MixITSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
@@ -56,11 +59,17 @@ from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import EnhPreprocessor
+from espnet2.train.distributed_utils import DistributedOption
+from espnet2.train.preprocessor import (
+    AbsPreprocessor,
+    DynamicMixingPreprocessor,
+    EnhPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -120,6 +129,7 @@ loss_wrapper_choices = ClassChoices(
         fixed_order=FixedOrderSolver,
         multilayer_pit=MultiLayerPITSolver,
         dpcl=DPCLSolver,
+        mixit=MixITSolver,
     ),
     type_check=AbsLossWrapper,
     default=None,
@@ -146,6 +156,16 @@ criterion_choices = ClassChoices(
     default=None,
 )
 
+preprocessor_choices = ClassChoices(
+    name="preprocessor",
+    classes=dict(
+        dynamic_mixing=DynamicMixingPreprocessor,
+        enh=EnhPreprocessor,
+    ),
+    type_check=AbsPreprocessor,
+    default=None,
+)
+
 MAX_REFERENCE_NUM = 100
 
 
@@ -162,6 +182,8 @@ class EnhancementTask(AbsTask):
         decoder_choices,
         # --mask_module and --mask_module_conf
         mask_module_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -212,12 +234,6 @@ class EnhancementTask(AbsTask):
         )
 
         group = parser.add_argument_group(description="Preprocess related")
-        group.add_argument(
-            "--use_preprocessor",
-            type=str2bool,
-            default=False,
-            help="Whether to apply preprocessing to data or not",
-        )
         group.add_argument(
             "--speech_volume_normalize",
             type=str_or_none,
@@ -293,6 +309,27 @@ class EnhancementTask(AbsTask):
             help="Whether to force all data to be single-channel.",
         )
 
+        group.add_argument(
+            "--dynamic_mixing",
+            type=str2bool,
+            default=False,
+            help="Apply dynamic mixing",
+        )
+
+        group.add_argument(
+            "--utt2spk",
+            type=str_or_none,
+            default=None,
+            help="The file path of utt2spk file. Only used in dynamic_mixing mode.",
+        )
+
+        group.add_argument(
+            "--dynamic_mixing_gain_db",
+            type=float,
+            default=0.0,
+            help="Random gain (in dB) for dynamic mixing sources",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -314,39 +351,84 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        if args.use_preprocessor:
-            retval = EnhPreprocessor(
-                train=train,
-                # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
-                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "speech_volume_normalize")
-                else None,
-                use_reverberant_ref=args.use_reverberant_ref
-                if hasattr(args, "use_reverberant_ref")
-                else None,
-                num_spk=args.num_spk if hasattr(args, "num_spk") else 1,
-                num_noise_type=args.num_noise_type
-                if hasattr(args, "num_noise_type")
-                else 1,
-                sample_rate=args.sample_rate if hasattr(args, "sample_rate") else 8000,
-                force_single_channel=args.force_single_channel
-                if hasattr(args, "force_single_channel")
-                else False,
-            )
+
+        use_preprocessor = getattr(args, "preprocessor", None) is not None
+
+        if use_preprocessor:
+            # TODO(simpleoier): To make this as simple as model parts, e.g. encoder
+            if args.preprocessor == "dynamic_mixing":
+                if train:
+                    retval = preprocessor_choices.get_class(args.preprocessor)(
+                        train=train,
+                        source_scp=os.path.join(
+                            os.path.dirname(
+                                args.train_data_path_and_name_and_type[0][0]
+                            ),
+                            args.preprocessor_conf.get("source_scp_name", "spk1.scp"),
+                        ),
+                        ref_num=args.preprocessor_conf.get(
+                            "ref_num",
+                            args.separator_conf["num_spk"],
+                        ),
+                        dynamic_mixing_gain_db=args.preprocessor_conf.get(
+                            "dynamic_mixing_gain_db",
+                            0.0,
+                        ),
+                        speech_name=args.preprocessor_conf.get(
+                            "speech_name",
+                            "speech_mix",
+                        ),
+                        speech_ref_name_prefix=args.preprocessor_conf.get(
+                            "speech_ref_name_prefix",
+                            "speech_ref",
+                        ),
+                        mixture_source_name=args.preprocessor_conf.get(
+                            "mixture_source_name",
+                            None,
+                        ),
+                        utt2spk=getattr(args, "utt2spk", None),
+                    )
+                else:
+                    retval = None
+            elif args.preprocessor == "enh":
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    train=train,
+                    # NOTE(kamo): Check attribute existence for backward compatibility
+                    rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                    rir_apply_prob=args.rir_apply_prob
+                    if hasattr(args, "rir_apply_prob")
+                    else 1.0,
+                    noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                    noise_apply_prob=args.noise_apply_prob
+                    if hasattr(args, "noise_apply_prob")
+                    else 1.0,
+                    noise_db_range=args.noise_db_range
+                    if hasattr(args, "noise_db_range")
+                    else "13_15",
+                    short_noise_thres=args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5,
+                    speech_volume_normalize=args.speech_volume_normalize
+                    if hasattr(args, "speech_volume_normalize")
+                    else None,
+                    use_reverberant_ref=args.use_reverberant_ref
+                    if hasattr(args, "use_reverberant_ref")
+                    else None,
+                    num_spk=args.num_spk if hasattr(args, "num_spk") else 1,
+                    num_noise_type=args.num_noise_type
+                    if hasattr(args, "num_noise_type")
+                    else 1,
+                    sample_rate=args.sample_rate
+                    if hasattr(args, "sample_rate")
+                    else 8000,
+                    force_single_channel=args.force_single_channel
+                    if hasattr(args, "force_single_channel")
+                    else False,
+                )
+            else:
+                raise ValueError(
+                    f"Preprocessor type {args.preprocessor} is not supported."
+                )
         else:
             retval = None
         assert check_return_type(retval)
@@ -357,9 +439,9 @@ class EnhancementTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech_mix", "speech_ref1")
+            retval = ("speech_ref1",)
         else:
-            # Recognition mode
+            # Inference mode
             retval = ("speech_mix",)
         return retval
 
@@ -367,7 +449,8 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
+        retval = ["speech_mix"]
+        retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
@@ -420,3 +503,19 @@ class EnhancementTask(AbsTask):
 
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        distributed_option: DistributedOption,
+        mode: str,
+        kwargs: dict = None,
+    ) -> AbsIterFactory:
+
+        dynamic_mixing = getattr(args, "dynamic_mixing", False)
+        if dynamic_mixing and mode == "train":
+            args = copy.deepcopy(args)
+            args.fold_length = args.fold_length[0:1]
+
+        return super().build_iter_factory(args, distributed_option, mode, kwargs)

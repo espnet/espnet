@@ -6,6 +6,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
+import os
 import shutil
 import sys
 
@@ -14,7 +15,6 @@ from packaging.version import parse
 module_list = [
     ("torchaudio", None, None),
     ("torch_optimizer", None, None),
-    ("warpctc_pytorch", None, "installers/install_warp-ctc.sh"),
     ("warprnnt_pytorch", None, "installers/install_warp-transducer.sh"),
     ("chainer_ctc", None, "installers/install_chainer_ctc.sh"),
     ("pyopenjtalk", None, "installers/install_pyopenjtalk.sh"),
@@ -22,6 +22,7 @@ module_list = [
     ("kenlm", None, "installers/install_kenlm.sh"),
     ("mmseg", None, "installers/install_py3mmseg.sh"),
     ("espnet", None, None),
+    ("numpy", None, None),
     ("fairseq", None, "installers/install_fairseq.sh"),
     ("phonemizer", None, "installers/install_phonemizer.sh"),
     ("gtn", None, "installers/install_gtn.sh"),
@@ -127,6 +128,13 @@ def main():
             print(f"[ ] {name}")
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
+
+    # check muskit install
+    if os.path.exists("muskit.done"):
+        print(f"[x] muskit")
+    else:
+        print(f"[ ] muskit")
+        to_install.append(f"Use 'installers/install_muskit.sh' to install muskit")
 
     print()
     print("Executables:")

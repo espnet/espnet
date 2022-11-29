@@ -56,6 +56,7 @@ fi
 # set filenames
 scp=${data_dir}/wav.scp
 utt2spk=${data_dir}/utt2spk
+utt2lang=${data_dir}/utt2lang
 spk2utt=${data_dir}/spk2utt
 text=${data_dir}/text
 
@@ -63,18 +64,19 @@ text=${data_dir}/text
 [ -e ${scp} ] && rm ${scp}
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
-# make scp, utt2spk, and spk2utt
-find ${db} -name "*.wav" -follow | grep ${spk} | sort | while read -r filename;do
+# make scp, utt2spk, spk2utt, and utt2lang
+find ${db} -name "*.wav" -follow | grep ${spk} | sort | while read -r filename; do
     id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
-    echo "${id} ${filename}" >> ${scp}
-    echo "${id} ${spk}" >> ${utt2spk}
+    echo "${id} ${filename}" >>${scp}
+    echo "${id} ${spk}" >>${utt2spk}
+    echo "${id} ${lang}" >>${utt2lang}
 done
-echo "Successfully finished making wav.scp, utt2spk."
+echo "Successfully finished making wav.scp, utt2spk, and utt2lang."
 
-utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
+utils/utt2spk_to_spk2utt.pl ${utt2spk} >${spk2utt}
 echo "Successfully finished making spk2utt."
 
-jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | grep -v "/._" | tr "\n" " ")
+jsons=$(find ${db}/${lang} -name "*_mls.json" -type f -follow | grep ${spk} | grep -v "/\._" | tr "\n" " ")
 ${use_lang_tag} && lang_tag=${lang} || lang_tag=""
 local/parse_text.py \
     --lang_tag ${lang_tag} \

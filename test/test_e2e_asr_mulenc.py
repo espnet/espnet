@@ -63,7 +63,7 @@ def make_arg(num_encs, **kwargs):
         verbose=2,
         char_list=["あ", "い"],
         outdir=None,
-        ctc_type="warpctc",
+        ctc_type="builtin",
         report_cer=False,
         report_wer=False,
         sym_space="<space>",

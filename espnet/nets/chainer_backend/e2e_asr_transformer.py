@@ -183,14 +183,9 @@ class E2E(ChainerASRInterface):
                 if args.ctc_type == "builtin":
                     logging.info("Using chainer CTC implementation")
                     self.ctc = ctc.CTC(odim, args.adim, args.dropout_rate)
-                elif args.ctc_type == "warpctc":
-                    logging.info("Using warpctc CTC implementation")
-                    self.ctc = ctc.WarpCTC(odim, args.adim, args.dropout_rate)
                 else:
                     raise ValueError(
-                        'ctc_type must be "builtin" or "warpctc": {}'.format(
-                            args.ctc_type
-                        )
+                        'ctc_type must be "builtin": {}'.format(args.ctc_type)
                     )
             else:
                 self.ctc = None

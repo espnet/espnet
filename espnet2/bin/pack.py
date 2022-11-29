@@ -36,6 +36,11 @@ class DiarPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class SVSPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 class EnhS2TPackedContents(PackedContents):
     # These names must be consistent with the argument of inference functions
     files = ["enh_s2t_model_file", "lm_file"]
@@ -62,6 +67,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("tts", TTSPackedContents),
         ("enh", EnhPackedContents),
         ("diar", DiarPackedContents),
+        ("svs", SVSPackedContents),
         ("enh_s2t", EnhS2TPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
