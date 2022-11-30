@@ -37,6 +37,17 @@ espnet2.asr.espnet_model
     :show-inheritance:
 
 
+.. _espnet2.asr.pit_espnet_model:
+
+espnet2.asr.pit_espnet_model
+----------------------------
+
+.. automodule:: espnet2.asr.pit_espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.maskctc_model:
 
 espnet2.asr.maskctc_model
@@ -219,6 +230,17 @@ espnet2.asr.postencoder.hugging_face_transformers_postencoder
 -------------------------------------------------------------
 
 .. automodule:: espnet2.asr.postencoder.hugging_face_transformers_postencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.transformer_encoder_multispkr:
+
+espnet2.asr.encoder.transformer_encoder_multispkr
+-------------------------------------------------
+
+.. automodule:: espnet2.asr.encoder.transformer_encoder_multispkr
     :members:
     :undoc-members:
     :show-inheritance:

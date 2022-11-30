@@ -116,6 +116,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-init">espnet2.asr.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-ctc">espnet2.asr.ctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-espnet-model">espnet2.asr.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-pit-espnet-model">espnet2.asr.pit_espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-maskctc-model">espnet2.asr.maskctc_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-specaug-init">espnet2.asr.specaug.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-specaug-abs-specaug">espnet2.asr.specaug.abs_specaug</a></li>
@@ -133,6 +134,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-init">espnet2.asr.postencoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-abs-postencoder">espnet2.asr.postencoder.abs_postencoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder">espnet2.asr.postencoder.hugging_face_transformers_postencoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-multispkr">espnet2.asr.encoder.transformer_encoder_multispkr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-branchformer-encoder">espnet2.asr.encoder.branchformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-init">espnet2.asr.encoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-rnn-encoder">espnet2.asr.encoder.rnn_encoder</a></li>
@@ -421,8 +423,64 @@ GPU memory usage</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-pit-espnet-model">
+<span id="id4"></span><h2>espnet2.asr.pit_espnet_model<a class="headerlink" href="#espnet2-asr-pit-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.pit_espnet_model"></span><dl class="class">
+<dt id="espnet2.asr.pit_espnet_model.ESPnetASRModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.pit_espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1, num_inf: int = 1, num_ref: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/pit_espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.pit_espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="espnet2.asr.espnet_model.ESPnetASRModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.espnet_model.ESPnetASRModel</span></code></a></p>
+<p>CTC-attention hybrid Encoder-Decoder model</p>
+<dl class="method">
+<dt id="espnet2.asr.pit_espnet_model.ESPnetASRModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/pit_espnet_model.html#ESPnetASRModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.pit_espnet_model.ESPnetASRModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frontend + Encoder + Decoder + Calc loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
+<li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
+<li><p><strong>text</strong> – (Batch, Length)</p></li>
+<li><p><strong>text_lengths</strong> – (Batch,)</p></li>
+<li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.pit_espnet_model.PITLossWrapper">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.pit_espnet_model.</code><code class="sig-name descname">PITLossWrapper</code><span class="sig-paren">(</span><em class="sig-param">criterion_fn: Callable</em>, <em class="sig-param">num_ref: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/pit_espnet_model.html#PITLossWrapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.pit_espnet_model.PITLossWrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.enh.html#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper" title="espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.asr.pit_espnet_model.PITLossWrapper.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">inf: torch.Tensor</em>, <em class="sig-param">inf_lens: torch.Tensor</em>, <em class="sig-param">ref: torch.Tensor</em>, <em class="sig-param">ref_lens: torch.Tensor</em>, <em class="sig-param">others: Dict = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/pit_espnet_model.html#PITLossWrapper.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.pit_espnet_model.PITLossWrapper.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>PITLoss Wrapper function. Similar to espnet2/enh/loss/wrapper/pit_solver.py</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inf</strong> – Iterable[torch.Tensor], (batch, num_inf, …)</p></li>
+<li><p><strong>inf_lens</strong> – Iterable[torch.Tensor], (batch, num_inf, …)</p></li>
+<li><p><strong>ref</strong> – Iterable[torch.Tensor], (batch, num_ref, …)</p></li>
+<li><p><strong>ref_lens</strong> – Iterable[torch.Tensor], (batch, num_ref, …)</p></li>
+<li><p><strong>permute_inf</strong> – If true, permute the inference and inference_lens according to
+the optimal permutation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.pit_espnet_model.PITLossWrapper.permutate">
+<em class="property">classmethod </em><code class="sig-name descname">permutate</code><span class="sig-paren">(</span><em class="sig-param">perm</em>, <em class="sig-param">*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/pit_espnet_model.html#PITLossWrapper.permutate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.pit_espnet_model.PITLossWrapper.permutate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-maskctc-model">
-<span id="id4"></span><h2>espnet2.asr.maskctc_model<a class="headerlink" href="#espnet2-asr-maskctc-model" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet2.asr.maskctc_model<a class="headerlink" href="#espnet2-asr-maskctc-model" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.maskctc_model"></span><dl class="class">
 <dt id="espnet2.asr.maskctc_model.MaskCTCInference">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.maskctc_model.</code><code class="sig-name descname">MaskCTCInference</code><span class="sig-paren">(</span><em class="sig-param">asr_model: espnet2.asr.maskctc_model.MaskCTCModel</em>, <em class="sig-param">n_iterations: int</em>, <em class="sig-param">threshold_probability: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/maskctc_model.html#MaskCTCInference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.maskctc_model.MaskCTCInference" title="Permalink to this definition">¶</a></dt>
@@ -501,10 +559,10 @@ GPU memory usage</p>
 
 </section>
 <section id="espnet2-asr-specaug-init">
-<span id="id5"></span><h2>espnet2.asr.specaug.__init__<a class="headerlink" href="#espnet2-asr-specaug-init" title="Permalink to this headline">¶</a></h2>
+<span id="id6"></span><h2>espnet2.asr.specaug.__init__<a class="headerlink" href="#espnet2-asr-specaug-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.specaug.__init__"></span></section>
 <section id="espnet2-asr-specaug-abs-specaug">
-<span id="id6"></span><h2>espnet2.asr.specaug.abs_specaug<a class="headerlink" href="#espnet2-asr-specaug-abs-specaug" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.asr.specaug.abs_specaug<a class="headerlink" href="#espnet2-asr-specaug-abs-specaug" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.specaug.abs_specaug"></span><dl class="class">
 <dt id="espnet2.asr.specaug.abs_specaug.AbsSpecAug">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.specaug.abs_specaug.</code><code class="sig-name descname">AbsSpecAug</code><a class="reference internal" href="../_modules/espnet2/asr/specaug/abs_specaug.html#AbsSpecAug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.specaug.abs_specaug.AbsSpecAug" title="Permalink to this definition">¶</a></dt>
@@ -531,7 +589,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-specaug-specaug">
-<span id="id7"></span><h2>espnet2.asr.specaug.specaug<a class="headerlink" href="#espnet2-asr-specaug-specaug" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.asr.specaug.specaug<a class="headerlink" href="#espnet2-asr-specaug-specaug" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.specaug.specaug"></span><p>SpecAugment module.</p>
 <dl class="class">
 <dt id="espnet2.asr.specaug.specaug.SpecAug">
@@ -569,10 +627,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-transducer-init">
-<span id="id8"></span><h2>espnet2.asr.transducer.__init__<a class="headerlink" href="#espnet2-asr-transducer-init" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.asr.transducer.__init__<a class="headerlink" href="#espnet2-asr-transducer-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.__init__"></span></section>
 <section id="espnet2-asr-transducer-error-calculator">
-<span id="id9"></span><h2>espnet2.asr.transducer.error_calculator<a class="headerlink" href="#espnet2-asr-transducer-error-calculator" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.asr.transducer.error_calculator<a class="headerlink" href="#espnet2-asr-transducer-error-calculator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.error_calculator"></span><p>Error Calculator module for Transducer.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.error_calculator.ErrorCalculatorTransducer">
@@ -651,7 +709,7 @@ char_target: Target character sequences. (B, ?)</p>
 
 </section>
 <section id="espnet2-asr-transducer-beam-search-transducer">
-<span id="id10"></span><h2>espnet2.asr.transducer.beam_search_transducer<a class="headerlink" href="#espnet2-asr-transducer-beam-search-transducer" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.asr.transducer.beam_search_transducer<a class="headerlink" href="#espnet2-asr-transducer-beam-search-transducer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.beam_search_transducer"></span><p>Search algorithms for Transducer models.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer">
@@ -845,10 +903,10 @@ until further modifications.</p>
 
 </section>
 <section id="espnet2-asr-layers-init">
-<span id="id11"></span><h2>espnet2.asr.layers.__init__<a class="headerlink" href="#espnet2-asr-layers-init" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.asr.layers.__init__<a class="headerlink" href="#espnet2-asr-layers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.__init__"></span></section>
 <section id="espnet2-asr-layers-fastformer">
-<span id="id12"></span><h2>espnet2.asr.layers.fastformer<a class="headerlink" href="#espnet2-asr-layers-fastformer" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.asr.layers.fastformer<a class="headerlink" href="#espnet2-asr-layers-fastformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.fastformer"></span><p>Fastformer attention definition.</p>
 <dl class="simple">
 <dt>Reference:</dt><dd><p>Wu et al., “Fastformer: Additive Attention Can Be All You Need”
@@ -909,7 +967,7 @@ until further modifications.</p>
 
 </section>
 <section id="espnet2-asr-layers-cgmlp">
-<span id="id13"></span><h2>espnet2.asr.layers.cgmlp<a class="headerlink" href="#espnet2-asr-layers-cgmlp" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet2.asr.layers.cgmlp<a class="headerlink" href="#espnet2-asr-layers-cgmlp" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.layers.cgmlp"></span><p>MLP with convolutional gating (cgMLP) definition.</p>
 <p class="rubric">References</p>
 <p><a class="reference external" href="https://openreview.net/forum?id=RA-zVvZLYIy">https://openreview.net/forum?id=RA-zVvZLYIy</a>
@@ -969,10 +1027,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-preencoder-init">
-<span id="id14"></span><h2>espnet2.asr.preencoder.__init__<a class="headerlink" href="#espnet2-asr-preencoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet2.asr.preencoder.__init__<a class="headerlink" href="#espnet2-asr-preencoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.preencoder.__init__"></span></section>
 <section id="espnet2-asr-preencoder-sinc">
-<span id="id15"></span><h2>espnet2.asr.preencoder.sinc<a class="headerlink" href="#espnet2-asr-preencoder-sinc" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.asr.preencoder.sinc<a class="headerlink" href="#espnet2-asr-preencoder-sinc" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.preencoder.sinc"></span><p>Sinc convolutions for raw audio input.</p>
 <dl class="class">
 <dt id="espnet2.asr.preencoder.sinc.LightweightSincConvs">
@@ -1090,7 +1148,7 @@ an optional average-pooling layer.</p>
 
 </section>
 <section id="espnet2-asr-preencoder-linear">
-<span id="id16"></span><h2>espnet2.asr.preencoder.linear<a class="headerlink" href="#espnet2-asr-preencoder-linear" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.asr.preencoder.linear<a class="headerlink" href="#espnet2-asr-preencoder-linear" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.preencoder.linear"></span><p>Linear Projection.</p>
 <dl class="class">
 <dt id="espnet2.asr.preencoder.linear.LinearProjection">
@@ -1114,7 +1172,7 @@ an optional average-pooling layer.</p>
 
 </section>
 <section id="espnet2-asr-preencoder-abs-preencoder">
-<span id="id17"></span><h2>espnet2.asr.preencoder.abs_preencoder<a class="headerlink" href="#espnet2-asr-preencoder-abs-preencoder" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.asr.preencoder.abs_preencoder<a class="headerlink" href="#espnet2-asr-preencoder-abs-preencoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.preencoder.abs_preencoder"></span><dl class="class">
 <dt id="espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.preencoder.abs_preencoder.</code><code class="sig-name descname">AbsPreEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/preencoder/abs_preencoder.html#AbsPreEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1143,10 +1201,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-postencoder-init">
-<span id="id18"></span><h2>espnet2.asr.postencoder.__init__<a class="headerlink" href="#espnet2-asr-postencoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.asr.postencoder.__init__<a class="headerlink" href="#espnet2-asr-postencoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.__init__"></span></section>
 <section id="espnet2-asr-postencoder-abs-postencoder">
-<span id="id19"></span><h2>espnet2.asr.postencoder.abs_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-abs-postencoder" title="Permalink to this headline">¶</a></h2>
+<span id="id20"></span><h2>espnet2.asr.postencoder.abs_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-abs-postencoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.abs_postencoder"></span><dl class="class">
 <dt id="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.abs_postencoder.</code><code class="sig-name descname">AbsPostEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/postencoder/abs_postencoder.html#AbsPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1175,7 +1233,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-postencoder-hugging-face-transformers-postencoder">
-<span id="id20"></span><h2>espnet2.asr.postencoder.hugging_face_transformers_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder" title="Permalink to this headline">¶</a></h2>
+<span id="id21"></span><h2>espnet2.asr.postencoder.hugging_face_transformers_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.hugging_face_transformers_postencoder"></span><p>Hugging Face Transformers PostEncoder.</p>
 <dl class="class">
 <dt id="espnet2.asr.postencoder.hugging_face_transformers_postencoder.HuggingFaceTransformersPostEncoder">
@@ -1203,8 +1261,69 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-encoder-transformer-encoder-multispkr">
+<span id="id22"></span><h2>espnet2.asr.encoder.transformer_encoder_multispkr<a class="headerlink" href="#espnet2-asr-encoder-transformer-encoder-multispkr" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.transformer_encoder_multispkr"></span><p>Encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.transformer_encoder_multispkr.</code><code class="sig-name descname">TransformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">num_blocks_sd: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">num_inf: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder_multispkr.html#TransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Transformer encoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input dim</p></li>
+<li><p><strong>output_size</strong> – dimension of attention</p></li>
+<li><p><strong>attention_heads</strong> – the number of heads of multi head attention</p></li>
+<li><p><strong>linear_units</strong> – the number of units of position-wise feed forward</p></li>
+<li><p><strong>num_blocks</strong> – the number of recognition encoder blocks</p></li>
+<li><p><strong>num_blocks_sd</strong> – the number of speaker dependent encoder blocks</p></li>
+<li><p><strong>dropout_rate</strong> – dropout rate</p></li>
+<li><p><strong>attention_dropout_rate</strong> – dropout rate in attention</p></li>
+<li><p><strong>positional_dropout_rate</strong> – dropout rate after adding positional encoding</p></li>
+<li><p><strong>input_layer</strong> – input layer type</p></li>
+<li><p><strong>pos_enc_class</strong> – PositionalEncoding or ScaledPositionalEncoding</p></li>
+<li><p><strong>normalize_before</strong> – whether to use layer_norm before the first block</p></li>
+<li><p><strong>concat_after</strong> – whether to concat attention layer’s input and output
+if True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+if False, no additional linear will be applied.
+i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>positionwise_layer_type</strong> – linear of conv1d</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> – kernel size of positionwise conv1d layer</p></li>
+<li><p><strong>padding_idx</strong> – padding_idx for input_layer=embed</p></li>
+<li><p><strong>num_inf</strong> – number of inference output</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder_multispkr.html#TransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder_multispkr.html#TransformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder_multispkr.TransformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-encoder-branchformer-encoder">
-<span id="id21"></span><h2>espnet2.asr.encoder.branchformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-branchformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id23"></span><h2>espnet2.asr.encoder.branchformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-branchformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.branchformer_encoder"></span><p>Branchformer encoder definition.</p>
 <dl class="simple">
 <dt>Reference:</dt><dd><p>Yifan Peng, Siddharth Dalmia, Ian Lane, and Shinji Watanabe,
@@ -1297,10 +1416,10 @@ torch.Tensor: Mask tensor (#batch, time).</p>
 
 </section>
 <section id="espnet2-asr-encoder-init">
-<span id="id22"></span><h2>espnet2.asr.encoder.__init__<a class="headerlink" href="#espnet2-asr-encoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id24"></span><h2>espnet2.asr.encoder.__init__<a class="headerlink" href="#espnet2-asr-encoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.__init__"></span></section>
 <section id="espnet2-asr-encoder-rnn-encoder">
-<span id="id23"></span><h2>espnet2.asr.encoder.rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-rnn-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id25"></span><h2>espnet2.asr.encoder.rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-rnn-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.rnn_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.rnn_encoder.RNNEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.rnn_encoder.</code><code class="sig-name descname">RNNEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">bidirectional: bool = True</em>, <em class="sig-param">use_projection: bool = True</em>, <em class="sig-param">num_layers: int = 4</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">output_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">subsample: Optional[Sequence[int]] = (2</em>, <em class="sig-param">2</em>, <em class="sig-param">1</em>, <em class="sig-param">1)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/rnn_encoder.html#RNNEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.rnn_encoder.RNNEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1342,7 +1461,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-longformer-encoder">
-<span id="id24"></span><h2>espnet2.asr.encoder.longformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-longformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id26"></span><h2>espnet2.asr.encoder.longformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-longformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.longformer_encoder"></span><p>Conformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.longformer_encoder.LongformerEncoder">
@@ -1423,7 +1542,7 @@ torch.Tensor: Not to be used now.</p>
 
 </section>
 <section id="espnet2-asr-encoder-hubert-encoder">
-<span id="id25"></span><h2>espnet2.asr.encoder.hubert_encoder<a class="headerlink" href="#espnet2-asr-encoder-hubert-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id27"></span><h2>espnet2.asr.encoder.hubert_encoder<a class="headerlink" href="#espnet2-asr-encoder-hubert-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.hubert_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder">
@@ -1546,7 +1665,7 @@ before tuning the whole model (nessasary to prevent overfit).</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-vgg-rnn-encoder">
-<span id="id26"></span><h2>espnet2.asr.encoder.vgg_rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-vgg-rnn-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id28"></span><h2>espnet2.asr.encoder.vgg_rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-vgg-rnn-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.vgg_rnn_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.vgg_rnn_encoder.</code><code class="sig-name descname">VGGRNNEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">bidirectional: bool = True</em>, <em class="sig-param">use_projection: bool = True</em>, <em class="sig-param">num_layers: int = 4</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">output_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">in_channel: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/vgg_rnn_encoder.html#VGGRNNEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1588,7 +1707,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-transformer-encoder">
-<span id="id27"></span><h2>espnet2.asr.encoder.transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-transformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id29"></span><h2>espnet2.asr.encoder.transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-transformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.transformer_encoder"></span><p>Transformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.transformer_encoder.TransformerEncoder">
@@ -1647,7 +1766,7 @@ i.e. x -&gt; x + att(x)</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-wav2vec2-encoder">
-<span id="id28"></span><h2>espnet2.asr.encoder.wav2vec2_encoder<a class="headerlink" href="#espnet2-asr-encoder-wav2vec2-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id30"></span><h2>espnet2.asr.encoder.wav2vec2_encoder<a class="headerlink" href="#espnet2-asr-encoder-wav2vec2-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.wav2vec2_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.wav2vec2_encoder.FairSeqWav2Vec2Encoder">
@@ -1704,7 +1823,7 @@ i.e. x -&gt; x + att(x)</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-conformer-encoder">
-<span id="id29"></span><h2>espnet2.asr.encoder.conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-conformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id31"></span><h2>espnet2.asr.encoder.conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-conformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.conformer_encoder"></span><p>Conformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.conformer_encoder.ConformerEncoder">
@@ -1777,7 +1896,7 @@ torch.Tensor: Not to be used now.</p>
 
 </section>
 <section id="espnet2-asr-encoder-abs-encoder">
-<span id="id30"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id32"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.abs_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.abs_encoder.AbsEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.abs_encoder.</code><code class="sig-name descname">AbsEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/encoder/abs_encoder.html#AbsEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1806,7 +1925,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-contextual-block-conformer-encoder">
-<span id="id31"></span><h2>espnet2.asr.encoder.contextual_block_conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-conformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id33"></span><h2>espnet2.asr.encoder.contextual_block_conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-conformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.contextual_block_conformer_encoder"></span><p>Created on Sat Aug 21 17:27:16 2021.</p>
 <p>&#64;author: Keqi Deng (UCAS)</p>
 <dl class="class">
@@ -1910,7 +2029,7 @@ forward_infer (decode).</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-contextual-block-transformer-encoder">
-<span id="id32"></span><h2>espnet2.asr.encoder.contextual_block_transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-transformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id34"></span><h2>espnet2.asr.encoder.contextual_block_transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-transformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.contextual_block_transformer_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder">
@@ -2015,7 +2134,7 @@ forward_infer (decode).</p></li>
 
 </section>
 <section id="espnet2-asr-frontend-default">
-<span id="id33"></span><h2>espnet2.asr.frontend.default<a class="headerlink" href="#espnet2-asr-frontend-default" title="Permalink to this headline">¶</a></h2>
+<span id="id35"></span><h2>espnet2.asr.frontend.default<a class="headerlink" href="#espnet2-asr-frontend-default" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.default"></span><dl class="class">
 <dt id="espnet2.asr.frontend.default.DefaultFrontend">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.default.</code><code class="sig-name descname">DefaultFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: int = None</em>, <em class="sig-param">fmax: int = None</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">apply_stft: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/default.html#DefaultFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.default.DefaultFrontend" title="Permalink to this definition">¶</a></dt>
@@ -2045,10 +2164,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-frontend-init">
-<span id="id34"></span><h2>espnet2.asr.frontend.__init__<a class="headerlink" href="#espnet2-asr-frontend-init" title="Permalink to this headline">¶</a></h2>
+<span id="id36"></span><h2>espnet2.asr.frontend.__init__<a class="headerlink" href="#espnet2-asr-frontend-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.__init__"></span></section>
 <section id="espnet2-asr-frontend-fused">
-<span id="id35"></span><h2>espnet2.asr.frontend.fused<a class="headerlink" href="#espnet2-asr-frontend-fused" title="Permalink to this headline">¶</a></h2>
+<span id="id37"></span><h2>espnet2.asr.frontend.fused<a class="headerlink" href="#espnet2-asr-frontend-fused" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.fused"></span><dl class="class">
 <dt id="espnet2.asr.frontend.fused.FusedFrontends">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.fused.</code><code class="sig-name descname">FusedFrontends</code><span class="sig-paren">(</span><em class="sig-param">frontends=None</em>, <em class="sig-param">align_method='linear_projection'</em>, <em class="sig-param">proj_dim=100</em>, <em class="sig-param">fs=16000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/fused.html#FusedFrontends"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.fused.FusedFrontends" title="Permalink to this definition">¶</a></dt>
@@ -2076,7 +2195,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-frontend-s3prl">
-<span id="id36"></span><h2>espnet2.asr.frontend.s3prl<a class="headerlink" href="#espnet2-asr-frontend-s3prl" title="Permalink to this headline">¶</a></h2>
+<span id="id38"></span><h2>espnet2.asr.frontend.s3prl<a class="headerlink" href="#espnet2-asr-frontend-s3prl" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.s3prl"></span><dl class="class">
 <dt id="espnet2.asr.frontend.s3prl.S3prlFrontend">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.s3prl.</code><code class="sig-name descname">S3prlFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">download_dir: str = None</em>, <em class="sig-param">multilayer_feature: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/s3prl.html#S3prlFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.s3prl.S3prlFrontend" title="Permalink to this definition">¶</a></dt>
@@ -2110,7 +2229,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-frontend-windowing">
-<span id="id37"></span><h2>espnet2.asr.frontend.windowing<a class="headerlink" href="#espnet2-asr-frontend-windowing" title="Permalink to this headline">¶</a></h2>
+<span id="id39"></span><h2>espnet2.asr.frontend.windowing<a class="headerlink" href="#espnet2-asr-frontend-windowing" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.windowing"></span><p>Sliding Window for raw audio input data.</p>
 <dl class="class">
 <dt id="espnet2.asr.frontend.windowing.SlidingWindow">
@@ -2168,7 +2287,7 @@ Tensor: Output lengths within batch.</p>
 
 </section>
 <section id="espnet2-asr-frontend-abs-frontend">
-<span id="id38"></span><h2>espnet2.asr.frontend.abs_frontend<a class="headerlink" href="#espnet2-asr-frontend-abs-frontend" title="Permalink to this headline">¶</a></h2>
+<span id="id40"></span><h2>espnet2.asr.frontend.abs_frontend<a class="headerlink" href="#espnet2-asr-frontend-abs-frontend" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.abs_frontend"></span><dl class="class">
 <dt id="espnet2.asr.frontend.abs_frontend.AbsFrontend">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.abs_frontend.</code><code class="sig-name descname">AbsFrontend</code><a class="reference internal" href="../_modules/espnet2/asr/frontend/abs_frontend.html#AbsFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="Permalink to this definition">¶</a></dt>
@@ -2197,7 +2316,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-decoder-rnn-decoder">
-<span id="id39"></span><h2>espnet2.asr.decoder.rnn_decoder<a class="headerlink" href="#espnet2-asr-decoder-rnn-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id41"></span><h2>espnet2.asr.decoder.rnn_decoder<a class="headerlink" href="#espnet2-asr-decoder-rnn-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.rnn_decoder"></span><dl class="class">
 <dt id="espnet2.asr.decoder.rnn_decoder.RNNDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.rnn_decoder.</code><code class="sig-name descname">RNNDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">num_layers: int = 1</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">sampling_probability: float = 0.0</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">context_residual: bool = False</em>, <em class="sig-param">replace_sos: bool = False</em>, <em class="sig-param">num_encs: int = 1</em>, <em class="sig-param">att_conf: dict = {'aconv_chans': 10</em>, <em class="sig-param">'aconv_filts': 100</em>, <em class="sig-param">'adim': 320</em>, <em class="sig-param">'aheads': 4</em>, <em class="sig-param">'atype': 'location'</em>, <em class="sig-param">'awin': 5</em>, <em class="sig-param">'han_conv_chans': -1</em>, <em class="sig-param">'han_conv_filts': 100</em>, <em class="sig-param">'han_dim': 320</em>, <em class="sig-param">'han_heads': 4</em>, <em class="sig-param">'han_mode': False</em>, <em class="sig-param">'han_type': None</em>, <em class="sig-param">'han_win': 5</em>, <em class="sig-param">'num_att': 1</em>, <em class="sig-param">'num_encs': 1}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/rnn_decoder.html#RNNDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.rnn_decoder.RNNDecoder" title="Permalink to this definition">¶</a></dt>
@@ -2273,10 +2392,10 @@ and next state for ys</p>
 
 </section>
 <section id="espnet2-asr-decoder-init">
-<span id="id40"></span><h2>espnet2.asr.decoder.__init__<a class="headerlink" href="#espnet2-asr-decoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id42"></span><h2>espnet2.asr.decoder.__init__<a class="headerlink" href="#espnet2-asr-decoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.__init__"></span></section>
 <section id="espnet2-asr-decoder-transducer-decoder">
-<span id="id41"></span><h2>espnet2.asr.decoder.transducer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transducer-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id43"></span><h2>espnet2.asr.decoder.transducer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transducer-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.transducer_decoder"></span><p>(RNN-)Transducer decoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.transducer_decoder.TransducerDecoder">
@@ -2450,7 +2569,7 @@ label: Label ID for LM. (1,)</p>
 
 </section>
 <section id="espnet2-asr-decoder-transformer-decoder">
-<span id="id42"></span><h2>espnet2.asr.decoder.transformer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transformer-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id44"></span><h2>espnet2.asr.decoder.transformer_decoder<a class="headerlink" href="#espnet2-asr-decoder-transformer-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.transformer_decoder"></span><p>Decoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder">
@@ -2600,7 +2719,7 @@ y.shape` is (batch, maxlen_out, token)</p>
 
 </section>
 <section id="espnet2-asr-decoder-mlm-decoder">
-<span id="id43"></span><h2>espnet2.asr.decoder.mlm_decoder<a class="headerlink" href="#espnet2-asr-decoder-mlm-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id45"></span><h2>espnet2.asr.decoder.mlm_decoder<a class="headerlink" href="#espnet2-asr-decoder-mlm-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.mlm_decoder"></span><p>Masked LM Decoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.mlm_decoder.MLMDecoder">
@@ -2640,7 +2759,7 @@ x: decoded token score before softmax (batch, maxlen_out, token)</p>
 
 </section>
 <section id="espnet2-asr-decoder-hugging-face-transformers-decoder">
-<span id="id44"></span><h2>espnet2.asr.decoder.hugging_face_transformers_decoder<a class="headerlink" href="#espnet2-asr-decoder-hugging-face-transformers-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id46"></span><h2>espnet2.asr.decoder.hugging_face_transformers_decoder<a class="headerlink" href="#espnet2-asr-decoder-hugging-face-transformers-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.hugging_face_transformers_decoder"></span><p>Hugging Face Transformers Decoder.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder">
@@ -2692,7 +2811,7 @@ x: decoded token score before softmax (batch, maxlen_out, token)</p>
 
 </section>
 <section id="espnet2-asr-decoder-abs-decoder">
-<span id="id45"></span><h2>espnet2.asr.decoder.abs_decoder<a class="headerlink" href="#espnet2-asr-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id47"></span><h2>espnet2.asr.decoder.abs_decoder<a class="headerlink" href="#espnet2-asr-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.abs_decoder"></span><dl class="class">
 <dt id="espnet2.asr.decoder.abs_decoder.AbsDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.abs_decoder.</code><code class="sig-name descname">AbsDecoder</code><a class="reference internal" href="../_modules/espnet2/asr/decoder/abs_decoder.html#AbsDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="Permalink to this definition">¶</a></dt>

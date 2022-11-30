@@ -535,7 +535,7 @@
             <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
             <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="p">(</span>
+        <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="p">(</span>
             <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
             <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
         <span class="p">)</span>

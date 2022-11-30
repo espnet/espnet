@@ -147,7 +147,7 @@ asr_inference.py
                             [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                             [--word_lm_file WORD_LM_FILE]
                             [--ngram_file NGRAM_FILE] [--model_tag MODEL_TAG]
-                            [--enh_s2t_task ENH_S2T_TASK]
+                            [--enh_s2t_task ENH_S2T_TASK] [--multi_asr MULTI_ASR]
                             [--quantize_asr_model QUANTIZE_ASR_MODEL]
                             [--quantize_lm QUANTIZE_LM]
                             [--quantize_modules [QUANTIZE_MODULES [QUANTIZE_MODULES ...]]]
@@ -202,6 +202,8 @@ asr_inference.py
                             (default: None)
       --enh_s2t_task ENH_S2T_TASK
                             enhancement and asr joint model (default: False)
+      --multi_asr MULTI_ASR
+                            multi-speaker asr model (default: False)
     
     Quantization related:
       --quantize_asr_model QUANTIZE_ASR_MODEL
@@ -452,15 +454,18 @@ asr_train.py
                         [--specaug_conf SPECAUG_CONF]
                         [--normalize {global_mvn,utterance_mvn,None}]
                         [--normalize_conf NORMALIZE_CONF]
-                        [--model {espnet,maskctc}] [--model_conf MODEL_CONF]
+                        [--model {espnet,maskctc,pit_espnet}]
+                        [--model_conf MODEL_CONF]
                         [--preencoder {sinc,linear,None}]
                         [--preencoder_conf PREENCODER_CONF]
-                        [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
+                        [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
                         [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
                         [--decoder_conf DECODER_CONF]
+                        [--preprocessor {default,multi}]
+                        [--preprocessor_conf PREPROCESSOR_CONF]
     
     base parser
     
@@ -841,7 +846,7 @@ asr_train.py
                             The normalize type (default: utterance_mvn)
       --normalize_conf NORMALIZE_CONF
                             The keyword arguments for normalize (default: {})
-      --model {espnet,maskctc}
+      --model {espnet,maskctc,pit_espnet}
                             The model type (default: espnet)
       --model_conf MODEL_CONF
                             The keyword arguments for model (default: {})
@@ -849,7 +854,7 @@ asr_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
+      --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
@@ -861,6 +866,10 @@ asr_train.py
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
+      --preprocessor {default,multi}
+                            The preprocessor type (default: default)
+      --preprocessor_conf PREPROCESSOR_CONF
+                            The keyword arguments for preprocessor (default: {})
 .. _asr_transducer_inference.py:
 
 asr_transducer_inference.py
@@ -2220,7 +2229,7 @@ enh_s2t_train.py
                             [--normalize_conf NORMALIZE_CONF]
                             [--asr_preencoder {sinc,linear,None}]
                             [--asr_preencoder_conf ASR_PREENCODER_CONF]
-                            [--asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
+                            [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}]
                             [--asr_encoder_conf ASR_ENCODER_CONF]
                             [--asr_postencoder {hugging_face_transformers,None}]
                             [--asr_postencoder_conf ASR_POSTENCODER_CONF]
@@ -2663,7 +2672,7 @@ enh_s2t_train.py
                             The asr_preencoder type (default: None)
       --asr_preencoder_conf ASR_PREENCODER_CONF
                             The keyword arguments for asr_preencoder (default: {})
-      --asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
+      --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer}
                             The asr_encoder type (default: rnn)
       --asr_encoder_conf ASR_ENCODER_CONF
                             The keyword arguments for asr_encoder (default: {})

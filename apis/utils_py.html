@@ -576,6 +576,7 @@
                         <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="n">INPUT_SHIFT</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">start</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="nb">input</span> <span class="n">lengths</span><span class="p">,</span><span class="n">speech</span> <span class="n">length</span><span class="p">}]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">end</span><span class="o">-</span><span class="n">times</span><span class="o">-</span><span class="n">marker</span> <span class="p">{</span><span class="n">prediction</span><span class="p">,</span><span class="n">best</span> <span class="n">hypo</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">inf</span><span class="o">-</span><span class="n">num</span> <span class="n">INF_NUM</span><span class="p">]</span>
 </pre></div>
 </div>
 <section id="named-arguments">
@@ -602,6 +603,10 @@
 <dd><p>Possible choices: prediction, best hypo</p>
 <p>String marking end of decoding in logfile, e.g., ‘prediction’ (espnet1) and ‘best hypo’ (espnet2)</p>
 <p>Default: “prediction”</p>
+</dd>
+<dt><kbd>--inf-num</kbd></dt>
+<dd><p>number of inference hypothesis for each utterance, e.g. &gt;1 in multi-speaker asr.</p>
+<p>Default: 1</p>
 </dd>
 </dl>
 </section>
@@ -1659,7 +1664,7 @@
 </dd>
 <dt><kbd>out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f5d40fc2c10&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7fcf9e1afe80&gt;</p>
 </dd>
 </dl>
 </section>
@@ -1698,7 +1703,7 @@
 </dd>
 <dt><kbd>--out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f5d40fc2c10&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7fcf9e1afe80&gt;</p>
 </dd>
 </dl>
 </section>
