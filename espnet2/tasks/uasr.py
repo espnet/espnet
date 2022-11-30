@@ -30,8 +30,6 @@ from espnet2.uasr.loss.gradient_penalty import UASRGradientPenalty
 from espnet2.uasr.loss.smoothness_penalty import UASRSmoothnessPenalty
 from espnet2.uasr.loss.phoneme_diversity_loss import UASRPhonemeDiversityLoss
 from espnet2.uasr.loss.pseudo_label_loss import UASRPseudoLabelLoss
-from espnet2.uasr.loss.lattice_loss import UASRLatticeLoss
-from espnet2.uasr.loss.autoencoder_loss import UASRAutoencoderlLoss
 
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.torch_utils.initialize import initialize
@@ -87,8 +85,6 @@ loss_choices = ClassChoices(
         smoothness_penalty=UASRSmoothnessPenalty,
         phoneme_diversity_loss=UASRPhonemeDiversityLoss,
         pseudo_label_loss=UASRPseudoLabelLoss,
-        lattice_loss=UASRLatticeLoss,
-        autoencoder_loss=UASRAutoencoderlLoss,
     ),
     type_check=AbsUASRLoss,
     default="discriminator_loss",
@@ -223,12 +219,6 @@ class UASRTask(AbsTask):
             "--fairseq_checkpoint",
             type=str,
             help="Fairseq checkpoint to initialize model",
-        )
-
-        parser.add_argument(
-            "--ll_increasing_type",
-            type=str,
-            help="lattice loss increasing type",
         )
 
         for class_choices in cls.class_choices_list:
@@ -366,10 +356,6 @@ class UASRTask(AbsTask):
                     loss = loss_choices.get_class(ctr["name"])(
                         discriminator=discriminator, **ctr["conf"]
                     )
-                elif ctr["name"] == "autoencoder_loss":
-                    loss = loss_choices.get_class(ctr["name"])(
-                        input_dim=vocab_size, **ctr["conf"]
-                    )
                 else:
                     loss = loss_choices.get_class(ctr["name"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
@@ -388,8 +374,6 @@ class UASRTask(AbsTask):
             max_epoch=args.max_epoch,
             vocab_size=vocab_size,
             use_collected_training_feats=args.write_collected_feats,
-            ll_increasing_type="constant",
-            # **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
