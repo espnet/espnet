@@ -212,6 +212,7 @@
         <span class="n">rtf_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">bdropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">shared_power</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_torchaudio_api</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="c1"># For numerical stability</span>
         <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">diag_eps_wpe</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
@@ -285,6 +286,7 @@
                 <span class="n">mask_flooring</span><span class="o">=</span><span class="n">mask_flooring</span><span class="p">,</span>
                 <span class="n">flooring_thres</span><span class="o">=</span><span class="n">flooring_thres_bf</span><span class="p">,</span>
                 <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">use_torchaudio_api</span><span class="o">=</span><span class="n">use_torchaudio_api</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">beamformer</span> <span class="o">=</span> <span class="kc">None</span>

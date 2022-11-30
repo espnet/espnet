@@ -268,6 +268,17 @@ espnet2.enh.layers.conv_utils
     :show-inheritance:
 
 
+.. _espnet2.enh.layers.beamformer_th:
+
+espnet2.enh.layers.beamformer_th
+--------------------------------
+
+.. automodule:: espnet2.enh.layers.beamformer_th
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.beamformer:
 
 espnet2.enh.layers.beamformer
