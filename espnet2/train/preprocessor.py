@@ -142,7 +142,7 @@ class CommonPreprocessor(AbsPreprocessor):
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
-        fs: np.int32 = 0,
+        fs: int = 0,
     ):
         super().__init__(train)
         self.train = train
@@ -414,7 +414,7 @@ class SLUPreprocessor(CommonPreprocessor):
         return data
 
 
-class CommonPreprocessor_multi(AbsPreprocessor):
+class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
@@ -427,35 +427,42 @@ class CommonPreprocessor_multi(AbsPreprocessor):
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
+        fs: int = 0,
     ):
-        super().__init__(train)
-        self.train = train
-        self.speech_name = speech_name
-        self.text_name = text_name
-
-        if token_type is not None:
-            if token_list is None:
-                raise ValueError("token_list is required if token_type is not None")
-            self.text_cleaner = TextCleaner(text_cleaner)
-
-            self.tokenizer = build_tokenizer(
-                token_type=token_type,
-                bpemodel=bpemodel,
-                delimiter=delimiter,
-                space_symbol=space_symbol,
-                non_linguistic_symbols=non_linguistic_symbols,
-                g2p_type=g2p_type,
-            )
-            self.token_id_converter = TokenIDConverter(
-                token_list=token_list,
-                unk_symbol=unk_symbol,
-            )
+        super().__init__(
+            train=train,
+            token_type=token_type,
+            token_list=token_list,
+            bpemodel=bpemodel,
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            fs=fs,
+        )
+        if isinstance(text_name, str):
+            self.text_name = [text_name]
         else:
-            self.text_cleaner = None
-            self.tokenizer = None
-            self.token_id_converter = None
+            self.text_name = text_name
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
@@ -475,14 +482,7 @@ class CommonPreprocessor_multi(AbsPreprocessor):
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
 
-        if self.speech_name in data:
-            # Nothing now: candidates:
-            # - STFT
-            # - Fbank
-            # - CMVN
-            # - Data augmentation
-            pass
-
+        data = self._speech_process(data)
         data = self._text_process(data)
         return data
 
