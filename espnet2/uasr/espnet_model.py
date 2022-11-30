@@ -38,7 +38,7 @@ else:
 class ESPnetUASRModel(AbsESPnetModel):
     """
     Unsupervised ASR model
-    The original code is from FAIRSEQ: 
+    The source code is from FAIRSEQ: 
         https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
     """
 
