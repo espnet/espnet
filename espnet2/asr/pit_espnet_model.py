@@ -143,7 +143,14 @@ class ESPnetASRModel(SingleESPnetASRModel):
         report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
+        # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
+        sym_sos: str = "<sos/eos>",
+        sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
+        lang_token_id: int = -1,
+        # num_inf: the number of inferences (= number of outputs of the model)
+        # num_ref: the number of references (= number of groundtruth seqs)
         num_inf: int = 1,
         num_ref: int = 1,
     ):
@@ -152,30 +159,33 @@ class ESPnetASRModel(SingleESPnetASRModel):
         assert interctc_weight == 0.0, "interctc is not supported for multispeaker ASR"
 
         super(ESPnetASRModel, self).__init__(
-            vocab_size,
-            token_list,
-            frontend,
-            specaug,
-            normalize,
-            preencoder,
-            encoder,
-            postencoder,
-            decoder,
-            ctc,
-            joint_network,
-            ctc_weight,
-            interctc_weight,
-            ignore_id,
-            lsm_weight,
-            length_normalized_loss,
-            report_cer,
-            report_wer,
-            sym_space,
-            sym_blank,
-            extract_feats_in_collect_stats,
+            vocab_size=vocab_size,
+            token_list=token_list,
+            frontend=frontend,
+            specaug=specaug,
+            normalize=normalize,
+            preencoder=preencoder,
+            encoder=encoder,
+            postencoder=postencoder,
+            decoder=decoder,
+            ctc=ctc,
+            joint_network=joint_network,
+            ctc_weight=ctc_weight,
+            interctc_weight=interctc_weight,
+            ignore_id=ignore_id,
+            lsm_weight=lsm_weight,
+            length_normalized_loss=length_normalized_loss,
+            report_cer=report_cer,
+            report_wer=report_wer,
+            sym_space=sym_space,
+            sym_blank=sym_blank,
+            sym_sos=sym_sos,
+            sym_eos=sym_eos,
+            extract_feats_in_collect_stats=extract_feats_in_collect_stats,
+            lang_token_id=lang_token_id,
         )
 
-        assert num_inf == num_ref
+        assert num_inf == num_ref, "Current PIT loss wrapper requires num_inf=num_ref"
         self.num_inf = num_inf
         self.num_ref = num_ref
 

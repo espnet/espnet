@@ -293,6 +293,7 @@ def test_Speech2Text_hugging_face(
         assert isinstance(hyp, Hypothesis)
 
 
+@pytest.fixture()
 def asr_config_file_pit(tmp_path: Path, token_list):
     # Write default configuration file
     ASRTask.main(

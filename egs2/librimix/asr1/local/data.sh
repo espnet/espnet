@@ -83,7 +83,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for n_src in 2;
     do
         metadata_dir=metadata/Libri$n_src"Mix"
-        python scripts/create_librimix_from_metadata.py --librispeech_dir $LIBRISPEECH \
+        python scripts/create_librimix_from_metadata.py --librispeech_dir $LIBRISPEECH/LibriSpeech \
             --wham_dir ${cdir}/data/wham_noise \
             --metadata_dir $metadata_dir \
             --librimix_outdir $librimix_outdir \
@@ -118,17 +118,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             mix_f=${dset}
         fi
 
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/utt2spk
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/spk2utt
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $2}' > data/${dset}/wav.scp
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $3}' > data/${dset}/spk1.scp
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $4}' > data/${dset}/spk2.scp
-        <${metadata_dir}/mixture_${mix_f}_mix_both.csv grep -v mixture_ID | \
+        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $5}' > data/${dset}/noise1.scp
 
     done

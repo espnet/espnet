@@ -13,12 +13,12 @@ asr_config=conf/tuning/train_asr_transformer_multispkr.yaml
 lm_config=conf/tuning/train_lm_transformer.yaml
 inference_config=conf/decode.yaml
 
-./multispkr_asr.sh \
+./asr.sh \
     --lang en \
     --ngpu 1 \
     --token_type "char" \
     --asr_task "asr" \
-    --ref_num 2 \
+    --num_ref 2 \
     --max_wav_duration 30 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
@@ -29,4 +29,4 @@ inference_config=conf/decode.yaml
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --lm_train_text "data/${train_set}/text_spk1 data/${train_set}/text_spk2 data/local/other_text/text" \
-    --bpe_train_text "data/${train_set}/text_spk1" "data/${train_set}/text_spk2" "$@"
+    --bpe_train_text "data/${train_set}/text_spk1 data/${train_set}/text_spk2" "$@"
