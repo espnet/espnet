@@ -20,11 +20,7 @@ from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
 from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 
-from espnet2.uasr.loss.discriminator_loss import UASRDiscriminatorLoss
-from espnet2.uasr.loss.gradient_penalty import UASRGradientPenalty
-from espnet2.uasr.loss.phoneme_diversity_loss import UASRPhonemeDiversityLoss
-from espnet2.uasr.loss.pseudo_label_loss import UASRPseudoLabelLoss
-from espnet2.uasr.loss.smoothness_penalty import UASRSmoothnessPenalty
+from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -40,7 +36,11 @@ else:
 
 
 class ESPnetUASRModel(AbsESPnetModel):
-    """Unsupervised ASR model"""
+    """
+    Unsupervised ASR model
+    The original code is from FAIRSEQ: 
+        https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
+    """
 
     def __init__(
         self,
@@ -48,11 +48,10 @@ class ESPnetUASRModel(AbsESPnetModel):
         segmenter: Optional[AbsSegmenter],
         generator: AbsGenerator,
         discriminator: AbsDiscriminator,
-        losses: Dict[str, torch.nn.Module],
+        losses: Dict[str, AbsUASRLoss],
         kenlm_path: Optional[str],
         token_list: Optional[list],
         max_epoch: Optional[int],
-        ll_increasing_type: Optional[str],
         vocab_size: int,
         cfg: Optional[Dict] = None,
         pad: int = 1,
@@ -137,8 +136,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         text_lengths: Optional[torch.Tensor] = None,
         pseudo_labels: Optional[torch.Tensor] = None,
         pseudo_labels_lengths: Optional[torch.Tensor] = None,
-        input_cluster_id: Optional[torch.Tensor] = None,
-        input_cluster_id_lengths: Optional[torch.Tensor] = None,
         do_validation: Optional[str2bool] = False,
         print_hyp: Optional[str2bool] = False,
         **kwargs,
@@ -331,31 +328,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         else:
             mmi = None
 
-        if "lattice_loss" in self.losses.keys():
-            ll = self.losses["lattice_loss"](
-                generated_sample,
-                generated_sample_padding_mask,
-                self.training,
-                is_discriminative_step,
-            )
-            llwr = self.get_ll_weight_ratio()
-            loss_info.append(ll * self.losses["lattice_loss"].weight * llwr)
-        else:
-            llwr = None
-            ll = None
-
-        if "autoencoder_loss" in self.losses.keys():
-            al = self.losses["autoencoder_loss"](
-                generated_sample,
-                generated_sample_padding_mask,
-                input_cluster_id,
-                input_cluster_id_lengths,
-                is_discriminative_step,
-            )
-            loss_info.append(al * self.losses["autoencoder_loss"].weight)
-        else:
-            al = None
-
         # Update temperature
         self._change_temperature()
         self.number_updates += 1
@@ -370,8 +342,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         stats["sp"] = sp
         stats["pdl"] = pdl
         stats["mmi"] = mmi
-        stats["ll"] = ll
-        stats["llwr"] = llwr
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -464,13 +434,3 @@ class ESPnetUASRModel(AbsESPnetModel):
             self.max_temperature * self.decay_temperature**self.number_updates,
             self.min_temperature,
         )
-
-    def get_ll_weight_ratio(self):
-        type = self.ll_increasing_type
-        if type == "constant":
-            llwr = 1
-        elif type == "linear":
-            llwr = self.number_epochs / self.max_epoch
-        if type == "quadratic":
-            llwr = (self.number_epochs / self.max_epoch) ** 2
-        return llwr
