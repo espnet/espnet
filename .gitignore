@@ -28,6 +28,9 @@ test_spm.model
 *.swp
 *.nfs*
 
+# ASVspoof2019LA hot fix.
+egs*/*/*/LA* 
+
 # recipe related
 egs*/*/*/data*
 egs*/*/*/db
@@ -87,3 +90,4 @@ tools/anaconda
 tools/ice-g2p*
 tools/fairseq*
 tools/featbin*
+tools/Miniconda3-latest-Linux-x86_64.sh
