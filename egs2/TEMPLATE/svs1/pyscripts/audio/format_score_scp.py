@@ -46,8 +46,7 @@ def main():
 
     else:
         # NOTE(Yuning): We dont't have score_scp without segment.
-        # Scores are segmented in stage 1 now.
-        raise IOError("No segment file.")
+        raise IOError("No segment file. Scores are segmented in stage 1 now.")
 
 
 if __name__ == "__main__":
