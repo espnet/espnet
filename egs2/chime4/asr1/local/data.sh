@@ -91,12 +91,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-	log "combine real and simulation data"
-        
-	# TO DO:--extra-files but no utt2num_frames
-	utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy 
-	utils/combine_data.sh data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
-	utils/combine_data.sh data/${train_dev} data/dt05_simu_isolated_1ch_track data/dt05_real_isolated_1ch_track
+    log "combine real and simulation data"
+
+    # TO DO:--extra-files but no utt2num_frames
+    utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy 
+    utils/combine_data.sh data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
+    utils/combine_data.sh data/${train_dev} data/dt05_simu_isolated_1ch_track data/dt05_real_isolated_1ch_track
 fi
 
 other_text=data/local/other_text/text

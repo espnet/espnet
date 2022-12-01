@@ -15,13 +15,7 @@ win_length=1200
 
 score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats
 
-opts=
-if [ "${fs}" -eq 48000 ]; then
-    # To suppress recreation, specify wav format
-    opts="--audio_format wav "
-else
-    opts="--audio_format flac "
-fi
+opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
@@ -56,5 +50,4 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --ngpu 1 \
     ${opts} "$@"
