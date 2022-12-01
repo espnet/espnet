@@ -17,13 +17,10 @@ if len(sys.argv) != 2:
 ASVSpoofLocation = sys.argv[1]
 ASVSpoofLocation = Path(ASVSpoofLocation)
 
-# Grabbing all data under correct data directories.
+# Grabbing all data directories.
 trainDataDir = Path(os.path.join(ASVSpoofLocation, "ASVspoof2019_LA_train", "flac"))
-trainDataPaths = [f for f in trainDataDir.glob("*.flac")]
 devDataDir = Path(os.path.join(ASVSpoofLocation, "ASVspoof2019_LA_dev", "flac"))
-devDataPaths = [f for f in devDataDir.glob("*.flac")]
 evalDataDir = Path(os.path.join(ASVSpoofLocation, "ASVspoof2019_LA_eval", "flac"))
-evalDataPaths = [f for f in evalDataDir.glob("*.flac")]
 
 # Grab the CM Protocols. 
 # See the CM protocols for more detail on expected data format.
@@ -31,9 +28,6 @@ protocolPaths = Path(os.path.join(ASVSpoofLocation, "ASVspoof2019_LA_cm_protocol
 devFile = open(os.path.join(protocolPaths, "ASVspoof2019.LA.cm.dev.trl.txt"), "r")
 evalFile = open(os.path.join(protocolPaths, "ASVspoof2019.LA.cm.eval.trl.txt"), "r")
 trainFile = open(os.path.join(protocolPaths, "ASVspoof2019.LA.cm.train.trn.txt"), "r")
-
-# devFile is lines of the form: speakerID utteranceID label1 label2 result
-# convert devFile into an array in the form: [speakerID, utteranceID, label1, label2, result]
 
 def generate_data(fileText, dataDir):
     """
