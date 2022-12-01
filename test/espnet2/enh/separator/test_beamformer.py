@@ -1,12 +1,15 @@
+import numpy as np
 import pytest
 import torch
 from packaging.version import parse as V
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.enh.layers.dnn_beamformer import BEAMFORMER_TYPES
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 random_speech = torch.tensor(
     [
         [
@@ -127,7 +130,12 @@ def test_neural_beamformer_forward_backward(
 
     # ensures reproducibility and reversibility in the matrix inverse computation
     torch.random.manual_seed(0)
-    stft = STFTEncoder(n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+    stft = STFTEncoder(
+        n_fft=n_fft,
+        win_length=win_length,
+        hop_length=hop_length,
+        use_builtin_complex=is_torch_1_12_1_plus,
+    )
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -151,6 +159,7 @@ def test_neural_beamformer_forward_backward(
         beamformer_type=beamformer_type,
         rtf_iterations=2,
         shared_power=True,
+        use_torchaudio_api=is_torch_1_12_1_plus,
     )
 
     model.train()
@@ -177,7 +186,7 @@ def test_neural_beamformer_wpe_output(
     inputs = torch.randn(2, 16, ch) if ch > 1 else torch.randn(2, 16)
     inputs = inputs.float()
     ilens = torch.LongTensor([16, 12])
-    stft = STFTEncoder(n_fft=8, hop_length=2)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -190,6 +199,7 @@ def test_neural_beamformer_wpe_output(
         taps=5,
         delay=3,
         use_beamformer=False,
+        use_torchaudio_api=is_torch_1_12_1_plus,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
@@ -200,7 +210,7 @@ def test_neural_beamformer_wpe_output(
     else:
         assert len(specs) == num_spk
     assert specs[0].shape == input_spectrum.shape
-    if is_torch_1_9_plus and torch.is_complex(specs[0]):
+    if is_torch_complex_tensor(specs[0]):
         assert specs[0].dtype == torch.complex64
     else:
         assert specs[0].dtype == torch.float
@@ -240,7 +250,7 @@ def test_neural_beamformer_bf_output(
     ilens = torch.LongTensor([16, 12])
 
     torch.random.manual_seed(0)
-    stft = STFTEncoder(n_fft=8, hop_length=2)
+    stft = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=is_torch_1_12_1_plus)
     model = NeuralBeamformer(
         stft.output_dim,
         num_spk=num_spk,
@@ -257,6 +267,7 @@ def test_neural_beamformer_bf_output(
         diagonal_loading=diagonal_loading,
         mask_flooring=mask_flooring,
         use_torch_solver=use_torch_solver,
+        use_torchaudio_api=is_torch_1_12_1_plus,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
@@ -272,10 +283,65 @@ def test_neural_beamformer_bf_output(
         assert others["mask_spk{}".format(n)].shape[-2] == ch
         assert specs[n - 1].shape == others["mask_spk{}".format(n)][..., 0, :].shape
         assert specs[n - 1].shape == input_spectrum[..., 0, :].shape
-        if is_torch_1_9_plus and torch.is_complex(specs[n - 1]):
+        if is_torch_complex_tensor(specs[n - 1]):
             assert specs[n - 1].dtype == torch.complex64
         else:
             assert specs[n - 1].dtype == torch.float
+
+
+@pytest.mark.parametrize("num_spk", [1, 2])
+@pytest.mark.parametrize("use_noise_mask", [True, False])
+@pytest.mark.parametrize("beamformer_type", BEAMFORMER_TYPES)
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="Only for torch>=1.12.1")
+def test_beamformer_net_consistency(num_spk, use_noise_mask, beamformer_type):
+    if beamformer_type in (
+        "lcmv",
+        "lcmp",
+        "wlcmp",
+        "mvdr_tfs",
+        "mvdr_tfs_souden",
+    ):
+        # skip these beamformers as they require real multi-speaker data to obtain
+        # consistent results
+        return
+
+    torch.random.manual_seed(0)
+    ch = 2
+    inputs = random_speech[..., :ch].float().repeat(1, 5, 1)
+    ilens = torch.LongTensor([80, 60])
+
+    stft1 = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=True)
+    stft2 = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=False)
+    args = dict(
+        num_spk=num_spk,
+        use_wpe=False,
+        taps=2,
+        delay=3,
+        use_beamformer=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        use_noise_mask=use_noise_mask,
+        beamformer_type=beamformer_type,
+        diagonal_loading=True,
+        mask_flooring=True,
+        use_torch_solver=True,
+    )
+    model1 = NeuralBeamformer(stft1.output_dim, use_torchaudio_api=True, **args)
+    model2 = NeuralBeamformer(stft2.output_dim, use_torchaudio_api=False, **args)
+    model1.eval()
+    model2.eval()
+    models = [model1, model2]
+    input_spectrum1, flens = stft1(inputs, ilens)
+    input_spectrum2 = stft2(inputs, ilens)[0]
+    inputs = [input_spectrum1, input_spectrum2]
+
+    specs = [
+        model(input_spectrum, flens)[0] for model, input_spectrum in zip(models, inputs)
+    ]
+    for spk in range(num_spk):
+        np.testing.assert_allclose(*[s[spk].detach().numpy() for s in specs], atol=1e-1)
 
 
 def test_beamformer_net_invalid_bf_type():

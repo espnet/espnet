@@ -365,7 +365,7 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        assert encoder_out.size(1) <= encoder_out_lens.max(), (
+        assert encoder_out.size(-2) <= encoder_out_lens.max(), (
             encoder_out.size(),
             encoder_out_lens.max(),
         )
