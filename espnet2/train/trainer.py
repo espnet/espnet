@@ -820,8 +820,13 @@ class Trainer:
 
                     if att_w.ndim == 2:
                         att_w = att_w[None]
-                    elif att_w.ndim > 3 or att_w.ndim == 1:
-                        raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
+                    elif att_w.ndim == 4:
+                        # In multispkr_asr model case, the dimension could be 4.
+                        att_w = np.concatenate(
+                            [att_w[i] for i in range(att_w.shape[0])], axis=0
+                        )
+                    elif att_w.ndim > 4 or att_w.ndim == 1:
+                        raise RuntimeError(f"Must be 2, 3 or 4 dimension: {att_w.ndim}")
 
                     w, h = plt.figaspect(1.0 / len(att_w))
                     fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
