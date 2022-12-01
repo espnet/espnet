@@ -379,7 +379,9 @@ class ASRTask(AbsTask):
                 else None,
                 aux_task_names=cls.optional_data_names(
                     train=train, aux_tasks=args.aux_ctc_tasks
-                ),
+                )
+                if hasattr(args, "aux_ctc_tasks")
+                else None,
             )
         else:
             retval = None
