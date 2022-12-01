@@ -56,7 +56,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         local/prep_segments.py --silence pau --silence sil --silence br ${src_data}
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
-        local/prep_segments_from_xml.py --silence P --silence B ${src_data}
+        pyscripts/utils/prep_segments_from_xml.py --silence P --silence B ${src_data}
         mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
@@ -71,7 +71,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # We align music info at phone level if both annotation (label) and music score are used.
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
-        utils/check_align.py ${src_data} --g2p ${g2p}
+        pyscripts/utils/check_align.py ${src_data} --g2p ${g2p}
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
