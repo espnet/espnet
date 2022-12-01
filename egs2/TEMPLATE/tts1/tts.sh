@@ -69,6 +69,7 @@ f0max=400 # Minimum f0 for pitch extraction.
 use_xvector=false   # Whether to use x-vector.
 xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, espnet, kaldi)
 xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet or speechbrain
+use_multidecoder=false
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -892,6 +893,7 @@ if ! "${skip_train}"; then
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
+                --use_multidecoder ${use_multidecoder} \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \

@@ -159,6 +159,8 @@ class Encoder(torch.nn.Module):
             self.embed = torch.nn.Sequential(
                 pos_enc_class(attention_dim, positional_dropout_rate)
             )
+        elif input_layer=="null":
+            self.embed = None
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
@@ -314,13 +316,14 @@ class Encoder(torch.nn.Module):
             torch.Tensor: Mask tensor (#batch, time).
 
         """
-        if isinstance(
-            self.embed,
-            (Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8, VGG2L),
-        ):
-            xs, masks = self.embed(xs, masks)
-        else:
-            xs = self.embed(xs)
+        if self.embed is not None:
+            if isinstance(
+                self.embed,
+                (Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8, VGG2L),
+            ):
+                xs, masks = self.embed(xs, masks)
+            else:
+                xs = self.embed(xs)
 
         if self.intermediate_layers is None:
             xs, masks = self.encoders(xs, masks)

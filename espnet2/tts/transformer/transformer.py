@@ -102,6 +102,7 @@ class Transformer(AbsTTS):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        use_md: bool=False,
         bce_pos_weight: float = 5.0,
         loss_type: str = "L1",
         use_guided_attn_loss: bool = True,
@@ -216,6 +217,7 @@ class Transformer(AbsTTS):
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.loss_type = loss_type
         self.use_guided_attn_loss = use_guided_attn_loss
+        self.use_md = use_md
         if self.use_guided_attn_loss:
             if num_layers_applied_guided_attn == -1:
                 self.num_layers_applied_guided_attn = elayers
@@ -236,7 +238,9 @@ class Transformer(AbsTTS):
         )
 
         # define transformer encoder
-        if eprenet_conv_layers != 0:
+        if self.use_md:
+            encoder_input_layer = "null"
+        elif eprenet_conv_layers != 0:
             # encoder prenet
             encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
@@ -385,7 +389,8 @@ class Transformer(AbsTTS):
 
         # initialize alpha in scaled positional encoding
         if self.use_scaled_pos_enc:
-            self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
+            if self.encoder.embed is not None:
+                self.encoder.embed[-1].alpha.data = torch.tensor(init_enc_alpha)
             self.decoder.embed[-1].alpha.data = torch.tensor(init_dec_alpha)
 
     def forward(
@@ -417,33 +422,45 @@ class Transformer(AbsTTS):
             Tensor: Weight value if not joint training else model outputs.
 
         """
+        # import pdb; pdb.set_trace()
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         batch_size = text.size(0)
-
-        # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
-        for i, l in enumerate(text_lengths):
-            xs[i, l] = self.eos
-        ilens = text_lengths + 1
-
         ys = feats
         olens = feats_lengths
 
         # make labels for stop prediction
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
+        if self.use_md:
+            ilens = text_lengths
+            after_outs, before_outs, logits = self._forward(
+                xs=text,
+                ilens=ilens,
+                ys=ys,
+                olens=olens,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+            )
+        else:
 
-        # calculate transformer outputs
-        after_outs, before_outs, logits = self._forward(
-            xs=xs,
-            ilens=ilens,
-            ys=ys,
-            olens=olens,
-            spembs=spembs,
-            sids=sids,
-            lids=lids,
-        )
+            # Add eos at the last of sequence
+            xs = F.pad(text, [0, 1], "constant", self.padding_idx)
+            for i, l in enumerate(text_lengths):
+                xs[i, l] = self.eos
+            ilens = text_lengths + 1
+
+            # calculate transformer outputs
+            after_outs, before_outs, logits = self._forward(
+                xs=xs,
+                ilens=ilens,
+                ys=ys,
+                olens=olens,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+            )
 
         # modifiy mod part of groundtruth
         olens_in = olens
@@ -535,8 +552,12 @@ class Transformer(AbsTTS):
 
         # report extra information
         if self.use_scaled_pos_enc:
+            if self.encoder.embed is None:
+                encoder_alpha=0
+            else:
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item()
             stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+                encoder_alpha=encoder_alpha,
                 decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
             )
 
