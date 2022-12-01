@@ -111,7 +111,7 @@ svs_choices = ClassChoices(
         # mlp=MLPSinger,
     ),
     type_check=AbsSVS,
-    default="transformer",
+    default="naive_rnn",
 )
 
 
