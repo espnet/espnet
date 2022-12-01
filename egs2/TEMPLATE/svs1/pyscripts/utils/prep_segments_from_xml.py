@@ -6,18 +6,10 @@ import sys
 
 import music21 as m21
 
-from espnet2.fileio.score_scp import XMLReader
+from espnet2.fileio.score_scp import SingingScoreWriter, XMLReader
 
 """Generate segments according to structured musicXML."""
-"""Transfer music score (from musicXML) into 'score' format."""
-
-
-class LabelInfo(object):
-    def __init__(self, start, end, label_id, midi):
-        self.label_id = label_id  # lyric for each note
-        self.midi = midi
-        self.start = start
-        self.end = end
+"""Transfer music score (from musicXML) into 'score.json' format."""
 
 
 class SegInfo(object):
@@ -77,21 +69,24 @@ def get_parser():
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["P"]
     )
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
+    args = parser.parse_args()
     return parser
 
 
-def make_segment(file_id, tempo, labels, threshold, sil=["P", "B"]):
+def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
     segments = []
     segment = SegInfo()
-    for label in labels:
+    for note in notes:
         # Divide songs by 'P' (pause) or 'B' (breath)
-        if label.label_id in sil:
+        if note.lyric in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        segment.add(label.start, label.end, label.label_id, label.midi)
-
+        segment.add(note.st, note.et, note.lyric, note.midi)
     if len(segment.segs) > 0:
         segments.extend(segment.split(threshold=threshold))
 
@@ -109,43 +104,35 @@ if __name__ == "__main__":
     args = get_parser().parse_args()
     args.threshold *= 1e-3
     segments = []
-    musicxmlscp = open(os.path.join(args.scp, "musicxml.scp"), "r", encoding="utf-8")
+    scorescp = open(os.path.join(args.scp, "score.scp"), "r", encoding="utf-8")
     update_segments = open(
         os.path.join(args.scp, "segments_from_xml.tmp"), "w", encoding="utf-8"
     )
-    update_score = open(os.path.join(args.scp, "score.tmp"), "w", encoding="utf-8")
     update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
-    reader = XMLReader(os.path.join(args.scp, "musicxml.scp"))
-    for xml_line in musicxmlscp:
+    reader = XMLReader(os.path.join(args.scp, "score.scp"))
+    for xml_line in scorescp:
         xmlline = xml_line.strip().split(" ")
         recording_id = xmlline[0]
         path = xmlline[1]
-        lyrics, notes, segs, tempo = reader[recording_id]
-        temp_info = []
-        for i in range(len(lyrics)):
-            temp_info.append(LabelInfo(segs[i][0], segs[i][1], lyrics[i], notes[i]))
+        tempo, temp_info = reader[recording_id]
         segments.append(
             make_segment(recording_id, tempo, temp_info, args.threshold, args.silence)
         )
-
+    writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
+    )
     for file in segments:
         for key, (tempo, val) in file.items():
             segment_begin = "{:.3f}".format(val[0][0])
             segment_end = "{:.3f}".format(val[-1][1])
-
             update_segments.write(
                 "{} {} {} {}\n".format(
                     key, "_".join(key.split("_")[:-1]), segment_begin, segment_end
                 )
             )
             update_text.write("{} ".format(key))
-            update_score.write("{}  {}".format(key, tempo))
-            # Note(Yuning): 'score' concludes music info at note level as follows:
-            # start_time end_time syllable midi phones
+            score = dict(tempo=tempo, item_list=["st", "et", "lyric", "midi"], note=val)
+            writer[key] = score
             for v in val:
-                update_score.write(
-                    "  {:.3f} {:.3f} {} {} /".format(v[0], v[1], v[2], v[3])
-                )
                 update_text.write(" {}".format(v[2]))
-            update_score.write("\n")
             update_text.write("\n")

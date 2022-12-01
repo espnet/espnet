@@ -26,7 +26,7 @@ from espnet2.fileio.read_text import (
     read_label,
 )
 from espnet2.fileio.rttm import RttmReader
-from espnet2.fileio.score_scp import read_score
+from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 
@@ -103,7 +103,7 @@ class H5FileWrapper:
         return value[()]
 
 
-class AdapterForScoreScpReader(collections.abc.Mapping):
+class AdapterForSingingScoreScpReader(collections.abc.Mapping):
     def __init__(self, loader):
         assert check_argument_types()
         self.loader = loader
@@ -119,15 +119,14 @@ class AdapterForScoreScpReader(collections.abc.Mapping):
 
     def __getitem__(self, key: str) -> np.ndarray:
         retval = self.loader[key]
-
         assert (
-            len(retval) == 2
-            and isinstance(retval[0], int)
-            and isinstance(retval[1], list)
+            len(retval) == 3
+            and isinstance(retval["tempo"], int)
+            and isinstance(retval["note"], list)
         )
-        tempo = retval[0]
+        tempo = retval["tempo"]
 
-        return tempo, retval[1]
+        return tempo, retval["note"]
 
 
 class AdapterForLabelScpReader(collections.abc.Mapping):
@@ -176,8 +175,8 @@ def sound_loader(path, float_dtype=None):
 
 
 def score_loader(path, float_dtype=None):
-    loader = read_score(path)
-    return AdapterForScoreScpReader(loader)
+    loader = SingingScoreReader(fname=path)
+    return AdapterForSingingScoreScpReader(loader)
 
 
 def label_loader(path, float_dtype=None):

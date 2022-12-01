@@ -33,6 +33,7 @@ else:
 
 
 def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
+    """Calculate frame expanding length for each label."""
     ds = []
     i = 0
     j = 0
@@ -42,9 +43,11 @@ def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
         _beat = beat[i]
         same = 1
         i += 1
+        # If adjacent notes are the same, frame counts should be averaged.
         while i < ilen and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
             same += 1
             i += 1
+        # Count for the length
         cnt = 0
         while (
             j < ref_len
@@ -54,6 +57,7 @@ def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
         ):
             cnt += 1
             j += 1
+        # Calculate Average length for same notes
         ave = int(cnt / same)
         for k in range(same - 1):
             ds.append(ave)
@@ -64,8 +68,10 @@ def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
 
 
 def cal_ds_syb(ds, phn_cnt):
+    """Calculate frame expanding length for each syllable."""
     ds_syb = []
     pos = 0
+    # Sum up phone frames in each syllable
     for cnt in phn_cnt:
         d = 0
         for k in range(pos, pos + cnt):
@@ -116,6 +122,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        # label
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
@@ -123,18 +130,19 @@ class ESPnetSVSModel(AbsESPnetModel):
         label_score: Optional[torch.Tensor] = None,
         label_score_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
+        # midi
         midi: Optional[torch.Tensor] = None,
         midi_lengths: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         midi_lab_lengths: Optional[torch.Tensor] = None,
         midi_score: Optional[torch.Tensor] = None,
         midi_score_lengths: Optional[torch.Tensor] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        # tempo
         tempo_lab: Optional[torch.Tensor] = None,
         tempo_lab_lengths: Optional[torch.Tensor] = None,
         tempo_score: Optional[torch.Tensor] = None,
         tempo_score_lengths: Optional[torch.Tensor] = None,
+        # beat
         beat_phn: Optional[torch.Tensor] = None,
         beat_phn_lengths: Optional[torch.Tensor] = None,
         beat_ruled_phn: Optional[torch.Tensor] = None,
@@ -147,6 +155,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         beat_score_phn_lengths: Optional[torch.Tensor] = None,
         beat_score_syb: Optional[torch.Tensor] = None,
         beat_score_syb_lengths: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -162,26 +172,42 @@ class ESPnetSVSModel(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label_lab (Optional[Tensor]): Label tensor. - phone id sequence
+            ---- label* is label id sequence ----
+            label (Option[Tensor]): Label tensor (B, T_label).
+            label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
+            label_lab (Optional[Tensor]): Label tensor (B, T_wav).
             label_lab_lengths (Optional[Tensor]): Label length tensor (B,).
-            label_score (Optional[Tensor]): Label tensor. - phone id sequence
+            label_score (Optional[Tensor]): Label tensor (B, T_score).
             label_score_lengths (Optional[Tensor]): Label length tensor (B,).
-            midi_lab (Optional[Tensor]): Midi tensor.
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
+            ---- midi_* is midi id sequence ----
+            midi (Option[Tensor]): Midi tensor (B, T_label).
+            midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
+            midi_lab (Optional[Tensor]): Midi tensor (B, T_wav).
             midi_lab_lengths (Optional[Tensor]): Midi length tensor (B,).
-            midi_score (Optional[Tensor]): Midi tensor.
+            midi_score (Optional[Tensor]): Midi tensor (B, T_score).
             midi_score_lengths (Optional[Tensor]): Midi length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor.
-            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            tempo_lab (Optional[Tensor]): Tempo tensor.
+            ---- temp* is bpm ----
+            tempo_lab (Optional[Tensor]): Tempo tensor (B, T_wav).
             tempo_lab_lengths (Optional[Tensor]): Tempo length tensor (B,).
-            tempo_score (Optional[Tensor]): Tempo tensor.
+            tempo_score (Optional[Tensor]): Tempo tensor (B, T_score).
             tempo_score_lengths (Optional[Tensor]): Tempo length tensor (B,).
-            beat_lab (Optional[Tensor]): Beat tensor.
+            ---- beat* is duration in time_shift ----
+            beat_phn (Optional[Tensor]): Beat tensor (B, T_label).
+            beat_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_ruled_phn (Optional[Tensor]): Beat tensor (B, T_phone).
+            beat_ruled_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_syb (Optional[Tensor]): Beat tensor (B, T_phone).
+            beat_syb_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_lab (Optional[Tensor]): Beat tensor (B, T_wav).
             beat_lab_lengths (Optional[Tensor]): Beat length tensor (B,).
-            beat_score_phn (Optional[Tensor]): Beat tensor.
+            beat_score_phn (Optional[Tensor]): Beat tensor (B, T_score).
             beat_score_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
-            beat_score_syb (Optional[Tensor]): Beat tensor.
+            beat_score_syb (Optional[Tensor]): Beat tensor (B, T_score).
             beat_score_syb_lengths (Optional[Tensor]): Beat length tensor (B,).
+
+            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
@@ -373,6 +399,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                 beat_score_lengths_after = beat_ruled_phn_lengths
                 beat_score_syb_lengths_after = beat_syb_lengths
 
+                # Remove unused paddings at end
                 label_lab_after = label[:, : label_lab_lengths_after.max()]
                 midi_lab_after = midi[:, : midi_lab_lengths_after.max()]
                 beat_lab_after = beat_phn[:, : beat_lab_lengths_after.max()]
@@ -419,55 +446,75 @@ class ESPnetSVSModel(AbsESPnetModel):
             flag_IsValid=flag_IsValid,
         )
 
+        # label
+        # NOTE(Yuning): Label can be word, syllable or phoneme,
+        # which is determined by annotation file.
+        label = dict()
+        label_lengths = dict()
+        if label_lab_after is not None:
+            label_lab = label_lab_after.to(dtype=torch.long)
+            label.update(lab=label_lab)
+            label_lengths.update(lab=label_lab_lengths_after)
+        if label_score_after is not None:
+            label_score = label_score_after.to(dtype=torch.long)
+            label.update(score=label_score)
+            label_lengths.update(score=label_score_lengths_after)
+        batch.update(label=label, label_lengths=label_lengths)
+
+        # melody
+        melody = dict()
+        melody_lengths = dict()
+        if midi_lab_after is not None:
+            midi_lab = midi_lab_after.to(dtype=torch.long)
+            melody.update(lab=midi_lab)
+            melody_lengths.update(lab=midi_lab_lengths_after)
+        if midi_score_after is not None:
+            midi_score = midi_score_after.to(dtype=torch.long)
+            melody.update(score=midi_score)
+            melody_lengths.update(score=midi_score_lengths_after)
+        batch.update(melody=melody, melody_lengths=melody_lengths)
+
+        # tempo
+        tempo = dict()
+        tempo_lengths = dict()
+        if tempo_lab_after is not None:
+            tempo_lab = tempo_lab_after.to(dtype=torch.long)
+            tempo.update(lab=tempo_lab)
+            tempo_lengths.update(lab=tempo_lab_lengths_after)
+        if tempo_score_after is not None:
+            tempo_score = tempo_score_after.to(dtype=torch.long)
+            tempo.update(score=tempo_score)
+            tempo_lengths.update(score=tempo_score_lengths_after)
+        batch.update(tempo=tempo, tempo_lengths=tempo_lengths)
+
+        # beat
+        # NOTE(Yuning): beat = duration_time / time_shift (same as Xiaoice paper)
+        beat = dict()
+        beat_lengths = dict()
+        if beat_lab_after is not None:
+            beat_lab = beat_lab_after.to(dtype=torch.long)
+            beat.update(lab=beat_lab)
+            beat_lengths.update(lab=beat_lab_lengths_after)
+        if beat_score_after is not None:
+            beat_phn_score = beat_score_after.to(dtype=torch.long)
+            beat.update(score_phn=beat_phn_score)
+            beat_lengths.update(score_phn=beat_score_lengths_after)
+        if beat_score_syb_after is not None:
+            beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
+            beat.update(score_syb=beat_syb_score)
+            beat_lengths.update(score_syb=beat_score_syb_lengths_after)
+        batch.update(beat=beat, beat_lengths=beat_lengths)
+
+        if ds is not None:
+            batch.update(ds=ds)
+        if ds_syb is not None:
+            batch.update(ds_syb=ds_syb)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
-        if midi_lab_after is not None:
-            midi_lab = midi_lab_after.to(dtype=torch.long)
-            batch.update(midi_lab=midi_lab, midi_lab_lengths=midi_lab_lengths_after)
-        if midi_score_after is not None:
-            midi_score = midi_score_after.to(dtype=torch.long)
-            batch.update(
-                midi_score=midi_score, midi_score_lengths=midi_score_lengths_after
-            )
-        if label_lab_after is not None:
-            label_lab = label_lab_after.to(dtype=torch.long)
-            batch.update(label_lab=label_lab, label_lab_lengths=label_lab_lengths_after)
-        if label_score_after is not None:
-            label_score = label_score_after.to(dtype=torch.long)
-            batch.update(
-                label_score=label_score, label_score_lengths=label_score_lengths_after
-            )
-        if tempo_lab_after is not None:
-            tempo_lab = tempo_lab_after.to(dtype=torch.long)
-            batch.update(tempo_lab=tempo_lab, tempo_lab_lengths=tempo_lab_lengths_after)
-        if tempo_score_after is not None:
-            tempo_score = tempo_score_after.to(dtype=torch.long)
-            batch.update(
-                tempo_score=tempo_score, tempo_score_lengths=tempo_score_lengths_after
-            )
-        if beat_lab_after is not None:
-            beat_lab = beat_lab_after.to(dtype=torch.long)
-            batch.update(beat_lab=beat_lab, beat_lab_lengths=beat_lab_lengths_after)
-        if beat_score_after is not None:
-            beat_phn_score = beat_score_after.to(dtype=torch.long)
-            batch.update(
-                beat_phn_score=beat_phn_score,
-                beat_phn_score_lengths=beat_score_lengths_after,
-            )
-        if beat_score_syb_after is not None:
-            beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
-            batch.update(
-                beat_syb_score=beat_syb_score,
-                beat_syb_score_lengths=beat_score_syb_lengths_after,
-            )
-        if ds is not None:
-            batch.update(ds=ds)
-        if ds_syb is not None:
-            batch.update(ds_syb=ds_syb)
         if self.pitch_extract is not None and pitch is not None:
             batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if self.energy_extract is not None and energy is not None:
@@ -482,6 +529,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        # label
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
@@ -489,16 +537,19 @@ class ESPnetSVSModel(AbsESPnetModel):
         label_score: Optional[torch.Tensor] = None,
         label_score_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
+        # midi
         midi: Optional[torch.Tensor] = None,
         midi_lengths: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         midi_lab_lengths: Optional[torch.Tensor] = None,
         midi_score: Optional[torch.Tensor] = None,
         midi_score_lengths: Optional[torch.Tensor] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        # tempo
         tempo_lab: Optional[torch.Tensor] = None,
         tempo_lab_lengths: Optional[torch.Tensor] = None,
+        tempo_score: Optional[torch.Tensor] = None,
+        tempo_score_lengths: Optional[torch.Tensor] = None,
+        # beat
         beat_phn: Optional[torch.Tensor] = None,
         beat_phn_lengths: Optional[torch.Tensor] = None,
         beat_ruled_phn: Optional[torch.Tensor] = None,
@@ -507,12 +558,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         beat_syb_lengths: Optional[torch.Tensor] = None,
         beat_lab: Optional[torch.Tensor] = None,
         beat_lab_lengths: Optional[torch.Tensor] = None,
-        tempo_score: Optional[torch.Tensor] = None,
-        tempo_score_lengths: Optional[torch.Tensor] = None,
         beat_score_phn: Optional[torch.Tensor] = None,
         beat_score_phn_lengths: Optional[torch.Tensor] = None,
         beat_score_syb: Optional[torch.Tensor] = None,
         beat_score_syb_lengths: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -527,26 +578,42 @@ class ESPnetSVSModel(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            label_lab (Optional[Tensor]): Label tensor. - phone id sequence
+            ---- label* is label id sequence ----
+            label (Option[Tensor]): Label tensor (B, T_label).
+            label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
+            label_lab (Optional[Tensor]): Label tensor (B, T_wav).
             label_lab_lengths (Optional[Tensor]): Label length tensor (B,).
-            label_score (Optional[Tensor]): Label tensor. - phone id sequence
+            label_score (Optional[Tensor]): Label tensor (B, T_score).
             label_score_lengths (Optional[Tensor]): Label length tensor (B,).
-            midi_lab (Optional[Tensor]): Midi tensor.
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
+            ---- midi_* is midi id sequence ----
+            midi (Option[Tensor]): Midi tensor (B, T_label).
+            midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
+            midi_lab (Optional[Tensor]): Midi tensor (B, T_wav).
             midi_lab_lengths (Optional[Tensor]): Midi length tensor (B,).
-            midi_score (Optional[Tensor]): Midi tensor.
+            midi_score (Optional[Tensor]): Midi tensor (B, T_score).
             midi_score_lengths (Optional[Tensor]): Midi length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor.
-            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
-            tempo_lab (Optional[Tensor]): Tempo tensor.
+            ---- temp* is bpm ----
+            tempo_lab (Optional[Tensor]): Tempo tensor (B, T_wav).
             tempo_lab_lengths (Optional[Tensor]): Tempo length tensor (B,).
-            tempo_score (Optional[Tensor]): Tempo tensor.
+            tempo_score (Optional[Tensor]): Tempo tensor (B, T_score).
             tempo_score_lengths (Optional[Tensor]): Tempo length tensor (B,).
-            beat_lab (Optional[Tensor]): Beat tensor.
+            ---- beat* is duration in time_shift ----
+            beat_phn (Optional[Tensor]): Beat tensor (B, T_label).
+            beat_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_ruled_phn (Optional[Tensor]): Beat tensor (B, T_phone).
+            beat_ruled_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_syb (Optional[Tensor]): Beat tensor (B, T_syb).
+            beat_syb_lengths (Optional[Tensor]): Beat length tensor (B,).
+            beat_lab (Optional[Tensor]): Beat tensor (B, T_wav).
             beat_lab_lengths (Optional[Tensor]): Beat length tensor (B,).
-            beat_score_phn (Optional[Tensor]): Beat tensor.
+            beat_score_phn (Optional[Tensor]): Beat tensor (B, T_score).
             beat_score_phn_lengths (Optional[Tensor]): Beat length tensor (B,).
-            beat_score_syb (Optional[Tensor]): Beat tensor.
+            beat_score_syb (Optional[Tensor]): Beat tensor (B, T_score).
             beat_score_syb_lengths (Optional[Tensor]): Beat length tensor (B,).
+
+            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
@@ -632,15 +699,19 @@ class ESPnetSVSModel(AbsESPnetModel):
         self,
         text: torch.Tensor,
         singing: Optional[torch.Tensor] = None,
+        # label
         label: Optional[torch.Tensor] = None,
         label_lab: Optional[torch.Tensor] = None,
         label_score: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
+        # midi
         midi: Optional[torch.Tensor] = None,
         midi_lab: Optional[torch.Tensor] = None,
         midi_score: Optional[torch.Tensor] = None,
+        # tempo
         tempo_lab: Optional[torch.Tensor] = None,
         tempo_score: Optional[torch.Tensor] = None,
+        # beat
         beat_phn: Optional[torch.Tensor] = None,
         beat_ruled_phn: Optional[torch.Tensor] = None,
         beat_syb: Optional[torch.Tensor] = None,
@@ -659,13 +730,30 @@ class ESPnetSVSModel(AbsESPnetModel):
         Args:
             text (Tensor): Text index tensor (T_text).
             singing (Tensor): Singing waveform tensor (T_wav).
+            ---- label* is label id sequence ----
+            label (Option[Tensor]): Label tensor (T_label).
+            label_lab (Optional[Tensor]): Label tensor (T_wav).
+            label_score (Optional[Tensor]): Label tensor (T_score).
+            phn_cnt (Optional[Tensor]): Number of phones in each syllable (T_syb)
+            ---- midi_* is midi id sequence ----
+            midi (Option[Tensor]): Midi tensor (T_label).
+            midi_lab (Optional[Tensor]): Midi tensor (T_wav).
+            midi_score (Optional[Tensor]): Midi tensor (T_score).
+            ---- temp* is bpm ----
+            tempo_lab (Optional[Tensor]): Tempo tensor (T_wav).
+            tempo_score (Optional[Tensor]): Tempo tensor (T_score).
+            ---- beat* is duration in time_shift ----
+            beat_phn (Optional[Tensor]): Beat tensor (T_label).
+            beat_ruled_phn (Optional[Tensor]): Beat tensor (T_phone).
+            beat_syb (Optional[Tensor]): Beat tensor (T_phone).
+            beat_lab (Optional[Tensor]): Beat tensor (T_wav).
+            beat_score_phn (Optional[Tensor]): Beat tensor (T_score).
+            beat_score_syb (Optional[Tensor]): Beat tensor (T_score).
+
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            label (Optional[Tensor): Duration tensor.
-            pitch (Optional[Tensor): Pitch tensor.
-            tempo (Optional[Tensor): Tempo tensor.
-            beat (Optional[Tensor): Beat tensor.
+            pitch (Optional[Tensor): Pitch tensor (T_wav).
             energy (Optional[Tensor): Energy tensor.
 
         Returns:
@@ -880,6 +968,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             beat_score_lengths_after = beat_ruled_phn_lengths
             beat_score_syb_lengths_after = beat_syb_lengths
 
+            # Remove unused paddings at end
             label_lab_after = label[:, : label_lab_lengths_after.max()]
             midi_lab_after = midi[:, : midi_lab_lengths_after.max()]
             beat_lab_after = beat_phn[:, : beat_lab_lengths_after.max()]
@@ -893,37 +982,53 @@ class ESPnetSVSModel(AbsESPnetModel):
 
         input_dict = dict(text=text)
 
-        if midi_lab_after is not None:
-            midi_lab = midi_lab_after.to(dtype=torch.long)
-            input_dict["midi_lab"] = midi_lab
-        if midi_score_after is not None:
-            midi_score = midi_score_after.to(dtype=torch.long)
-            input_dict["midi_score"] = midi_score
+        # label
+        label = dict()
         if label_lab_after is not None:
             label_lab = label_lab_after.to(dtype=torch.long)
-            input_dict["label_lab"] = label_lab
+            label.update(lab=label_lab)
         if label_score_after is not None:
             label_score = label_score_after.to(dtype=torch.long)
-            input_dict["label_score"] = label_score
+            label.update(score=label_score)
+        input_dict.update(label=label)
+
+        # melody
+        melody = dict()
+        if midi_lab_after is not None:
+            midi_lab = midi_lab_after.to(dtype=torch.long)
+            melody.update(lab=midi_lab)
+        if midi_score_after is not None:
+            midi_score = midi_score_after.to(dtype=torch.long)
+            melody.update(score=midi_score)
+        input_dict.update(melody=melody)
+
+        # tempo
+        tempo = dict()
+        if tempo_lab_after is not None:
+            tempo_lab = tempo_lab_after.to(dtype=torch.long)
+            tempo.update(lab=tempo_lab)
+        if tempo_score_after is not None:
+            tempo_score = tempo_score_after.to(dtype=torch.long)
+            tempo.update(score=tempo_score)
+        input_dict.update(tempo=tempo)
+
+        # beat
+        beat = dict()
+        if beat_lab_after is not None:
+            beat_lab = beat_lab_after.to(dtype=torch.long)
+            beat.update(lab=beat_lab)
+        if beat_score_after is not None:
+            beat_phn_score = beat_score_after.to(dtype=torch.long)
+            beat.update(score_phn=beat_phn_score)
+        if beat_score_syb_after is not None:
+            beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
+            beat.update(score_syb=beat_syb_score)
+        input_dict.update(beat=beat)
+
         if ds is not None:
             input_dict.update(ds=ds)
         if ds_syb is not None:
             input_dict.update(ds_syb=ds_syb)
-        if tempo_lab_after is not None:
-            tempo_lab = tempo_lab_after.to(dtype=torch.long)
-            input_dict.update(tempo_lab=tempo_lab)
-        if tempo_score_after is not None:
-            tempo_score = tempo_score_after.to(dtype=torch.long)
-            input_dict.update(tempo_score=tempo_score)
-        if beat_lab_after is not None:
-            beat_lab = beat_lab_after.to(dtype=torch.long)
-            input_dict.update(beat_lab=beat_lab)
-        if beat_score_after is not None:
-            beat_phn_score = beat_score_after.to(dtype=torch.long)
-            input_dict.update(beat_phn_score=beat_phn_score)
-        if beat_score_syb_after is not None:
-            beat_syb_score = beat_score_syb_after.to(dtype=torch.long)
-            input_dict.update(beat_syb_score=beat_syb_score)
         if pitch is not None:
             input_dict.update(pitch=pitch)
         if spembs is not None:

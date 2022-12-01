@@ -59,21 +59,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         local/prep_segments_from_xml.py --silence P --silence B ${src_data}
         mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
-        mv ${src_data}/score.tmp ${src_data}/score
+        mv ${src_data}/score.scp.tmp ${src_data}/score.scp
         awk '{printf("%s ofuton\n", $1);}' < ${src_data}/segments > ${src_data}/utt2spk
         utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label score" ${src_data}
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Check alignments"
-    # We align music info at phone level if both annotation (label) and music score (musicXML) are used.
+    # We align music info at phone level if both annotation (label) and music score are used.
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
         local/check_align.py ${src_data} --g2p ${g2p}
-        mv ${src_data}/score.tmp ${src_data}/score
-        utils/fix_data_dir.sh --utt_extra_files "label score" ${src_data}
+        mv ${src_data}/score.scp.tmp ${src_data}/score.scp
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"

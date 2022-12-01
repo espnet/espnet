@@ -5,37 +5,26 @@ import os
 import sys
 
 from espnet2.fileio.read_text import read_label
-from espnet2.fileio.score_scp import read_score
+from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
 from espnet2.text.build_tokenizer import build_tokenizer
 
 """Check alignment between label and score at phone level."""
 
-# If syllable-to-phone tranlation differs from g2p,
-# customed tranlation can be added to customed_dic.
-customed_dic = {
-    "へ": ["h", "e"],
-    "は": ["h", "a"],
-    "シ": ["sh", "I"],
-    "ヴぁ": ["v", "a"],
-    "ヴぃ": ["v", "i"],
-    "ヴぇ": ["v", "e"],
-    "ヴぉ": ["v", "o"],
-    "でぇ": ["dy", "e"],
-    "くぁ": ["k", "w", "a"],
-    "くぃ": ["k", "w", "i"],
-    "くぅ": ["k", "w", "u"],
-    "くぇ": ["k", "w", "e"],
-    "くぉ": ["k", "w", "o"],
-    "ぐぁ": ["g", "w", "a"],
-    "ぐぃ": ["g", "w", "i"],
-    "ぐぅ": ["g", "w", "u"],
-    "ぐぇ": ["g", "w", "e"],
-    "ぐぉ": ["g", "w", "o"],
-    "くぉっ": ["k", "w", "o", "cl"],
-}
+
+def load_customed_dic(file):
+    """If syllable-to-phone tranlation differs from g2p,"""
+    """ customed tranlation can be added to customed_dic."""
+    customed_dic = {}
+    with open(file, "r", encoding="utf-8") as f:
+        content = f.read().strip().split("\n")
+        for key in content:
+            key = key.split(" ")
+            customed_dic[key[0]] = key[1].split("_")
+    return customed_dic
 
 
 def compare(key, score, label):
+    customed_dic = load_customed_dic(args.customed_dic)
     tokenizer = build_tokenizer(
         token_type="phn",
         bpemodel=None,
@@ -54,7 +43,7 @@ def compare(key, score, label):
         # In some case, translation can be different
         if syb in customed_dic:
             phns = customed_dic[syb]
-        score[i][4] = "_".join(phns)
+        score[i].append("_".join(phns))
         for p in phns:
             if index >= len(labels):
                 raise ValueError("Syllables are longer than phones in {}".format(key))
@@ -78,18 +67,27 @@ def get_parser():
     )
     parser.add_argument("scp", type=str, help="scp folder")
     parser.add_argument("--g2p", type=str, help="g2p", default="pyopenjtalk")
-
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
+    parser.add_argument(
+        "--customed_dic",
+        type=str,
+        help="customed g2p for alignment at phoneme level",
+        default="local/customed_dic.scp",
+    )
     return parser
 
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
+    reader = SingingScoreReader(os.path.join(args.scp, "score.scp"))
+    writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
+    )
     labels = read_label(os.path.join(args.scp, "label"))
-    scores = read_score(os.path.join(args.scp, "score"))
-    update_score = open(os.path.join(args.scp, "score.tmp"), "w", encoding="utf-8")
-    for key in scores:
-        scores[key] = scores[key][0], compare(key, scores[key][1], labels[key])
-        update_score.write("{}  {}".format(key, scores[key][0]))
-        for v in scores[key][1]:
-            update_score.write("  {} {} {} {} {}".format(v[0], v[1], v[2], v[3], v[4]))
-        update_score.write("\n")
+    for key in labels:
+        score = reader[key]
+        score["note"] = compare(key, score["note"], labels[key])
+        score["item_list"].append("phn")
+        writer[key] = score

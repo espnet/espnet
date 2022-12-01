@@ -1,6 +1,7 @@
 import collections.abc
+import json
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Union
 
 import numpy as np
 from typeguard import check_argument_types
@@ -14,12 +15,11 @@ except ImportError or ModuleNotFoundError:
 
 
 class NOTE(object):
-    def __init__(self, lyric, pitch, st, et, dur):
+    def __init__(self, lyric, midi, st, et):
         self.lyric = lyric
-        self.pitch = pitch
+        self.midi = midi
         self.st = st
         self.et = et
-        self.dur = dur
 
 
 class XMLReader(collections.abc.Mapping):
@@ -54,12 +54,13 @@ class XMLReader(collections.abc.Mapping):
     def __getitem__(self, key):
         score = m21.converter.parse(self.data[key])
         m = score.metronomeMarkBoundaries()
-        tempo = m[0][2].number
+        tempo = int(m[0][2].number)
         part = score.parts[0].flat
         notes_list = []
         prepitch = -1
         st = 0
         for note in part.notesAndRests:
+            dur = note.seconds
             if not note.isRest:  # Note or Chord
                 lr = note.lyric
                 if note.isChord:
@@ -69,61 +70,29 @@ class XMLReader(collections.abc.Mapping):
                             break
                 if lr is None or lr == "":  # multi note in one syllable
                     if note.pitch.midi == prepitch:  # same pitch
-                        notes_list[-1].dur += note.seconds
-                        notes_list[-1].et += note.seconds
+                        notes_list[-1].et += dur
                     else:  # different pitch
-                        notes_list.append(
-                            NOTE(
-                                "—",
-                                note.pitch.midi,
-                                st,
-                                st + note.seconds,
-                                note.seconds,
-                            )
-                        )
+                        notes_list.append(NOTE("—", note.pitch.midi, st, st + dur))
                 elif lr == "br":  # <br> is tagged as a note
                     if prepitch == 0:
-                        notes_list[-1].dur += note.seconds
-                        notes_list[-1].et += note.seconds
+                        notes_list[-1].et += dur
                     else:
-                        notes_list.append(
-                            NOTE("P", 0, st, st + note.seconds, note.seconds)
-                        )
+                        notes_list.append(NOTE("P", 0, st, st + dur))
                     prepitch = 0
                 else:  # normal note for one syllable
-                    notes_list.append(
-                        NOTE(
-                            note.lyric,
-                            note.pitch.midi,
-                            st,
-                            st + note.seconds,
-                            note.seconds,
-                        )
-                    )
+                    notes_list.append(NOTE(note.lyric, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
                 for arti in note.articulations:  # <br> is tagged as a notation
                     if arti.name in ["breath mark"]:  # up-bow?
-                        notes_list.append(NOTE("B", 0, st, st, 0))
+                        notes_list.append(NOTE("B", 0, st, st))  # , 0))
             else:  # rest note
                 if prepitch == 0:
-                    notes_list[-1].dur += note.seconds
-                    notes_list[-1].et += note.seconds
+                    notes_list[-1].et += dur
                 else:
-                    notes_list.append(NOTE("P", 0, st, st + note.seconds, note.seconds))
+                    notes_list.append(NOTE("P", 0, st, st + dur))
                 prepitch = 0
-            st += note.seconds
-        seq_len = len(notes_list)
-        if notes_list[-1].pitch == 0:
-            seq_len -= 1
-        lyrics = []
-        notes = np.zeros(seq_len, dtype=self.dtype)
-        segs = np.zeros((seq_len, 2))
-        for i in range(seq_len):
-            segs[i, 0] = np.float32(notes_list[i].st)
-            segs[i, 1] = np.float32(notes_list[i].et)
-            notes[i] = notes_list[i].pitch
-            lyrics.append(notes_list[i].lyric)
-        return lyrics, notes, segs, tempo
+            st += dur
+        return tempo, notes_list
 
     def get_path(self, key):
         return self.data[key]
@@ -214,35 +183,114 @@ class XMLWriter:
         self.fscp.close()
 
 
-def read_score(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
-    """Read a text file indicating sequences of number
+class SingingScoreReader(collections.abc.Mapping):
+    """Reader class for 'score.scp'.
 
     Examples:
-        key1 start_time_1 end_time_1 phone_1 start_time_2 end_time_2 phone_2 ....\n
-        key2 start_time_1 end_time_1 phone_1 \n
+        key1 /some/path/score.json
+        key2 /some/path/score.json
+        key3 /some/path/score.json
+        key4 /some/path/score.json
+        ...
 
-        >>> d = load_num_sequence_text('label')
-        >>> np.testing.assert_array_equal(d["key1"], [0.1, 0.2, "啊"]))
+        >>> reader = SoundScpReader('score.scp')
+        >>> score = reader['key1']
+
     """
-    assert check_argument_types()
-    label = open(path, "r", encoding="utf-8")
 
-    retval = {}
-    for label_line in label.readlines():
-        line = label_line.strip().split()
-        key = line[0]
-        tempo = int(float(line[1]))
-        syb_info = line[2:]
-        temp_info = []
-        for i in range(len(syb_info) // 5):
-            temp_info.append(
-                [
-                    float(syb_info[i * 5]),
-                    float(syb_info[i * 5 + 1]),
-                    syb_info[i * 5 + 2],
-                    int(syb_info[i * 5 + 3]),
-                    syb_info[i * 5 + 4],
-                ]
-            )
-        retval[key] = tempo, temp_info
-    return retval
+    def __init__(
+        self,
+        fname,
+        dtype=np.int16,
+    ):
+        assert check_argument_types()
+        self.fname = fname
+        self.dtype = dtype
+        self.data = read_2column_text(fname)
+
+    def __getitem__(self, key):
+        with open(self.data[key], "r") as f:
+            score = json.load(f)
+        return score
+
+    def get_path(self, key):
+        return self.data[key]
+
+    def __contains__(self, item):
+        return item
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()
+
+
+class SingingScoreWriter:
+    """Writer class for 'score.scp'
+
+    Examples:
+        key1 /some/path/score.json
+        key2 /some/path/score.json
+        key3 /some/path/score.json
+        key4 /some/path/score.json
+        ...
+
+        >>> writer = SingingScoreWriter('./data/', './data/score.scp')
+        >>> writer['aa'] = score_obj
+        >>> writer['bb'] = score_obj
+
+    """
+
+    def __init__(
+        self,
+        outdir: Union[Path, str],
+        scpfile: Union[Path, str],
+    ):
+        assert check_argument_types()
+        self.dir = Path(outdir)
+        self.dir.mkdir(parents=True, exist_ok=True)
+        scpfile = Path(scpfile)
+        scpfile.parent.mkdir(parents=True, exist_ok=True)
+        self.fscp = scpfile.open("w", encoding="utf-8")
+        self.data = {}
+
+    def __setitem__(self, key: str, value: dict):
+        """Score should be a dict
+
+        Example:
+        {
+            "tempo": bpm,
+            "item_list": a subset of ["st", "et", "lyric", "midi", "phn"],
+            "note": [
+                [start_time1, end_time1, lyric1, midi1, phn1],
+                [start_time2, end_time2, lyric2, midi2, phn2],
+                ...
+            ]
+        }
+
+        The itmes in each note correspond to the "item_list".
+
+        """
+
+        score_path = self.dir / f"{key}.json"
+        score_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(score_path, "w") as f:
+            json.dump(value, f, ensure_ascii=False, indent=2)
+        self.fscp.write(f"{key} {score_path}\n")
+        self.data[key] = str(score_path)
+
+    def get_path(self, key):
+        return self.data[key]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self.fscp.close()

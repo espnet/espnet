@@ -387,28 +387,18 @@ class XiaoiceSing(AbsSVS):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
-        ds: torch.Tensor,
-        ds_syb: Optional[torch.Tensor] = None,
-        label_lab: Optional[torch.Tensor] = None,
-        label_lab_lengths: Optional[torch.Tensor] = None,
-        label_score: Optional[torch.Tensor] = None,
-        label_score_lengths: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_lab_lengths: Optional[torch.Tensor] = None,
-        midi_score: Optional[torch.Tensor] = None,
-        midi_score_lengths: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_lab_lengths: Optional[torch.Tensor] = None,
-        tempo_score: Optional[torch.Tensor] = None,
-        tempo_score_lengths: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_lab_lengths: Optional[torch.Tensor] = None,
-        beat_phn_score: Optional[torch.Tensor] = None,
-        beat_phn_score_lengths: Optional[torch.Tensor] = None,
-        beat_syb_score: Optional[torch.Tensor] = None,
-        beat_syb_score_lengths: Optional[torch.Tensor] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
+        ds: Optional[torch.Tensor] = None,
+        ds_syb: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -421,8 +411,25 @@ class XiaoiceSing(AbsSVS):
             text_lengths (LongTensor): Batch of lengths of each input (B,).
             feats (Tensor): Batch of padded target features (B, T_feats, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, T_text + 1).
-            durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded label ids (B, ).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (B, Tmax).
+            melody_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded melody (B, ).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (B, Tmax).
+            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded tempo (B, ).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            ds:
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -433,12 +440,12 @@ class XiaoiceSing(AbsSVS):
             Tensor: Weight value if not joint training else model outputs.
         """
 
-        label = label_score
-        midi = midi_score
-        tempo = beat_syb_score
-        label_lengths = label_score_lengths
-        midi_lengths = midi_score_lengths
-        tempo_lengths = beat_syb_score_lengths
+        label = label["scoree"]
+        midi = melody["score"]
+        tempo = beat["score_syb"]
+        label_lengths = label_lengths["score"]
+        midi_lengths = melody_lengths["score"]
+        tempo_lengths = beat_lengths["score_syb"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -535,19 +542,14 @@ class XiaoiceSing(AbsSVS):
     def inference(
         self,
         text: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        pitch: Optional[torch.Tensor] = None,
         ds: Optional[torch.Tensor] = None,
         ds_syb: Optional[torch.Tensor] = None,
-        feats: Optional[torch.Tensor] = None,
-        label_lab: Optional[torch.Tensor] = None,
-        label_score: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_score: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_score: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_phn_score: Optional[torch.Tensor] = None,
-        beat_syb_score: Optional[torch.Tensor] = None,
-        pitch: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -558,12 +560,20 @@ class XiaoiceSing(AbsSVS):
             text (LongTensor): Input sequence of characters (T_text,).
             feats (Optional[Tensor]): Feature sequence to extract style (N, idim).
             durations (Optional[LongTensor]): Groundtruth of duration (T_text + 1,).
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (Tmax).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (Tmax).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (Tmax).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+                value (LongTensor): Batch of padded beat (Tmax).
+            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            ds
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
             lids (Optional[Tensor]): Language ID (1,).
             alpha (float): Alpha to control the speed.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
-                If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
@@ -571,9 +581,9 @@ class XiaoiceSing(AbsSVS):
                 * duration (Tensor): Duration sequence (T_text + 1,).
         """
 
-        label = label_score
-        midi = midi_score
-        tempo = beat_syb_score
+        label = label["score"]
+        midi = melody["score"]
+        tempo = beat["score_syb"]
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
