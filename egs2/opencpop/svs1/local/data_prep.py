@@ -6,6 +6,8 @@ import librosa
 import miditoolkit
 import numpy as np
 
+from espnet2.fileio.score_scp import SingingScoreWriter
+
 """Generate segments according to structured annotation."""
 """Transfer music score into 'score' format."""
 
@@ -44,49 +46,51 @@ def load_midi(args):
     return midis
 
 
-def create_score(uid, phns, notes, syb_dur, keep):
+def create_score(uid, phns, midis, syb_dur, keep):
     # Transfer into 'score' format
-    assert len(phns) == len(notes)
-    assert len(notes) == len(syb_dur)
+    assert len(phns) == len(midis)
+    assert len(midis) == len(syb_dur)
     assert len(syb_dur) == len(keep)
     lyrics_seq = []
-    notes_seq = []
+    midis_seq = []
     segs_seq = []
     phns_seq = []
     st = 0
     index_phn = 0
+    note_list = []
     while index_phn < len(phns):
-        notes_seq.append(notes[index_phn])
-        segs_seq.append([st, st + syb_dur[index_phn]])
+        midi = midis[index_phn]
+        note_info = [st]
         st += syb_dur[index_phn]
         syb = [phns[index_phn]]
         index_phn += 1
         if (
             index_phn < len(phns)
             and syb_dur[index_phn] == syb_dur[index_phn - 1]
-            and notes[index_phn] == notes[index_phn - 1]
+            and midis[index_phn] == midis[index_phn - 1]
             and keep[index_phn] == 0
         ):
             syb.append(phns[index_phn])
             index_phn += 1
         syb = "_".join(syb)
-        lyrics_seq.append(syb)
-        phns_seq.append(syb)
+        note_info.extend([st, syb, midi, syb])
+        note_list.append(note_info)
+        # multi notes in one syllable
         while (
             index_phn < len(phns)
             and keep[index_phn] == 1
             and phns[index_phn] == phns[index_phn - 1]
         ):
-            lyrics_seq.append("—")
-            notes_seq.append(notes[index_phn])
-            segs_seq.append([st, st + syb_dur[index_phn]])
+            note_info = [st]
             st += syb_dur[index_phn]
-            phns_seq.append(phns[index_phn])
+            note_info.extend([st, "—", midis[index_phn], phns[index_phn]])
+            note_list.append(note_info)
             index_phn += 1
-    return lyrics_seq, notes_seq, segs_seq, phns_seq
+    return note_list
 
 
 def process_utterance(
+    writer,
     wavscp,
     text,
     utt2spk,
@@ -94,14 +98,13 @@ def process_utterance(
     audio_dir,
     wav_dumpdir,
     segment,
-    score,
     midi_mapping,
     tempos,
     tgt_sr=24000,
 ):
-    uid, lyrics, phns, notes, syb_dur, phn_dur, keep = segment.strip().split("|")
+    uid, lyrics, phns, midis, syb_dur, phn_dur, keep = segment.strip().split("|")
     phns = phns.split(" ")
-    notes = notes.split(" ")
+    midis = midis.split(" ")
     syb_dur = syb_dur.split(" ")
     phn_dur = phn_dur.split(" ")
     keep = keep.split(" ")
@@ -111,15 +114,13 @@ def process_utterance(
     tempo = tempos[id]
 
     # note to midi index
-    notes = [midi_mapping[note] if note != "rest" else 0 for note in notes]
+    midis = [midi_mapping[note] if note != "rest" else 0 for note in midis]
 
     # type convert
     phn_dur = [float(dur) for dur in phn_dur]
     syb_dur = [float(syb) for syb in syb_dur]
     keep = [int(k) for k in keep]
-    lyrics_seq, notes_seq, segs_seq, phns_seq = create_score(
-        uid, phns, notes, syb_dur, keep
-    )
+    note_list = create_score(uid, phns, midis, syb_dur, keep)
 
     text.write("opencpop_{} {}\n".format(uid, " ".join(phns)))
     utt2spk.write("opencpop_{} {}\n".format(uid, "opencpop"))
@@ -146,15 +147,10 @@ def process_utterance(
         running_dur += phn_dur[i]
 
     label.write("opencpop_{} {}\n".format(uid, " ".join(label_entry)))
-
-    score.write("opencpop_{}  {}".format(uid, tempo))
-    for i in range(len(lyrics_seq)):
-        score.write(
-            "  {:.3f} {:.3f} {} {} {}".format(
-                segs_seq[i][0], segs_seq[i][1], lyrics_seq[i], notes_seq[i], phns_seq[i]
-            )
-        )
-    score.write("\n")
+    score = dict(
+        tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
+    )
+    writer["opencpop_{}".format(uid)] = score
 
 
 def process_subset(args, set_name, tempos):
@@ -163,10 +159,12 @@ def process_subset(args, set_name, tempos):
         os.path.join(args.tgt_dir, set_name, "wav.scp"), "w", encoding="utf-8"
     )
     label = open(os.path.join(args.tgt_dir, set_name, "label"), "w", encoding="utf-8")
-    score = open(os.path.join(args.tgt_dir, set_name, "score"), "w", encoding="utf-8")
     text = open(os.path.join(args.tgt_dir, set_name, "text"), "w", encoding="utf-8")
     utt2spk = open(
         os.path.join(args.tgt_dir, set_name, "utt2spk"), "w", encoding="utf-8"
+    )
+    writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.tgt_dir, set_name, "score.scp")
     )
 
     midi_mapping = load_midi_note_scp(args.midi_note_scp)
@@ -179,6 +177,7 @@ def process_subset(args, set_name, tempos):
         segments = f.read().strip().split("\n")
         for segment in segments:
             process_utterance(
+                writer,
                 wavscp,
                 text,
                 utt2spk,
@@ -186,7 +185,6 @@ def process_subset(args, set_name, tempos):
                 os.path.join(args.src_data, "segments", "wavs"),
                 args.wav_dumpdir,
                 segment,
-                score,
                 midi_mapping,
                 tempos,
                 tgt_sr=args.sr,
@@ -208,6 +206,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--sr", type=int, help="sampling rate (Hz)")
     parser.add_argument("--g2p", type=str, help="g2p", default="None")
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
     args = parser.parse_args()
 
     tempos = load_midi(args)

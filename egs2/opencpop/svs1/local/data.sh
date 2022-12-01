@@ -49,7 +49,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --g2p ${g2p}
     for src_data in train eval; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label score" data/${src_data}
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
 fi
 
@@ -59,14 +59,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/copy_data_dir.sh data/train data/${train_set}
     utils/copy_data_dir.sh data/train data/${train_dev}
     for dset in ${train_set} ${train_dev}; do
-        for extra_file in label score; do
+        for extra_file in label score.scp; do
             cp data/train/${extra_file} data/${dset}
         done
     done
     tail -n 50 data/train/wav.scp > data/dev/wav.scp
     utils/filter_scp.pl --exclude data/dev/wav.scp data/train/wav.scp > data/tr_no_dev/wav.scp
 
-    utils/fix_data_dir.sh --utt_extra_files "label score" data/tr_no_dev
-    utils/fix_data_dir.sh --utt_extra_files "label score" data/dev
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
     
 fi
