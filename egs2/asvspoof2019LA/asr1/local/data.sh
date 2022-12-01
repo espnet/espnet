@@ -33,6 +33,10 @@ if [ -z "${ASVSPOOF2019LA}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    # if ${ASVSPOOF2019LA} not exists, create this directory.
+    if [ ! -e "${ASVSPOOF2019LA}" ]; then
+        mkdir -p "${ASVSPOOF2019LA}"
+    fi
     # Check if the data directories exists.
     if [ ! -e "${ASVSPOOF2019LA}/ASVspoof2019_LA_dev" ] && [ ! -e "${ASVSPOOF2019LA}/ASVspoof2019_LA_eval" ] && [ ! -e "${ASVSPOOF2019LA}/ASVspoof2019_LA_train" ]; then
 	log "Stage 1: Download the ASVspoof2019 LA dataset and unzip it to ${ASVSPOOF2019LA}."
@@ -40,17 +44,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # If they don't exist, download the data.
     if hash axel 2>/dev/null; then
         log "System has axel installed. Using axel..."
-        axel -n 10 -o ${ASVSPOOF2019LA} https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip?sequence=3&isAllowed=y
+        # axel -n 10 -o ${ASVSPOOF2019LA}/LA.zip https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip
     else
         log "System has no axel installed. Using wget..."
-        wget -P ${ASVSPOOF2019LA} https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip?sequence=3&isAllowed=y
+        wget -P ${ASVSPOOF2019LA} https://datashare.ed.ac.uk/bitstream/handle/10283/3336/LA.zip
     fi
 
     # Unzip the dataset
     
     if hash unzip 2>/dev/null; then
         log "System has unzip installed. Using unzip..."
-        unzip ${ASVSPOOF2019LA}/LA.zip -d ${ASVSPOOF2019LA}
+        sleep 0.5
+        unzip -qq LA.zip -d ${ASVSPOOF2019LA}
     else
         log "System has no unzip installed. Aborting. Please unzip the dataset manually."
         echo "Dataset location: ${ASVSPOOF2019LA}/LA.zip"
@@ -62,16 +67,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     else # If the dataset has already been downloaded
         # Check if the protocol directory is there
-        if [! -e "${ASVSPOOF2019LA}/ASVspoof2019_LA_cm_protocols"]; then
+        if [ ! -e "${ASVSPOOF2019LA}/ASVspoof2019_LA_cm_protocols" ]; then
             echo "Stage 1: Missing ASVspoof2019 LA cm protocols. Unable to generate labels. Please download the ASVspoof2019 LA cm protocols and unzip it to ${ASVSPOOF2019LA}."
         else
-        log "Stage 1: ${ASVSPOOF2019LA}/ASVspoof2019_LA_train, ${ASVSPOOF2019LA}/ASVspoof2019_LA_dev and ${ASVSPOOF2019LA}/ASVspoof2019_LA_eval already exists; Protocol directory present. Skipping download, do not abort."
+        log "Stage 1-1: ${ASVSPOOF2019LA}/ASVspoof2019_LA_train, ${ASVSPOOF2019LA}/ASVspoof2019_LA_dev and ${ASVSPOOF2019LA}/ASVspoof2019_LA_eval already exists; Protocol directory present. Skipping download."
         fi
     fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data Preparation"
+    log "Stage 1-2: Data Preparation"
     log "Creating data directories..."
     mkdir -p data/{train,dev,eval}
     # Generate text, utt2spk, and wav.scp for train, dev, and eval.

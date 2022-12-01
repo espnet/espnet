@@ -40,7 +40,7 @@ def generate_data(fileText, dataDir):
     wav_scp = []
     utt2spk = []
     
-    for line in devFile:
+    for line in fileText:
         line = line.strip().split(" ")
         speakerID = line[0]
         utteranceID = line[1]
