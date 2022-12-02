@@ -35,6 +35,14 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
+try:
+    from transformers import AutoModelForSeq2SeqLM
+    from transformers.file_utils import ModelOutput
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
+
 
 class Speech2Text:
     """Speech2Text class
@@ -76,6 +84,9 @@ class Speech2Text:
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
+        hugging_face_decoder: bool = False,
+        hugging_face_decoder_max_length: int = 256,
+        multi_asr: bool = False,
     ):
         assert check_argument_types()
 
@@ -170,8 +181,47 @@ class Speech2Text:
                 **transducer_conf,
             )
             beam_search = None
+            hugging_face_model = None
+            hugging_face_linear_in = None
+        elif (
+            decoder.__class__.__name__ == "HuggingFaceTransformersDecoder"
+            and hugging_face_decoder
+        ):
+            if not is_transformers_available:
+                raise ImportError(
+                    "`transformers` is not available."
+                    " Please install it via `pip install transformers`"
+                    " or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                    " && ./installers/install_transformers.sh`."
+                )
+
+            hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
+                decoder.model_name_or_path
+            )
+
+            hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
+
+            if hasattr(hugging_face_model, "model"):
+                hugging_face_model.model.decoder.load_state_dict(
+                    decoder.decoder.state_dict()
+                )
+                del hugging_face_model.model.encoder
+            else:
+                hugging_face_model.decoder.load_state_dict(decoder.decoder.state_dict())
+                del hugging_face_model.encoder
+
+            del asr_model.decoder.lm_head
+            del asr_model.decoder.decoder
+
+            hugging_face_linear_in = decoder.linear_in
+            hugging_face_model.to(device=device).eval()
+
+            beam_search = None
+            beam_search_transducer = None
         else:
             beam_search_transducer = None
+            hugging_face_model = None
+            hugging_face_linear_in = None
 
             weights = dict(
                 decoder=1.0 - ctc_weight,
@@ -229,7 +279,7 @@ class Speech2Text:
 
         if token_type is None:
             tokenizer = None
-        elif token_type == "bpe":
+        elif token_type == "bpe" or token_type == "hugging_face":
             if bpemodel is not None:
                 tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
@@ -245,12 +295,17 @@ class Speech2Text:
         self.tokenizer = tokenizer
         self.beam_search = beam_search
         self.beam_search_transducer = beam_search_transducer
+        self.hugging_face_model = hugging_face_model
+        self.hugging_face_linear_in = hugging_face_linear_in
+        self.hugging_face_beam_size = beam_size
+        self.hugging_face_decoder_max_length = hugging_face_decoder_max_length
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
         self.enh_s2t_task = enh_s2t_task
+        self.multi_asr = multi_asr
 
     @torch.no_grad()
     def __call__(
@@ -289,14 +344,19 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
-        if self.enh_s2t_task:
-            # Enh+ASR joint task
+        if self.multi_asr:
+            enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
+        if self.enh_s2t_task or self.multi_asr:
+            # Enh+ASR joint task or Multispkr ASR task
             # NOTE (Wangyou): the return type in this case is List[default_return_type]
-            num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
+            if self.multi_asr:
+                num_spk = getattr(self.asr_model, "num_inf", 1)
+            else:
+                num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
             assert len(enc) == num_spk, (len(enc), num_spk)
             results = []
             for spk, enc_spk in enumerate(enc, 1):
-                logging.info("=== [EnhASR] Speaker {} ===".format(spk))
+                logging.info(f"=== [{str(self.asr_model.__class__)}] Speaker {spk} ===")
                 if isinstance(enc_spk, tuple):
                     enc_spk = enc_spk[0]
                 assert len(enc_spk) == 1, len(enc_spk)
@@ -331,6 +391,25 @@ class Speech2Text:
             )
             logging.info(
                 "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
+            )
+        elif self.hugging_face_model:
+            decoder_start_token_id = (
+                self.hugging_face_model.config.decoder_start_token_id
+            )
+            yseq = self.hugging_face_model.generate(
+                encoder_outputs=ModelOutput(
+                    last_hidden_state=self.hugging_face_linear_in(enc).unsqueeze(0)
+                ),
+                use_cache=True,
+                decoder_start_token_id=decoder_start_token_id,
+                num_beams=self.hugging_face_beam_size,
+                max_length=self.hugging_face_decoder_max_length,
+            )
+            nbest_hyps = [Hypothesis(yseq=yseq[0])]
+            logging.info(
+                "best hypo: "
+                + "".join(self.converter.ids2tokens(nbest_hyps[0].yseq[1:]))
+                + "\n"
             )
         else:
             nbest_hyps = self.beam_search(
@@ -431,6 +510,9 @@ def inference(
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
+    hugging_face_decoder: bool,
+    hugging_face_decoder_max_length: int,
+    multi_asr: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -475,10 +557,13 @@ def inference(
         nbest=nbest,
         streaming=streaming,
         enh_s2t_task=enh_s2t_task,
+        multi_asr=multi_asr,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
+        hugging_face_decoder=hugging_face_decoder,
+        hugging_face_decoder_max_length=hugging_face_decoder_max_length,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -521,22 +606,24 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            if enh_s2t_task:
+            if enh_s2t_task or multi_asr:
                 # Enh+ASR joint task
                 for spk, ret in enumerate(results, 1):
                     for n, (text, token, token_int, hyp) in zip(
                         range(1, nbest + 1), ret
                     ):
                         # Create a directory: outdir/{n}best_recog_spk?
-                        ibest_writer = writer[f"{n}best_recog_spk{spk}"]
+                        ibest_writer = writer[f"{n}best_recog"]
 
                         # Write the result to each file
-                        ibest_writer["token"][key] = " ".join(token)
-                        ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                        ibest_writer["score"][key] = str(hyp.score)
+                        ibest_writer[f"token_spk{spk}"][key] = " ".join(token)
+                        ibest_writer[f"token_int_spk{spk}"][key] = " ".join(
+                            map(str, token_int)
+                        )
+                        ibest_writer[f"score_spk{spk}"][key] = str(hyp.score)
 
                         if text is not None:
-                            ibest_writer["text"][key] = text
+                            ibest_writer[f"text_spk{spk}"][key] = text
 
             else:
 
@@ -651,6 +738,12 @@ def get_parser():
         default=False,
         help="enhancement and asr joint model",
     )
+    group.add_argument(
+        "--multi_asr",
+        type=str2bool,
+        default=False,
+        help="multi-speaker asr model",
+    )
 
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
@@ -719,6 +812,8 @@ def get_parser():
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
+    group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
+    group.add_argument("--hugging_face_decoder_max_length", type=int, default=256)
 
     group.add_argument(
         "--transducer_conf",
