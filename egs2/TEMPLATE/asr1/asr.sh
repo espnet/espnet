@@ -1179,9 +1179,10 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
 
-            if [ -z $post_process_local_data_opts ]; then
+            aux_list=($auxiliary_data_tags)
+            if [ ${#aux_list[@]} != 0 ]; then
                 _opts+="--allow_variable_data_keys True "
-                for aux_dset in ${auxiliary_data_tags}; do
+                for aux_dset in "${aux_list[@]}"; do
                      _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
                 done
             fi
