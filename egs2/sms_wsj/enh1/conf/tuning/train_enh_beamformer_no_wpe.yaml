@@ -67,6 +67,6 @@ criterions:
       mask_type: PSM^2
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
-    wrapper: fixed_order
+    wrapper: pit
     wrapper_conf:
       weight: 1.0
