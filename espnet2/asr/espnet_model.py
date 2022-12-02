@@ -229,7 +229,9 @@ class ESPnetASRModel(AbsESPnetModel):
                                 aux_data_lengths,
                             )
                         else:
-                            raise Exception("Auxillary CTC tasks were specified but no data was found")
+                            raise Exception(
+                                "Auxillary CTC tasks were specified but no data was found"
+                            )
                 elif loss_ic is None:
                     loss_ic, cer_ic = self._calc_ctc_loss(
                         intermediate_out, encoder_out_lens, text, text_lengths

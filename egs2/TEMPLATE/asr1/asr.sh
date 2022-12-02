@@ -41,6 +41,8 @@ python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
+post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
+auxiliary_data_tags= # the names of training data for auxiliary tasks
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -632,6 +634,9 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh "${data_feats}/${dset}"
         done
 
+        # Do any additional local data post-processing here
+        local/data.sh ${post_process_local_data_opts} --data_tags ${auxiliary_data_tags} --asr_data_dir "${data_feats}/${train_set}"
+
         # shellcheck disable=SC2002
         cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
     fi
@@ -1082,6 +1087,13 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
             _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
             _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+
+            if [ -z $post_process_local_data_opts ]; then
+                _opts+="--allow_variable_data_keys True "
+                for aux_dset in ${auxiliary_data_tags}; do
+                     _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
+                done
+            fi
         fi
 
         log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"

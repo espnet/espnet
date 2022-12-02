@@ -139,10 +139,10 @@ class CommonPreprocessor(AbsPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names = None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
-        aux_task_names = None,
         fs: np.int32 = 0,
     ):
         super().__init__(train)
