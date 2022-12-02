@@ -156,6 +156,7 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        spembs: Optional[torch.Tensor] = None,
         # src_text: Optional[torch.Tensor],
         # src_text_lengths: Optional[torch.Tensor],
         **kwargs,
@@ -273,6 +274,8 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             feats=feats,
             feats_lengths=feats_lengths,
         )
+        if spembs is not None:
+            batch.update(spembs=spembs)
         tts_loss, tts_stats, tts_weight =self.tts(**batch)
         
         # 3. Loss computation
