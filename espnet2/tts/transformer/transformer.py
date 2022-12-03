@@ -111,6 +111,7 @@ class Transformer(AbsTTS):
         modules_applied_guided_attn: Sequence[str] = ("encoder-decoder"),
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
+        speech_attn: bool = False,
     ):
         """Initialize Transformer module.
 
@@ -342,6 +343,7 @@ class Transformer(AbsTTS):
             pos_enc_class=pos_enc_class,
             normalize_before=decoder_normalize_before,
             concat_after=decoder_concat_after,
+            speech_attn=speech_attn,
         )
 
         # define final projection
@@ -402,6 +404,8 @@ class Transformer(AbsTTS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        speech_embed: Optional[torch.Tensor] = None,
+        speech_embed_lengths: Optional[torch.Tensor] = None,
         joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -442,6 +446,8 @@ class Transformer(AbsTTS):
                 spembs=spembs,
                 sids=sids,
                 lids=lids,
+                s_embed=speech_embed,
+                s_embed_lens=speech_embed_lengths,
             )
         else:
 
@@ -579,8 +585,11 @@ class Transformer(AbsTTS):
         spembs: torch.Tensor,
         sids: torch.Tensor,
         lids: torch.Tensor,
+        s_embed: Optional[torch.Tensor] = None,
+        s_embed_lens: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # forward encoder
+        
         x_masks = self._source_mask(ilens)
         hs, h_masks = self.encoder(xs, x_masks)
 
@@ -614,7 +623,11 @@ class Transformer(AbsTTS):
 
         # forward decoder
         y_masks = self._target_mask(olens_in)
-        zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
+        if s_embed is not None:
+            s_mask =  self._source_mask(s_embed_lens)
+            zs, _ = self.decoder(ys_in, y_masks, hs, h_masks, s_embed, s_mask)
+        else:
+            zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
         # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
         # (B, T_feats//r, r) -> (B, T_feats//r * r)

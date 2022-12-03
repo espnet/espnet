@@ -274,6 +274,9 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             feats=feats,
             feats_lengths=feats_lengths,
         )
+        if self.speech_attn:
+            batch.update(speech_embed=encoder_out)
+            batch.update(speech_embed_lengths=encoder_out_lens)
         if spembs is not None:
             batch.update(spembs=spembs)
         tts_loss, tts_stats, tts_weight =self.tts(**batch)

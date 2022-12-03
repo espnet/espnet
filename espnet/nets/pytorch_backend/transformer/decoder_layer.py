@@ -127,6 +127,7 @@ class DecoderLayer(nn.Module):
 
         if self.speech_attn_type == "seqspeechattn":
             # add speech encoder context
+            # import pdb; pdb.set_trace()
             residual = x
             if self.normalize_before:
                 x = self.norm4(x)

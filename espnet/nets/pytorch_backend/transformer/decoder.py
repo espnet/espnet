@@ -94,10 +94,12 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         pos_enc_class=PositionalEncoding,
         normalize_before=True,
         concat_after=False,
+        speech_attn=False,
     ):
         """Construct an Decoder object."""
         torch.nn.Module.__init__(self)
         self._register_load_state_dict_pre_hook(_pre_hook)
+        self.speech_attn=speech_attn
         if input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(odim, attention_dim),
@@ -191,21 +193,40 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
                 )
                 for lnum in range(num_blocks)
             ]
-
-        self.decoders = repeat(
-            num_blocks,
-            lambda lnum: DecoderLayer(
-                attention_dim,
-                decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate
+        if self.speech_attn:
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    "seqspeechattn",
                 ),
-                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                dropout_rate,
-                normalize_before,
-                concat_after,
-            ),
-        )
+            )
+        else:
+            self.decoders = repeat(
+                num_blocks,
+                lambda lnum: DecoderLayer(
+                    attention_dim,
+                    decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    ),
+                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
         self.selfattention_layer_type = selfattention_layer_type
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
@@ -214,7 +235,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         else:
             self.output_layer = None
 
-    def forward(self, tgt, tgt_mask, memory, memory_mask):
+    def forward(self, tgt, tgt_mask, memory, memory_mask, s_embed=None, s_mask=None):
         """Forward decoder.
 
         Args:
@@ -236,10 +257,16 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             torch.Tensor: Score mask before softmax (#batch, maxlen_out).
 
         """
+        # import pdb; pdb.set_trace()
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(
-            x, tgt_mask, memory, memory_mask
-        )
+        if s_embed is not None:
+            x, tgt_mask, memory, memory_mask, speech, speech_mask = self.decoders(
+                x, tgt_mask, memory, memory_mask, s_embed, s_mask
+            )
+        else:
+            x, tgt_mask, memory, memory_mask = self.decoders(
+                x, tgt_mask, memory, memory_mask
+            )
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:

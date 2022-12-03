@@ -256,6 +256,12 @@ class TTSTask(AbsTask):
             help="Use multidecoder model",
         )
         group.add_argument(
+            "--speech_attn",
+            type=str2bool,
+            default=False,
+            help="Use speech attention model",
+        )
+        group.add_argument(
             "--ctc_conf",
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
@@ -457,6 +463,8 @@ class TTSTask(AbsTask):
 
         # 5. Build model
         use_md_model = getattr(args, "use_multidecoder", False)
+        speech_attn = getattr(args, "speech_attn", False)
+        # import pdb;pdb.set_trace()
         if use_md_model:
             # 7. ASR decoder
             asr_encoder_class = asr_encoder_choices.get_class(
@@ -500,7 +508,7 @@ class TTSTask(AbsTask):
                     asr_decoder=asr_decoder,
                     ctc=ctc,
                     token_list=token_list,
-                    speech_attn = False,
+                    speech_attn = speech_attn,
                     feats_extract=feats_extract,
                     pitch_extract=pitch_extract,
                     energy_extract=energy_extract,
