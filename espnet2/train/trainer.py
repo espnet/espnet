@@ -159,6 +159,7 @@ class Trainer:
         train_iter_factory: AbsIterFactory,
         valid_iter_factory: AbsIterFactory,
         plot_attention_iter_factory: Optional[AbsIterFactory],
+        artifact_iter_factory: Optional[AbsIterFactory],
         trainer_options,
         distributed_option: DistributedOption,
     ) -> None:
@@ -311,6 +312,20 @@ class Trainer:
                             reporter=sub_reporter,
                             options=trainer_options,
                         )
+                if artifact_iter_factory is not None:
+                    list_artifacts = getattr(model, "list_artifacts", dict())
+                    for artifact, atype in list_artifacts.items():
+                        with reporter.observe(artifact) as sub_reporter:
+                            cls.store_artifacts(
+                                model=model,
+                                artifact_fun=artifact,
+                                artifact_type=atype,
+                                output_dir=output_dir / artifact,
+                                summary_writer=train_summary_writer,
+                                iterator=artifact_iter_factory.build_iter(iepoch),
+                                reporter=sub_reporter,
+                                options=trainer_options,
+                            )
 
             # 2. LR Scheduler step
             for scheduler in schedulers:
@@ -856,4 +871,86 @@ class Trainer:
                         import wandb
 
                         wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
+            reporter.next()
+
+
+    @classmethod
+    @torch.no_grad()
+    def store_artifacts(
+        cls,
+        model: torch.nn.Module,
+        artifact_fun: str,
+        artifact_type: str,
+        output_dir: Optional[Path],
+        summary_writer,
+        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
+        reporter: SubReporter,
+        options: TrainerOptions,
+    ) -> None:
+        assert check_argument_types()
+        
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
+
+        if artifact_type == "image":
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            from matplotlib.ticker import MaxNLocator
+        else:
+            raise NotImplementedError(artifact_type)
+
+        model.eval()
+        for ids, batch in iterator:
+            assert isinstance(batch, dict), type(batch)
+            assert len(next(iter(batch.values()))) == len(ids), (
+                len(next(iter(batch.values()))),
+                len(ids),
+            )
+
+            batch["utt_id"] = ids
+
+            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
+            if no_forward_run:
+                continue
+
+            # 1. Forwarding model and gathering outputs
+            #    artifacts uses single gpu only.
+            output_dict = getattr(model, artifact_fun)(**batch)
+
+            if artifact_type == "image":
+                # 2. Plot attentions: This part is slow due to matplotlib
+                w, h = plt.figaspect(len(output_dict))
+                fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
+                axes = fig.subplots(len(output_dict))
+                if len(output_dict) == 1:
+                    axes = [axes]
+
+                for ax, (k, array) in zip(axes, output_dict.items()):
+                    assert len(array) == len(ids), (len(array), len(ids))
+                    
+                    if isinstance(array, torch.Tensor):
+                        array = array.detach().cpu().numpy()
+
+                    if array.ndim == 3:
+                        array = array[0]
+                    elif array.ndim > 3:
+                        raise RuntimeError(f"Must be 2 or 3 dimension: {array.ndim}")
+
+                    if array.ndim == 2:
+                        ax.imshow(array.astype(np.float32), aspect="auto", origin="lower")
+                    else:
+                        ax.plot(array.astype(np.float32))
+                    ax.set_title(k)
+
+                id_ = ids[0]
+                if output_dir is not None:
+                    p = output_dir / id_ / f"{reporter.get_epoch()}ep.png"
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    fig.savefig(p)
+
+                if summary_writer is not None:
+                    summary_writer.add_figure(
+                        f"{artifact_fun}_{id_}", fig, reporter.get_epoch()
+                    )
             reporter.next()

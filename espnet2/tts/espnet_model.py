@@ -48,6 +48,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.tts = tts
+        self.list_artifacts = {"plot_mels": "image"}
 
     def forward(
         self,
@@ -64,6 +65,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        return_artifacts: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Caclualte outputs and return the loss tensor.
@@ -148,6 +150,8 @@ class ESPnetTTSModel(AbsESPnetModel):
         if self.tts.require_raw_speech:
             batch.update(speech=speech, speech_lengths=speech_lengths)
 
+        if return_artifacts:
+            return feats, self.tts(**batch, joint_training=True)[-1]
         return self.tts(**batch)
 
     def collect_feats(
@@ -306,3 +310,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             output_dict.update(feat_gen_denorm=feat_gen_denorm)
 
         return output_dict
+
+    def plot_mels(self, **kwargs):
+        target, prediction = self.forward(**kwargs, return_artifacts=True)
+        return {"target": target.transpose(1, 2), "prediction": prediction.transpose(1, 2)}
