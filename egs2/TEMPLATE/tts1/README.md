@@ -8,6 +8,7 @@ This is a template of TTS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Data preparation](#1-data-preparation)
+    * [1\. (Optional) MFA Aligments generation](#1-optiona-mfa-alignments-generation)
     * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Removal of long / short data](#3-removal-of-long--short-data)
     * [4\. Token list generation](#4-token-list-generation)
@@ -61,6 +62,26 @@ It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for 
 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
+
+### 1. (Optional) MFA Aligments generation
+
+You can generate aligments using the [Montreal-Forced-Aligner tool](https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner)
+To generates the mfa aligments, first generate the corresponding data with `--stage 1 --stop-stage 1`
+
+Then, execute `mfa_aligment.sh` located at the `scripts` directory.
+
+```bash
+./scripts/mfa_aligments.sh --datasets "train_set dev_set test_set" --stage 1 --stop-stage 2 --train true --nj 36
+```
+
+The script will generate the aligments using a given `g2p` and store it in the `<dataset>_phn` directory.
+This script trains the mfa g2p and acoustic model, for then generate the aligments.
+
+Then, you can continue the training with the command:
+
+```bash
+./run.sh --train-set train_set_phn --dev-set dev_set_phn --test_sets "dev_set_phn test_set_phn" --stage 2 --g2p none --cleaner none
+```
 
 ### 2. Wav dump / Embedding preparation
 
