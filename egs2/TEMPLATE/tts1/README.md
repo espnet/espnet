@@ -80,7 +80,13 @@ This script trains the mfa g2p and acoustic model, for then generate the aligmen
 Then, you can continue the training with the command:
 
 ```bash
-./run.sh --train-set train_set_phn --dev-set dev_set_phn --test_sets "dev_set_phn test_set_phn" --stage 2 --g2p none --cleaner none
+./run.sh --train-set train_set_phn \
+         --dev-set dev_set_phn \
+         --test_sets "dev_set_phn test_set_phn" \
+         --stage 2 \
+         --g2p none \
+         --cleaner none \
+         --teacher_dumpdir "data"  
 ```
 
 ### 2. Wav dump / Embedding preparation
