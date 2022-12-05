@@ -52,8 +52,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p data 
     for dir in tr_2000h_sum cv05_sum dev5_test_sum; do  
         [ -f data/${dir} ] || mv ${data_how2}/data/${dir} data/${dir}
-        [ -f data/${dir}/feats.scp ] || cat ${data_how2}/audio/fbank_pitch/${dir}.scp | awk -F ' ' -v x=$(realpath ${data_how2}) '{print $1,x"/audio/fbank_pitch/"$2}' > data/${dir}/feats.scp
-        [ -f data/${dir}/wav.scp ] || cut -d ' ' -f2 data/${dir}/segments | sort | uniq | awk -F ' ' '{print $1,"<DUMMY>"}' > data/${dir}/wav.scp
+        [ -f "data/${dir}/feats.scp" ] || awk -F ' ' -v x="$(realpath $data_how2)" '{print $1,x"/audio/fbank_pitch/"$2}' < "${data_how2}/audio/fbank_pitch/${dir}.scp"  > "data/${dir}/feats.scp"
+        [ -f "data/${dir}/wav.scp" ] || cut -d ' ' -f2 "data/${dir}/segments" | sort | uniq | awk -F ' ' '{print $1,"<DUMMY>"}' > "data/${dir}/wav.scp"
         utils/fix_data_dir.sh data/${dir}
     done 
    

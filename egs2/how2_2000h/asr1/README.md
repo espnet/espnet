@@ -1,22 +1,19 @@
 ## End to End Speech Recognition with How2-2000h
 
 
+# Data Download and Preparation
 HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe. 
 
 You can request the use of this data using our (data request form)[https://docs.google.com/forms/d/e/1FAIpQLSfW2i8UnjuoH2KKSU0BvcKRbhnk_vL3HcNlM0QLsJGb_UEDVQ/viewform]
 
 For ASR and Summarization, please request the data labeled "(audio_2000) fbank+pitch features in Kaldi scp/ark format for 2000 hours"
 
-You will recieve a data download link shortly after you submit the form. You can download the data by clicking on the link or using the bash wget utility. Then untar the package to obtain the how2_release directory. 
-
-Set that directory's path in db.sh using the variable HOW2_2kH and run local/data.sh to obtain the correct data directories. 
+You will recieve a data download link shortly after you submit the form.
+Then you can prepare the data directory by providing your link as follows:
 
 
 ```bash
-
-wget <path>
-tar -xf <tar-file>
-
+./run.sh --local_data_opts "--data_url <insert-link-here>"
 ```
 
 
