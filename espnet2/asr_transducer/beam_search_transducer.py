@@ -146,7 +146,7 @@ class BeamSearchTransducer:
         self.score_norm = score_norm
         self.nbest = nbest
 
-        self.reset_inference_cache()
+        self.reset_cache()
 
     def __call__(
         self,
@@ -168,7 +168,7 @@ class BeamSearchTransducer:
         hyps = self.search_algorithm(enc_out)
 
         if is_final:
-            self.reset_inference_cache()
+            self.reset_cache()
 
             return self.sort_nbest(hyps)
 
@@ -176,8 +176,8 @@ class BeamSearchTransducer:
 
         return hyps
 
-    def reset_inference_cache(self) -> None:
-        """Reset cache for decoder scoring and streaming."""
+    def reset_cache(self) -> None:
+        """Reset cache for streaming decoding."""
         self.decoder.score_cache = {}
         self.search_cache = None
 

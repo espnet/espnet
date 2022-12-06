@@ -59,8 +59,8 @@ class Encoder(torch.nn.Module):
         self.short_chunk_size = main_params["short_chunk_size"]
         self.left_chunk_size = main_params["left_chunk_size"]
 
-    def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
-        """Initialize/Reset encoder streaming cache.
+    def reset_cache(self, left_context: int, device: torch.device) -> None:
+        """Initialize/Reset encoder cache for streaming.
 
         Args:
             left_context: Number of frames in left context.

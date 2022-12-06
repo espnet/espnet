@@ -4,8 +4,6 @@ from typing import Optional, Tuple, Union
 
 import torch
 
-from espnet2.asr_transducer.utils import sub_factor_to_params
-
 
 class ConvInput(torch.nn.Module):
     """ConvInput module definition.
@@ -31,47 +29,48 @@ class ConvInput(torch.nn.Module):
         super().__init__()
 
         self.subsampling_factor = subsampling_factor
+        self.vgg_like = vgg_like
 
         if vgg_like:
             conv_size1, conv_size2 = conv_size
 
-            kernel_1 = int(subsampling_factor / 2)
+            self.maxpool_kernel1, output_proj = self.get_module_parameters(
+                input_size,
+                conv_size2,
+            )
 
             self.conv = torch.nn.Sequential(
                 torch.nn.Conv2d(1, conv_size1, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=1),
+                torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=0),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d((kernel_1, 2)),
+                torch.nn.MaxPool2d(
+                    self.maxpool_kernel1, stride=2, padding=0, ceil_mode=True
+                ),
                 torch.nn.Conv2d(conv_size1, conv_size2, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=1),
+                torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=0),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d((2, 2)),
+                torch.nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True),
             )
-
-            output_proj = conv_size2 * ((input_size // 2) // 2)
-
-            self.stride_1 = kernel_1
         else:
-            kernel_2, stride_2, conv_2_output_size = sub_factor_to_params(
-                subsampling_factor,
+            (
+                self.conv_kernel2,
+                self.conv_stride2,
+            ), output_proj = self.get_module_parameters(
                 input_size,
+                conv_size,
             )
 
             self.conv = torch.nn.Sequential(
                 torch.nn.Conv2d(1, conv_size, 3, 2),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size, conv_size, kernel_2, stride_2),
+                torch.nn.Conv2d(
+                    conv_size, conv_size, self.conv_kernel2, self.conv_stride2
+                ),
                 torch.nn.ReLU(),
             )
 
-            output_proj = conv_size * conv_2_output_size
-
-            self.kernel_2 = kernel_2
-            self.stride_2 = stride_2
-
-        self.vgg_like = vgg_like
         self.min_frame_length = 7 if subsampling_factor < 6 else 11
 
         if output_size is not None:
@@ -108,17 +107,39 @@ class ConvInput(torch.nn.Module):
 
         return x, mask
 
-    def get_size_before_subsampling(self, size: int) -> int:
-        """Return the original size before subsampling for a given size.
+    def get_module_parameters(
+        self,
+        input_size: int,
+        last_conv_size: int,
+    ) -> Union[Tuple[int, int], Tuple[Tuple[int, int], int]]:
+        """Return the convolution module parameters.
 
         Args:
-            size: Number of frames after subsampling.
+            input_size: Module input size.
+            last_conv_size: Last convolution size for module output size computation.
 
         Returns:
-            : Number of frames before subsampling.
+            : First MaxPool2D kernel size or second Conv2d kernel size and stride.
+            output_size: Convolution module output size.
 
         """
         if self.vgg_like:
-            return ((size * 2) * self.stride_1) + 1
+            maxpool_kernel1 = int(self.subsampling_factor / 2)
 
-        return ((size + 2) * 2) + (self.kernel_2 - 1) * self.stride_2
+            output_size = last_conv_size * (((input_size - 1) // 2 - 1) // 2)
+
+            return maxpool_kernel1, output_size
+
+        if self.subsampling_factor == 2:
+            conv_params = (3, 1)
+        elif self.subsampling_factor == 4:
+            conv_params = (3, 2)
+        else:
+            conv_params = (5, 3)
+
+        output_size = last_conv_size * (
+            ((input_size - 1) // 2 - (conv_params[0] - conv_params[1]))
+            // conv_params[1]
+        )
+
+        return conv_params, output_size
