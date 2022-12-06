@@ -50,28 +50,25 @@ class EBranchformerEncoderLayer(torch.nn.Module):
     """E-Branchformer encoder layer module.
     Args:
         size (int): model dimension
-        attn: standard self-attention or efficient attention, optional
-        cgmlp: ConvolutionalGatingMLP, optional
+        attn: standard self-attention or efficient attention
+        cgmlp: ConvolutionalGatingMLP
+        feed_forward: feed-forward module, optional
+        feed_forward: macaron-style feed-forward module, optional
         dropout_rate (float): dropout probability
         merge_conv_kernel (int): kernel size of the depth-wise convolution in the merge module
-        merge_stride (int): stride size of the depth-wise convolution in the merge module
     """
 
     def __init__(
         self,
         size: int,
-        attn: Optional[torch.nn.Module],
-        cgmlp: Optional[torch.nn.Module],
+        attn: torch.nn.Module,
+        cgmlp: torch.nn.Module,
         feed_forward: Optional[torch.nn.Module],
         feed_forward_macaron: Optional[torch.nn.Module],
         dropout_rate: float,
         merge_conv_kernel: int = 3,
-        merge_stride: int = 1,
     ):
         super().__init__()
-        assert (attn is not None) or (
-            cgmlp is not None
-        ), "At least one branch should be valid"
 
         self.size = size
         self.attn = attn
@@ -86,10 +83,8 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             self.ff_scale = 0.5
             self.norm_ff_macaron = LayerNorm(size)
 
-        if attn is not None:
-            self.norm_mha = LayerNorm(size)  # for the MHA module
-        if cgmlp is not None:
-            self.norm_mlp = LayerNorm(size)  # for the MLP module
+        self.norm_mha = LayerNorm(size)  # for the MHA module
+        self.norm_mlp = LayerNorm(size)  # for the MLP module
         self.norm_final = LayerNorm(size)  # for the final output of the block
 
         self.dropout = torch.nn.Dropout(dropout_rate)
@@ -98,7 +93,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
                 size + size,
                 size + size,
                 kernel_size=merge_conv_kernel,
-                stride=merge_stride,
+                stride=1,
                 padding=(merge_conv_kernel - 1) // 2,
                 groups=size + size,
                 bias=True,
@@ -136,30 +131,28 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         x2 = x
 
         # Branch 1: multi-headed attention module
-        if self.attn is not None:
-            x1 = self.norm_mha(x1)
+        x1 = self.norm_mha(x1)
 
-            if isinstance(self.attn, FastSelfAttention):
-                x_att = self.attn(x1, mask)
+        if isinstance(self.attn, FastSelfAttention):
+            x_att = self.attn(x1, mask)
+        else:
+            if pos_emb is not None:
+                x_att = self.attn(x1, x1, x1, pos_emb, mask)
             else:
-                if pos_emb is not None:
-                    x_att = self.attn(x1, x1, x1, pos_emb, mask)
-                else:
-                    x_att = self.attn(x1, x1, x1, mask)
+                x_att = self.attn(x1, x1, x1, mask)
 
-            x1 = self.dropout(x_att)
+        x1 = self.dropout(x_att)
 
         # Branch 2: convolutional gating mlp
-        if self.cgmlp is not None:
-            x2 = self.norm_mlp(x2)
+        x2 = self.norm_mlp(x2)
 
-            if pos_emb is not None:
-                x2 = (x2, pos_emb)
-            x2 = self.cgmlp(x2, mask)
-            if isinstance(x2, tuple):
-                x2 = x2[0]
+        if pos_emb is not None:
+            x2 = (x2, pos_emb)
+        x2 = self.cgmlp(x2, mask)
+        if isinstance(x2, tuple):
+            x2 = x2[0]
 
-            x2 = self.dropout(x2)
+        x2 = self.dropout(x2)
 
         # Merge two branches
         x_concat = torch.cat([x1, x2], dim=-1)
@@ -189,12 +182,10 @@ class EBranchformerEncoder(AbsEncoder):
         self,
         input_size: int,
         output_size: int = 256,
-        use_attn: bool = True,
         attention_heads: int = 4,
         attention_layer_type: str = "rel_selfattn",
         pos_enc_layer_type: str = "rel_pos",
         rel_pos_type: str = "latest",
-        use_cgmlp: bool = True,
         cgmlp_linear_units: int = 2048,
         cgmlp_conv_kernel: int = 31,
         use_linear_after_conv: bool = False,
@@ -212,9 +203,8 @@ class EBranchformerEncoder(AbsEncoder):
         macaron_ffn: bool = False,
         ffn_activation_type: str = "swish",
         linear_units: int = 2048,
-        positionwise_layer_type: str = None,
+        positionwise_layer_type: str = "linear",
         merge_conv_kernel: int = 3,
-        merge_stride: int = 1,
     ):
         assert check_argument_types()
         super().__init__()
@@ -312,7 +302,7 @@ class EBranchformerEncoder(AbsEncoder):
         elif positionwise_layer_type is None:
             logging.warning("no macaron ffn")
         else:
-            raise NotImplementedError("Support only linear or conv1d.")
+            raise ValueError("Support only linear.")
 
         if attention_layer_type == "selfattn":
             encoder_selfattn_layer = MultiHeadedAttention
@@ -366,15 +356,12 @@ class EBranchformerEncoder(AbsEncoder):
             num_blocks,
             lambda lnum: EBranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args)
-                if use_attn
-                else None,
-                cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
+                encoder_selfattn_layer(*encoder_selfattn_layer_args),
+                cgmlp_layer(*cgmlp_layer_args),
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
                 positionwise_layer(*positionwise_layer_args) if use_ffn and macaron_ffn else None,
                 dropout_rate,
                 merge_conv_kernel,
-                merge_stride,
             ),
             layer_drop_rate,
         )
