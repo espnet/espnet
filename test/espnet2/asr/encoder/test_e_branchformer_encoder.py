@@ -78,9 +78,7 @@ def test_encoder_invalid_layer_type():
             20, pos_enc_layer_type="abc_pos", attention_layer_type="dummy"
         )
     with pytest.raises(ValueError):
-        EBranchformerEncoder(
-            20, positionwise_layer_type="dummy"
-        )
+        EBranchformerEncoder(20, positionwise_layer_type="dummy")
 
 
 def test_encoder_invalid_rel_pos_combination():

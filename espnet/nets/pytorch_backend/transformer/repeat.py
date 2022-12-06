@@ -11,6 +11,7 @@ import torch
 
 class MultiSequential(torch.nn.Sequential):
     """Multi-input multi-output torch.nn.Sequential."""
+
     def __init__(self, *args, layer_drop_rate):
         super(MultiSequential, self).__init__(*args)
         self.layer_drop_rate = layer_drop_rate

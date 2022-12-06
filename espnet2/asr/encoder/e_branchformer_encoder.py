@@ -90,13 +90,13 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         self.dropout = torch.nn.Dropout(dropout_rate)
 
         self.depthwise_conv_fusion = torch.nn.Conv1d(
-                size + size,
-                size + size,
-                kernel_size=merge_conv_kernel,
-                stride=1,
-                padding=(merge_conv_kernel - 1) // 2,
-                groups=size + size,
-                bias=True,
+            size + size,
+            size + size,
+            kernel_size=merge_conv_kernel,
+            stride=1,
+            padding=(merge_conv_kernel - 1) // 2,
+            groups=size + size,
+            bias=True,
         )
         self.merge_proj = torch.nn.Linear(size + size, size)
 
@@ -359,7 +359,9 @@ class EBranchformerEncoder(AbsEncoder):
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 cgmlp_layer(*cgmlp_layer_args),
                 positionwise_layer(*positionwise_layer_args) if use_ffn else None,
-                positionwise_layer(*positionwise_layer_args) if use_ffn and macaron_ffn else None,
+                positionwise_layer(*positionwise_layer_args)
+                if use_ffn and macaron_ffn
+                else None,
                 dropout_rate,
                 merge_conv_kernel,
             ),
