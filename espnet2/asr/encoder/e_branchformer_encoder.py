@@ -106,7 +106,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
                 - w/o pos emb: Tensor (#batch, time, size).
-            mask (torch.Tensor): Mask tensor for the input (#batch, time).
+            mask (torch.Tensor): Mask tensor for the input (#batch, 1, time).
             cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).
         Returns:
             torch.Tensor: Output tensor (#batch, time, size).
