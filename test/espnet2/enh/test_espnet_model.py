@@ -27,6 +27,7 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
 
 stft_encoder = STFTEncoder(n_fft=32, hop_length=16)
@@ -450,6 +451,9 @@ def test_forward_with_beamformer_net(
     if not is_torch_1_9_plus and use_builtin_complex:
         # builtin complex support is only well supported in PyTorch 1.9+
         return
+    if is_torch_1_12_1_plus and not use_builtin_complex:
+        # non-builtin complex support is deprecated in PyTorch 1.12.1+
+        return
 
     ch = 3
     inputs = random_speech[..., :ch].float()
@@ -480,6 +484,7 @@ def test_forward_with_beamformer_net(
         ref_channel=0,
         use_noise_mask=False,
         beamformer_type="mvdr_souden",
+        use_torchaudio_api=is_torch_1_12_1_plus,
     )
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,

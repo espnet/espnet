@@ -42,6 +42,7 @@ class NeuralBeamformer(AbsSeparator):
         rtf_iterations: int = 2,
         bdropout_rate: float = 0.0,
         shared_power: bool = True,
+        use_torchaudio_api: bool = False,
         # For numerical stability
         diagonal_loading: bool = True,
         diag_eps_wpe: float = 1e-7,
@@ -115,6 +116,7 @@ class NeuralBeamformer(AbsSeparator):
                 mask_flooring=mask_flooring,
                 flooring_thres=flooring_thres_bf,
                 use_torch_solver=use_torch_solver,
+                use_torchaudio_api=use_torchaudio_api,
             )
         else:
             self.beamformer = None

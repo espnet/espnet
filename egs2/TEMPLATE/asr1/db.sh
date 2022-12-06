@@ -48,6 +48,7 @@ TEDXJP=
 LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
 FSC=
+MELD=downloads
 SLURP=
 SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
@@ -116,6 +117,7 @@ YESNO=downloads
 YOLOXOCHITL_MIXTEC=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
+HOW2_2kH=downloads/how2_release
 ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
@@ -163,6 +165,10 @@ IAM=downloads
 OFUTON=
 OPENCPOP=
 M_AILABS=downloads
+CATSLU=downloads
+ELRA_E0024=
+ELRA_S0272=
+ELRA_S0371=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

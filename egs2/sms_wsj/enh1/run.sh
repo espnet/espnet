@@ -26,4 +26,5 @@ test_sets="test_eval92"
     --use_dereverb_ref false \
     --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
+    --audio_format wav \
     "$@"
