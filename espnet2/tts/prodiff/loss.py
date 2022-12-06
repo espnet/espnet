@@ -93,7 +93,10 @@ class SSimLoss(torch.nn.Module):
 
 
 class ProDiffLoss(torch.nn.Module):
-    """Loss function module for ProDiffLoss."""
+    """Loss function module for ProDiffLoss.
+    
+        Includes also SSimLoss from https://github.com/Po-Hsun-Su/pytorch-ssim.
+    """
 
     def __init__(
         self,
