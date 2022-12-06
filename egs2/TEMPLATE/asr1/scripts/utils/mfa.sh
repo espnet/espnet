@@ -57,18 +57,18 @@ mfa align "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" ./textgri
 echo "Successfully finished generating MFA alignments."
 
 # NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
-#   please check `egs2/ljspeech/tts1/run_mfa.sh`. For example:
-# $ ./run_mfa.sh --stage 0 --stop_stage 0
-# $ ./run_mfa.sh --stage 1 --stop_stage 1
-# $ ./run_mfa.sh --stage 2 --stop_stage 2
-# $ ./run_mfa.sh --stage 3 --stop_stage 3
-# $ ./run_mfa.sh --stage 4 --stop_stage 4
-# $ ./run_mfa.sh --stage 5 --stop_stage 5 \
+#   please check `egs2/ljspeech/tts1/local/run_mfa.sh`. For example:
+# $ ./local/run_mfa.sh --stage 0 --stop_stage 0
+# $ ./local/run_mfa.sh --stage 1 --stop_stage 1
+# $ ./local/run_mfa.sh --stage 2 --stop_stage 2
+# $ ./local/run_mfa.sh --stage 3 --stop_stage 3
+# $ ./local/run_mfa.sh --stage 4 --stop_stage 4
+# $ ./local/run_mfa.sh --stage 5 --stop_stage 5 \
 #     --train_config conf/tuning/train_fastspeech2.yaml \
 #     --teacher_dumpdir data \
 #     --tts_stats_dir data/stats \
 #     --write_collected_feats true
-# $ ./run_mfa.sh --stage 6 --stop_stage 6 \
+# $ ./local/run_mfa.sh --stage 6 --stop_stage 6 \
 #     --train_config conf/tuning/train_fastspeech2.yaml \
 #     --teacher_dumpdir data \
 #     --tts_stats_dir data/stats

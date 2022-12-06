@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
+
 # This script is specifically for training with the Montreal Forced Aligner (MFA).
+# If you want to run this script, please make sure to run scripts/utils/mfa.sh to generate TextGrid files.
 # Importantly, since MFA uses its own custom phonemes, we set token_type to "phn" and g2p to "none".
 # Also, default config is for FastSpeech2 since it's the one that uses MFA.
+
 set -e
 set -u
 set -o pipefail
@@ -24,7 +27,6 @@ test_sets="dev eval1"
 
 train_config=conf/tuning/train_fastspeech2.yaml
 inference_config=conf/decode_fastspeech.yaml
-
 
 ./tts.sh \
     --lang en \
