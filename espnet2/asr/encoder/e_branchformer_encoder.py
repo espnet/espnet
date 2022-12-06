@@ -10,9 +10,8 @@ Reference:
 """
 
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple
 
-import numpy
 import torch
 from typeguard import check_argument_types
 
@@ -48,6 +47,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 class EBranchformerEncoderLayer(torch.nn.Module):
     """E-Branchformer encoder layer module.
+
     Args:
         size (int): model dimension
         attn: standard self-attention or efficient attention
@@ -102,6 +102,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
     def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
+
         Args:
             x_input (Union[Tuple, torch.Tensor]): Input tensor w/ or w/o pos emb.
                 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
@@ -379,6 +380,7 @@ class EBranchformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
+
         Args:
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
