@@ -85,6 +85,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     if "${use_mfa}"; then  # text should be phonemes!
         log "Using phonemes for text"
+        if [ ! -e textgrids ]; then
+            echo "ERROR: You need to run scripts/utils/mfa.sh at first."
+            exit 1
+        fi
         python scripts/utils/mfa_format.py validate  # please check: no output means all are ok
         python scripts/utils/mfa_format.py durations --wavs_dir "${wavs_dir}"
     else
