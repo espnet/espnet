@@ -100,12 +100,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 1: utils/subset_data_dir.sg"
+    log "stage 1: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
-    utils/subset_data_dir.sh --last data/train 2620 data/deveval
-    utils/subset_data_dir.sh --last data/deveval 1310 data/${eval_set}
-    utils/subset_data_dir.sh --first data/deveval 1310 data/${train_dev}
-    n=$(( $(wc -l < data/train/wav.scp) - 2620 ))
+    utils/subset_data_dir.sh --last data/train 500 data/deveval
+    utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}
+    utils/subset_data_dir.sh --first data/deveval 250 data/${train_dev}
+    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
     utils/subset_data_dir.sh --first data/train ${n} data/${train_set}
 fi
 
