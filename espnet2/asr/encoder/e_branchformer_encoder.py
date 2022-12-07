@@ -31,7 +31,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
@@ -55,7 +55,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         feed_forward: feed-forward module, optional
         feed_forward: macaron-style feed-forward module, optional
         dropout_rate (float): dropout probability
-        merge_conv_kernel (int): kernel size of the depth-wise convolution in the merge module
+        merge_conv_kernel (int): kernel size of the depth-wise conv in merge module
     """
 
     def __init__(
