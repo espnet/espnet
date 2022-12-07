@@ -117,6 +117,7 @@ YESNO=downloads
 YOLOXOCHITL_MIXTEC=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
+HOW2_2kH=downloads/how2_release
 ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
