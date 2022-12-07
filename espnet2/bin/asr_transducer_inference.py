@@ -212,7 +212,9 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        feats, feats_length = self.audio_processor.compute_features(speech, is_final)
+        feats, feats_length = self.audio_processor.compute_features(
+            speech.to(getattr(torch, self.dtype)), is_final
+        )
 
         enc_out = self.asr_model.encoder.chunk_forward(
             feats,
@@ -245,9 +247,9 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        speech = speech.unsqueeze(0)
+        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        
+
         feats, feats_length = self.asr_model._extract_feats(speech, lengths)
 
         if self.asr_model.normalize is not None:
@@ -458,7 +460,7 @@ def inference(
                     speech = batch["speech"]
 
                     decoding_window = speech2text.audio_processor.decoding_window
-                    decoding_steps = len(batch["speech"]) // decoding_window  # + 1
+                    decoding_steps = len(speech) // decoding_window
 
                     for i in range(0, decoding_steps + 1, 1):
                         _start = i * decoding_window
@@ -478,8 +480,6 @@ def inference(
                     final_hyps = speech2text(**batch)
 
                 results = speech2text.hypotheses_to_results(final_hyps)
-                # print(results[0][0])
-                # exit(1)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, yseq=[], dec_state=None)
@@ -647,8 +647,8 @@ def get_parser():
         "--left_context",
         type=int,
         default=32,
-        help="""Number of previous frames seen by the encoder during decoding. The given number
-        is after applying subsampling.""",
+        help="""Number of previous frames seen by the encoder during decoding.
+        The given number is after applying subsampling.""",
     )
     parser.add_argument(
         "--display_partial_hypotheses",

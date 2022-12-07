@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Tuple
 
-from espnet2.asr_transducer.utils import sub_factor_to_params
+from espnet2.asr_transducer.utils import get_convinput_module_parameters
 
 
 def validate_block_arguments(
@@ -95,32 +95,33 @@ def validate_input_block(
         if isinstance(conv_size, int):
             conv_size = (conv_size, conv_size)
 
-        assert sub_factor in {
-            4,
-            6,
-        }, "Subsampling factor for the VGG2L block should be either 4 or 6."
+        if sub_factor not in [4, 6]:
+            raise ValueError(
+                "VGG2L input module only support subsampling factor of 4 and 6."
+            )
     else:
         conv_size = configuration.get("conv_size", None)
 
         if isinstance(conv_size, tuple):
             conv_size = conv_size[0]
 
+        if sub_factor not in [2, 4, 6]:
+            raise ValueError(
+                "Conv2D input module only support subsampling factor of 2, 4 and 6."
+            )
+
     if next_block_type == "conv1d":
         if vgg_like:
-            output_size = conv_size[1] * ((input_size // 2) // 2)
+            _, output_size = get_convinput_module_parameters(
+                input_size, conv_size[1], sub_factor, is_vgg=True
+            )
         else:
             if conv_size is None:
                 conv_size = body_first_conf.get("output_size", 64)
 
-            _, _, conv_osize = sub_factor_to_params(sub_factor, input_size)
-            assert (
-                conv_osize > 0
-            ), "Conv2D output size is <1 with input size %d and subsampling %d" % (
-                input_size,
-                sub_factor,
+            _, output_size = get_convinput_module_parameters(
+                input_size, conv_size, sub_factor, is_vgg=False
             )
-
-            output_size = conv_osize * conv_size
 
         configuration["output_size"] = None
     else:

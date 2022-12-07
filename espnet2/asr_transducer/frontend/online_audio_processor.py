@@ -36,15 +36,15 @@ class OnlineAudioProcessor:
         self.decoding_window = int(decoding_window * audio_sampling_rate / 1000)
 
         self.chunk_sz_bs = self.decoding_window // self.hop_sz
-        self.offset = encoder_minimum_feats + encoder_subsampling_factor
+        self.offset = 3 * encoder_subsampling_factor
 
         self.feats_shift = self.chunk_sz_bs - self.offset
         self.minimum_feats_sz = encoder_minimum_feats + self.offset
 
-        assert self.chunk_sz_bs >= encoder_minimum_feats, (
+        assert self.chunk_sz_bs >= self.minimum_feats_sz, (
             "Specified decoding window length will yield %d feats. "
             "Minimum number of feats required is %d."
-            % (self.chunk_sz_bs, encoder_minimum_feats)
+            % (self.chunk_sz_bs, self.minimum_feats_sz)
         )
 
         self.feature_extractor = feature_extractor
@@ -62,7 +62,7 @@ class OnlineAudioProcessor:
         self.decoding_step = 0
 
     def compute_features(self, new_samples: torch.Tensor, is_final: bool) -> None:
-        """Add samples from audio source.
+        """Compute features from seen samples.
 
         Args:
             new_samples: Speech data. (S)

@@ -1,6 +1,6 @@
 """Utility functions for Transducer models."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import torch
 
@@ -45,29 +45,53 @@ def check_short_utt(sub_factor: int, size: int) -> Tuple[bool, int]:
     return False, -1
 
 
-def sub_factor_to_params(sub_factor: int, input_size: int) -> Tuple[int, int, int]:
-    """Get conv2D second layer parameters for given subsampling factor.
+def get_convinput_module_parameters(
+    input_size: int,
+    last_conv_size,
+    subsampling_factor: int,
+    is_vgg: bool = True,
+) -> Tuple[Union[Tuple[int, int], int], int]:
+    """Return the convolution module parameters.
 
     Args:
-        sub_factor: Subsampling factor (1/X).
-        input_size: Input size.
+        input_size: Module input size.
+        last_conv_size: Last convolution size for module output size computation.
+        subsampling_factor: Total subsampling factor.
+        is_vgg: Whether the module type is VGG-like.
 
     Returns:
-        : Kernel size for second convolution.
-        : Stride for second convolution.
-        : Conv2DSubsampling output size.
+        : First MaxPool2D kernel size or second Conv2d kernel size and stride.
+        output_size: Convolution module output size.
 
     """
-    if sub_factor == 2:
-        return 3, 1, (((input_size - 1) // 2 - 2))
-    elif sub_factor == 4:
-        return 3, 2, (((input_size - 1) // 2 - 1) // 2)
-    elif sub_factor == 6:
-        return 5, 3, (((input_size - 1) // 2 - 2) // 3)
-    else:
-        raise ValueError(
-            "subsampling_factor parameter should be set to either 2, 4 or 6."
-        )
+    if is_vgg:
+        # if subsampling_factor not in [4, 6]:
+        #     raise ValueError(
+        #         "VGG-like input module only support subsampling factor of 4 and 6."
+        #     )
+
+        maxpool_kernel1 = subsampling_factor // 2
+
+        output_size = last_conv_size * (((input_size - 1) // 2 - 1) // 2)
+
+        return maxpool_kernel1, output_size
+
+    if subsampling_factor == 2:
+        conv_params = (3, 1)
+    elif subsampling_factor == 4:
+        conv_params = (3, 2)
+    else:  # if subsampling_factor == 6:
+        conv_params = (5, 3)
+    # else:
+    #     raise ValueError(
+    #         "Conv2D input module only support subsampling factor of 2, 4 and 6."
+    #     )
+
+    output_size = last_conv_size * (
+        ((input_size - 1) // 2 - (conv_params[0] - conv_params[1])) // conv_params[1]
+    )
+
+    return conv_params, output_size
 
 
 def make_chunk_mask(
