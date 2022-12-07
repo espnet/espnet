@@ -505,10 +505,17 @@ class ESPnetSVSModel(AbsESPnetModel):
             beat_lengths.update(score_syb=beat_score_syb_lengths_after)
         batch.update(beat=beat, beat_lengths=beat_lengths)
 
+        # duration
+        # NOTE(Yuning): The value of duration can be different from beat.
+        # Duration Predictor should use duration as ground truth.
+        # TODO(Yuning): beat and duration can be merged.
+        duration = dict()
         if ds is not None:
-            batch.update(ds=ds)
+            duration.update(phn=ds)
         if ds_syb is not None:
-            batch.update(ds_syb=ds_syb)
+            duration.update(syb=ds_syb)
+        batch.update(duration=duration)
+
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -1025,10 +1032,14 @@ class ESPnetSVSModel(AbsESPnetModel):
             beat.update(score_syb=beat_syb_score)
         input_dict.update(beat=beat)
 
+        # duration
+        duration = dict()
         if ds is not None:
-            input_dict.update(ds=ds)
+            duration.update(phn=ds)
         if ds_syb is not None:
-            input_dict.update(ds_syb=ds_syb)
+            duration.update(syb=ds_syb)
+        input_dict.update(duration=duration)
+
         if pitch is not None:
             input_dict.update(pitch=pitch)
         if spembs is not None:

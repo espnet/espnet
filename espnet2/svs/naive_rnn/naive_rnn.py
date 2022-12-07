@@ -300,8 +300,7 @@ class NaiveRNN(AbsSVS):
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
-        ds: Optional[torch.Tensor] = None,
-        ds_syb: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -326,13 +325,14 @@ class NaiveRNN(AbsSVS):
                 value (LongTensor): Batch of padded tempo (B, Tmax).
             tempo_lengths (Optional[Dict]):  key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
-            ds:
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -351,6 +351,7 @@ class NaiveRNN(AbsSVS):
         midi = melody["lab"]
         label_lengths = label_lengths["lab"]
         midi_lengths = melody_lengths["lab"]
+        ds = duration["phn"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -455,8 +456,7 @@ class NaiveRNN(AbsSVS):
         tempo: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
-        ds: Optional[torch.Tensor] = None,
-        ds_syb: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -472,10 +472,11 @@ class NaiveRNN(AbsSVS):
                 value (LongTensor): Batch of padded melody (Tmax).
             tempo (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded tempo (Tmax).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_phn";
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (Tmax).
             pitch (FloatTensor): Batch of padded f0 (Tmax).
-            ds
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
@@ -486,6 +487,7 @@ class NaiveRNN(AbsSVS):
         """
         label = label["lab"]
         midi = melody["lab"]
+        ds = duration["phn"]
 
         label_emb = self.encoder_input_layer(label)
         midi_emb = self.midi_encoder_input_layer(midi)
