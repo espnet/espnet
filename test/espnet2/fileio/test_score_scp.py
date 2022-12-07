@@ -6,7 +6,12 @@ try:
 except ImportError or ModuleNotFoundError:
     m21 = None
 
-from espnet2.fileio import NOTE, SingingScoreReader, SingingScoreWriter, XMLReader
+from espnet2.fileio.score_scp import (
+    NOTE,
+    SingingScoreReader,
+    SingingScoreWriter,
+    XMLReader,
+)
 
 
 def test_XMLReader(tmp_path: Path):
