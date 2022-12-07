@@ -489,7 +489,6 @@ class NaiveRNNDP(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         tempo = beat["score_phn"]
-        ds = duration["phn"]
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)

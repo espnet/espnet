@@ -351,7 +351,6 @@ class NaiveRNN(AbsSVS):
         midi = melody["lab"]
         label_lengths = label_lengths["lab"]
         midi_lengths = melody_lengths["lab"]
-        ds = duration["phn"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -487,7 +486,6 @@ class NaiveRNN(AbsSVS):
         """
         label = label["lab"]
         midi = melody["lab"]
-        ds = duration["phn"]
 
         label_emb = self.encoder_input_layer(label)
         midi_emb = self.midi_encoder_input_layer(midi)

@@ -585,6 +585,7 @@ class XiaoiceSing(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         tempo = beat["score_syb"]
+        ds = duration["phn"]
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
