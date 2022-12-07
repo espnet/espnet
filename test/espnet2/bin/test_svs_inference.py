@@ -47,6 +47,10 @@ def config_file(tmp_path: Path, token_list):
             "none",
             "--normalize",
             "none",
+            "--feats_extract_conf",
+            "hop_length=300",
+            "--feats_extract_conf",
+            "fs=24000",
         ]
     )
     return tmp_path / "config.yaml"
