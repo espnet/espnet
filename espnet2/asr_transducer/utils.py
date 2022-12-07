@@ -65,11 +65,6 @@ def get_convinput_module_parameters(
 
     """
     if is_vgg:
-        # if subsampling_factor not in [4, 6]:
-        #     raise ValueError(
-        #         "VGG-like input module only support subsampling factor of 4 and 6."
-        #     )
-
         maxpool_kernel1 = subsampling_factor // 2
 
         output_size = last_conv_size * (((input_size - 1) // 2 - 1) // 2)
@@ -80,12 +75,8 @@ def get_convinput_module_parameters(
         conv_params = (3, 1)
     elif subsampling_factor == 4:
         conv_params = (3, 2)
-    else:  # if subsampling_factor == 6:
+    else:
         conv_params = (5, 3)
-    # else:
-    #     raise ValueError(
-    #         "Conv2D input module only support subsampling factor of 2, 4 and 6."
-    #     )
 
     output_size = last_conv_size * (
         ((input_size - 1) // 2 - (conv_params[0] - conv_params[1])) // conv_params[1]
