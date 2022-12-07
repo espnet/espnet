@@ -328,7 +328,7 @@ class NaiveRNNDP(AbsSVS):
 
         GS Fix:
             arguements from forward func. V.S. **batch from espnet_model.py
-            label == durations ｜ phone sequence
+            label == durations | phone sequence
             melody -> pitch sequence
 
         Returns:

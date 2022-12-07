@@ -41,8 +41,12 @@ fi
 
 . ./path.sh  # Setup the environment
 
-scp_dir=$1
-# NOTE(Yuning): If orgin scores are segmented here, scp_filw need to be fixed like wav.scp.
+scp=$1
+if [ ! -f "${scp}" ]; then
+    log "${help_message}"
+    echo "$0: Error: No such file: ${scp}"
+    exit 1
+fi
 dir=$2
 
 
@@ -81,13 +85,12 @@ if [ -n "${segments}" ]; then
         pyscripts/audio/format_score_scp.py \
             ${opts} \
             "--segment=${logdir}/segments.JOB" \
-            "${scp_dir}" "${outdir}/format_score.JOB"
+            "${scp}" "${outdir}/format_score.JOB"
 
 else
-    # NOTE(Yuning): We dont't have score_scp without segment.
-    # Scores are segmented in stage 1 now.
+    # NOTE(Yuning): Scores are segmented in stage 1 now.
     log "[info]: without segments"
-    nutt=$(<${scp_dir}/score.scp wc -l)
+    nutt=$(<${scp} wc -l)
     nj=$((nj<nutt?nj:nutt))
 
     split_scps=""
@@ -95,13 +98,11 @@ else
         split_scps="${split_scps} ${logdir}/score.${n}.scp"
     done
 
-    utils/split_scp.pl "${scp_dir}/score.scp" ${split_scps}
-    
+    utils/split_scp.pl "${scp}" ${split_scps}
     ${cmd} "JOB=1:${nj}" "${logdir}/format_score_scp.JOB.log" \
         pyscripts/audio/format_score_scp.py \
         ${opts} \
-        "--segment=${logdir}/segments.JOB" \
-        "${scp_dir}/score.scp" "${outdir}/format_score.JOB"
+        "${logdir}/score.JOB.scp" "${outdir}/format_score.JOB"
 fi
 
 # Workaround for the NFS problem
