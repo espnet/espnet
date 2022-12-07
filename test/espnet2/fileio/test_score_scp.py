@@ -1,8 +1,12 @@
+import json
 from pathlib import Path
 
-import music21 as m21
+try:
+    import music21 as m21  # for CI import
+except ImportError or ModuleNotFoundError:
+    m21 = None
 
-from espnet2.fileio import NOTE, XMLReader  # SingingScoreReader, SingingScoreWriter
+from espnet2.fileio import NOTE, SingingScoreReader, SingingScoreWriter, XMLReader
 
 
 def test_XMLReader(tmp_path: Path):
@@ -34,3 +38,42 @@ def test_XMLReader(tmp_path: Path):
     assert val[0] == 120
     notes_list = [NOTE("P", 0, 0, 0.5), NOTE("a", 20, 0.5, 1.5)]
     assert val[1] == notes_list
+
+
+def test_SingingScoreReader(tmp_path: Path):
+    dic = {}
+    tempo = 100
+    item_list = ["st", "et", "lyric", "midi", "phn"]
+    notes_list = [[0.0, 1.0, "a", 20, "a"], [1.0, 2.2, "b_c", 22, "b_c"]]
+    dic.update(tempo=tempo, item_list=item_list, note=notes_list)
+
+    score_path = tmp_path / "abc.json"
+    with open(score_path, "w") as f:
+        json.dump(dic, f, ensure_ascii=False, indent=2)
+
+    p = tmp_path / "dummy.scp"
+    with p.open("w") as f:
+        f.write(f"abc {score_path}\n")
+
+    reader = SingingScoreReader(p)
+    val = reader["abc"]
+
+    assert val == dic
+
+
+def test_SingingScoreWriter(tmp_path: Path):
+    dic = {}
+    tempo = 100
+    item_list = ["st", "et", "lyric", "midi", "phn"]
+    notes_list = [[0.0, 1.0, "a", 20, "a"], [1.0, 2.2, "b_c", 22, "b_c"]]
+    dic.update(tempo=tempo, item_list=item_list, note=notes_list)
+
+    p = tmp_path / "dummy.scp"
+
+    writer = SingingScoreWriter(tmp_path, p)
+    writer["abc"] = dic
+
+    reader = SingingScoreReader(p)
+    val = reader["abc"]
+
+    assert val == dic
