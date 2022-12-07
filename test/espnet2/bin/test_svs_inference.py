@@ -2,6 +2,7 @@ import string
 from argparse import ArgumentParser
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from espnet2.bin.svs_inference import SingingGenerate, get_parser, main
@@ -59,5 +60,5 @@ def config_file(tmp_path: Path, token_list):
 @pytest.mark.execution_timeout(5)
 def test_SingingGenerate(config_file):
     singinggenerate = SingingGenerate(train_config=config_file)
-    text = "aiueo"
+    text = np.array([2, 3, 4])
     singinggenerate(text)

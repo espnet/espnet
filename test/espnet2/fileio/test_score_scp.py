@@ -56,7 +56,7 @@ def test_SingingScoreReader(tmp_path: Path):
     with open(score_path, "w") as f:
         json.dump(dic, f, ensure_ascii=False, indent=2)
 
-    p = tmp_path / "dummy.scp"
+    p = tmp_path / "dummy1.scp"
     with p.open("w") as f:
         f.write(f"abc {score_path}\n")
 
@@ -73,7 +73,7 @@ def test_SingingScoreWriter(tmp_path: Path):
     notes_list = [[0.0, 1.0, "a", 20, "a"], [1.0, 2.2, "b_c", 22, "b_c"]]
     dic.update(tempo=tempo, item_list=item_list, note=notes_list)
 
-    p = tmp_path / "dummy.scp"
+    p = tmp_path / "dummy2.scp"
 
     writer = SingingScoreWriter(tmp_path, p)
     writer["abc"] = dic
