@@ -93,8 +93,8 @@ class NaiveRNN(AbsSVS):
         self,
         # network structure related
         idim: int,
-        midi_dim: int,
         odim: int,
+        midi_dim: int = 129,
         embed_dim: int = 512,
         eprenet_conv_layers: int = 3,
         eprenet_conv_chans: int = 256,

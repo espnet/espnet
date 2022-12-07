@@ -35,10 +35,10 @@ class NaiveRNNDP(AbsSVS):
         self,
         # network structure related
         idim: int,
-        midi_dim: int,
-        tempo_dim: int,
         odim: int,
+        midi_dim: int = 129,
         embed_dim: int = 512,
+        tempo_dim: int = 500,
         eprenet_conv_layers: int = 3,
         eprenet_conv_chans: int = 256,
         eprenet_conv_filts: int = 5,

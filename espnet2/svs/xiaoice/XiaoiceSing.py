@@ -51,10 +51,10 @@ class XiaoiceSing(AbsSVS):
         self,
         # network structure related
         idim: int,
-        midi_dim: int,
-        tempo_dim: int,
         odim: int,
-        embed_dim: int,
+        midi_dim: int = 129,
+        tempo_dim: int = 500,
+        embed_dim: int = 512,
         adim: int = 384,
         aheads: int = 4,
         elayers: int = 6,
