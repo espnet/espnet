@@ -95,7 +95,7 @@ requirements = {
         "flake8-docstrings>=1.3.1",
         "black",
         "isort",
-        "music21"
+        "music21",
     ],
     "doc": [
         "Jinja2<3.1",
