@@ -1,8 +1,7 @@
 import json
-import os
 from pathlib import Path
-import music21 as m21
 
+import music21 as m21
 
 from espnet2.fileio.score_scp import (
     NOTE,
