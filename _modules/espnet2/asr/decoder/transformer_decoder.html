@@ -416,6 +416,7 @@
         <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">PositionalEncoding</span><span class="p">,</span>
         <span class="n">normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">layer_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -445,6 +446,7 @@
                 <span class="n">normalize_before</span><span class="p">,</span>
                 <span class="n">concat_after</span><span class="p">,</span>
             <span class="p">),</span>
+            <span class="n">layer_drop_rate</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 

@@ -7781,12 +7781,12 @@ signature.)</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, idim).</p></li>
-<li><p><strong>masks</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, time).</p></li>
+<li><p><strong>masks</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, 1, time).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, attention_dim).
-torch.Tensor: Mask tensor (#batch, time).</p>
+torch.Tensor: Mask tensor (#batch, 1, time).</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>torch.Tensor</p>
@@ -7843,13 +7843,13 @@ as-is with given probability.</p></li>
 <li><p><strong>x_input</strong> (<em>Union</em><em>[</em><em>Tuple</em><em>, </em><em>torch.Tensor</em><em>]</em>) – Input tensor w/ or w/o pos emb.
 - w/ pos emb: Tuple of tensors [(#batch, time, size), (1, time, size)].
 - w/o pos emb: Tensor (#batch, time, size).</p></li>
-<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, time).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, 1, time).</p></li>
 <li><p><strong>cache</strong> (<em>torch.Tensor</em>) – Cache tensor of the input (#batch, time - 1, size).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, size).
-torch.Tensor: Mask tensor (#batch, time).</p>
+torch.Tensor: Mask tensor (#batch, 1, time).</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>torch.Tensor</p>
@@ -7909,7 +7909,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_input</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, size).</p></li>
-<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, time).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, 1, time).</p></li>
 <li><p><strong>past_ctx</strong> (<em>torch.Tensor</em>) – Previous contexutal vector</p></li>
 <li><p><strong>next_ctx</strong> (<em>torch.Tensor</em>) – Next contexutal vector</p></li>
 <li><p><strong>cache</strong> (<em>torch.Tensor</em>) – Cache tensor of the input (#batch, time - 1, size).</p></li>
@@ -7917,7 +7917,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, size).
-torch.Tensor: Mask tensor (#batch, time).
+torch.Tensor: Mask tensor (#batch, 1, time).
 cur_ctx (torch.Tensor): Current contexutal vector
 next_ctx (torch.Tensor): Next contexutal vector
 layer_idx (int): layer index number</p>
@@ -10537,12 +10537,12 @@ signature.)</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, idim).</p></li>
-<li><p><strong>masks</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, time).</p></li>
+<li><p><strong>masks</strong> (<em>torch.Tensor</em>) – Mask tensor (#batch, 1, time).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, attention_dim).
-torch.Tensor: Mask tensor (#batch, time).</p>
+torch.Tensor: Mask tensor (#batch, 1, time).</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>torch.Tensor</p>
@@ -10746,13 +10746,13 @@ as-is with given probability.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_input</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, size).</p></li>
-<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, time).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, 1, time).</p></li>
 <li><p><strong>cache</strong> (<em>torch.Tensor</em>) – Cache tensor of the input (#batch, time - 1, size).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, size).
-torch.Tensor: Mask tensor (#batch, time).</p>
+torch.Tensor: Mask tensor (#batch, 1, time).</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>torch.Tensor</p>
@@ -10875,7 +10875,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_input</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, size).</p></li>
-<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, time).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, 1, time).</p></li>
 <li><p><strong>past_ctx</strong> (<em>torch.Tensor</em>) – Previous contexutal vector</p></li>
 <li><p><strong>next_ctx</strong> (<em>torch.Tensor</em>) – Next contexutal vector</p></li>
 <li><p><strong>cache</strong> (<em>torch.Tensor</em>) – Cache tensor of the input (#batch, time - 1, size).</p></li>
@@ -10883,7 +10883,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, size).
-torch.Tensor: Mask tensor (#batch, time).
+torch.Tensor: Mask tensor (#batch, 1, time).
 cur_ctx (torch.Tensor): Current contexutal vector
 next_ctx (torch.Tensor): Next contexutal vector
 layer_idx (int): layer index number</p>
@@ -10902,7 +10902,7 @@ layer_idx (int): layer index number</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x_input</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, size).</p></li>
-<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, time).</p></li>
+<li><p><strong>mask</strong> (<em>torch.Tensor</em>) – Mask tensor for the input (#batch, 1, time).</p></li>
 <li><p><strong>past_ctx</strong> (<em>torch.Tensor</em>) – Previous contexutal vector</p></li>
 <li><p><strong>next_ctx</strong> (<em>torch.Tensor</em>) – Next contexutal vector</p></li>
 <li><p><strong>cache</strong> (<em>torch.Tensor</em>) – Cache tensor of the input (#batch, time - 1, size).</p></li>
@@ -10910,7 +10910,7 @@ layer_idx (int): layer index number</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Output tensor (#batch, time, size).
-torch.Tensor: Mask tensor (#batch, time).
+torch.Tensor: Mask tensor (#batch, 1, time).
 cur_ctx (torch.Tensor): Current contexutal vector
 next_ctx (torch.Tensor): Next contexutal vector
 layer_idx (int): layer index number</p>
@@ -11259,9 +11259,15 @@ torch.Tensor: Encoded memory mask (#batch, maxlen_in).</p>
 <span class="target" id="module-espnet.nets.pytorch_backend.transformer.repeat"></span><p>Repeat the same layer definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.repeat.MultiSequential">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.repeat.</code><code class="sig-name descname">MultiSequential</code><span class="sig-paren">(</span><em class="sig-param">*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/repeat.html#MultiSequential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.repeat.MultiSequential" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.repeat.</code><code class="sig-name descname">MultiSequential</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">layer_drop_rate=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/repeat.html#MultiSequential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.repeat.MultiSequential" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.container.Sequential</span></code></p>
 <p>Multi-input multi-output torch.nn.Sequential.</p>
+<p>Initialize MultiSequential with layer_drop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>layer_drop_rate</strong> (<em>float</em>) – Probability of dropping out each fn (layer).</p>
+</dd>
+</dl>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.repeat.MultiSequential.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">*args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/repeat.html#MultiSequential.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.repeat.MultiSequential.forward" title="Permalink to this definition">¶</a></dt>
@@ -11272,13 +11278,14 @@ torch.Tensor: Encoded memory mask (#batch, maxlen_in).</p>
 
 <dl class="function">
 <dt id="espnet.nets.pytorch_backend.transformer.repeat.repeat">
-<code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.repeat.</code><code class="sig-name descname">repeat</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/repeat.html#repeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.repeat.repeat" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.repeat.</code><code class="sig-name descname">repeat</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">fn</em>, <em class="sig-param">layer_drop_rate=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/repeat.html#repeat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.repeat.repeat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Repeat module N times.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>N</strong> (<em>int</em>) – Number of repeat time.</p></li>
 <li><p><strong>fn</strong> (<em>Callable</em>) – Function to generate module.</p></li>
+<li><p><strong>layer_drop_rate</strong> (<em>float</em>) – Probability of dropping out each fn (layer).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

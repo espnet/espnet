@@ -290,6 +290,17 @@ espnet2.asr.encoder.longformer_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.e_branchformer_encoder:
+
+espnet2.asr.encoder.e_branchformer_encoder
+------------------------------------------
+
+.. automodule:: espnet2.asr.encoder.e_branchformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.hubert_encoder:
 
 espnet2.asr.encoder.hubert_encoder

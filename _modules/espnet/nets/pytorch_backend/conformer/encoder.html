@@ -415,11 +415,11 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (torch.Tensor): Input tensor (#batch, time, idim).</span>
-<span class="sd">            masks (torch.Tensor): Mask tensor (#batch, time).</span>
+<span class="sd">            masks (torch.Tensor): Mask tensor (#batch, 1, time).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: Output tensor (#batch, time, attention_dim).</span>
-<span class="sd">            torch.Tensor: Mask tensor (#batch, time).</span>
+<span class="sd">            torch.Tensor: Mask tensor (#batch, 1, time).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="p">(</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="n">VGG2L</span><span class="p">)):</span>
