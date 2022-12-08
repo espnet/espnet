@@ -205,7 +205,7 @@ longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
 
-muskit.done: espnet.done
+muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
 	touch muskits.done
 

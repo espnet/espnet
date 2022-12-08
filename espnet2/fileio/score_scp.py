@@ -92,6 +92,9 @@ class XMLReader(collections.abc.Mapping):
                     notes_list.append(NOTE("P", 0, st, st + dur))
                 prepitch = 0
             st += dur
+        # NOTE(Yuning): implicit rest at the end of xml file should be removed.
+        if notes_list[-1].midi == 0 and notes_list[-1].lyric == "P":
+            notes_list.pop()
         return tempo, notes_list
 
     def get_path(self, key):
