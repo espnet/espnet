@@ -15,6 +15,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolution2DTransformerDecoder,
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
+    TransformerMDDecoder,
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -122,6 +123,7 @@ decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -135,6 +137,7 @@ extra_asr_decoder_choices = ClassChoices(
     "extra_asr_decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -142,7 +145,8 @@ extra_asr_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
 )
 extra_mt_decoder_choices = ClassChoices(
     "extra_mt_decoder",
@@ -155,7 +159,21 @@ extra_mt_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
+)
+md_encoder_choices = ClassChoices(
+    "md_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
 )
 
 
@@ -183,6 +201,8 @@ class STTask(AbsTask):
         extra_asr_decoder_choices,
         # --extra_mt_decoder and --extra_mt_decoder_conf
         extra_mt_decoder_choices,
+        # --md_encoder and --md_encoder_conf
+        md_encoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -196,6 +216,13 @@ class STTask(AbsTask):
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
+
+        group.add_argument(
+            "--use_multidecoder",
+            type=str2bool,
+            default=False,
+            help="Use multidecoder model",
+        )
 
         group.add_argument(
             "--token_list",
@@ -550,9 +577,16 @@ class STTask(AbsTask):
                 **args.extra_mt_decoder_conf,
             )
         else:
-            extra_asr_decoder = None
+            extra_mt_decoder = None
 
-        # 8. Build model
+        # 9. MD encoder
+        if getattr(args, "md_encoder", None) is not None:
+            md_encoder_class = md_encoder_choices.get_class(args.md_encoder)
+            md_encoder = md_encoder_class(input_size=extra_asr_decoder._output_size_bf_softmax, **args.md_encoder_conf)
+        else:
+            md_encoder = None
+
+        # 10. Build model
         model = ESPnetSTModel(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,
@@ -561,6 +595,7 @@ class STTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
+            md_encoder=md_encoder,
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
