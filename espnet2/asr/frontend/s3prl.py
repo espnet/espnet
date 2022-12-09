@@ -7,9 +7,9 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
-from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters
 
 
 class S3prlFrontend(AbsFrontend):
