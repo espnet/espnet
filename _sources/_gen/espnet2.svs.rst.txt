@@ -91,3 +91,25 @@ espnet2.svs.feats_extract.score_feats_extract
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.svs.xiaoice.__init__:
+
+espnet2.svs.xiaoice.__init__
+----------------------------
+
+.. automodule:: espnet2.svs.xiaoice.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.XiaoiceSing:
+
+espnet2.svs.xiaoice.XiaoiceSing
+-------------------------------
+
+.. automodule:: espnet2.svs.xiaoice.XiaoiceSing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

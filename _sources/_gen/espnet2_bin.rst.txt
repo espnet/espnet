@@ -689,11 +689,12 @@ asr_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -1314,11 +1315,12 @@ asr_transducer_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -1874,11 +1876,12 @@ diar_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -2482,11 +2485,12 @@ enh_s2t_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -3087,11 +3091,12 @@ enh_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -3590,11 +3595,12 @@ gan_tts_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -4085,11 +4091,12 @@ hubert_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -4684,11 +4691,12 @@ lm_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -5226,11 +5234,12 @@ mt_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -5844,11 +5853,12 @@ st_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":
@@ -6519,11 +6529,12 @@ tts_train.py
                                utterance_id_b b.wav
                                ...
                             
-                            "midi":
-                            MIDI format types which supported by sndfile mid, midi, etc.
+                            "score":
+                            Return text as is. The text contains tempo and note info.
+                            For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
                             
-                               utterance_id_a a.mid
-                               utterance_id_b b.mid
+                               utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...
+                               utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...
                                ...
                             
                             "duration":

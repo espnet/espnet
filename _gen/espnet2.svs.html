@@ -145,6 +145,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-naive-rnn-naive-rnn-dp">espnet2.svs.naive_rnn.naive_rnn_dp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-feats-extract-init">espnet2.svs.feats_extract.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-feats-extract-score-feats-extract">espnet2.svs.feats_extract.score_feats_extract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-xiaoice-init">espnet2.svs.xiaoice.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-svs-xiaoice-xiaoicesing">espnet2.svs.xiaoice.XiaoiceSing</a></li>
 </ul>
 </li>
 </ul>
@@ -220,7 +222,7 @@
 <p>Initialize ESPnetSVSModel module.</p>
 <dl class="method">
 <dt id="espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -229,24 +231,41 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
 <li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
-<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_label).</p></li>
+<li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label lrngth tensor (B,).</p></li>
+<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_wav).</p></li>
 <li><p><strong>label_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
-<li><p><strong>label_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
-<li><p><strong>label_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
-<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>label_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_score).</p></li>
+<li><p><strong>label_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (B, T_syb)</p></li>
+<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_label).</p></li>
+<li><p><strong>midi_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi lrngth tensor (B,).</p></li>
+<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_wav).</p></li>
 <li><p><strong>midi_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
-<li><p><strong>midi_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
-<li><p><strong>midi_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
-<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor.</p></li>
-<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
-<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>midi_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_score).</p></li>
+<li><p><strong>midi_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>temp* is bpm ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (B, T_wav).</p></li>
 <li><p><strong>tempo_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
-<li><p><strong>tempo_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
-<li><p><strong>tempo_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
-<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>tempo_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (B, T_score).</p></li>
+<li><p><strong>tempo_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>beat* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>beat_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_label).</p></li>
+<li><p><strong>beat_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_phone).</p></li>
+<li><p><strong>beat_ruled_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_syb).</p></li>
+<li><p><strong>beat_syb_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_wav).</p></li>
 <li><p><strong>beat_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
-<li><p><strong>beat_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
-<li><p><strong>beat_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_score_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_score).</p></li>
+<li><p><strong>beat_score_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_score_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_score).</p></li>
+<li><p><strong>beat_score_syb_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor (B, T_wav). - f0 sequence</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
 <li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
 <li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy length tensor (B,).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
@@ -265,7 +284,7 @@
 
 <dl class="method">
 <dt id="espnet2.svs.espnet_model.ESPnetSVSModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte outputs and return the loss tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -274,24 +293,41 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
 <li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
-<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
+<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_label).</p></li>
+<li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label lrngth tensor (B,).</p></li>
+<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_wav).</p></li>
 <li><p><strong>label_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
-<li><p><strong>label_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor. - phone id sequence</p></li>
-<li><p><strong>label_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
-<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
+<li><p><strong>label_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_score).</p></li>
+<li><p><strong>label_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label length tensor (B,).</p></li>
+<li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (B, T_syb)</p></li>
+<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_label).</p></li>
+<li><p><strong>midi_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi lrngth tensor (B,).</p></li>
+<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_wav).</p></li>
 <li><p><strong>midi_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
-<li><p><strong>midi_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor.</p></li>
-<li><p><strong>midi_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
-<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor.</p></li>
-<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
-<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
+<li><p><strong>midi_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_score).</p></li>
+<li><p><strong>midi_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi length tensor (B,).</p></li>
+<li><p><strong>temp* is bpm ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (B, T_wav).</p></li>
 <li><p><strong>tempo_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
-<li><p><strong>tempo_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor.</p></li>
-<li><p><strong>tempo_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
-<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
+<li><p><strong>tempo_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (B, T_score).</p></li>
+<li><p><strong>tempo_score_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo length tensor (B,).</p></li>
+<li><p><strong>beat* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>beat_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_label).</p></li>
+<li><p><strong>beat_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_phone).</p></li>
+<li><p><strong>beat_ruled_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_phone).</p></li>
+<li><p><strong>beat_syb_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_wav).</p></li>
 <li><p><strong>beat_lab_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
-<li><p><strong>beat_xml</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor.</p></li>
-<li><p><strong>beat_xml_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_score_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_score).</p></li>
+<li><p><strong>beat_score_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>beat_score_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (B, T_score).</p></li>
+<li><p><strong>beat_score_syb_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor (B, T_wav). - f0 sequence</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
 <li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy tensor.</p></li>
 <li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy length tensor (B,).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
@@ -313,20 +349,36 @@ Tensor: Weight tensor to summarize losses.</p>
 
 <dl class="method">
 <dt id="espnet2.svs.espnet_model.ESPnetSVSModel.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#ESPnetSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.ESPnetSVSModel.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (T_wav).</p></li>
+<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (T_label).</p></li>
+<li><p><strong>label_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (T_wav).</p></li>
+<li><p><strong>label_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (T_score).</p></li>
+<li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (T_syb)</p></li>
+<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (T_label).</p></li>
+<li><p><strong>midi_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (T_wav).</p></li>
+<li><p><strong>midi_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (T_score).</p></li>
+<li><p><strong>temp* is bpm ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>tempo_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (T_wav).</p></li>
+<li><p><strong>tempo_score</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Tempo tensor (T_score).</p></li>
+<li><p><strong>beat* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
+<li><p><strong>beat_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_label).</p></li>
+<li><p><strong>beat_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_phone).</p></li>
+<li><p><strong>beat_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_phone).</p></li>
+<li><p><strong>beat_lab</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_wav).</p></li>
+<li><p><strong>beat_score_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_score).</p></li>
+<li><p><strong>beat_score_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Beat tensor (T_score).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (D,).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (1,).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (1,).</p></li>
-<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Duration tensor.</p></li>
-<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor.</p></li>
-<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Tempo tensor.</p></li>
-<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Beat tensor.</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor (T_wav).</p></li>
 <li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
 </ul>
 </dd>
@@ -339,6 +391,18 @@ Tensor: Weight tensor to summarize losses.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.svs.espnet_model.cal_ds">
+<code class="sig-prename descclassname">espnet2.svs.espnet_model.</code><code class="sig-name descname">cal_ds</code><span class="sig-paren">(</span><em class="sig-param">ilen</em>, <em class="sig-param">label</em>, <em class="sig-param">midi</em>, <em class="sig-param">beat</em>, <em class="sig-param">ref_len</em>, <em class="sig-param">ref_label</em>, <em class="sig-param">ref_midi</em>, <em class="sig-param">ref_beat</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#cal_ds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.cal_ds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate frame expanding length for each label.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.svs.espnet_model.cal_ds_syb">
+<code class="sig-prename descclassname">espnet2.svs.espnet_model.</code><code class="sig-name descname">cal_ds_syb</code><span class="sig-paren">(</span><em class="sig-param">ds</em>, <em class="sig-param">phn_cnt</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/espnet_model.html#cal_ds_syb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.espnet_model.cal_ds_syb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate frame expanding length for each syllable.</p>
 </dd></dl>
 
 </section>
@@ -386,7 +450,7 @@ Tensor: Weight tensor to summarize losses.</p>
 <span class="target" id="module-espnet2.svs.naive_rnn.naive_rnn"></span><p>Naive-SVS related modules.</p>
 <dl class="class">
 <dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn.</code><code class="sig-name descname">NaiveRNN</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">midi_dim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_type: str = 'L1'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn.</code><code class="sig-name descname">NaiveRNN</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">midi_dim: int = 129</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_type: str = 'L1'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
 <p>NaiveRNN-SVS module.</p>
 <p>This is an implementation of naive RNN for singing voice synthesis
@@ -396,7 +460,7 @@ predict the singing voice features</p>
 <p>Args: TODO(Yuning)</p>
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -405,10 +469,26 @@ predict the singing voice features</p>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
 <li><p><strong>feats_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
-<li><p><strong>label</strong> – (B, Tmax)</p></li>
-<li><p><strong>label_lengths</strong> – (B,)</p></li>
-<li><p><strong>midi</strong> – (B, Tmax)</p></li>
-<li><p><strong>midi_lengths</strong> – (B,)</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (B, Tmax).</p></li>
+<li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded label ids (B, ).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (B, Tmax).</p></li>
+<li><p><strong>melody_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded melody (B, ).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (B, Tmax).</p></li>
+<li><p><strong>tempo_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded tempo (B, ).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
+<li><p><strong>beat_length</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of the lengths of padded beat (B, ).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (B, Tmax).</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of padded f0 (B, ).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
@@ -416,9 +496,9 @@ predict the singing voice features</p>
 </dd>
 </dl>
 <dl class="simple">
-<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id6"><span class="problematic" id="id7">**</span></a>batch from muskit_model.py
+<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id6"><span class="problematic" id="id7">**</span></a>batch from espnet_model.py
 label == durations ｜ phone sequence
-midi -&gt; pitch sequence</p>
+melody -&gt; pitch sequence</p>
 </dd>
 </dl>
 <dl class="field-list simple">
@@ -435,15 +515,24 @@ Tensor: Weight value if not joint training else model outputs.</p>
 
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor = None</em>, <em class="sig-param">feats: torch.Tensor = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (Tmax).</p></li>
-<li><p><strong>label</strong> (<em>Tensor</em>) – </p></li>
-<li><p><strong>midi</strong> (<em>Tensor</em>) – </p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (Lmax, odim).</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (Tmax).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (Tmax).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (Tmax).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (Tmax).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (1).</p></li>
@@ -507,7 +596,7 @@ Tensor: Mean square error loss value.</p>
 <span class="target" id="module-espnet2.svs.naive_rnn.naive_rnn_dp"></span><p>NaiveRNN-DP-SVS related modules.</p>
 <dl class="class">
 <dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn_dp.</code><code class="sig-name descname">NaiveRNNDP</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">midi_dim: int</em>, <em class="sig-param">tempo_dim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.naive_rnn.naive_rnn_dp.</code><code class="sig-name descname">NaiveRNNDP</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">midi_dim: int = 129</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">tempo_dim: int = 500</em>, <em class="sig-param">eprenet_conv_layers: int = 3</em>, <em class="sig-param">eprenet_conv_chans: int = 256</em>, <em class="sig-param">eprenet_conv_filts: int = 5</em>, <em class="sig-param">elayers: int = 3</em>, <em class="sig-param">eunits: int = 1024</em>, <em class="sig-param">ebidirectional: bool = True</em>, <em class="sig-param">midi_embed_integration_type: str = 'add'</em>, <em class="sig-param">dlayers: int = 3</em>, <em class="sig-param">dunits: int = 1024</em>, <em class="sig-param">dbidirectional: bool = True</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 256</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">eprenet_dropout_rate: float = 0.5</em>, <em class="sig-param">edropout_rate: float = 0.1</em>, <em class="sig-param">ddropout_rate: float = 0.1</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
 <p>NaiveRNNDP-SVS module.</p>
 <p>This is an implementation of naive RNN with duration prediction
@@ -518,7 +607,7 @@ predict the singing voice features</p>
 <p>Args: TODO(Yuning)</p>
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -527,10 +616,26 @@ predict the singing voice features</p>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p></li>
 <li><p><strong>feats_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
-<li><p><strong>label</strong> – (B, Tmax)</p></li>
-<li><p><strong>label_lengths</strong> – (B,)</p></li>
-<li><p><strong>midi</strong> – (B, Tmax)</p></li>
-<li><p><strong>midi_lengths</strong> – (B,)</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (B, Tmax).</p></li>
+<li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded label ids (B, ).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (B, Tmax).</p></li>
+<li><p><strong>melody_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded melody (B, ).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (B, Tmax).</p></li>
+<li><p><strong>tempo_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded tempo (B, ).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
+<li><p><strong>beat_length</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of the lengths of padded beat (B, ).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (B, Tmax).</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of padded f0 (B, ).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
@@ -538,9 +643,9 @@ predict the singing voice features</p>
 </dd>
 </dl>
 <dl class="simple">
-<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id9"><span class="problematic" id="id10">**</span></a>batch from muskit_model.py
-label == durations ｜ phone sequence
-midi -&gt; pitch sequence</p>
+<dt>GS Fix:</dt><dd><p>arguements from forward func. V.S. <a href="#id9"><span class="problematic" id="id10">**</span></a>batch from espnet_model.py
+label == durations | phone sequence
+melody -&gt; pitch sequence</p>
 </dd>
 </dl>
 <dl class="field-list simple">
@@ -557,15 +662,24 @@ Tensor: Weight value if not joint training else model outputs.</p>
 
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">ds: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_xml: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (Tmax).</p></li>
-<li><p><strong>label</strong> (<em>Tensor</em>) – </p></li>
-<li><p><strong>midi</strong> (<em>Tensor</em>) – </p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (Lmax, odim).</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (Tmax).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (Tmax).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (Tmax).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (Tmax).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (1).</p></li>
@@ -721,6 +835,183 @@ strings are acceptable.</p>
 <dt id="espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.output_size">
 <code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/svs/feats_extract/score_feats_extract.html#SyllableScoreFeats.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.feats_extract.score_feats_extract.SyllableScoreFeats.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-svs-xiaoice-init">
+<span id="id13"></span><h2>espnet2.svs.xiaoice.__init__<a class="headerlink" href="#espnet2-svs-xiaoice-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.xiaoice.__init__"></span></section>
+<section id="espnet2-svs-xiaoice-xiaoicesing">
+<span id="id14"></span><h2>espnet2.svs.xiaoice.XiaoiceSing<a class="headerlink" href="#espnet2-svs-xiaoice-xiaoicesing" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.svs.xiaoice.XiaoiceSing"></span><p>XiaoiceSing related modules.</p>
+<dl class="class">
+<dt id="espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.xiaoice.XiaoiceSing.</code><code class="sig-name descname">XiaoiceSing</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">midi_dim: int = 129</em>, <em class="sig-param">tempo_dim: int = 500</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">elayers: int = 6</em>, <em class="sig-param">eunits: int = 1536</em>, <em class="sig-param">dlayers: int = 6</em>, <em class="sig-param">dunits: int = 1536</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">encoder_normalize_before: bool = True</em>, <em class="sig-param">decoder_normalize_before: bool = True</em>, <em class="sig-param">encoder_concat_after: bool = False</em>, <em class="sig-param">decoder_concat_after: bool = False</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">encoder_type: str = 'transformer'</em>, <em class="sig-param">decoder_type: str = 'transformer'</em>, <em class="sig-param">transformer_enc_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_type: str = 'L1'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/xiaoice/XiaoiceSing.html#XiaoiceSing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
+<p>XiaoiceSing module for Singing Voice Synthesis.</p>
+<p>This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
+employs an integrated network for spectrum, F0 and duration modeling. It follows the
+main architecture of FastSpeech while proposing some singing-specific design:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Add features from musical score (e.g.note pitch and length)</p></li>
+<li><p>Add a residual connection in F0 prediction to attenuate off-key issues</p></li>
+</ol>
+<p>3) The duration of all the phonemes in a musical note is accumulated to
+calculate the syllable duration loss for rhythm enhancement (syllable loss)</p>
+</div></blockquote>
+<p>Initialize XiaoiceSing module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
+<li><p><strong>elayers</strong> (<em>int</em>) – Number of encoder layers.</p></li>
+<li><p><strong>eunits</strong> (<em>int</em>) – Number of encoder hidden units.</p></li>
+<li><p><strong>dlayers</strong> (<em>int</em>) – Number of decoder layers.</p></li>
+<li><p><strong>dunits</strong> (<em>int</em>) – Number of decoder hidden units.</p></li>
+<li><p><strong>postnet_layers</strong> (<em>int</em>) – Number of postnet layers.</p></li>
+<li><p><strong>postnet_chans</strong> (<em>int</em>) – Number of postnet channels.</p></li>
+<li><p><strong>postnet_filts</strong> (<em>int</em>) – Kernel size of postnet.</p></li>
+<li><p><strong>postnet_dropout_rate</strong> (<em>float</em>) – Dropout rate in postnet.</p></li>
+<li><p><strong>use_scaled_pos_enc</strong> (<em>bool</em>) – Whether to use trainable scaled pos encoding.</p></li>
+<li><p><strong>use_batch_norm</strong> (<em>bool</em>) – Whether to use batch normalization in encoder prenet.</p></li>
+<li><p><strong>encoder_normalize_before</strong> (<em>bool</em>) – Whether to apply layernorm layer before
+encoder block.</p></li>
+<li><p><strong>decoder_normalize_before</strong> (<em>bool</em>) – Whether to apply layernorm layer before
+decoder block.</p></li>
+<li><p><strong>encoder_concat_after</strong> (<em>bool</em>) – Whether to concatenate attention layer’s input
+and output in encoder.</p></li>
+<li><p><strong>decoder_concat_after</strong> (<em>bool</em>) – Whether to concatenate attention layer’s input
+and output in decoder.</p></li>
+<li><p><strong>duration_predictor_layers</strong> (<em>int</em>) – Number of duration predictor layers.</p></li>
+<li><p><strong>duration_predictor_chans</strong> (<em>int</em>) – Number of duration predictor channels.</p></li>
+<li><p><strong>duration_predictor_kernel_size</strong> (<em>int</em>) – Kernel size of duration predictor.</p></li>
+<li><p><strong>duration_predictor_dropout_rate</strong> (<em>float</em>) – Dropout rate in duration predictor.</p></li>
+<li><p><strong>reduction_factor</strong> (<em>int</em>) – Reduction factor.</p></li>
+<li><p><strong>encoder_type</strong> (<em>str</em>) – Encoder type (“transformer” or “conformer”).</p></li>
+<li><p><strong>decoder_type</strong> (<em>str</em>) – Decoder type (“transformer” or “conformer”).</p></li>
+<li><p><strong>transformer_enc_dropout_rate</strong> (<em>float</em>) – Dropout rate in encoder except
+attention and positional encoding.</p></li>
+<li><p><strong>transformer_enc_positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after encoder
+positional encoding.</p></li>
+<li><p><strong>transformer_enc_attn_dropout_rate</strong> (<em>float</em>) – Dropout rate in encoder
+self-attention module.</p></li>
+<li><p><strong>transformer_dec_dropout_rate</strong> (<em>float</em>) – Dropout rate in decoder except
+attention &amp; positional encoding.</p></li>
+<li><p><strong>transformer_dec_positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after decoder
+positional encoding.</p></li>
+<li><p><strong>transformer_dec_attn_dropout_rate</strong> (<em>float</em>) – Dropout rate in decoder
+self-attention module.</p></li>
+<li><p><strong>spks</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of speakers. If set to &gt; 1, assume that the
+sids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>langs</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of languages. If set to &gt; 1, assume that the
+lids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>spk_embed_dim</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Speaker embedding dimension. If set to &gt; 0,
+assume that spembs will be provided as the input.</p></li>
+<li><p><strong>spk_embed_integration_type</strong> – How to integrate speaker embedding.</p></li>
+<li><p><strong>init_type</strong> (<em>str</em>) – How to initialize transformer parameters.</p></li>
+<li><p><strong>init_enc_alpha</strong> (<em>float</em>) – Initial value of alpha in scaled pos encoding of the
+encoder.</p></li>
+<li><p><strong>init_dec_alpha</strong> (<em>float</em>) – Initial value of alpha in scaled pos encoding of the
+decoder.</p></li>
+<li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to apply masking for padded part in loss
+calculation.</p></li>
+<li><p><strong>use_weighted_masking</strong> (<em>bool</em>) – Whether to apply weighted masking in loss
+calculation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/xiaoice/XiaoiceSing.html#XiaoiceSing.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Batch of padded target features (B, T_feats, odim).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (B, Tmax).</p></li>
+<li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded label ids (B, ).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (B, Tmax).</p></li>
+<li><p><strong>melody_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded melody (B, ).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (B, Tmax).</p></li>
+<li><p><strong>tempo_lengths</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of the lengths of padded tempo (B, ).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
+<li><p><strong>beat_length</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of the lengths of padded beat (B, ).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (B, Tmax).</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>LongTensor</em>) – Batch of the lengths of padded f0 (B, ).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Loss scalar value.
+Dict: Statistics to be monitored.
+Tensor: Weight value if not joint training else model outputs.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/xiaoice/XiaoiceSing.html#XiaoiceSing.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate the sequence of features given the sequences of characters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
+<li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Feature sequence to extract style (N, idim).</p></li>
+<li><p><strong>durations</strong> (<em>Optional</em><em>[</em><em>LongTensor</em><em>]</em>) – Groundtruth of duration (T_text + 1,).</p></li>
+<li><p><strong>label</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded label ids (Tmax).</p></li>
+<li><p><strong>melody</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded melody (Tmax).</p></li>
+<li><p><strong>tempo</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab” or “score”;
+value (LongTensor): Batch of padded tempo (Tmax).</p></li>
+<li><p><strong>beat</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “lab”, “score_phn” or “score_syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
+<li><p><strong>pitch</strong> (<em>FloatTensor</em>) – Batch of padded f0 (B, Tmax).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>]</em>) – key is “phn”, “syb”;
+value (LongTensor): Batch of padded beat (Tmax).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding (spk_embed_dim,).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID (1,).</p></li>
+<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID (1,).</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Alpha to control the speed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
+<li><p>duration (Tensor): Duration sequence (T_text + 1,).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

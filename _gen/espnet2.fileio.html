@@ -116,7 +116,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-read-text">espnet2.fileio.read_text</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rttm">espnet2.fileio.rttm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-init">espnet2.fileio.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-xml-scp">espnet2.fileio.xml_scp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-score-scp">espnet2.fileio.score_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rand-gen-dataset">espnet2.fileio.rand_gen_dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-datadir-writer">espnet2.fileio.datadir_writer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-npy-scp">espnet2.fileio.npy_scp</a></li>
@@ -353,17 +353,72 @@ The difference including:
 <section id="espnet2-fileio-init">
 <span id="id4"></span><h2>espnet2.fileio.__init__<a class="headerlink" href="#espnet2-fileio-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.__init__"></span></section>
-<section id="espnet2-fileio-xml-scp">
-<span id="id5"></span><h2>espnet2.fileio.xml_scp<a class="headerlink" href="#espnet2-fileio-xml-scp" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.fileio.xml_scp"></span><dl class="class">
-<dt id="espnet2.fileio.xml_scp.NOTE">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">NOTE</code><span class="sig-paren">(</span><em class="sig-param">lyric</em>, <em class="sig-param">pitch</em>, <em class="sig-param">st</em>, <em class="sig-param">et</em>, <em class="sig-param">dur</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#NOTE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.NOTE" title="Permalink to this definition">¶</a></dt>
+<section id="espnet2-fileio-score-scp">
+<span id="id5"></span><h2>espnet2.fileio.score_scp<a class="headerlink" href="#espnet2-fileio-score-scp" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.fileio.score_scp"></span><dl class="class">
+<dt id="espnet2.fileio.score_scp.NOTE">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">NOTE</code><span class="sig-paren">(</span><em class="sig-param">lyric</em>, <em class="sig-param">midi</em>, <em class="sig-param">st</em>, <em class="sig-param">et</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#NOTE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.NOTE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 </dd></dl>
 
 <dl class="class">
-<dt id="espnet2.fileio.xml_scp.XMLScpReader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">XMLScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.SingingScoreReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">SingingScoreReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for ‘score.scp’.</p>
+<p class="rubric">Examples</p>
+<p>key1 /some/path/score.json
+key2 /some/path/score.json
+key3 /some/path/score.json
+key4 /some/path/score.json
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">SoundScpReader</span><span class="p">(</span><span class="s1">&#39;score.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">score</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.SingingScoreReader.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreReader.get_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.SingingScoreReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.fileio.score_scp.SingingScoreWriter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">SingingScoreWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Writer class for ‘score.scp’</p>
+<p class="rubric">Examples</p>
+<p>key1 /some/path/score.json
+key2 /some/path/score.json
+key3 /some/path/score.json
+key4 /some/path/score.json
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">SingingScoreWriter</span><span class="p">(</span><span class="s1">&#39;./data/&#39;</span><span class="p">,</span> <span class="s1">&#39;./data/score.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_obj</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;bb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_obj</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.SingingScoreWriter.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreWriter.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.SingingScoreWriter.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#SingingScoreWriter.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.SingingScoreWriter.get_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.fileio.score_scp.XMLReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">XMLReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
 <p>Reader class for ‘xml.scp’.</p>
 <p class="rubric">Examples</p>
@@ -377,20 +432,20 @@ key4 /some/path/d.xml
 </pre></div>
 </div>
 <dl class="method">
-<dt id="espnet2.fileio.xml_scp.XMLScpReader.get_path">
-<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader.get_path" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.XMLReader.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLReader.get_path" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="espnet2.fileio.xml_scp.XMLScpReader.keys">
-<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.XMLReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLReader.keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="espnet2.fileio.xml_scp.XMLScpWriter">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.xml_scp.</code><code class="sig-name descname">XMLScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.XMLWriter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">XMLWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Writer class for ‘midi.scp’</p>
 <p class="rubric">Examples</p>
@@ -405,13 +460,13 @@ key4 /some/path/d.musicxml
 </pre></div>
 </div>
 <dl class="method">
-<dt id="espnet2.fileio.xml_scp.XMLScpWriter.close">
-<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter.close" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.XMLWriter.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLWriter.close" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="espnet2.fileio.xml_scp.XMLScpWriter.get_path">
-<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/xml_scp.html#XMLScpWriter.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.xml_scp.XMLScpWriter.get_path" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.fileio.score_scp.XMLWriter.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#XMLWriter.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.XMLWriter.get_path" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

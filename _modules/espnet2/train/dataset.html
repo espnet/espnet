@@ -196,13 +196,9 @@
     <span class="n">read_label</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.rttm</span> <span class="kn">import</span> <span class="n">RttmReader</span>
+<span class="kn">from</span> <span class="nn">espnet2.fileio.score_scp</span> <span class="kn">import</span> <span class="n">SingingScoreReader</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpReader</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.sized_dict</span> <span class="kn">import</span> <span class="n">SizedDict</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">espnet2.fileio.xml_scp</span> <span class="kn">import</span> <span class="n">XMLScpReader</span>
-<span class="k">except</span> <span class="ne">ImportError</span> <span class="ow">or</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
-    <span class="n">XMLScpReader</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># cannot load XML reader, need instal Muskit</span>
 
 
 <div class="viewcode-block" id="AdapterForSoundScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSoundScpReader">[docs]</a><span class="k">class</span> <span class="nc">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -277,12 +273,12 @@
         <span class="k">return</span> <span class="n">value</span><span class="p">[()]</span></div>
 
 
-<div class="viewcode-block" id="AdapterForXMLScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForXMLScpReader">[docs]</a><span class="k">class</span> <span class="nc">AdapterForXMLScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+<div class="viewcode-block" id="AdapterForSingingScoreScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSingingScoreScpReader">[docs]</a><span class="k">class</span> <span class="nc">AdapterForSingingScoreScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">loader</span>
 
-<div class="viewcode-block" id="AdapterForXMLScpReader.keys"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForXMLScpReader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="AdapterForSingingScoreScpReader.keys"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSingingScoreScpReader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -293,32 +289,14 @@
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="nb">float</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="n">lyrics</span><span class="p">,</span> <span class="n">notes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">tempo</span> <span class="o">=</span> <span class="n">retval</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="s2">&quot;Unexpected type: </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
-                    <span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
         <span class="k">assert</span> <span class="p">(</span>
-            <span class="nb">isinstance</span><span class="p">(</span><span class="n">lyrics</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">notes</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">segs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tempo</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="s2">&quot;tempo&quot;</span><span class="p">],</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="s2">&quot;note&quot;</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">lyrics</span><span class="p">,</span> <span class="n">notes</span><span class="p">,</span> <span class="n">segs</span><span class="p">,</span> <span class="n">tempo</span></div>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;tempo&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">tempo</span><span class="p">,</span> <span class="n">retval</span><span class="p">[</span><span class="s2">&quot;note&quot;</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="AdapterForLabelScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForLabelScpReader">[docs]</a><span class="k">class</span> <span class="nc">AdapterForLabelScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -366,30 +344,13 @@
     <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="xml_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.xml_loader">[docs]</a><span class="k">def</span> <span class="nf">xml_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="c1"># The file is as follows:</span>
-    <span class="c1">#   utterance_id_A /some/where/a.mid</span>
-    <span class="c1">#   utterance_id_B /some/where/b.midi</span>
-
-    <span class="k">assert</span> <span class="n">XMLScpReader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Cannot load XMLScpReader. &quot;</span><span class="p">,</span>
-        <span class="s2">&quot;Please install Muskit modules via &quot;</span><span class="p">,</span>
-        <span class="s2">&quot;(cd tools &amp;&amp; make muskit.done)&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">loader</span> <span class="o">=</span> <span class="n">XMLScpReader</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
-
-    <span class="c1"># MIDIScpReader.__getitem__() returns ndarray</span>
-    <span class="k">return</span> <span class="n">AdapterForXMLScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
+<div class="viewcode-block" id="score_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.score_loader">[docs]</a><span class="k">def</span> <span class="nf">score_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">SingingScoreReader</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">AdapterForSingingScoreScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="label_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.label_loader">[docs]</a><span class="k">def</span> <span class="nf">label_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="c1"># The file is as follows:</span>
-    <span class="c1">#   utterance_id_A /some/where/a.lab</span>
-    <span class="c1">#   utterance_id_B /some/where/b.lab</span>
-
     <span class="n">loader</span> <span class="o">=</span> <span class="n">read_label</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-
-    <span class="c1"># XMLScpReader.__getitem__() returns ndarray</span>
     <span class="k">return</span> <span class="n">AdapterForLabelScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
 
@@ -417,13 +378,14 @@
         <span class="s2">&quot;   utterance_id_b b.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
     <span class="p">),</span>
-    <span class="s2">&quot;midi&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">func</span><span class="o">=</span><span class="n">xml_loader</span><span class="p">,</span>
+    <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">score_loader</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;MIDI format types which supported by sndfile mid, midi, etc.&quot;</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Return text as is. The text contains tempo and note info.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;For each note, &#39;start&#39; &#39;end&#39; &#39;syllabel&#39; &#39;midi&#39; and &#39;phones&#39; are included. &quot;</span>
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;   utterance_id_a a.mid</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;   utterance_id_b b.mid</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="s2">&quot;duration&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
@@ -692,7 +654,6 @@
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">loader</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="n">loader</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span>
-                <span class="c1"># TODO(Yuning): svs returns tuple, remove &quot;tuple&quot; temporarily</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">)):</span>
                     <span class="n">value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>

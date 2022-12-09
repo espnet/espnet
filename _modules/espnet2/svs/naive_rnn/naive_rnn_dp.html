@@ -205,10 +205,10 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="c1"># network structure related</span>
         <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">midi_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">tempo_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">midi_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">129</span><span class="p">,</span>
         <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+        <span class="n">tempo_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
         <span class="n">eprenet_conv_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">eprenet_conv_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
         <span class="n">eprenet_conv_filts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -449,23 +449,17 @@
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">label_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">label_lab_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">label_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">label_xml_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_lab_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_xml_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lab_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_xml_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lab_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_xml_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">label_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">melody</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">melody_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tempo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tempo_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">beat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">beat_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -478,29 +472,46 @@
 <span class="sd">            text_lengths (LongTensor): Batch of lengths of each input batch (B,).</span>
 <span class="sd">            feats (Tensor): Batch of padded target features (B, Lmax, odim).</span>
 <span class="sd">            feats_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
-<span class="sd">            label: (B, Tmax)</span>
-<span class="sd">            label_lengths: (B,)</span>
-<span class="sd">            midi: (B, Tmax)</span>
-<span class="sd">            midi_lengths: (B,)</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (B, Tmax).</span>
+<span class="sd">            label_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded label ids (B, ).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (B, Tmax).</span>
+<span class="sd">            melody_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded melody (B, ).</span>
+<span class="sd">            tempo (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded tempo (B, Tmax).</span>
+<span class="sd">            tempo_lengths (Optional[Dict]):  key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded tempo (B, ).</span>
+<span class="sd">            beat (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            beat_length (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded beat (B, ).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;phn&quot;, &quot;syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
 <span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
 <span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).</span>
 <span class="sd">            lids (Optional[Tensor]): Batch of language IDs (B, 1).</span>
 
 <span class="sd">        GS Fix:</span>
-<span class="sd">            arguements from forward func. V.S. **batch from muskit_model.py</span>
-<span class="sd">            label == durations ｜ phone sequence</span>
-<span class="sd">            midi -&gt; pitch sequence</span>
+<span class="sd">            arguements from forward func. V.S. **batch from espnet_model.py</span>
+<span class="sd">            label == durations | phone sequence</span>
+<span class="sd">            melody -&gt; pitch sequence</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Loss scalar value.</span>
 <span class="sd">            Dict: Statistics to be monitored.</span>
 <span class="sd">            Tensor: Weight value if not joint training else model outputs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="n">label_xml</span>
-        <span class="n">midi</span> <span class="o">=</span> <span class="n">midi_xml</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="n">beat_xml</span>
-        <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_xml_lengths</span>
-        <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">midi_xml_lengths</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="n">beat</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+        <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;phn&quot;</span><span class="p">]</span>
 
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
@@ -610,16 +621,13 @@
 <div class="viewcode-block" id="NaiveRNNDP.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">label_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">label_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">midi_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lab</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_xml</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">melody</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tempo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">beat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -628,9 +636,18 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded character ids (Tmax).</span>
-<span class="sd">            label (Tensor)</span>
-<span class="sd">            midi (Tensor)</span>
 <span class="sd">            feats (Tensor): Batch of padded target features (Lmax, odim).</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (Tmax).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (Tmax).</span>
+<span class="sd">            tempo (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded tempo (Tmax).</span>
+<span class="sd">            beat (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (Tmax).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (Tmax).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;phn&quot;, &quot;syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (Tmax).</span>
 <span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).</span>
 <span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (1).</span>
 <span class="sd">            lids (Optional[Tensor]): Batch of language IDs (1).</span>
@@ -639,9 +656,9 @@
 <span class="sd">            Dict[str, Tensor]: Output dict including the following items:</span>
 <span class="sd">                * feat_gen (Tensor): Output sequence of features (T_feats, odim).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="n">label_xml</span>
-        <span class="n">midi</span> <span class="o">=</span> <span class="n">midi_xml</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="n">beat_xml</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="n">beat</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_input_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>  <span class="c1"># FIX ME: label Float to Int</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder_input_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>

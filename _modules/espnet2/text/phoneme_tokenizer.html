@@ -391,15 +391,18 @@
         <span class="n">initial</span> <span class="o">=</span> <span class="n">get_initials</span><span class="p">(</span><span class="n">phone</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">final</span> <span class="o">=</span> <span class="n">get_finals</span><span class="p">(</span><span class="n">phone</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">initial</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">initial</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">,</span> <span class="s2">&quot;q&quot;</span><span class="p">]:</span>
                 <span class="k">if</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;un&quot;</span><span class="p">:</span>
                     <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;vn&quot;</span>
                 <span class="k">elif</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;uan&quot;</span><span class="p">:</span>
                     <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;van&quot;</span>
+                <span class="k">elif</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;u&quot;</span><span class="p">:</span>
+                    <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;v&quot;</span>
             <span class="k">if</span> <span class="n">final</span> <span class="o">==</span> <span class="s2">&quot;ue&quot;</span><span class="p">:</span>
                 <span class="n">final</span> <span class="o">=</span> <span class="s2">&quot;ve&quot;</span>
-        <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final</span><span class="p">)</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">final</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">final</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">phones</span></div>
 
 
@@ -795,11 +798,24 @@
         <span class="c1"># If needed, customed_dic can be changed into extra input</span>
         <span class="n">customed_dic</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;へ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;は&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;シ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;sh&quot;</span><span class="p">,</span> <span class="s2">&quot;I&quot;</span><span class="p">],</span>
             <span class="s2">&quot;ヴぁ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
             <span class="s2">&quot;ヴぃ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
             <span class="s2">&quot;ヴぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;ヴぉ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ヴぉ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;v&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">],</span>
             <span class="s2">&quot;でぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;dy&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぁ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぃ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぅ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぉ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ぐぁ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ぐぃ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ぐぅ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ぐぇ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;e&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;ぐぉ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;g&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;くぉっ&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;cl&quot;</span><span class="p">],</span>
         <span class="p">}</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span><span class="p">(</span><span class="n">syllable</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">syllable</span> <span class="ow">in</span> <span class="n">customed_dic</span><span class="p">:</span>
