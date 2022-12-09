@@ -480,7 +480,7 @@ The first and second configurations are optional. If needed, the following param
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
       conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
-      subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
+      subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
@@ -559,7 +559,7 @@ encoder_conf:
 
 The type can be defined through `decoder` parameter by passing a string (either `rnn` or `stateless`) and the internal parts can be configured
 
-For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared accross the blocks, meaning we only define define only one block here.
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
 The type of the stack of blocks is by passing a string (either `rnn` or `stateless`) to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following (optional) parameters:
 
     decoder_conf:

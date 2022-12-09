@@ -703,6 +703,12 @@ if ! "${skip_data_prep}"; then
                 fi
             done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
         fi
+        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
+            for n in $(seq ${spk_num}); do
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
+            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
+            lm_dev_text="${data_feats}/lm_dev.txt"
+        fi
     fi
 
 
@@ -793,13 +799,6 @@ fi
 
 if ! "${skip_train}"; then
     if "${use_lm}"; then
-        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
-            for n in $(seq ${spk_num}); do
-                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
-            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
-            lm_dev_text="${data_feats}/lm_dev.txt"
-        fi
-
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
@@ -1337,7 +1336,7 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --resume true \
-                --init_param ${pretrained_model} \
+                ${pretrained_model:+--init_param $pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --output_dir "${enh_asr_exp}" \
                 ${_opts} ${enh_asr_args}
@@ -1463,7 +1462,7 @@ if ! "${skip_eval}"; then
             for spk in $(seq "${spk_num}"); do
                 for f in token token_int score text; do
                     for i in $(seq "${_nj}"); do
-                        cat "${_logdir}/output.${i}/1best_recog_spk${spk}/${f}"
+                        cat "${_logdir}/output.${i}/1best_recog/${f}_spk${spk}"
                     done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
                 done
             done
