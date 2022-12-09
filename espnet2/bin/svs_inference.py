@@ -83,21 +83,28 @@ class SingingGenerate:
     @torch.no_grad()
     def __call__(
         self,
-        text: torch.Tensor,
-        singing: torch.Tensor = None,
-        label_lab: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
-        pitch: Optional[torch.Tensor] = None,
-        energy: Optional[torch.Tensor] = None,
+        text: Union[torch.Tensor, np.ndarray],
+        singing: Union[torch.Tensor, np.ndarray] = None,
+        label: Union[torch.Tensor, np.ndarray] = None,
+        midi: Union[torch.Tensor, np.ndarray] = None,
+        beat_phn: Union[torch.Tensor, np.ndarray] = None,
+        beat_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
+        beat_syb: Union[torch.Tensor, np.ndarray] = None,
+        label_lab: Union[torch.Tensor, np.ndarray] = None,
+        midi_lab: Union[torch.Tensor, np.ndarray] = None,
+        tempo_lab: Union[torch.Tensor, np.ndarray] = None,
+        beat_lab: Union[torch.Tensor, np.ndarray] = None,
+        label_score: Union[torch.Tensor, np.ndarray] = None,
+        midi_score: Union[torch.Tensor, np.ndarray] = None,
+        tempo_score: Union[torch.Tensor, np.ndarray] = None,
+        beat_score_phn: Union[torch.Tensor, np.ndarray] = None,
+        beat_score_syb: Union[torch.Tensor, np.ndarray] = None,
+        phn_cnt: Union[torch.Tensor, np.ndarray] = None,
+        pitch: Union[torch.Tensor, np.ndarray] = None,
+        energy: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
-        sids: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
+        sids: Union[torch.Tensor, np.ndarray] = None,
+        lids: Union[torch.Tensor, np.ndarray] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
         assert check_argument_types()
@@ -113,24 +120,38 @@ class SingingGenerate:
         batch = dict(
             text=text,
         )
+        if label is not None:
+            batch.update(label=label)
+        if midi is not None:
+            batch.update(midi=midi)
+        if beat_phn is not None:
+            batch.update(beat_phn=beat_phn)
+        if beat_ruled_phn is not None:
+            batch.update(beat_ruled_phn=beat_ruled_phn)
+        if beat_syb is not None:
+            batch.update(beat_syb=beat_syb)
         if label_lab is not None:
             batch.update(label_lab=label_lab)
-        if label_xml is not None:
-            batch.update(label_xml=label_xml)
+        if label_score is not None:
+            batch.update(label_score=label_score)
         if midi_lab is not None:
             batch.update(midi_lab=midi_lab)
-        if midi_xml is not None:
-            batch.update(midi_xml=midi_xml)
+        if midi_score is not None:
+            batch.update(midi_score=midi_score)
         if pitch is not None:
             batch.update(pitch=pitch)
         if tempo_lab is not None:
             batch.update(tempo_lab=tempo_lab)
-        if tempo_xml is not None:
-            batch.update(tempo_xml=tempo_xml)
+        if tempo_score is not None:
+            batch.update(tempo_score=tempo_score)
         if beat_lab is not None:
             batch.update(beat_lab=beat_lab)
-        if beat_xml is not None:
-            batch.update(beat_xml=beat_xml)
+        if beat_score_phn is not None:
+            batch.update(beat_score_phn=beat_score_phn)
+        if beat_score_syb is not None:
+            batch.update(beat_score_syb=beat_score_syb)
+        if phn_cnt is not None:
+            batch.update(phn_cnt=phn_cnt)
         if energy is not None:
             batch.update(energy=energy)
         if spembs is not None:
