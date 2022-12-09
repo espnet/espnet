@@ -254,12 +254,10 @@ class ESPnetSTModel(AbsESPnetModel):
             speech_lens = None
 
         if self.use_multidecoder:
-            import pdb;pdb.set_trace()
             dec_asr_lengths = src_text_lengths + 1
             md_encoder_out, md_encoder_out_lens, _ = self.md_encoder(hs_dec_asr, dec_asr_lengths)
             encoder_out = md_encoder_out
             encoder_out_lens = md_encoder_out_lens
-            import pdb;pdb.set_trace()
         
         # 2e. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
