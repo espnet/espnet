@@ -58,9 +58,11 @@ class S3prlFrontend(AbsFrontend):
             upstream.model.encoder.layerdrop = 0.0
             if getattr(self.args, "add_adapters", False):
                 s3prl_upstream = add_adapters(
-                    s3prl_upstream, adapter_down_dim=self.args.adapter_config["adapter_down_dim"] , adapt_layers= eval(self.args.adapter_config["adapt_layers"])
+                    s3prl_upstream,
+                    adapter_down_dim=self.args.adapter_config["adapter_down_dim"],
+                    adapt_layers=eval(self.args.adapter_config["adapt_layers"]),
                 )
-                
+
         featurizer = Featurizer(upstream)
 
         self.multilayer_feature = multilayer_feature

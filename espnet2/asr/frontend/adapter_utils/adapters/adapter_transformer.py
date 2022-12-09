@@ -3,7 +3,8 @@ import torch.nn as nn
 
 from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
 
-#code credit: TransformerSentenceEncoderLayer is adapted from fairseq https://github.com/facebookresearch/fairseq 
+# code credit: TransformerSentenceEncoderLayer is adapted from fairseq https://github.com/facebookresearch/fairseq
+
 
 class TransformerSentenceEncoderLayer(nn.Module):
     """
@@ -115,6 +116,7 @@ class TransformerSentenceEncoderLayer(nn.Module):
             x = self.final_layer_norm(x)
 
         return x, (attn, layer_result)
+
 
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
     """

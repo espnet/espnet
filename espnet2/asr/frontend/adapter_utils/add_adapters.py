@@ -20,7 +20,6 @@ def add_adapters(s3prl_upstream_model, adapter_down_dim, adapt_layers=None):
     for param in s3prl_upstream_model.parameters():
         param.requires_grad = False
 
-    
     for layer_idx, layer in enumerate(s3prl_upstream_model.model.encoder.layers):
         if adapt_layers is not None and layer_idx not in adapt_layers:
             continue
