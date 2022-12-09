@@ -1,0 +1,56 @@
+#inserted to 0,1,2
+optim: adam
+accum_grad: 2
+max_epoch: 20
+patience: 3
+optim_conf:
+    lr: 0.00027
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 40000
+
+frontend_conf:
+ n_fft: 512
+ hop_length: 256
+
+encoder: conformer
+encoder_conf:
+  output_size: 512
+  attention_heads: 8
+  linear_units: 2048
+  num_blocks: 12
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  input_layer: conv2d
+  normalize_before: true
+  macaron_style: true
+  pos_enc_layer_type: "rel_pos"
+  selfattention_layer_type: "rel_selfattn"
+  activation_type: "swish"
+  use_cnn_module: true
+  cnn_module_kernel: 31
+
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+    upstream: hubert_large_ll60k # Note: If the upstream is changed, please change the input_size in the preencoder.
+    add_adapters: True
+    adapter_config:
+      adapter_down_dim: 192
+      adapt_layers: '[23, 12, 11]' # Add the layers index (0-indexed) to be adapted
+  download_dir: ./hub
+  multilayer_feature: True
+
+freeze_param: ["encoder","decoder","ctc"]
+
+model_conf:
+  ctc_weight: 1.0
+  lsm_weight: 0.1
+  length_normalized_loss: false
+  extract_feats_in_collect_stats: false # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+init: xavier_uniform
+
+
+batch_size: 20

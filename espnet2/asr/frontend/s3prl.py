@@ -9,6 +9,7 @@ from typeguard import check_argument_types
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters
 
 
 class S3prlFrontend(AbsFrontend):
@@ -55,6 +56,11 @@ class S3prlFrontend(AbsFrontend):
             "HubertModel",
         ]:
             upstream.model.encoder.layerdrop = 0.0
+            if getattr(self.args, "add_adapters", False):
+                s3prl_upstream = add_adapters(
+                    s3prl_upstream, adapter_down_dim=self.args.adapter_config["adapter_down_dim"] , adapt_layers= eval(self.args.adapter_config["adapt_layers"])
+                )
+                
         featurizer = Featurizer(upstream)
 
         self.multilayer_feature = multilayer_feature
