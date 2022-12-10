@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
@@ -82,7 +82,7 @@ class MaskEstimator(torch.nn.Module):
             elif self.nonlinear == "crelu":
                 mask = torch.clamp(mask, min=0, max=1)
             # Zero padding
-            mask.masked_fill(make_pad_mask(ilens, mask, length_dim=2), 0)
+            mask.masked_fill(make_pad_mask_with_reference(ilens, mask, length_dim=2), 0)
 
             # (B, C, T, F) -> (B, F, C, T)
             mask = mask.permute(0, 3, 1, 2)

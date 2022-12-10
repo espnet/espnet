@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 class LabelAggregate(torch.nn.Module):
@@ -75,7 +75,7 @@ class LabelAggregate(torch.nn.Module):
                 ilens = ilens + 2 * pad
 
             olens = (ilens - self.win_length) // self.hop_length + 1
-            output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
+            output.masked_fill_(make_pad_mask_with_reference(olens, output, 1), 0.0)
         else:
             olens = None
 

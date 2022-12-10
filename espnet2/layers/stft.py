@@ -9,7 +9,7 @@ from typeguard import check_argument_types
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
@@ -162,7 +162,7 @@ class Stft(torch.nn.Module, InversibleInterface):
                 ilens = ilens + 2 * pad
 
             olens = (ilens - self.n_fft) // self.hop_length + 1
-            output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
+            output.masked_fill_(make_pad_mask_with_reference(olens, output, 1), 0.0)
         else:
             olens = None
 

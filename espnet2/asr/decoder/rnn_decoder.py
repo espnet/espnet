@@ -7,7 +7,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference, to_device
 from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 
 
@@ -244,7 +244,7 @@ class RNNDecoder(AbsDecoder):
         z_all = torch.stack(z_all, dim=1)
         z_all = self.output(z_all)
         z_all.masked_fill_(
-            make_pad_mask(ys_in_lens, z_all, 1),
+            make_pad_mask_with_reference(ys_in_lens, z_all, 1),
             0,
         )
         return z_all, ys_in_lens

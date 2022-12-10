@@ -4,7 +4,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 def ListsToTensor(xs):
@@ -103,7 +103,7 @@ class FrameScoreFeats(AbsFeatsExtract):
                 input_lengths = input_lengths + 2 * pad
 
             olens = (input_lengths - self.win_length) // self.hop_length + 1
-            output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
+            output.masked_fill_(make_pad_mask_with_reference(olens, output, 1), 0.0)
         else:
             olens = None
 

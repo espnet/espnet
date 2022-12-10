@@ -5,7 +5,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 from espnet.nets.pytorch_backend.rnn.encoders import RNN, RNNP
 
 
@@ -106,7 +106,7 @@ class RNNEncoder(AbsEncoder):
             current_states.append(states)
 
         if self.use_projection:
-            xs_pad.masked_fill_(make_pad_mask(ilens, xs_pad, 1), 0.0)
+            xs_pad.masked_fill_(make_pad_mask_with_reference(ilens, xs_pad, 1), 0.0)
         else:
-            xs_pad = xs_pad.masked_fill(make_pad_mask(ilens, xs_pad, 1), 0.0)
+            xs_pad = xs_pad.masked_fill(make_pad_mask_with_reference(ilens, xs_pad, 1), 0.0)
         return xs_pad, ilens, current_states

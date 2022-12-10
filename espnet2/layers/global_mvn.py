@@ -7,7 +7,7 @@ from typeguard import check_argument_types
 
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 class GlobalMVN(AbsNormalize, InversibleInterface):
@@ -76,7 +76,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         norm_vars = self.norm_vars
         self.mean = self.mean.to(x.device, x.dtype)
         self.std = self.std.to(x.device, x.dtype)
-        mask = make_pad_mask(ilens, x, 1)
+        mask = make_pad_mask_with_reference(ilens, x, 1)
 
         # feat: (B, T, D)
         if norm_means:
@@ -103,7 +103,7 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         norm_vars = self.norm_vars
         self.mean = self.mean.to(x.device, x.dtype)
         self.std = self.std.to(x.device, x.dtype)
-        mask = make_pad_mask(ilens, x, 1)
+        mask = make_pad_mask_with_reference(ilens, x, 1)
 
         if x.requires_grad:
             x = x.masked_fill(mask, 0.0)
@@ -116,5 +116,5 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         # feat: (B, T, D)
         if norm_means:
             x += self.mean
-            x.masked_fill_(make_pad_mask(ilens, x, 1), 0.0)
+            x.masked_fill_(make_pad_mask_with_reference(ilens, x, 1), 0.0)
         return x, ilens
