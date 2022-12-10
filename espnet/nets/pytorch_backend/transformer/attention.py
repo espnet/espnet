@@ -75,14 +75,10 @@ class MultiHeadedAttention(nn.Module):
         """
         n_batch = value.size(0)
         if mask is not None:
-            mask = mask.unsqueeze(1).eq(0)  # (batch, 1, *, time2)
-            min_value = torch.finfo(scores.dtype).min
-            scores = scores.masked_fill(mask, min_value)
-            self.attn = torch.softmax(scores, dim=-1).masked_fill(
-                mask, 0.0
-            )  # (batch, head, time1, time2)
-        else:
-            self.attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
+            mask = mask.unsqueeze(1)
+            mask = (~mask)*-10000
+            scores = scores + mask 
+        self.attn = torch.softmax(scores, dim=-1)  # (batch, head, time1, time2)
 
         p_attn = self.dropout(self.attn)
         x = torch.matmul(p_attn, value)  # (batch, head, time1, d_k)
