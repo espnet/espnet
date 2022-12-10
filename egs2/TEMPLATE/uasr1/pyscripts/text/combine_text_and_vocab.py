@@ -33,9 +33,9 @@ def combine(
     vocab_file: str,
     add_symbol: Optional[str],
 ):
-    extra_symbol_set = set()
+    extra_symbol_list = []
     if add_symbol:
-        extra_symbol_set = set(add_symbol)
+        extra_symbol_list = add_symbol
 
     output_text = Path(output_dir, text_file)
     output_text.parent.mkdir(parents=True, exist_ok=True)
@@ -57,7 +57,7 @@ def combine(
             ot_f.write(f"{line}\n")
     ot_f.close()
 
-    for token in extra_symbol_set:
+    for token in extra_symbol_list:
         if token not in vocab_dict:
             ov_f.write(f"{token}\n")
     for token, counts in vocab_dict.items():

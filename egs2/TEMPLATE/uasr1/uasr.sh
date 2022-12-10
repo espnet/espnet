@@ -69,7 +69,7 @@ bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 postprocess_word_boundary='  '   # word boundary for post process
-postprocess_sil_token="\<SIL\>"  # silence injection tokens in post process
+postprocess_sil_token="sil"  # silence injection tokens in post process
 postprocess_sil_prob=0.5         # silence injection probability in post process
 
 # Ngram language model related
@@ -369,9 +369,8 @@ if ${use_k2}; then
     [ -z "${k2_lang_dir}" ] && k2_lang_dir="${tokendir}/lang"
     mkdir -p "${k2_lang_dir}"
     if [ -z "${k2_lexicon}" ]; then
-        k2_lexicon="${k2_lang_dir}/lexicon.txt"
-        paste -d ' ' "${token_list}" "${token_list}" > ${k2_lexicon}
-        log "Build lexicon '${k2_lexicon}' from '${token_list}'"
+        log "Lexicon must be provided for k2 decoding"
+        exit 2
     else
         if [ ! -f ${k2_lexicon} ]; then
             log "Error: '${k2_lexicon}' does not exit."
@@ -714,11 +713,9 @@ if ! "${skip_data_prep}"; then
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${split_dir}/JOB/text \
-                --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/unpaired_text \
-                --write_vocabulary true \
-                --write_text true \
-                --cutoff 2
+                --output ${split_dir}/JOB/unpaired_text \
+                --write_vocabulary false \
+                --field "2-"
 
             ${python} pyscripts/text/combine_text_and_vocab.py \
                     --split_dir ${split_dir} \
@@ -733,24 +730,21 @@ if ! "${skip_data_prep}"; then
                     --add_symbol "<unk>" \
                     --add_symbol "${postprocess_sil_token}"
 
-            # Note(Dongji): for dev text we can keep utterance ids to compute PER
+            # Note(Dongji): for dev text we keep utterance ids to compute PER
             log "Tokenize ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${lm_dev_text}\
-                --output "${data_feats}/${valid_set}/tokens.txt" \
-                --text_output "${data_feats}/${valid_set}/token.tmp" \
+                --output "${data_feats}/${valid_set}/unpaired_text.tmp" \
                 --write_vocabulary false \
-                --write_text true \
-                --cutoff 0 \
                 --field "2-"
 
             # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal 
             # evaluation (however, the results with unpaired text are not suppose to be used for model 
             # selection)
-            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/token.tmp" \
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/unpaired_text.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
 
         elif [ "${token_type}" == phn ]; then
@@ -975,7 +969,7 @@ if ! "${skip_train}"; then
             fi
 
             # shellcheck disable=SC2086
-            ${python} -m espnet2.bin.launch \
+            ${python} -m espnet3.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
