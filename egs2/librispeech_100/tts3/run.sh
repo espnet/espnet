@@ -5,42 +5,37 @@ set -e
 set -u
 set -o pipefail
 
-fs=16000 # original 24000
-n_fft=2048
-n_shift=300
-win_length=1200
+fs=16000
+n_fft=1024
+n_shift=256
 
-tag="tts_16k_char_xvector_unpaired_new_gumbel"
 
-train_set="train_clean_360"
+train_set="train_clean_100"
 valid_set="dev_clean"
-# test_sets="dev_clean"
-test_sets="test_clean"
+test_sets="test_clean dev_clean"
 
-train_config=conf/tuning/train_transformer_xvector_md_unpaired_new_gumbel.yaml
+train_config=conf/tuning/train_transformer.yaml
 inference_config=conf/decode.yaml
-inference_asr_config=conf/decode_asr.yaml
 
+# g2p=g2p_en # Include word separator
+g2p=g2p_en_no_space # Include no word separator
 
 ./tts.sh \
     --ngpu 1 \
-    --stage 5 \
-    --use_multidecoder true \
+    --stage 7 \
+    --inference_nj 64 \
     --lang en \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
-    --win_length "${win_length}" \
-    --use_xvector true \
-    --token_type char \
-    --cleaner none \
-    --tag "${tag}" \
+    --token_type phn \
+    --cleaner tacotron \
+    --g2p "${g2p}" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
-    --inference_asr_config "${inference_asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
-    --audio_format "wav" "$@"
+    --audio_format "flac" "$@"

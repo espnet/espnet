@@ -59,6 +59,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         normalize_before: bool = True,
         use_bert: bool = False,
         use_output_embed: bool = False,
+        gumbel_softmax: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -100,6 +101,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         self.use_output_embed = use_output_embed
         self._output_size_bf_softmax = attention_dim
         # Must set by the inheritance
+        self.gumbel_softmax = gumbel_softmax
         self.decoders = None
 
     def forward(
@@ -145,8 +147,11 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             memory_mask = torch.nn.functional.pad(
                 memory_mask, (0, padlen), "constant", False
             )
-
-        x = self.embed(tgt)
+        # import pdb;pdb.set_trace()
+        if self.gumbel_softmax:
+            x=self.embed[1](torch.matmul(tgt,self.embed[0].weight))
+        else:
+            x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(
             x, tgt_mask, memory, memory_mask
         )
@@ -308,6 +313,7 @@ class TransformerDecoder(BaseTransformerDecoder):
         concat_after: bool = False,
         use_bert: bool = False,
         use_output_embed: bool = False,
+        gumbel_softmax: bool = False,
     ):
         assert check_argument_types()
         super().__init__(
@@ -321,6 +327,7 @@ class TransformerDecoder(BaseTransformerDecoder):
             normalize_before=normalize_before,
             use_bert=use_bert,
             use_output_embed=use_output_embed,
+            gumbel_softmax=gumbel_softmax,
         )
 
         attention_dim = encoder_output_size

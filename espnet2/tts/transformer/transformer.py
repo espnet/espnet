@@ -681,38 +681,42 @@ class Transformer(AbsTTS):
         spemb = spembs
 
         # add eos at the last of sequence
-        x = F.pad(x, [0, 1], "constant", self.eos)
+        if self.use_md:
+            # import pdb;pdb.set_trace()
+            hs, _ = self.encoder(x, None)
+        else:
+            x = F.pad(x, [0, 1], "constant", self.eos)
 
-        # inference with teacher forcing
-        if use_teacher_forcing:
-            assert feats is not None, "feats must be provided with teacher forcing."
+            # inference with teacher forcing
+            if use_teacher_forcing:
+                assert feats is not None, "feats must be provided with teacher forcing."
 
-            # get teacher forcing outputs
-            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
-            spembs = None if spemb is None else spemb.unsqueeze(0)
-            ilens = x.new_tensor([xs.size(1)]).long()
-            olens = y.new_tensor([ys.size(1)]).long()
-            outs, *_ = self._forward(
-                xs=xs,
-                ilens=ilens,
-                ys=ys,
-                olens=olens,
-                spembs=spembs,
-                sids=sids,
-                lids=lids,
-            )
+                # get teacher forcing outputs
+                xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+                spembs = None if spemb is None else spemb.unsqueeze(0)
+                ilens = x.new_tensor([xs.size(1)]).long()
+                olens = y.new_tensor([ys.size(1)]).long()
+                outs, *_ = self._forward(
+                    xs=xs,
+                    ilens=ilens,
+                    ys=ys,
+                    olens=olens,
+                    spembs=spembs,
+                    sids=sids,
+                    lids=lids,
+                )
 
-            # get attention weights
-            att_ws = []
-            for i in range(len(self.decoder.decoders)):
-                att_ws += [self.decoder.decoders[i].src_attn.attn]
-            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_feats, T_text)
+                # get attention weights
+                att_ws = []
+                for i in range(len(self.decoder.decoders)):
+                    att_ws += [self.decoder.decoders[i].src_attn.attn]
+                att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_feats, T_text)
 
-            return dict(feat_gen=outs[0], att_w=att_ws[0])
+                return dict(feat_gen=outs[0], att_w=att_ws[0])
 
-        # forward encoder
-        xs = x.unsqueeze(0)
-        hs, _ = self.encoder(xs, None)
+            # forward encoder
+            xs = x.unsqueeze(0)
+            hs, _ = self.encoder(xs, None)
 
         # integrate GST
         if self.use_gst:

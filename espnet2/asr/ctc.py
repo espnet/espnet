@@ -24,6 +24,7 @@ class CTC(torch.nn.Module):
         ctc_type: str = "builtin",
         reduce: bool = True,
         ignore_nan_grad: bool = True,
+        zero_infinity: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -185,3 +186,17 @@ class CTC(torch.nn.Module):
             torch.Tensor: argmax applied 2d tensor (B, Tmax)
         """
         return torch.argmax(self.ctc_lo(hs_pad), dim=2)
+
+    def gumbel_softmax(self, hs_pad):
+        """argmax of frame activations
+
+        Args:
+            torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        Returns:
+            torch.Tensor: argmax applied 2d tensor (B, Tmax)
+        """
+        # import pdb; pdb.set_trace()
+        a1=F.gumbel_softmax(self.ctc_lo(hs_pad), tau=1, hard=True, dim=2)
+        a3= torch.range(0, a1.shape[-1]-1).to(a1.device,dtype=a1.dtype)
+        a4=torch.matmul(a1,a3)
+        return a1,a4

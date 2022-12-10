@@ -6,8 +6,10 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
+import copy
 
 import torch
+import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
@@ -32,7 +34,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-
+from itertools import groupby
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -73,9 +75,14 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
         speech_attn: bool = False,
+        use_unpaired: bool = False,
+        gumbel_softmax: bool = False,
+        create_KL_copy: bool = False,
+        intermediate_supervision: bool = False,
+        teacher_student: bool = False,
     ):
         assert check_argument_types()
-        assert 0.0 < asr_weight < 1.0, "asr_weight should be (0.0, 1.0)"
+        assert 0.0 <= asr_weight < 1.0, "asr_weight should be (0.0, 1.0)"
         assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
         assert 0.0 <= mtlalpha < 1.0, "mtlalpha should be [0.0, 1.0)"
 
@@ -103,7 +110,17 @@ class ESPnetTTSMDModel(AbsESPnetModel):
 
         self.frontend = frontend
         self.asr_encoder = asr_encoder
+        self.create_KL_copy=create_KL_copy
+        self.intermediate_supervision=intermediate_supervision
+        self.teacher_student=teacher_student
+        if self.create_KL_copy or self.intermediate_supervision:
+            self.asr_encoder_copy = copy.deepcopy(asr_encoder)
         self.asr_decoder = asr_decoder
+        self.use_unpaired = use_unpaired
+        if self.use_unpaired:
+            self.idx_blank=self.token_list.index(sym_blank)
+            self.idx_space=self.token_list.index(sym_space)
+            self.gumbel_softmax=gumbel_softmax
 
         # if self.CRF_loss:
         #     self.criterion_st = CRF(self.vocab_size,batch_first=True)
@@ -130,6 +147,9 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         # ), "Missing src_token_list, cannot add asr module to st model"
         if self.mtlalpha > 0.0:
             self.ctc = ctc
+            if self.intermediate_supervision:
+                self.ctc_copy = copy.deepcopy(self.ctc)
+        # import pdb;pdb.set_trace()
         self.asr_decoder = asr_decoder
 
         # MT error calculator
@@ -174,7 +194,7 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
-        print(text_lengths.shape)
+        # print(text_lengths.shape)
         assert (
             speech.shape[0]
             == speech_lengths.shape[0]
@@ -199,27 +219,61 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         #     src_text = src_text[:, : src_text_lengths.max()]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
-
-        # 2a. ASR Decoder
-        (
-            loss_asr_att,
-            acc_asr_att,
-            cer_asr_att,
-            wer_asr_att,
-            hs_dec_asr,
-        ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, text, text_lengths)
+        if self.intermediate_supervision:
+            y_ctc_gold, y_ctc_gold_lens, encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        elif self.create_KL_copy:    
+            encoder_out, encoder_out_lens, mse_loss = self.encode(speech, speech_lengths)
+        else:
+            encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
         # 2b. CTC branch
+        # import pdb;pdb.set_trace()
+
+        if self.use_unpaired:
+            if self.intermediate_supervision:
+                y_ctc_pred_pad, seq_hat_total_lens, loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, y_ctc_gold, y_ctc_gold_lens
+                )
+                loss_ctc_gt = self.ctc(encoder_out, encoder_out_lens, text, text_lengths)
+            else:
+                y_ctc_pred_pad, seq_hat_total_lens, loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
         if self.mtlalpha > 0:
-            loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
+            if self.use_unpaired:
+                cer_asr_ctc = None
+            else:
+                loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths
+                )
         else:
             loss_asr_ctc, cer_asr_ctc = 0, None
-
+        
         # 3a. MT Encoder
-        dec_asr_lengths = text_lengths + 1
+        # import pdb;pdb.set_trace()
+        if self.use_unpaired:
+            dec_asr_lengths = seq_hat_total_lens+1
+        else:
+            dec_asr_lengths = text_lengths + 1
+        # 2a. ASR Decoder
+        if self.use_unpaired:
+            (
+                loss_asr_att,
+                acc_asr_att,
+                cer_asr_att,
+                wer_asr_att,
+                hs_dec_asr,
+            ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, y_ctc_pred_pad, seq_hat_total_lens)
+            if self.gumbel_softmax:
+                dec_asr_lengths=dec_asr_lengths.to(dtype=int)
+        else:
+            (
+                loss_asr_att,
+                acc_asr_att,
+                cer_asr_att,
+                wer_asr_att,
+                hs_dec_asr,
+            ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, text, text_lengths)
         # if self.encoder_mt is not None:
         #     encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
         # else:
@@ -283,7 +337,9 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         
         # 3. Loss computation
         asr_ctc_weight = self.mtlalpha
-        if asr_ctc_weight == 0.0:
+        if self.use_unpaired:
+            loss_asr = loss_asr_ctc
+        elif asr_ctc_weight == 0.0:
             loss_asr = loss_asr_att
         else:
             loss_asr = (
@@ -293,24 +349,66 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             (1 - self.asr_weight) * tts_loss
             + self.asr_weight * loss_asr
         )
-
+        # import pdb;pdb.set_trace()
+        if self.create_KL_copy:
+            # import pdb;pdb.set_trace()
+            loss = (
+                (0.95) * loss
+                + 0.05 * mse_loss
+            )
+        # import pdb;pdb.set_trace()
         # print(tts_stats)
         # import pdb;pdb.set_trace()
-        stats = dict(
-            loss=loss.detach(),
-            loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
-            loss_tts=tts_loss.detach(),
-            acc_asr=acc_asr_att,
-            cer_ctc=cer_asr_ctc,
-            cer=cer_asr_att,
-            wer=wer_asr_att,
-            tts_l1_loss=tts_stats['l1_loss'],
-            tts_l2_loss=tts_stats['l2_loss'],
-            tts_bce_loss=tts_stats['bce_loss'],
-            tts_enc_dec_attn_loss=tts_stats['enc_dec_attn_loss'],
-            tts_encoder_alpha=tts_stats['encoder_alpha'],
-            tts_decoder_alpha=tts_stats['decoder_alpha'],
-        )
+        if self.create_KL_copy:
+            stats = dict(
+                loss=loss.detach(),
+                loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
+                KL_loss=mse_loss.detach(),
+                loss_tts=tts_loss.detach(),
+                acc_asr=acc_asr_att,
+                cer_ctc=cer_asr_ctc,
+                cer=cer_asr_att,
+                wer=wer_asr_att,
+                tts_l1_loss=tts_stats['l1_loss'],
+                tts_l2_loss=tts_stats['l2_loss'],
+                tts_bce_loss=tts_stats['bce_loss'],
+                tts_enc_dec_attn_loss=tts_stats['enc_dec_attn_loss'],
+                tts_encoder_alpha=tts_stats['encoder_alpha'],
+                tts_decoder_alpha=tts_stats['decoder_alpha'],
+            )
+        elif self.intermediate_supervision:
+            stats = dict(
+                loss=loss.detach(),
+                loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
+                loss_ct_gt=loss_ctc_gt.detach(),
+                loss_tts=tts_loss.detach(),
+                acc_asr=acc_asr_att,
+                cer_ctc=cer_asr_ctc,
+                cer=cer_asr_att,
+                wer=wer_asr_att,
+                tts_l1_loss=tts_stats['l1_loss'],
+                tts_l2_loss=tts_stats['l2_loss'],
+                tts_bce_loss=tts_stats['bce_loss'],
+                tts_enc_dec_attn_loss=tts_stats['enc_dec_attn_loss'],
+                tts_encoder_alpha=tts_stats['encoder_alpha'],
+                tts_decoder_alpha=tts_stats['decoder_alpha'],
+            )
+        else:
+            stats = dict(
+                loss=loss.detach(),
+                loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
+                loss_tts=tts_loss.detach(),
+                acc_asr=acc_asr_att,
+                cer_ctc=cer_asr_ctc,
+                cer=cer_asr_att,
+                wer=wer_asr_att,
+                tts_l1_loss=tts_stats['l1_loss'],
+                tts_l2_loss=tts_stats['l2_loss'],
+                tts_bce_loss=tts_stats['bce_loss'],
+                tts_enc_dec_attn_loss=tts_stats['enc_dec_attn_loss'],
+                tts_encoder_alpha=tts_stats['encoder_alpha'],
+                tts_decoder_alpha=tts_stats['decoder_alpha'],
+            )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -366,6 +464,15 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.asr_encoder(feats, feats_lengths)
+        if self.intermediate_supervision:
+            encoder_out_copy, encoder_out_copy_lens, _ = self.asr_encoder_copy(feats, feats_lengths)
+            y_ctc_gold, y_ctc_gold_lens=self._calc_ctc_output(encoder_out_copy, encoder_out_copy_lens)
+            # import pdb;pdb.set_trace()
+        elif self.create_KL_copy:
+            # import pdb;pdb.set_trace()
+            mse_criterion = torch.nn.MSELoss(reduction="mean")
+            encoder_out_copy, encoder_out_copy_lens, _ = self.asr_encoder_copy(feats, feats_lengths)
+            mse_loss = mse_criterion(encoder_out, encoder_out_copy)
 
         # Post-encoder, e.g. NLU
         if self.postencoder is not None:
@@ -381,8 +488,12 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             encoder_out.size(),
             encoder_out_lens.max(),
         )
-
-        return encoder_out, encoder_out_lens
+        if self.intermediate_supervision:
+            return y_ctc_gold, y_ctc_gold_lens, encoder_out, encoder_out_lens
+        elif self.create_KL_copy:
+            return encoder_out, encoder_out_lens, mse_loss
+        else:
+            return encoder_out, encoder_out_lens
 
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
@@ -402,70 +513,7 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
-
-    def _calc_mt_att_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-        speech: Optional[torch.Tensor],
-        speech_lens: Optional[torch.Tensor],
-    ):
-
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-        ys_in_lens = ys_pad_lens + 1
-
-        if self.token_decoder is not None:
-            if self.speech_attn:
-                decoder_out = self.token_decoder(encoder_out, encoder_out_lens, speech=speech, speech_lens=speech_lens)
-            else:
-                decoder_out = self.token_decoder(encoder_out, encoder_out_lens)
-        else:
-            # 1. Forward decoder
-            if self.speech_attn:
-                decoder_out, _ = self.decoder(
-                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, speech, speech_lens
-                )
-            else:
-                decoder_out, _ = self.decoder(
-                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
-                )
-
-        ignore = ys_out_pad != self.ignore_id  # (B,)
-        # 2. Compute attention loss
-        if self.CRF_loss:
-            #We should verify if what's going inside is acurate. 
-            loss_att = -1 * self.criterion_st(decoder_out, ys_out_pad, mask=ignore,reduction="mean")
-            y_pred= self.criterion_st.decode(decoder_out, mask=ignore)
-            y_pred = [torch.tensor(x, dtype=ys_out_pad.dtype, device=ys_out_pad.device) for x in y_pred]
-            y_pred_pad=pad_list(y_pred,self.ignore_id)
-            numerator = torch.sum(
-                y_pred_pad.masked_select(ignore) == ys_out_pad.masked_select(ignore)
-            )
-            denominator = torch.sum(ignore)
-            acc_att = float(numerator) / float(denominator)
-            y_pred_pad = y_pred_pad * ignore
-        else:
-            loss_att = self.criterion_st(decoder_out, ys_out_pad)
-            acc_att = th_accuracy(
-                decoder_out.view(-1, self.vocab_size),
-                ys_out_pad,
-                ignore_label=self.ignore_id,
-            )
-            y_pred_pad = decoder_out.argmax(2) * ignore
-
-        if self.token_decoder is not None:
-            ys_out = (ys_out_pad * ignore).view(-1).tolist()
-            bleu_att = f1_score(ys_out,y_pred_pad.view(-1).tolist(),labels=range(-1,self.vocab_size),average="micro")
-        elif self.training or self.mt_error_calculator is None:
-            bleu_att = None
-        else:
-            ys_hat = decoder_out.argmax(dim=-1)
-            bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
-
-        return loss_att, acc_att, bleu_att
-
+    
     def _calc_asr_att_loss(
         self,
         encoder_out: torch.Tensor,
@@ -473,7 +521,19 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        if self.gumbel_softmax:
+            a3= torch.range(0, ys_pad.shape[-1]-1).to(ys_pad.device,dtype=ys_pad.dtype)
+            a4=torch.matmul(ys_pad,a3).to(dtype=int)
+            ys_pad_int=a4
+            ys_in_pad1, ys_out_pad = add_sos_eos(a4, self.sos, self.eos, self.ignore_id)
+            a1=torch.zeros(ys_pad.shape[-1])
+            a1[self.sos]=1
+            a1=a1.to(ys_pad.device,dtype=ys_pad.dtype)
+            a1=a1.unsqueeze(0)
+            # import pdb;pdb.set_trace()
+            ys_in_pad=torch.stack([torch.cat([a1, y], dim=0) for y in ys_pad])
+        else:
+            ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -494,7 +554,10 @@ class ESPnetTTSMDModel(AbsESPnetModel):
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            if self.gumbel_softmax:
+                cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad_int.cpu())
+            else:
+                cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att, hs_dec_asr
 
@@ -505,6 +568,57 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
+        if self.use_unpaired:
+            if self.gumbel_softmax:
+                ys_one_hot_hat, ys_hat = self.ctc.gumbel_softmax(encoder_out)
+                seq_hat_total=[]
+                loss_ctc=self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+                cer_ctc=0
+                for i, y in enumerate(ys_hat):
+                    y_hat = [x[0] for x in groupby(y)]
+                    y_hat_sum = [sum(1 for _ in x[1]) for x in groupby(y)]
+                    seq_hat = []
+                    idx_index=0
+                    # import pdb;pdb.set_trace()
+                    for idx_len in range(len(y_hat)):
+                        idx=y_hat[idx_len]
+                        idx1 = int(idx)
+                        if idx1 != -1 and idx1 != self.idx_blank:
+                            seq_hat.append(ys_one_hot_hat[i][idx_index])
+                        idx_index+=y_hat_sum[idx_len]
+                    # import pdb;pdb.set_trace()
+                    seq_hat_total.append(torch.stack(seq_hat).to(ys_hat.device, dtype=ys_hat.dtype))
+                seq_hat_total_lens=torch.Tensor([len(k) for k in seq_hat_total]).to(ys_hat.device, dtype=ys_hat.dtype)
+                n_batch = len(seq_hat_total)
+                max_len = max(x.size(0) for x in seq_hat_total)
+                xs=seq_hat_total
+                pad = xs[0].new(n_batch, max_len, *xs[0].size()[1:])
+                for i in range(n_batch):
+                    for j in range(pad.shape[1]):
+                        a1=torch.zeros(pad.shape[-1])
+                        a1[-1]=1.0
+                        pad[i][j]=a1
+                    pad[i, : xs[i].size(0)] = xs[i]
+                # import pdb;pdb.set_trace()
+                y_ctc_pred_pad=pad
+            else:
+                ys_hat = self.ctc.argmax(encoder_out).data
+                seq_hat_total=[]
+                loss_ctc=self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+                cer_ctc=0
+                # import pdb;pdb.set_trace()
+                for i, y in enumerate(ys_hat):
+                    y_hat = [x[0] for x in groupby(y)]
+                    seq_hat = []
+                    for idx in y_hat:
+                        idx1 = int(idx)
+                        if idx1 != -1 and idx1 != self.idx_blank:
+                            seq_hat.append(idx)
+                    seq_hat_total.append(torch.Tensor(seq_hat).to(ys_hat.device, dtype=ys_hat.dtype))
+                # import pdb;pdb.set_trace()
+                seq_hat_total_lens=torch.Tensor([len(k) for k in seq_hat_total]).to(ys_hat.device, dtype=ys_hat.dtype)
+                y_ctc_pred_pad=pad_list(seq_hat_total,self.ignore_id)
+            return y_ctc_pred_pad, seq_hat_total_lens, loss_ctc, cer_ctc
         # Calc CTC loss
         loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
 
@@ -513,4 +627,76 @@ class ESPnetTTSMDModel(AbsESPnetModel):
         if not self.training and self.asr_error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
             cer_ctc = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+        
         return loss_ctc, cer_ctc
+
+    def _calc_ctc_output(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+    ):
+        ys_hat = self.ctc_copy.argmax(encoder_out).data
+        seq_hat_total=[]
+        cer_ctc=0
+        # import pdb;pdb.set_trace()
+        for i, y in enumerate(ys_hat):
+            y_hat = [x[0] for x in groupby(y)]
+            seq_hat = []
+            for idx in y_hat:
+                idx1 = int(idx)
+                if idx1 != -1 and idx1 != self.idx_blank:
+                    seq_hat.append(idx)
+            seq_hat_total.append(torch.Tensor(seq_hat).to(ys_hat.device, dtype=ys_hat.dtype))
+        # import pdb;pdb.set_trace()
+        seq_hat_total_lens=torch.Tensor([len(k) for k in seq_hat_total]).to(ys_hat.device, dtype=ys_hat.dtype)
+        y_ctc_pred_pad=pad_list(seq_hat_total,self.ignore_id)
+        return y_ctc_pred_pad, seq_hat_total_lens
+        
+
+    def tts_inference(
+        self,
+        text: torch.Tensor,
+        speech: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
+        **decode_config,
+    ) -> Dict[str, torch.Tensor]:
+        """Caclualte features and return them as a dict.
+
+        Args:
+            text (Tensor): Text index tensor (T_text).
+            speech (Tensor): Speech waveform tensor (T_wav).
+            spembs (Optional[Tensor]): Speaker embedding tensor (D,).
+            sids (Optional[Tensor]): Speaker ID tensor (1,).
+            lids (Optional[Tensor]): Language ID tensor (1,).
+            durations (Optional[Tensor): Duration tensor.
+            pitch (Optional[Tensor): Pitch tensor.
+            energy (Optional[Tensor): Energy tensor.
+
+        Returns:
+            Dict[str, Tensor]: Dict of outputs.
+
+        """
+        input_dict = dict(text=text)
+        
+        if spembs is not None:
+            input_dict.update(spembs=spembs)
+        if sids is not None:
+            input_dict.update(sids=sids)
+        if lids is not None:
+            input_dict.update(lids=lids)
+
+        output_dict = self.tts.inference(**input_dict, **decode_config)
+
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
+            # NOTE: normalize.inverse is in-place operation
+            feat_gen_denorm = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+            output_dict.update(feat_gen_denorm=feat_gen_denorm)
+
+        return output_dict

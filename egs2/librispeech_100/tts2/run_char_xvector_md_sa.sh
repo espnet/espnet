@@ -10,14 +10,14 @@ n_fft=2048
 n_shift=300
 win_length=1200
 
-tag="tts_16k_char_xvector_sa"
+tag="tts_16k_char_xvector"
 
 train_set="train_clean_100"
 valid_set="dev_clean"
 # test_sets="dev_clean"
 test_sets="test_clean dev_clean"
 
-train_config=conf/tuning/train_transformer_xvector_md_sa.yaml
+train_config=conf/tuning/train_transformer_xvector_md.yaml
 inference_config=conf/decode.yaml
 
 

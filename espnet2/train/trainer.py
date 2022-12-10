@@ -257,6 +257,7 @@ class Trainer:
             train_summary_writer = None
 
         start_time = time.perf_counter()
+        teacher_student = getattr(dp_model, "teacher_student", False)
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
             if iepoch != start_epoch:
                 logging.info(
@@ -270,6 +271,12 @@ class Trainer:
                         ),
                     )
                 )
+                if teacher_student:
+                    polyak_factor=0.2
+                    for target_param, param in zip(dp_model.asr_encoder_copy.parameters(), dp_model.asr_encoder.parameters()):
+                        target_param.data.copy_(polyak_factor*param.data + target_param.data*(1.0 - polyak_factor))
+                    for target_param, param in zip(dp_model.ctc_copy.parameters(), dp_model.ctc.parameters()):
+                        target_param.data.copy_(polyak_factor*param.data + target_param.data*(1.0 - polyak_factor))
             else:
                 logging.info(f"{iepoch}/{trainer_options.max_epoch}epoch started")
             set_all_random_seed(trainer_options.seed + iepoch)

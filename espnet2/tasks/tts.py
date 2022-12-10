@@ -336,6 +336,7 @@ class TTSTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
+        # import pdb;pdb.set_trace()
         if not inference:
             retval = ("text", "speech")
         else:

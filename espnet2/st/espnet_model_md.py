@@ -6,7 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
-from torchcrf import CRF
+# from torchcrf import CRF
 
 import torch
 from typeguard import check_argument_types

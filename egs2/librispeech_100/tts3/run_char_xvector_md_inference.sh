@@ -10,21 +10,21 @@ n_fft=2048
 n_shift=300
 win_length=1200
 
-tag="tts_16k_char_xvector_unpaired_new_gumbel"
+tag="tts_16k_char_xvector_pretrain_no_finetune"
 
-train_set="train_clean_360"
+train_set="train_clean_100"
 valid_set="dev_clean"
 # test_sets="dev_clean"
-test_sets="test_clean"
+test_sets="train_clean_360"
 
-train_config=conf/tuning/train_transformer_xvector_md_unpaired_new_gumbel.yaml
-inference_config=conf/decode.yaml
+train_config=conf/tuning/train_transformer_xvector_md_pretrain_no_finetune.yaml
+inference_config=conf/tuning/decode_ctc_bs1.yaml
 inference_asr_config=conf/decode_asr.yaml
 
 
 ./tts.sh \
     --ngpu 1 \
-    --stage 5 \
+    --stage 7 \
     --use_multidecoder true \
     --lang en \
     --feats_type raw \
@@ -42,5 +42,6 @@ inference_asr_config=conf/decode_asr.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
+    --inference_model valid.loss.best.pth \
     --srctexts "data/${train_set}/text" \
     --audio_format "wav" "$@"

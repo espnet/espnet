@@ -64,6 +64,7 @@ n_mels=80                  # The number of mel basis.
 # Only used for the model using pitch & energy features (e.g. FastSpeech2)
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
+score_opts=
 
 # X-Vector related
 use_xvector=false   # Whether to use x-vector.
@@ -90,6 +91,7 @@ tts_task=tts                # TTS task (tts or gan_tts).
 
 # Decoding related
 inference_config="" # Config for decoding.
+inference_asr_config="" # Config for decoding.
 inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
@@ -101,7 +103,7 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""  # Download a model from Model Zoo and use it for decoding.
-
+bpemodel=none
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
@@ -183,6 +185,7 @@ Options:
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
+    --inference_asr_config  # Config for Multidecoder ASR decoding (default="${inference_config}").
     --inference_args    # Arguments for decoding, (default="${inference_args}").
                         # e.g., --inference_args "--threshold 0.75"
                         # Note that it will overwrite args in inference config.
@@ -943,8 +946,15 @@ if ! "${skip_eval}"; then
         fi
 
         _opts=
-        if [ -n "${inference_config}" ]; then
-            _opts+="--config ${inference_config} "
+        if ${use_multidecoder}; then
+            echo "Running multidecoder"
+            if [ -n "${inference_asr_config}" ]; then
+                _opts+="--config ${inference_asr_config} "
+            fi
+        else
+            if [ -n "${inference_config}" ]; then
+                _opts+="--config ${inference_config} "
+            fi
         fi
 
         _scp=wav.scp
@@ -980,19 +990,23 @@ if ! "${skip_eval}"; then
             fi
 
             # Add X-vector to the inputs if needed
-            if "${use_xvector}"; then
-                _xvector_dir="${dumpdir}/xvector/${dset}"
-                _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
-            fi
+            if ${use_multidecoder}; then
+                echo "ASR inference. No speaker features"
+            else
+                if "${use_xvector}"; then
+                    _xvector_dir="${dumpdir}/xvector/${dset}"
+                    _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
+                fi
 
-            # Add spekaer ID to the inputs if needed
-            if "${use_sid}"; then
-                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
-            fi
+                # Add spekaer ID to the inputs if needed
+                if "${use_sid}"; then
+                    _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
+                fi
 
-            # Add language ID to the inputs if needed
-            if "${use_lid}"; then
-                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
+                # Add language ID to the inputs if needed
+                if "${use_lid}"; then
+                    _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
+                fi
             fi
 
             # 0. Copy feats_type
@@ -1011,69 +1025,89 @@ if ! "${skip_eval}"; then
             # 3. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
-                ${python} -m espnet2.bin.tts_inference \
+            if ${use_multidecoder}; then
+                echo "${_cmd}"
+                echo "${_nj}"
+                 ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
+                ${python} -m espnet2.bin.cyclic_asr_inference \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --model_file "${tts_exp}"/"${inference_model}" \
-                    --train_config "${tts_exp}"/config.yaml \
-                    --output_dir "${_logdir}"/output.JOB \
-                    --vocoder_file "${vocoder_file}" \
-                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
-
-            # 4. Concatenates the output files from each jobs
-            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
-                mkdir -p "${_dir}"/norm
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/norm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
-                mkdir -p "${_dir}"/denorm
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/denorm/feats.scp"
-                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
-                mkdir -p "${_dir}"/wav
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                    rm -rf "${_logdir}/output.${i}"/wav
+                    --cyclic_model_file "${tts_exp}"/"${inference_model}" \
+                    --cyclic_train_config "${tts_exp}"/config.yaml \
+                    --output_dir "${_logdir}"/asr_output.JOB \
+                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
+                for f in token token_int score text; do
+                    if [ -f "${_logdir}/asr_output.1/1best_recog/${f}" ]; then
+                        for i in $(seq "${_nj}"); do
+                            cat "${_logdir}/asr_output.${i}/1best_recog/${f}"
+                        done | sort -k1 >"${_dir}/${f}"
+                    fi
                 done
-                find "${_dir}/wav" -name "*.wav" | while read -r line; do
-                    echo "$(basename "${line}" .wav) ${line}"
-                done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
-                mkdir -p "${_dir}"/att_ws
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
-                    rm -rf "${_logdir}/output.${i}"/att_ws
-                done
-            fi
-            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/probs" ]; then
-                mkdir -p "${_dir}"/probs
-                for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
-                    rm -rf "${_logdir}/output.${i}"/probs
-                done
+            else
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
+                    ${python} -m espnet2.bin.tts_inference \
+                        --ngpu "${_ngpu}" \
+                        --data_path_and_name_and_type "${_data}/text,text,text" \
+                        --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
+                        --key_file "${_logdir}"/keys.JOB.scp \
+                        --model_file "${tts_exp}"/"${inference_model}" \
+                        --train_config "${tts_exp}"/config.yaml \
+                        --output_dir "${_logdir}"/output.JOB \
+                        --vocoder_file "${vocoder_file}" \
+                        ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
+                # 4. Concatenates the output files from each jobs
+                if [ -e "${_logdir}/output.${_nj}/norm" ]; then
+                    mkdir -p "${_dir}"/norm
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/norm/feats.scp"
+                    done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
+                    mkdir -p "${_dir}"/denorm
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/denorm/feats.scp"
+                    done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                    done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/wav" ]; then
+                    mkdir -p "${_dir}"/wav
+                    for i in $(seq "${_nj}"); do
+                        mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                        rm -rf "${_logdir}/output.${i}"/wav
+                    done
+                    find "${_dir}/wav" -name "*.wav" | while read -r line; do
+                        echo "$(basename "${line}" .wav) ${line}"
+                    done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+                    mkdir -p "${_dir}"/att_ws
+                    for i in $(seq "${_nj}"); do
+                        mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                        rm -rf "${_logdir}/output.${i}"/att_ws
+                    done
+                fi
+                if [ -e "${_logdir}/output.${_nj}/durations" ]; then
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/durations/durations"
+                    done | LC_ALL=C sort -k1 > "${_dir}/durations"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                    done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+                fi
+                if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+                    mkdir -p "${_dir}"/probs
+                    for i in $(seq "${_nj}"); do
+                        mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                        rm -rf "${_logdir}/output.${i}"/probs
+                    done
+                fi
             fi
         done
     fi
@@ -1233,5 +1267,264 @@ if ! "${skip_upload_hf}"; then
 else
     log "Skip the uploading to HuggingFace stage"
 fi
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    log "Stage 11: ASR Scoring"
+    if [ ! "${use_multidecoder}" ]; then
+        log "Error: Only valid for cyclic ASR TTS"
+        exit 1
+    fi
 
+    for dset in ${test_sets}; do
+        _data="${data_feats}/${dset}"
+        _dir="${tts_exp}/${inference_tag}/${dset}"
+
+        for _type in cer wer ter; do
+            [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
+
+            _scoredir="${_dir}/score_${_type}"
+            mkdir -p "${_scoredir}"
+
+            if [ "${_type}" = wer ]; then
+                # Tokenize text to word level
+                paste \
+                    <(<"${_data}/text" \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                --cleaner "${cleaner}" \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref.trn"
+
+                # NOTE(kamo): Don't use cleaner for hyp
+                paste \
+                    <(<"${_dir}/text"  \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp.trn"
+
+
+            elif [ "${_type}" = cer ]; then
+                # Tokenize text to char level
+                paste \
+                    <(<"${_data}/text" \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type char \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                --cleaner "${cleaner}" \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref.trn"
+
+                # NOTE(kamo): Don't use cleaner for hyp
+                paste \
+                    <(<"${_dir}/text"  \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type char \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp.trn"
+
+            elif [ "${_type}" = ter ]; then
+                # Tokenize text using BPE
+                paste \
+                    <(<"${_data}/text" \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type bpe \
+                                --bpemodel "${bpemodel}" \
+                                --cleaner "${cleaner}" \
+                            ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref.trn"
+
+                # NOTE(kamo): Don't use cleaner for hyp
+                paste \
+                    <(<"${_dir}/text" \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type bpe \
+                                --bpemodel "${bpemodel}" \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp.trn"
+
+            fi
+
+            sclite \
+        ${score_opts} \
+                -r "${_scoredir}/ref.trn" trn \
+                -h "${_scoredir}/hyp.trn" trn \
+                -i rm -o all stdout > "${_scoredir}/result.txt"
+
+            log "Write ${_type} result in ${_scoredir}/result.txt"
+            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+        done
+    done
+
+    # [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
+
+    # Show results in Markdown syntax
+    scripts/utils/show_asr_result.sh "${tts_exp}" > "${tts_exp}"/ASR_RESULTS.md
+    cat "${tts_exp}"/ASR_RESULTS.md
+
+fi
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && [ ${use_multidecoder} ]; then
+    log "Stage 12: TTS Decoding: training_dir=${tts_exp}"
+
+    if ${gpu_inference}; then
+        _cmd="${cuda_cmd}"
+        _ngpu=1
+    else
+        _cmd="${decode_cmd}"
+        _ngpu=0
+    fi
+
+    _opts=
+    if [ -n "${inference_config}" ]; then
+        _opts+="--config ${inference_config} "
+    fi
+
+    _scp=wav.scp
+    if [[ "${audio_format}" == *ark* ]]; then
+        _type=kaldi_ark
+    else
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+    fi
+
+    log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
+    mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
+
+
+    for dset in ${test_sets}; do
+        _data="${data_feats}/${dset}"
+        _speech_data="${_data}"
+        _dir="${tts_exp}/${inference_tag}/${dset}"
+        _logdir="${_dir}/log"
+        mkdir -p "${_logdir}"
+
+        _ex_opts=""
+        if [ -n "${teacher_dumpdir}" ]; then
+            # Use groundtruth of durations
+            _teacher_dir="${teacher_dumpdir}/${dset}"
+            _ex_opts+="--data_path_and_name_and_type ${_teacher_dir}/durations,durations,text_int "
+            # Overwrite speech arguments if use knowledge distillation
+            if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
+                _speech_data="${_teacher_dir}/denorm"
+                _scp=feats.scp
+                _type=npy
+            fi
+        fi
+
+        # Add X-vector to the inputs if needed        
+        if "${use_xvector}"; then
+            _xvector_dir="${dumpdir}/xvector/${dset}"
+            _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        # Add spekaer ID to the inputs if needed
+        if "${use_sid}"; then
+            _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
+        fi
+
+        # Add language ID to the inputs if needed
+        if "${use_lid}"; then
+            _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
+        fi
+
+        # 0. Copy feats_type
+        cp "${_data}/feats_type" "${_dir}/feats_type"
+
+        # 1. Split the key file
+        key_file=${_data}/text
+        split_scps=""
+        _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+        for n in $(seq "${_nj}"); do
+            split_scps+=" ${_logdir}/keys.${n}.scp"
+        done
+        # shellcheck disable=SC2086
+        utils/split_scp.pl "${key_file}" ${split_scps}
+
+        # 3. Submit decoding jobs
+        log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
+        # shellcheck disable=SC2046,SC2086
+        ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
+            ${python} -m espnet2.bin.cyclic_tts_inference \
+                --ngpu "${_ngpu}" \
+                --data_path_and_name_and_type "${_data}/text,text,text" \
+                --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --model_file "${tts_exp}"/"${inference_model}" \
+                --train_config "${tts_exp}"/config.yaml \
+                --output_dir "${_logdir}"/output.JOB \
+                --vocoder_file "${vocoder_file}" \
+                ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
+        # 4. Concatenates the output files from each jobs
+        if [ -e "${_logdir}/output.${_nj}/norm" ]; then
+            mkdir -p "${_dir}"/norm
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/norm/feats.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
+            mkdir -p "${_dir}"/denorm
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/denorm/feats.scp"
+            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+            done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/wav" ]; then
+            mkdir -p "${_dir}"/wav
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                rm -rf "${_logdir}/output.${i}"/wav
+            done
+            find "${_dir}/wav" -name "*.wav" | while read -r line; do
+                echo "$(basename "${line}" .wav) ${line}"
+            done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+            mkdir -p "${_dir}"/att_ws
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                rm -rf "${_logdir}/output.${i}"/att_ws
+            done
+        fi
+        if [ -e "${_logdir}/output.${_nj}/durations" ]; then
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/durations/durations"
+            done | LC_ALL=C sort -k1 > "${_dir}/durations"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
+            for i in $(seq "${_nj}"); do
+                cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+            done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+        fi
+        if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+            mkdir -p "${_dir}"/probs
+            for i in $(seq "${_nj}"); do
+                mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                rm -rf "${_logdir}/output.${i}"/probs
+            done
+        fi
+    done
+fi
 log "Successfully finished. [elapsed=${SECONDS}s]"
