@@ -68,7 +68,7 @@ sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
-postprocess_word_boundary='  '   # word boundary for post process
+postprocess_word_boundary="   "  # word boundary for post process
 postprocess_sil_token="sil"  # silence injection tokens in post process
 postprocess_sil_prob=0.5         # silence injection probability in post process
 
@@ -731,7 +731,7 @@ if ! "${skip_data_prep}"; then
                     --add_symbol "${postprocess_sil_token}"
 
             # Note(Dongji): for dev text we keep utterance ids to compute PER
-            log "Tokenize ${lm_dev_text}"
+            log "Tokenizing ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type ${token_type} ${_opts} \
@@ -761,54 +761,57 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
-            ${python} -m espnet2.bin.tokenize_text \
-                --token_type phn \
-                --input ${split_dir}/JOB/text \
-                --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/unpaired_text_nosil \
-                --g2p "${g2p}" \
-                --write_vocabulary true \
-                --write_text true \
-                --cutoff 2 
+#            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
+#            ${python} -m espnet2.bin.tokenize_text \
+#                --token_type phn \
+#                --input ${split_dir}/JOB/text \
+#                --output ${split_dir}/JOB/unpaired_text_nosil \
+#                --g2p "${g2p}" \
+#                --write_vocabulary false \
+#                --field "2-"
 
-             # FIXME(jiatong): this post process is very hard-coded, need fix
-             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
-             ${python} pyscripts/text/post_processing.py \
-               --word_boundary "${postprocess_word_boundary}" \
-               --sil_prob ${postprocess_sil_token} \
-               --sil_token ${postprocess_sil_prob} \
-               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
-               --output_text "${split_dir}/JOB/unpaired_text" \
-               --output_vocab "${split_dir}/JOB/tokens_post.txt" \
-               --reduce_vocab
+#             # FIXME(jiatong): this post process is very hard-coded, need fix
+#             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
+#             ${python} pyscripts/text/post_processing.py \
+#               --word_boundary "${postprocess_word_boundary}" \
+#               --sil_prob ${postprocess_sil_prob} \
+#               --sil_token ${postprocess_sil_token} \
+#               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
+#               --output_text "${split_dir}/JOB/unpaired_text" \
+#               --reduce_vocab true
 
-            ${python} pyscripts/text/combine_text_and_vocab.py \
-                    --split_dir ${split_dir} \
-                    --num_splits ${nj} \
-                    --output_dir "${data_feats}/${train_set}" \
-                    --add_symbol "<blank>" \
-                    --add_symbol "<s>" \
-                    --add_symbol "<pad>" \
-                    --add_symbol "</s>" \
-                    --add_symbol "<unk>" \
-                    --add_symbol "<SIL>"
+#            ${python} pyscripts/text/combine_text_and_vocab.py \
+#                    --split_dir ${split_dir} \
+#                    --num_splits ${nj} \
+#                    --output_dir "${data_feats}/${train_set}" \
+#                    --text_file "unpaired_text" \
+#                    --vocab_file "tokens.txt" \
+#                    --add_symbol "<blank>" \
+#                    --add_symbol "<s>" \
+#                    --add_symbol "<pad>" \
+#                    --add_symbol "</s>" \
+#                    --add_symbol "<unk>" \
+#                    --add_symbol "${postprocess_sil_token}"
 
-            # Note(Dongji): for dev text we need to keep utterance ids to compute PER
-            log "Tokenizer ${lm_dev_text}"
+            # Note(Dongji): for dev text we keep utterance ids to compute PER
+            log "Tokenizing ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type phn \
                 --input ${lm_dev_text}\
-                --output "${data_feats}/${valid_set}/tokens.txt" \
-                --text_output "${data_feats}/${valid_set}/phones" \
+                --output "${data_feats}/${valid_set}/unpaired_text.raw" \
                 --g2p "${g2p}" \
                 --write_vocabulary false \
-                --write_text true \
-                --cutoff 0 \
                 --field "2-"
 
-            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/phones" \
+             ${python} pyscripts/text/post_processing.py \
+               --word_boundary "${postprocess_word_boundary}" \
+               --sil_prob 0.0 \
+               --input_text "${data_feats}/${valid_set}/unpaired_text.raw" \
+               --output_text "${data_feats}/${valid_set}/unpaired_text.tmp" \
+               --reduce_vocab true
+
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/unpaired_text.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
 
         else
