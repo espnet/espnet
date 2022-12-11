@@ -1,13 +1,18 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.slu.postdecoder.hugging_face_transformers_postdecoder import (
     HuggingFaceTransformersPostDecoder,
 )
 
+is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
+
 
 @pytest.mark.execution_timeout(50)
 def test_transformers_forward():
+    if not is_torch_1_8_plus:
+        return
     postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
     max_length = 128
     transcript_data = ["increase the heating in the bathroom"]
@@ -30,6 +35,8 @@ def test_transformers_forward():
 
 @pytest.mark.execution_timeout(30)
 def test_convert_examples_to_features():
+    if not is_torch_1_8_plus:
+        return
     postdecoder = HuggingFaceTransformersPostDecoder("bert-base-cased", 400)
     max_length = 128
     transcript_data = ["increase the heating in the bathroom"]

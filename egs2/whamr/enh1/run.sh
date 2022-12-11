@@ -26,4 +26,5 @@ test_sets="tt_mix_single_reverb_min_8k"
     --use_dereverb_ref false \
     --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
+    --audio_format wav \
     "$@"
