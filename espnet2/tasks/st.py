@@ -19,6 +19,9 @@ from espnet2.asr.decoder.transformer_decoder import (
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.contextual_block_conformer_encoder import (
+    ContextualBlockConformerEncoder,
+)
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
@@ -101,6 +104,7 @@ encoder_choices = ClassChoices(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
@@ -168,6 +172,7 @@ md_encoder_choices = ClassChoices(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
     ),
@@ -216,13 +221,6 @@ class STTask(AbsTask):
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
-
-        group.add_argument(
-            "--use_multidecoder",
-            type=str2bool,
-            default=False,
-            help="Use multidecoder model",
-        )
 
         group.add_argument(
             "--token_list",
@@ -365,6 +363,12 @@ class STTask(AbsTask):
             default=0.5,
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
+        )
+        group.add_argument(
+            "--ctc_sample_rate",
+            type=float,
+            default=0.0,
+            help="Sample greedy CTC output as AR decoder target.",
         )
 
         for class_choices in cls.class_choices_list:

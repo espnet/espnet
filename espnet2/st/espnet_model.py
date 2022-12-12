@@ -5,6 +5,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
+import random
+from itertools import groupby
+from torch.nn.utils.rnn import pad_sequence
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -65,7 +68,7 @@ class ESPnetSTModel(AbsESPnetModel):
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
-        speech_attn: bool = False,
+        ctc_sample_rate: float = 0.0,
     ):
         assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
@@ -86,7 +89,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.mtlalpha = mtlalpha
         self.token_list = token_list.copy()
         self.src_token_list = src_token_list.copy()
-        self.speech_attn = speech_attn
+        self.ctc_sample_rate = ctc_sample_rate
 
         self.frontend = frontend
         self.specaug = specaug
@@ -443,6 +446,19 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
         return_hs: bool = False,
     ):
+        # Use CTC output as AR decoder target; useful for multi-decoder training
+        if self.training and self.ctc_sample_rate > 0:
+            if random.uniform(0, 1) < self.ctc_sample_rate:
+                ys_hat = self.ctc.argmax(encoder_out).data
+                ys_hat = [[x[0] for x in groupby(ys)] for ys in ys_hat]
+                ys_hat = [[x for x in filter(lambda x: x != 0, ys)] for ys in ys_hat]
+                for i, ys in enumerate(ys_hat):
+                    if len(ys) == 0:
+                        ys_hat[i] = [x for x in ys_pad[i] if x != -1]
+                ys_pad_lens = torch.tensor([len(x) for x in ys_hat], device=encoder_out.device)
+                ys_pad = [torch.tensor(ys, device=encoder_out.device) for ys in ys_pad]
+                ys_pad = pad_sequence(ys_pad, batch_first=True, padding_value=-1)
+
         ys_in_pad, ys_out_pad = add_sos_eos(
             ys_pad, self.src_sos, self.src_eos, self.ignore_id
         )
