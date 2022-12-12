@@ -88,6 +88,7 @@ class Speech2Text:
         hugging_face_decoder: bool = False,
         hugging_face_decoder_max_length: int = 256,
         time_sync: bool = False,
+        multi_asr: bool = False,
     ):
         assert check_argument_types()
 
@@ -321,6 +322,7 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
         self.enh_s2t_task = enh_s2t_task
+        self.multi_asr = multi_asr
 
     @torch.no_grad()
     def __call__(
@@ -359,14 +361,19 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
-        if self.enh_s2t_task:
-            # Enh+ASR joint task
+        if self.multi_asr:
+            enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
+        if self.enh_s2t_task or self.multi_asr:
+            # Enh+ASR joint task or Multispkr ASR task
             # NOTE (Wangyou): the return type in this case is List[default_return_type]
-            num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
+            if self.multi_asr:
+                num_spk = getattr(self.asr_model, "num_inf", 1)
+            else:
+                num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
             assert len(enc) == num_spk, (len(enc), num_spk)
             results = []
             for spk, enc_spk in enumerate(enc, 1):
-                logging.info("=== [EnhASR] Speaker {} ===".format(spk))
+                logging.info(f"=== [{str(self.asr_model.__class__)}] Speaker {spk} ===")
                 if isinstance(enc_spk, tuple):
                     enc_spk = enc_spk[0]
                 assert len(enc_spk) == 1, len(enc_spk)
@@ -523,6 +530,7 @@ def inference(
     hugging_face_decoder: bool,
     hugging_face_decoder_max_length: int,
     time_sync: bool,
+    multi_asr: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -567,6 +575,7 @@ def inference(
         nbest=nbest,
         streaming=streaming,
         enh_s2t_task=enh_s2t_task,
+        multi_asr=multi_asr,
         quantize_asr_model=quantize_asr_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
@@ -616,22 +625,24 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            if enh_s2t_task:
+            if enh_s2t_task or multi_asr:
                 # Enh+ASR joint task
                 for spk, ret in enumerate(results, 1):
                     for n, (text, token, token_int, hyp) in zip(
                         range(1, nbest + 1), ret
                     ):
                         # Create a directory: outdir/{n}best_recog_spk?
-                        ibest_writer = writer[f"{n}best_recog_spk{spk}"]
+                        ibest_writer = writer[f"{n}best_recog"]
 
                         # Write the result to each file
-                        ibest_writer["token"][key] = " ".join(token)
-                        ibest_writer["token_int"][key] = " ".join(map(str, token_int))
-                        ibest_writer["score"][key] = str(hyp.score)
+                        ibest_writer[f"token_spk{spk}"][key] = " ".join(token)
+                        ibest_writer[f"token_int_spk{spk}"][key] = " ".join(
+                            map(str, token_int)
+                        )
+                        ibest_writer[f"score_spk{spk}"][key] = str(hyp.score)
 
                         if text is not None:
-                            ibest_writer["text"][key] = text
+                            ibest_writer[f"text_spk{spk}"][key] = text
 
             else:
 
@@ -745,6 +756,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="enhancement and asr joint model",
+    )
+    group.add_argument(
+        "--multi_asr",
+        type=str2bool,
+        default=False,
+        help="multi-speaker asr model",
     )
 
     group = parser.add_argument_group("Quantization related")

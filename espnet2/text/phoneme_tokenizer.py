@@ -221,15 +221,18 @@ def pypinyin_g2p_phone_without_prosody(text) -> List[str]:
         initial = get_initials(phone[0], strict=False)
         final = get_finals(phone[0], strict=False)
         if len(initial) != 0:
-            phones.append(initial)
             if initial in ["x", "y", "j", "q"]:
                 if final == "un":
                     final = "vn"
                 elif final == "uan":
                     final = "van"
+                elif final == "u":
+                    final = "v"
             if final == "ue":
                 final = "ve"
-        phones.append(final)
+            phones.append(initial + "_" + final)
+        else:
+            phones.append(final)
     return phones
 
 
@@ -625,11 +628,24 @@ class PhonemeTokenizer(AbsTokenizer):
         # If needed, customed_dic can be changed into extra input
         customed_dic = {
             "へ": ["h", "e"],
+            "は": ["h", "a"],
+            "シ": ["sh", "I"],
             "ヴぁ": ["v", "a"],
             "ヴぃ": ["v", "i"],
             "ヴぇ": ["v", "e"],
-            "ヴぉ": ["v", "i"],
+            "ヴぉ": ["v", "o"],
             "でぇ": ["dy", "e"],
+            "くぁ": ["k", "w", "a"],
+            "くぃ": ["k", "w", "i"],
+            "くぅ": ["k", "w", "u"],
+            "くぇ": ["k", "w", "e"],
+            "くぉ": ["k", "w", "o"],
+            "ぐぁ": ["g", "w", "a"],
+            "ぐぃ": ["g", "w", "i"],
+            "ぐぅ": ["g", "w", "u"],
+            "ぐぇ": ["g", "w", "e"],
+            "ぐぉ": ["g", "w", "o"],
+            "くぉっ": ["k", "w", "o", "cl"],
         }
         tokens = self.g2p(syllable)
         if syllable in customed_dic:
