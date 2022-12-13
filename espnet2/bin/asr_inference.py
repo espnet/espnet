@@ -233,18 +233,18 @@ class Speech2Text:
             )
 
             if time_sync:
+                if not hasattr(asr_model, "ctc"):
+                    raise NotImplementedError("TimeSyncBeamSearch without CTC is not supported.")
+                logging.info("TimeSyncBeamSearch implementation is selected.")
+                
+                scorers["ctc"] = asr_model.ctc
                 beam_search = TimeSyncBeamSearch(
                     beam_size=beam_size,
-                    ctc=asr_model.ctc,
+                    weights=weights,
+                    scorers=scorers,
                     sos=asr_model.sos,
-                    decoder=asr_model.decoder,
-                    lm=scorers["lm"] if "lm" in scorers else None,
-                    ctc_weight=ctc_weight,
-                    lm_weight=lm_weight,
-                    penalty=penalty,
                     token_list=token_list,
                 )
-                logging.info("TimeSyncBeamSearch implementation is selected.")
             else:
                 beam_search = BeamSearch(
                     beam_size=beam_size,

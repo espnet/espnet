@@ -2,7 +2,8 @@
 Time Synchronous One-Pass Beam Search -
 Implements joint CTC/attention decoding where
 hypotheses are expanded along the time (input) axis,
-as described in https://arxiv.org/abs/2210.05200
+as described in https://arxiv.org/abs/2210.05200.
+Supports CPU and GPU inference.
 References: https://arxiv.org/abs/1408.2873 for CTC beam search
 Author: Brian Yan
 """
@@ -41,14 +42,10 @@ class TimeSyncBeamSearch(torch.nn.Module):
         self,
         sos: int,
         beam_size: int,
-        ctc: torch.nn.Module,
+        scorers: Dict[str, ScorerInterface],
+        weights: Dict[str, float],
         token_list=dict,
         pre_beam_ratio: float = 1.5,
-        decoder: ScorerInterface = None,
-        lm: ScorerInterface = None,
-        ctc_weight: float = 1.0,
-        lm_weight: float = 0.0,
-        penalty: float = 1.0,
         blank: int = 0,
         force_lid: bool = False,
         temp: float = 1.0,
@@ -58,21 +55,21 @@ class TimeSyncBeamSearch(torch.nn.Module):
         sos: sos index
         ctc: CTC module
         pre_beam_ratio: pre_beam_ratio * beam_size = pre_beam
+            pre_beam is used to select a candidates units from vocab to extend hypotheses
         decoder: decoder ScorerInterface
         ctc_weight: ctc_weight
         blank: blank index
         """
         super().__init__()
-        assert check_argument_types()
-        self.ctc = ctc
-        self.decoder = decoder
-        self.lm = lm
+        self.ctc = scorers["ctc"]
+        self.decoder = scorers["decoder"]
+        self.lm = scorers["lm"] if "lm" in scorers else None
         self.beam_size = beam_size
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
-        self.ctc_weight = ctc_weight
-        self.lm_weight = lm_weight
-        self.decoder_weight = 1.0 - ctc_weight
-        self.penalty = penalty
+        self.ctc_weight = weights["ctc"]
+        self.lm_weight = weights["lm"]
+        self.decoder_weight = weights["decoder"]
+        self.penalty = weights["length_bonus"]
         self.sos = sos
         self.sos_th = torch.tensor([self.sos])
         self.blank = blank
@@ -87,6 +84,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
         self.attn_cache = dict()
         self.lm_cache = dict()
         self.enc_output = enc_output
+        self.sos_th = self.sos_th.to(enc_output.device)
 
         if self.decoder is not None:
             init_decoder_state = self.decoder.init_state(enc_output)
@@ -117,7 +115,9 @@ class TimeSyncBeamSearch(torch.nn.Module):
             root_root = root[:-1]
             root_root_state = cache[root_root].state
             root_scores, root_state = scorer.score(
-                torch.tensor(root).long(), root_root_state, self.enc_output
+                torch.tensor(root, device=self.enc_output.device).long(),
+                root_root_state,
+                self.enc_output,
             )
             root_log_sum = cache[root_root].log_sum + float(
                 cache[root_root].scores[root[-1]]
@@ -139,7 +139,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
                     self.cached_score(h, self.attn_cache, self.decoder)
                     * self.decoder_weight
                 )  # attn score
-            if len(h) > 1 and self.lm_weight > 0 and self.lm is not None:
+            if len(h) > 1 and self.lm is not None and self.lm_weight > 0:
                 score += (
                     self.cached_score(h, self.lm_cache, self.lm) * self.lm_weight
                 )  # lm score
@@ -161,14 +161,17 @@ class TimeSyncBeamSearch(torch.nn.Module):
             p_prev_l = np.logaddexp(*ctc_score_dp[l])
             for c in cands:
                 if c == self.blank:
+                    logging.debug("blank cand, hypothesis is " + str(l))
                     p_nb, p_b = ctc_score_dp_next[l]
                     p_b = np.logaddexp(p_b, p_ctc[c] + p_prev_l)
                     ctc_score_dp_next[l] = (p_nb, p_b)
                     new_hyps.add(l)
                 else:
                     l_plus = l + (int(c),)
+                    logging.debug("non-blank cand, hypothesis is " + str(l_plus))
                     p_nb, p_b = ctc_score_dp_next[l_plus]
                     if c == l[-1]:
+                        logging.debug("repeat cand, hypothesis is " + str(l))
                         p_nb_prev, p_b_prev = ctc_score_dp[l]
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_b_prev)
                         p_nb_l, p_b_l = ctc_score_dp_next[l]
@@ -212,6 +215,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
         )  # (p_nb, p_b) - dp object tracking p_ctc
         ctc_score_dp[(self.sos,)] = (float("-inf"), 0.0)
         for t in range(lpz.shape[0]):
+            logging.debug("position " + str(t))
             ctc_score_dp, hyps, scores = self.time_step(lpz[t, :], ctc_score_dp, hyps)
 
         ret = [
