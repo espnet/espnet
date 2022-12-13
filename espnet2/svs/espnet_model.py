@@ -931,8 +931,6 @@ class ESPnetSVSModel(AbsESPnetModel):
             for i, _ in enumerate(labelFrame_lab_lengths):
                 assert labelFrame_lab_lengths[i] == midiFrame_lab_lengths[i]
                 assert label_lab_lengths[i] == midi_lab_lengths[i]
-                assert labelFrame_xml_lengths[i] == midiFrame_xml_lengths[i]
-                assert label_xml_lengths[i] == midi_xml_lengths[i]
 
                 frame_length = labelFrame_lab_lengths[i]
                 _phoneFrame = labelFrame_lab[i, :frame_length]

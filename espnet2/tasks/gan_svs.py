@@ -264,10 +264,10 @@ class GANSVSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("text", "singing", "midi", "label")
+            retval = ("text", "singing", "score", "label")
         else:
             # Inference mode
-            retval = ("text", "midi", "label")
+            retval = ("text", "score", "label")
         return retval
 
     @classmethod

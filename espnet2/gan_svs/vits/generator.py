@@ -9,7 +9,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 import numpy as np
 import torch
@@ -55,7 +55,7 @@ class VITSGenerator(torch.nn.Module):
         vocabs: int,
         midi_dim: int = 129,
         tempo_dim: int = 128,
-        beat_dim: int = 128,
+        beat_dim: int = 600,
         midi_embed_integration_type: str = "add",
         aux_channels: int = 513,
         hidden_channels: int = 192,
@@ -309,23 +309,17 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
-        ds: torch.Tensor,
-        label_lab: Optional[torch.Tensor] = None,
-        label_lab_lengths: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        label_xml_lengths: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_lab_lengths: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        midi_xml_lengths: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_lab_lengths: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        tempo_xml_lengths: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_lab_lengths: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
-        beat_xml_lengths: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -348,13 +342,33 @@ class VITSGenerator(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            text (Tensor): Text index tensor (B, T_text).
-            text_lengths (Tensor): Text length tensor (B,).
-            feats (Tensor): Feature tensor (B, aux_channels, T_feats).
-            feats_lengths (Tensor): Feature length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
+            text (LongTensor): Batch of padded character ids (B, Tmax).
+            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
+            feats (Tensor): Batch of padded target features (B, Lmax, odim).
+            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded label ids (B, ).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (B, Tmax).
+            melody_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded melody (B, ).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (B, Tmax).
+            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded tempo (B, ).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            beat_lengths (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
+            lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
@@ -395,46 +409,54 @@ class VITSGenerator(torch.nn.Module):
         # forward text encoder
         if not self.use_dp:
             # align frame length
-            for i, length in enumerate(label_xml_lengths):
-                if length == label_xml.shape[1]:
-                    label_xml_lengths[i] = feats.shape[2]
-            if label_xml.shape[1] < feats.shape[2]:
-                label_xml = F.pad(
-                    input=label_xml,
-                    pad=(0, feats.shape[2] - label_xml.shape[1], 0, 0),
+            for i, length in enumerate(label_lengths):
+                if length == label.shape[1]:
+                    label_lengths[i] = feats.shape[2]
+            if label.shape[1] < feats.shape[2]:
+                label = F.pad(
+                    input=label,
+                    pad=(0, feats.shape[2] - label.shape[1], 0, 0),
                     mode="constant",
                     value=0,
                 )
-                midi_xml = F.pad(
-                    input=midi_xml,
-                    pad=(0, feats.shape[2] - midi_xml.shape[1], 0, 0),
+                melody = F.pad(
+                    input=melody,
+                    pad=(0, feats.shape[2] - melody.shape[1], 0, 0),
                     mode="constant",
                     value=0,
                 )
-                beat_xml = F.pad(
-                    input=beat_xml,
-                    pad=(0, feats.shape[2] - beat_xml.shape[1], 0, 0),
+                beat = F.pad(
+                    input=beat,
+                    pad=(0, feats.shape[2] - beat.shape[1], 0, 0),
                     mode="constant",
                     value=0,
                 )
             else:
-                label_xml = label_xml[:, : feats.shape[2]]
-                midi_xml = midi_xml[:, : feats.shape[2]]
-                beat_xml = beat_xml[:, : feats.shape[2]]
+                label = label[:, : feats.shape[2]]
+                melody = melody[:, : feats.shape[2]]
+                beat = beat[:, : feats.shape[2]]
 
             x, m_p, logs_p, x_mask = self.text_encoder(
-                label_xml, label_xml_lengths, midi_xml, beat_xml
+                label, label_lengths, melody, beat
             )
         else:
+            # print("label", label)
+            # print("label_lengths", label_lengths)
+            # print("feats", feats)
+            # print("feats_lengths", feats_lengths)
+            # print("melody", melody)
+            # print("melody_lengths", melody_lengths)
+            # print("beat", beat)
+            # print("beat_lengths", beat_lengths)
             x, m_p, logs_p, x_mask = self.text_encoder(
-                label_lab, label_lab_lengths, midi_lab, beat_lab
+                label, label_lengths, melody, beat
             )
-            w = ds.unsqueeze(1)
+            w = duration.unsqueeze(1)
             logw_gt = w * x_mask
-            logw = self.duration_predictor(x, x_mask, beat_lab, g=g)
-            logw = torch.mul(logw.squeeze(1), beat_lab).unsqueeze(1)
+            logw = self.duration_predictor(x, x_mask, beat, g=g)
+            logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
 
-            x, frame_pitch, x_lengths = self.lr(x, midi_lab, ds, midi_lab_lengths)
+            x, frame_pitch, x_lengths = self.lr(x, melody, duration, melody_lengths)
 
             x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
 
@@ -464,9 +486,9 @@ class VITSGenerator(torch.nn.Module):
             pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
             pred_pitch = torch.squeeze(pred_pitch, 1)
             if not self.use_dp:
-                gt_pitch = torch.log(440 * (2 ** ((midi_xml - 69) / 12)))  # log f0
+                gt_pitch = torch.log(440 * (2 ** ((melody - 69) / 12)))  # log f0
             else:
-                gt_pitch = torch.log(440 * (2 ** ((frame_pitch - 69) / 12)))
+                gt_pitch = torch.squeeze(pitch, 2)
 
             x = self.frame_prior_net(x, pitch_embedding, x_mask)
             m_p, logs_p = self.project(x, x_mask)
@@ -536,20 +558,20 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
         feats_lengths: Optional[torch.Tensor] = None,
-        label_lab: Optional[torch.Tensor] = None,
-        label_lab_lengths: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        label_xml_lengths: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
+        # duration: Optional[Dict[str, torch.Tensor]] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
-        dur: Optional[torch.Tensor] = None,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
         alpha: float = 1.0,
@@ -583,11 +605,11 @@ class VITSGenerator(torch.nn.Module):
         # encoder
         if self.use_dp:
             x, m_p, logs_p, x_mask = self.text_encoder(
-                label_lab, label_lab_lengths, midi_lab, beat_lab
+                label, label_lengths, melody, beat
             )
         else:
             x, m_p, logs_p, x_mask = self.text_encoder(
-                label_xml, label_xml_lengths, midi_xml, beat_xml
+                label, label_lengths, melody, beat
             )
         g = None
         if self.spks is not None:
@@ -620,17 +642,14 @@ class VITSGenerator(torch.nn.Module):
         else:
             if self.use_visinger:
                 if self.use_dp:
-                    logw = self.duration_predictor(x, x_mask, beat_lab, g=g)
-                    logw = torch.mul(logw.squeeze(1), beat_lab).unsqueeze(1)
+                    logw = self.duration_predictor(x, x_mask, beat, g=g)
+                    logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
                     w = logw * x_mask
                     w = w.squeeze(1).to(torch.long)
 
-                    x, frame_pitch, x_lengths = self.lr(
-                        x, midi_lab, w, label_lab_lengths
-                    )
+                    x, frame_pitch, x_lengths = self.lr(x, melody, w, label_lengths)
                     x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
-                    print("x_lengths", x_lengths)
-                    print("x_mask", x_mask.shape)
+
                 # position encoding
                 max_len = x.size(2)
                 d_model = x.size(1)
