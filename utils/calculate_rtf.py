@@ -75,24 +75,23 @@ def main():
         audio_durations = []
         start_times = []
         end_times = []
+        audio_duration = 0
+        start_time = 0
         with codecs.open(x, "r", "utf-8") as f:
             for line in f:
                 x = line.strip()
                 if start_times_marker in x:
-                    audio_durations += [int(x.split(args.start_times_marker + ": ")[1])]
-                    start_times += [parser.parse(x.split("(")[0])]
+                    audio_duration = int(x.split(args.start_times_marker + ": ")[1])
+                    start_time = parser.parse(x.split("(")[0])
                 elif end_times_marker in x:
+                    audio_durations.append(audio_duration)
+                    start_times.append(start_time)
                     end_times += [parser.parse(x.split("(")[0])]
 
         if args.inf_num > 1:
             # When inf_num > 1, select the last speaker's end as end time
             end_times = end_times[args.inf_num - 1 :: args.inf_num]
 
-        assert len(audio_durations) == len(end_times), (
-            len(audio_durations),
-            len(end_times),
-        )
-        assert len(start_times) == len(end_times), (len(start_times), len(end_times))
         audio_sec += sum(audio_durations) * args.input_shift / 1000  # [sec]
         decode_sec += sum(
             [
