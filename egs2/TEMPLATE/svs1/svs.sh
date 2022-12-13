@@ -82,7 +82,7 @@ svs_stats_dir=""   # Specify the direcotry path for statistics. If empty, automa
 num_splits=1       # Number of splitting for svs corpus.
 teacher_dumpdir="" # Directory of teacher outpus
 write_collected_feats=false # Whether to dump features in stats collection.
-svs_task=svs                # SVS task (svs or gan_svs, now only support svs)
+svs_task=svs                # SVS task (svs or gan_svs)
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 

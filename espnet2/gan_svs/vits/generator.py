@@ -440,14 +440,6 @@ class VITSGenerator(torch.nn.Module):
                 label, label_lengths, melody, beat
             )
         else:
-            # print("label", label)
-            # print("label_lengths", label_lengths)
-            # print("feats", feats)
-            # print("feats_lengths", feats_lengths)
-            # print("melody", melody)
-            # print("melody_lengths", melody_lengths)
-            # print("beat", beat)
-            # print("beat_lengths", beat_lengths)
             x, m_p, logs_p, x_mask = self.text_encoder(
                 label, label_lengths, melody, beat
             )
