@@ -70,7 +70,7 @@ class ConcatAdaptLayer(nn.Module):
             out.append(
                 transform(
                     torch.cat(
-                        (main0, enroll0[:, :, None].broadcast_to(main0.shape)), dim=1
+                        (main0, enroll0[:, :, None].expand(main0.shape)), dim=1
                     ).permute(0, 2, 1)
                 ).permute(0, 2, 1)
             )
