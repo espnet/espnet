@@ -5,7 +5,8 @@ set -e
 set -u
 set -o pipefail
 
-./tse.sh \
+./enh.sh \
+	--is_tse_task true \
     --fs 16k \
     --lang en \
     --ref_num 1 \

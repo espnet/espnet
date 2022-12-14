@@ -14,6 +14,7 @@ valid_set="dev"
 test_sets="test "
 
 ./tse.sh \
+	--is_tse_task true \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

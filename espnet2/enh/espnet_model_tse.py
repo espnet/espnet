@@ -2,7 +2,6 @@
 from typing import Dict, List, OrderedDict, Tuple
 
 import torch
-from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -13,8 +12,6 @@ from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
