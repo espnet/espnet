@@ -109,10 +109,10 @@ class TargetSpeakerExtractionTask(AbsTask):
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
-            "--train_spk2utt",
+            "--train_spk2enroll",
             type=str_or_none,
             default=None,
-            help="The scp file containing the mapping from speakerID to utterances\n"
+            help="The scp file containing the mapping from speakerID to enrollment\n"
             "(This is used to sample the target-speaker enrollment signal)",
         )
         group.add_argument(
@@ -157,7 +157,7 @@ class TargetSpeakerExtractionTask(AbsTask):
         assert check_argument_types()
         retval = TSEPreprocessor(
             train=train,
-            train_spk2utt=args.train_spk2utt,
+            train_spk2enroll=args.train_spk2enroll,
             enroll_segment=getattr(args, "enroll_segment", None),
             load_spk_embedding=getattr(args, "load_spk_embedding", False),
             load_all_speakers=getattr(args, "load_all_speakers", False),

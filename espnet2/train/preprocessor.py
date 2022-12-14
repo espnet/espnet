@@ -1183,7 +1183,7 @@ class TSEPreprocessor(AbsPreprocessor):
     def __init__(
         self,
         train: bool,
-        train_spk2utt: str = None,
+        train_spk2enroll: str = None,
         enroll_segment: int = None,
         load_spk_embedding: bool = False,
         load_all_speakers: bool = False,
@@ -1198,16 +1198,16 @@ class TSEPreprocessor(AbsPreprocessor):
         self.load_all_speakers = load_all_speakers
 
         if train:
-            if train_spk2utt is None:
+            if train_spk2enroll is None:
                 logging.info("Using fixed enrollment for each sample")
-                self.train_spk2utt = None
+                self.train_spk2enroll = None
             else:
                 logging.info("Using dynamically sampled enrollment for each sample")
-                with open(train_spk2utt, "r", encoding="utf-8") as f:
+                with open(train_spk2enroll, "r", encoding="utf-8") as f:
                     # {spkID: [(uid1, path1), (uid2, path2), ...]}
-                    self.train_spk2utt = json.load(f)
+                    self.train_spk2enroll = json.load(f)
         else:
-            self.train_spk2utt = None
+            self.train_spk2enroll = None
 
     def _read_audio_segment(self, path, seg_len=None):
         with soundfile.SoundFile(path) as f:
@@ -1260,7 +1260,7 @@ class TSEPreprocessor(AbsPreprocessor):
                     else:
                         data.pop(name)
                         continue
-                if self.train_spk2utt is None:
+                if self.train_spk2enroll is None:
                     # normal format in `enroll_spk?.scp`:
                     # MIXTURE_UID /path/to/enrollment_or_embedding
                     aux_audio = data[name]
@@ -1269,9 +1269,9 @@ class TSEPreprocessor(AbsPreprocessor):
                     # MIXTURE_UID *UID SPEAKER_ID
                     assert data[name].startswith("*"), data[name]
                     cur_uid, spkid = data[name][1:].strip().split(maxsplit=1)
-                    aux_uid, aux_audio = random.choice(self.train_spk2utt[spkid])
+                    aux_uid, aux_audio = random.choice(self.train_spk2enroll[spkid])
                     while aux_uid == cur_uid:
-                        aux_uid, aux_audio = random.choice(self.train_spk2utt[spkid])
+                        aux_uid, aux_audio = random.choice(self.train_spk2enroll[spkid])
                 if getattr(self, "load_spk_embedding", False):
                     data[name] = np.load(aux_audio)[None, :]  # force 2D
                 elif self.enroll_segment:

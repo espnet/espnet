@@ -5,7 +5,7 @@ model_conf:
     num_spk: 1
     share_encoder: true
 
-train_spk2utt: data/train_nodev/spk2enroll.json
+train_spk2enroll: data/train_nodev/spk2enroll.json
 enroll_segment: 48000
 load_spk_embedding: false
 load_all_speakers: false

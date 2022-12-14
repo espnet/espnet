@@ -5,7 +5,7 @@ model_conf:
     num_spk: 1
     share_encoder: true
 
-train_spk2utt: null
+train_spk2enroll: null
 enroll_segment: 48000
 load_spk_embedding: false
 load_all_speakers: false
