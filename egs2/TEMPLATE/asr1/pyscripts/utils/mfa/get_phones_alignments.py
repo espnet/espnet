@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+# Copyright 2022 Hitachi LTD (Nelson Yalta)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 # Process audio frames for phonemes duration following a similar process as in:
 # https://github.com/NATSpeech/NATSpeech/blob/main/utils/audio/align.py
 
