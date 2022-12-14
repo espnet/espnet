@@ -17,6 +17,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=24000
+g2p=None
 
 log "$0 $*"
 
@@ -40,33 +41,32 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "
 
-    mkdir -p xml_dump
     mkdir -p wav_dump
     # we convert the music score to xml format
     python local/data_prep.py ${OPENCPOP} --midi_note_scp local/midi-note.scp \
-        --xml_dumpdir xml_dump \
         --wav_dumpdir wav_dump \
-        --sr ${fs}
+        --sr ${fs} \
+        --g2p ${g2p}
     for src_data in train eval; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label musicxml.scp" data/${src_data}
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Held out validation set"
     
     utils/copy_data_dir.sh data/train data/${train_set}
     utils/copy_data_dir.sh data/train data/${train_dev}
     for dset in ${train_set} ${train_dev}; do
-        for extra_file in label musicxml.scp; do
+        for extra_file in label score.scp; do
             cp data/train/${extra_file} data/${dset}
         done
     done
     tail -n 50 data/train/wav.scp > data/dev/wav.scp
     utils/filter_scp.pl --exclude data/dev/wav.scp data/train/wav.scp > data/tr_no_dev/wav.scp
 
-    utils/fix_data_dir.sh --utt_extra_files "label musicxml.scp" data/tr_no_dev
-    utils/fix_data_dir.sh --utt_extra_files "label musicxml.scp" data/dev
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
     
 fi
