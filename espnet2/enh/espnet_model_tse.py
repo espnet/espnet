@@ -131,6 +131,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
             enroll_ref[spk][:, : enroll_ref_lengths[spk].max()]
             for spk in range(len(enroll_ref))
         ]
+        assert len(speech_ref) == len(enroll_ref), (len(speech_ref), len(enroll_ref))
 
         # model forward
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(

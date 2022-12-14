@@ -239,6 +239,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             enroll_segment=getattr(args, "enroll_segment", None),
             load_spk_embedding=getattr(args, "load_spk_embedding", False),
             load_all_speakers=getattr(args, "load_all_speakers", False),
+            # inherited from EnhPreprocessor
             rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
             rir_apply_prob=args.rir_apply_prob
             if hasattr(args, "rir_apply_prob")
