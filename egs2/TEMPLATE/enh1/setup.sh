@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE/enh1
-for f in enh.sh path.sh scripts; do
+for f in enh.sh tse.sh path.sh scripts; do
     target=../../TEMPLATE/enh1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
