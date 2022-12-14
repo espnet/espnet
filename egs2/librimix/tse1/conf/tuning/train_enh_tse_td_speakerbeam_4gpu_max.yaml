@@ -52,10 +52,10 @@ decoder_conf:
 extractor: td_speakerbeam
 extractor_conf:
     layer: 8
-    stack: 3
-    bottleneck_dim: 128
+    stack: 4
+    bottleneck_dim: 256
     hidden_dim: 512
-    skip_dim: 128
+    skip_dim: 256
     kernel: 3
     causal: False
     norm_type: gLN
@@ -63,7 +63,7 @@ extractor_conf:
     # enrollment related
     i_adapt_layer: 7
     adapt_layer_type: mul
-    adapt_enroll_dim: 128
+    adapt_enroll_dim: 256
 
 # A list for criterions
 # The overlall loss in the multi-task learning will be:
