@@ -57,6 +57,7 @@ MAGICDATA=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
+MSUPERB=/ocean/projects/cis210027p/shared/corpora/MultilingualSUPERB
 L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
