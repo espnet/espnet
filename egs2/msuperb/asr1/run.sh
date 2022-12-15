@@ -21,7 +21,6 @@ inference_config=conf/decode_asr.yaml
     --use_lm false \
     --lm_config "${lm_config}" \
     --token_type char \
-    --nbpe $nbpe \
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
