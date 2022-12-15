@@ -651,9 +651,14 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             speech_mask = None
 
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask, _, speech, speech_mask = self.decoders(
-            x, tgt_mask, memory, memory_mask, None, speech, speech_mask
-        )
+        if self.use_speech_attn:
+            x, tgt_mask, memory, memory_mask, _, speech, speech_mask = self.decoders(
+                x, tgt_mask, memory, memory_mask, None, speech, speech_mask
+            )
+        else:
+            x, tgt_mask, memory, memory_mask = self.decoders(
+                x, tgt_mask, memory, memory_mask
+            )
         if self.normalize_before:
             x = self.after_norm(x)
             if return_hs:
@@ -696,9 +701,14 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             cache = [None] * len(self.decoders)
         new_cache = []
         for c, decoder in zip(cache, self.decoders):
-            x, tgt_mask, memory, memory_mask, _, speech, speech_mask = decoder(
-                x, tgt_mask, memory, None, c, speech, None
-            )
+            if self.use_speech_attn:
+                x, tgt_mask, memory, memory_mask, _, speech, speech_mask = decoder(
+                    x, tgt_mask, memory, None, c, speech, None
+                )
+            else:
+                 x, tgt_mask, memory, memory_mask = self.decoders(
+                    x, tgt_mask, memory, None, cache=c
+                )
             new_cache.append(x)
 
         if self.normalize_before:
