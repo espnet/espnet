@@ -46,8 +46,11 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage2: Preparing data for multilingual SUPERB"
-    
-    python data_prep.py \
+    mkdir -p data/${train_set}
+    mkdir -p data/${train_dev}
+    mkdir -p data/${test_set}
+ 
+    python local/data_prep.py \
         --train_set ${train_set} \
         --train_dev ${train_dev} \
         --test_set ${test_set} \
@@ -56,6 +59,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --lid false
 
     for x in ${train_set} ${train_dev} ${test_set}; do
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
         utils/fix_data_dir.sh data/${x}
     done
 fi
