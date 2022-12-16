@@ -14,8 +14,8 @@ class OnlineAudioProcessor:
         normalization_module: Normalization module.
         decoding_window: Size of the decoding window (in ms).
         encoder_subsampling_factor: Encoder subsampling factor.
-        encoder_minimum_feats: Encoder minimum features before subsampling
-        frontend_conf: Fronted configuration.
+        frontend_conf: Frontend configuration.
+        device: Device to pin module tensors on.
         audio_sampling_rate: Input sampling rate.
 
     """
@@ -26,45 +26,41 @@ class OnlineAudioProcessor:
         normalization_module: torch.nn.Module,
         decoding_window: int,
         encoder_subsampling_factor: int,
-        encoder_minimum_feats: int,
         frontend_conf: Dict,
+        device: torch.device,
         audio_sampling_rate: int = 16000,
     ) -> None:
         """Construct an OnlineAudioProcessor."""
 
         self.n_fft = frontend_conf.get("n_fft", 512)
         self.hop_sz = frontend_conf.get("hop_length", 128)
-        self.win_sz = frontend_conf.get("win_length", self.n_fft)
+        self.win_sz = frontend_conf.get("win_sz", self.n_fft)
+
+        self.win_hop_sz = self.win_sz - self.hop_sz
+        self.trim_val = math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2)
 
         self.decoding_window = int(decoding_window * audio_sampling_rate / 1000)
 
-        self.chunk_sz_bs = self.decoding_window // self.hop_sz
-        self.offset = 3 * encoder_subsampling_factor
-
-        self.feats_shift = self.chunk_sz_bs - self.offset
-        self.minimum_feats_sz = encoder_minimum_feats + self.offset
-
-        assert self.chunk_sz_bs >= self.minimum_feats_sz, (
-            "Specified decoding window length will yield %d feats. "
-            "Minimum number of feats required is %d."
-            % (self.chunk_sz_bs, self.minimum_feats_sz)
+        self.offset = (
+            lambda x: 2 * encoder_subsampling_factor + x % encoder_subsampling_factor
         )
 
         self.feature_extractor = feature_extractor
         self.normalization_module = normalization_module
 
-    def reset_cache(self, device: torch.device) -> None:
+        self.device = device
+
+        self.reset_cache()
+
+    def reset_cache(self) -> None:
         """Reset cache parameters.
 
         Args:
-            device: Device to pin samples_length attribute on.
+            None
 
         """
         self.samples = None
         self.feats = None
-        self.decoding_step = 0
-
-        self.device = device
 
     def get_current_samples(
         self, samples: torch.Tensor, is_final: bool
@@ -100,23 +96,20 @@ class OnlineAudioProcessor:
             else:
                 samples = new_samples
         else:
-            n_frames = (samples_sz - (self.win_sz - self.hop_sz)) // self.hop_sz
-            n_residual = (samples_sz - (self.win_sz - self.hop_sz)) % self.hop_sz
+            n_frames = (samples_sz - self.win_hop_sz) // self.hop_sz
+            n_residual = (samples_sz - self.win_hop_sz) % self.hop_sz
 
-            samples = new_samples.narrow(
-                0, 0, (self.win_sz - self.hop_sz) + n_frames * self.hop_sz
-            )
+            samples = new_samples.narrow(0, 0, self.win_hop_sz + n_frames * self.hop_sz)
 
             waveform_buffer = new_samples.narrow(
                 0,
-                samples_sz - (self.win_sz - self.hop_sz) - n_residual,
-                (self.win_sz - self.hop_sz) + n_residual,
+                samples_sz - self.win_hop_sz - n_residual,
+                self.win_hop_sz + n_residual,
             ).clone()
 
         self.samples = waveform_buffer
 
         samples = samples.unsqueeze(0).to(device=self.device)
-
         lengths = samples.new_full([1], dtype=torch.long, fill_value=samples.size(1))
 
         return samples, lengths
@@ -128,38 +121,34 @@ class OnlineAudioProcessor:
 
         Args:
             feats: Computed features sequence. (1, F, D_feats)
-            feats_length: Computed features length sequence. (1,)
+            is_final: Whether feats corresponds to the final chunk of data.
 
         Returns:
             feats: Decoding window features sequence. (1, chunk_sz_bs, D_feats)
             feats_length: Decoding window features length sequence. (1,)
 
         """
-        if self.samples is None:
-            feats = feats.narrow(
-                1,
-                0,
-                feats.size(1) - math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2),
-            )
+        if is_final:
+            _feats = feats.narrow(1, self.trim_val, feats.size(1) - self.trim_val)
         else:
-            feats = feats.narrow(
-                1,
-                math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2),
-                feats.size(1) - 2 * math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2),
-            )
+            if self.feats is None:
+                _feats = feats.narrow(1, 0, feats.size(1) - self.trim_val)
+            else:
+                _feats = feats.narrow(
+                    1, self.trim_val, feats.size(1) - 2 * self.trim_val
+                )
 
         if self.feats is not None:
-            feats = torch.cat((self.feats, feats), dim=1)
-
-        self.feats = feats
-
-        start_id = self.decoding_step * self.feats_shift
-        self.decoding_step += 1
-
-        if is_final:
-            feats = feats[:, start_id:, :]
+            feats = torch.cat((self.feats, _feats), dim=1)
         else:
-            feats = feats[:, start_id : (start_id + self.chunk_sz_bs), :]
+            feats = torch.nn.functional.pad(
+                _feats,
+                (0, 0, self.offset(feats.size(1)), 0, 0, 0),
+                mode="constant",
+                value=0.0,
+            )
+
+        self.feats = feats[:, -self.offset(feats.size(1)) :, :]
 
         feats_length = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
 

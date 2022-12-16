@@ -176,8 +176,8 @@ class Speech2Text:
                 asr_model.normalize,
                 decoding_window,
                 asr_model.encoder.embed.subsampling_factor,
-                asr_model.encoder.embed.min_frame_length,
                 asr_train_args.frontend_conf,
+                device,
             )
 
             self.reset_streaming_cache()
@@ -187,7 +187,7 @@ class Speech2Text:
 
         self.asr_model.encoder.reset_cache(self.left_context, device=self.device)
         self.beam_search.reset_cache()
-        self.audio_processor.reset_cache(self.device)
+        self.audio_processor.reset_cache()
 
         self.num_processed_frames = torch.tensor([[0]], device=self.device)
 
