@@ -8,19 +8,14 @@ References: https://arxiv.org/abs/1408.2873 for CTC beam search
 Author: Brian Yan
 """
 
+import logging
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Union
-from typing import Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
-
-from collections import defaultdict
-import logging
 
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.scorer_interface import ScorerInterface
