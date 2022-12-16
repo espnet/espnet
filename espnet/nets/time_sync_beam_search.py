@@ -1,5 +1,5 @@
 """
-Time Synchronous One-Pass Beam Search -
+Time Synchronous One-Pass Beam Search.
 Implements joint CTC/attention decoding where
 hypotheses are expanded along the time (input) axis,
 as described in https://arxiv.org/abs/2210.05200.
@@ -11,11 +11,10 @@ Author: Brian Yan
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
 
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.scorer_interface import ScorerInterface
@@ -31,7 +30,7 @@ class CacheItem:
 
 
 class TimeSyncBeamSearch(torch.nn.Module):
-    """Time synchronous beam search algorithm"""
+    """Time synchronous beam search algorithm."""
 
     def __init__(
         self,
@@ -45,15 +44,18 @@ class TimeSyncBeamSearch(torch.nn.Module):
         force_lid: bool = False,
         temp: float = 1.0,
     ):
-        """
-        beam_size: num hyps
-        sos: sos index
-        ctc: CTC module
-        pre_beam_ratio: pre_beam_ratio * beam_size = pre_beam
-            pre_beam is used to select a candidates units from vocab to extend hypotheses
-        decoder: decoder ScorerInterface
-        ctc_weight: ctc_weight
-        blank: blank index
+        """Initialize beam search.
+
+        Args:
+            beam_size: num hyps
+            sos: sos index
+            ctc: CTC module
+            pre_beam_ratio: pre_beam_ratio * beam_size = pre_beam
+                pre_beam is used to select a candidates units from vocab to extend hypotheses
+            decoder: decoder ScorerInterface
+            ctc_weight: ctc_weight
+            blank: blank index
+
         """
         super().__init__()
         self.ctc = scorers["ctc"]
@@ -192,11 +194,14 @@ class TimeSyncBeamSearch(torch.nn.Module):
     def forward(
         self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
     ) -> List[Hypothesis]:
-        """
-        Params:
+        """Perform beam search.
+
+        Args:
             enc_output (torch.Tensor)
+
         Return:
             list[Hypothesis]
+
         """
         logging.info("decoder input lengths: " + str(x.shape[0]))
         lpz = self.ctc.log_softmax(x.unsqueeze(0))
