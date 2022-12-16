@@ -159,10 +159,10 @@ class TimeSyncBeamSearch(torch.nn.Module):
         )  # (p_nb, p_b)
         tmp = []
         for hyp_l in hyps:
-            p_prev_l = np.logaddexp(*ctc_score_dp[l])
+            p_prev_l = np.logaddexp(*ctc_score_dp[hyp_l])
             for c in cands:
                 if c == self.blank:
-                    logging.debug("blank cand, hypothesis is " + str(l))
+                    logging.debug("blank cand, hypothesis is " + str(hyp_l))
                     p_nb, p_b = ctc_score_dp_next[hyp_l]
                     p_b = np.logaddexp(p_b, p_ctc[c] + p_prev_l)
                     ctc_score_dp_next[hyp_l] = (p_nb, p_b)
@@ -172,7 +172,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
                     logging.debug("non-blank cand, hypothesis is " + str(l_plus))
                     p_nb, p_b = ctc_score_dp_next[l_plus]
                     if c == hyp_l[-1]:
-                        logging.debug("repeat cand, hypothesis is " + str(l))
+                        logging.debug("repeat cand, hypothesis is " + str(hyp_l))
                         p_nb_prev, p_b_prev = ctc_score_dp[hyp_l]
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_b_prev)
                         p_nb_l, p_b_l = ctc_score_dp_next[hyp_l]
