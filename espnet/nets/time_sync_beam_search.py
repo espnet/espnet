@@ -1,5 +1,6 @@
 """
 Time Synchronous One-Pass Beam Search.
+
 Implements joint CTC/attention decoding where
 hypotheses are expanded along the time (input) axis,
 as described in https://arxiv.org/abs/2210.05200.
