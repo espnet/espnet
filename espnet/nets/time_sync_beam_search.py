@@ -51,7 +51,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
             sos: sos index
             ctc: CTC module
             pre_beam_ratio: pre_beam_ratio * beam_size = pre_beam
-                pre_beam is used to select a candidates units from vocab to extend hypotheses
+                pre_beam is used to select candidates from vocab to extend hypotheses
             decoder: decoder ScorerInterface
             ctc_weight: ctc_weight
             blank: blank index
@@ -78,6 +78,9 @@ class TimeSyncBeamSearch(torch.nn.Module):
         self.token_list = token_list
 
     def reset(self, enc_output: torch.Tensor):
+        """Reset object for a new utterance.
+
+        """
         self.attn_cache = dict()
         self.lm_cache = dict()
         self.enc_output = enc_output
@@ -103,6 +106,9 @@ class TimeSyncBeamSearch(torch.nn.Module):
             )
 
     def cached_score(self, h: Tuple[int], cache: dict, scorer: ScorerInterface) -> Any:
+        """Retrieve decoder/LM scores which may be cached.
+
+        """
         root = h[:-1]  # prefix
         if root in cache:
             root_scores = cache[root].scores
@@ -128,6 +134,9 @@ class TimeSyncBeamSearch(torch.nn.Module):
         return score
 
     def joint_score(self, hyps: Any, ctc_score_dp: Any) -> Any:
+        """Calculate joint score for hyps.
+
+        """
         scores = dict()
         for h in hyps:
             score = self.ctc_weight * np.logaddexp(*ctc_score_dp[h])  # ctc score
@@ -145,6 +154,9 @@ class TimeSyncBeamSearch(torch.nn.Module):
         return scores
 
     def time_step(self, p_ctc: Any, ctc_score_dp: Any, hyps: Any) -> Any:
+        """Execute a single time step.
+
+        """
         pre_beam_threshold = np.sort(p_ctc)[-self.pre_beam_size]
         cands = set(np.where(p_ctc >= pre_beam_threshold)[0])
         if len(cands) == 0:
@@ -154,26 +166,26 @@ class TimeSyncBeamSearch(torch.nn.Module):
             lambda: (float("-inf"), float("-inf"))
         )  # (p_nb, p_b)
         tmp = []
-        for l in hyps:
+        for hyp_l in hyps:
             p_prev_l = np.logaddexp(*ctc_score_dp[l])
             for c in cands:
                 if c == self.blank:
                     logging.debug("blank cand, hypothesis is " + str(l))
-                    p_nb, p_b = ctc_score_dp_next[l]
+                    p_nb, p_b = ctc_score_dp_next[hyp_l]
                     p_b = np.logaddexp(p_b, p_ctc[c] + p_prev_l)
-                    ctc_score_dp_next[l] = (p_nb, p_b)
-                    new_hyps.add(l)
+                    ctc_score_dp_next[hyp_l] = (p_nb, p_b)
+                    new_hyps.add(hyp_l)
                 else:
-                    l_plus = l + (int(c),)
+                    l_plus = hyp_l + (int(c),)
                     logging.debug("non-blank cand, hypothesis is " + str(l_plus))
                     p_nb, p_b = ctc_score_dp_next[l_plus]
-                    if c == l[-1]:
+                    if c == hyp_l[-1]:
                         logging.debug("repeat cand, hypothesis is " + str(l))
-                        p_nb_prev, p_b_prev = ctc_score_dp[l]
+                        p_nb_prev, p_b_prev = ctc_score_dp[hyp_l]
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_b_prev)
-                        p_nb_l, p_b_l = ctc_score_dp_next[l]
+                        p_nb_l, p_b_l = ctc_score_dp_next[hyp_l]
                         p_nb_l = np.logaddexp(p_nb_l, p_ctc[c] + p_nb_prev)
-                        ctc_score_dp_next[l] = (p_nb_l, p_b_l)
+                        ctc_score_dp_next[hyp_l] = (p_nb_l, p_b_l)
                     else:
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_prev_l)
                     if l_plus not in hyps and l_plus in ctc_score_dp:
