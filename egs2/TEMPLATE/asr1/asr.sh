@@ -359,9 +359,6 @@ fi
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
-    # shellcheck disable=SC2317
-    lm_token_list="${wordtoken_list}"
-    lm_token_type=word
 else
     lm_token_list="${token_list}"
     lm_token_type="${token_type}"
