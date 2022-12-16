@@ -165,7 +165,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 100            # number of epochs
+max_epoch: 600            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_bins: 500000        # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch

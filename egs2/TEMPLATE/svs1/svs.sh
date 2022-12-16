@@ -988,12 +988,12 @@ if ! "${skip_eval}"; then
 
             # 4. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/norm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/denorm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            # for i in $(seq "${_nj}"); do
+            #      cat "${_logdir}/output.${i}/norm/feats.scp"
+            # done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+            # for i in $(seq "${_nj}"); do
+            #      cat "${_logdir}/output.${i}/denorm/feats.scp"
+            # done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/speech_shape/speech_shape"
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
