@@ -78,9 +78,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
         self.token_list = token_list
 
     def reset(self, enc_output: torch.Tensor):
-        """Reset object for a new utterance.
-
-        """
+        """Reset object for a new utterance."""
         self.attn_cache = dict()
         self.lm_cache = dict()
         self.enc_output = enc_output
@@ -106,9 +104,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
             )
 
     def cached_score(self, h: Tuple[int], cache: dict, scorer: ScorerInterface) -> Any:
-        """Retrieve decoder/LM scores which may be cached.
-
-        """
+        """Retrieve decoder/LM scores which may be cached."""
         root = h[:-1]  # prefix
         if root in cache:
             root_scores = cache[root].scores
@@ -134,9 +130,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
         return score
 
     def joint_score(self, hyps: Any, ctc_score_dp: Any) -> Any:
-        """Calculate joint score for hyps.
-
-        """
+        """Calculate joint score for hyps."""
         scores = dict()
         for h in hyps:
             score = self.ctc_weight * np.logaddexp(*ctc_score_dp[h])  # ctc score
@@ -154,9 +148,7 @@ class TimeSyncBeamSearch(torch.nn.Module):
         return scores
 
     def time_step(self, p_ctc: Any, ctc_score_dp: Any, hyps: Any) -> Any:
-        """Execute a single time step.
-
-        """
+        """Execute a single time step."""
         pre_beam_threshold = np.sort(p_ctc)[-self.pre_beam_size]
         cands = set(np.where(p_ctc >= pre_beam_threshold)[0])
         if len(cands) == 0:
