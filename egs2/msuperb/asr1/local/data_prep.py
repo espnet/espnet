@@ -1,5 +1,6 @@
 import argparse
 import os
+
 from espnet2.utils.types import str2bool
 
 DATA = [
@@ -63,8 +64,8 @@ if __name__ == "__main__":
         langs = os.listdir(os.path.join(args.source, dataset))
         for lang in langs:
             if lang not in langs_info:
-                langs_info[lang] = 0
-            langs_info[lang] += 1
+                langs_info[lang] = []
+            langs_info[lang].append(dataset)
 
             # process train
             train_transcript = open(
@@ -154,4 +155,5 @@ if __name__ == "__main__":
     test_utt2spk.close()
     print("{} languages processed, ".format(len(langs_info)))
     for lang in langs_info.keys():
-        print(f"{lang} {langs_info[lang]}")
+        dataset = " ".join(langs_info[lang])
+        print(f"{lang} {len(langs_info[lang])} {dataset}")
