@@ -1,4 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """GAN-based Singing-voice-synthesis task."""

@@ -1,4 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """GAN-based Singing-voice-synthesis ESPnet model."""
@@ -118,7 +119,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
-        flag_IsValid=False,
         forward_generator: bool = True,
         **kwargs,
     ) -> Dict[str, Any]:
@@ -399,7 +399,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             text=text,
             text_lengths=text_lengths,
             forward_generator=forward_generator,
-            flag_IsValid=flag_IsValid,
         )
 
         # Update batch for additional auxiliary inputs

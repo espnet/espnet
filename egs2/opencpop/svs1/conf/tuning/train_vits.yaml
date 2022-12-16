@@ -58,10 +58,6 @@ svs_conf:
         flow_dropout_rate: 0.0
         use_weight_norm_in_flow: true
         use_only_mean_in_flow: true
-        stochastic_duration_predictor_kernel_size: 3
-        stochastic_duration_predictor_dropout_rate: 0.5
-        stochastic_duration_predictor_flows: 4
-        stochastic_duration_predictor_dds_conv_layers: 3
     # discriminator related
     discriminator_type: hifigan_multi_scale_multi_period_discriminator
     discriminator_params:

@@ -18,10 +18,7 @@ from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
-from espnet2.gan_svs.vits.duration_predictor import (
-    DurationPredictor,
-    StochasticDurationPredictor,
-)
+from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
@@ -99,10 +96,6 @@ class VITSGenerator(torch.nn.Module):
         flow_dropout_rate: float = 0.0,
         use_weight_norm_in_flow: bool = True,
         use_only_mean_in_flow: bool = True,
-        stochastic_duration_predictor_kernel_size: int = 3,
-        stochastic_duration_predictor_dropout_rate: float = 0.5,
-        stochastic_duration_predictor_flows: int = 4,
-        stochastic_duration_predictor_dds_conv_layers: int = 3,
         use_dp: bool = True,
         use_visinger: bool = True,
     ):
@@ -176,15 +169,6 @@ class VITSGenerator(torch.nn.Module):
             use_weight_norm_in_flow (bool): Whether to apply weight normalization in
                 flow.
             use_only_mean_in_flow (bool): Whether to use only mean in flow.
-            stochastic_duration_predictor_kernel_size (int): Kernel size in stochastic
-                duration predictor.
-            stochastic_duration_predictor_dropout_rate (float): Dropout rate in
-                stochastic duration predictor.
-            stochastic_duration_predictor_flows (int): Number of flows in stochastic
-                duration predictor.
-            stochastic_duration_predictor_dds_conv_layers (int): Number of DDS conv
-                layers in stochastic duration predictor.
-
         """
         super().__init__()
         self.segment_size = segment_size
@@ -577,11 +561,18 @@ class VITSGenerator(torch.nn.Module):
             text_lengths (Tensor): Text length tensor (B,).
             feats (Tensor): Feature tensor (B, aux_channels, T_feats,).
             feats_lengths (Tensor): Feature length tensor (B,).
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (B, Tmax).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (B, Tmax).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (B, Tmax).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
-            dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
-                skip the prediction of durations (i.e., teacher forcing).
             noise_scale (float): Noise scale parameter for flow.
             noise_scale_dur (float): Noise scale parameter for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated speech.
@@ -669,27 +660,3 @@ class VITSGenerator(torch.nn.Module):
         # return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
         return wav.squeeze(1), None, None
         # return wav.squeeze(1)
-
-    def _generate_path(self, dur: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """Generate path a.k.a. monotonic attention.
-
-        Args:
-            dur (Tensor): Duration tensor (B, 1, T_text).
-            mask (Tensor): Attention mask tensor (B, 1, T_feats, T_text).
-
-        Returns:
-            Tensor: Path tensor (B, 1, T_feats, T_text).
-
-        """
-        b, _, t_y, t_x = mask.shape
-        cum_dur = torch.cumsum(dur, -1)
-        cum_dur_flat = cum_dur.view(b * t_x)
-        path = torch.arange(t_y, dtype=dur.dtype, device=dur.device)
-        path = path.unsqueeze(0) < cum_dur_flat.unsqueeze(1)
-        path = path.view(b, t_x, t_y).to(dtype=mask.dtype)
-        # path will be like (t_x = 3, t_y = 5):
-        # [[[1., 1., 0., 0., 0.],      [[[1., 1., 0., 0., 0.],
-        #   [1., 1., 1., 1., 0.],  -->   [0., 0., 1., 1., 0.],
-        #   [1., 1., 1., 1., 1.]]]       [0., 0., 0., 0., 1.]]]
-        path = path - F.pad(path, [0, 0, 1, 0, 0, 0])[:, :-1]
-        return path.unsqueeze(1).transpose(2, 3) * mask
