@@ -96,7 +96,7 @@ def make_chunk_mask(
         if left_chunk_size <= 0:
             start = 0
         else:
-            start = max(i  // chunk_size  * chunk_size - left_chunk_size, 0)
+            start = max(i // chunk_size  * chunk_size - left_chunk_size, 0)
 
         end = min((i // chunk_size + 1) * chunk_size, size)
         mask[i, start:end] = True
