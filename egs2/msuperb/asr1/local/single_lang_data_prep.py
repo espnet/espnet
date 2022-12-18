@@ -19,55 +19,51 @@ DATA = [
     "mexico-el",
 ]  # missing voxpopuli
 
-RESERVE_LANG = ["swa", "lit", "tur", "srp", "vie", "kaz", "zul", "tsn", "epo", "frr", "tok", "umb", "bos", "ful", "ceb", "luo", "kea", "sum", "tso", "tos"]
+SINGLE_LANG = ["eng", "deu", "rus", "pol", "swe", "jpn", "cmn", "sat", "nob", "xty"]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train_set", type=str, default="train_10min")
-    parser.add_argument("--train_dev", type=str, default="dev_10min")
-    parser.add_argument("--test_set", type=str, default="test_10min")
+    parser.add_argument("--lang", type=str, default="eng")
     parser.add_argument("--duration", type=str, default="10min")
     parser.add_argument("--source", type=str, default="downloads")
-    parser.add_argument("--lid", type=str2bool, default=False)
 
     args = parser.parse_args()
-    assert args.duration in ["10min", "1h"], "we only "
+    assert args.duration in ["10min", "1h"], "we only support 10min or 1h setting"
+    assert args.lang in SINGLE_LANG, "the language {} is not in our recommend set"
 
     langs_info = {}
 
     # process train
     train_wavscp = open(
-        os.path.join("data", args.train_set, "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
     )
     train_text = open(
-        os.path.join("data", args.train_set, "text"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8"
     )
     train_utt2spk = open(
-        os.path.join("data", args.train_set, "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
     )
     # process dev
     dev_wavscp = open(
-        os.path.join("data", args.train_dev, "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
     )
-    dev_text = open(os.path.join("data", args.train_dev, "text"), "w", encoding="utf-8")
+    dev_text = open(os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8")
     dev_utt2spk = open(
-        os.path.join("data", args.train_dev, "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
     )
     # process test
     test_wavscp = open(
-        os.path.join("data", args.test_set, "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
     )
-    test_text = open(os.path.join("data", args.test_set, "text"), "w", encoding="utf-8")
+    test_text = open(os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8")
     test_utt2spk = open(
-        os.path.join("data", args.test_set, "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
     )
 
     # iterate through dataset
     for dataset in DATA:
-        langs = os.listdir(os.path.join(args.source, dataset))
+        langs = [args.lang]
         for lang in langs:
-            if lang in RESERVE_LANG:
-                continue # skip reserve lange for zero-shot
             if lang not in langs_info:
                 langs_info[lang] = []
             langs_info[lang].append(dataset)

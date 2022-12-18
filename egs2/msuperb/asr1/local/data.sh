@@ -11,8 +11,12 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
+nlsyms_txt=data/local/nlsyms.txt
 duration=10min # duration can be either 10min or 1h
-
+multilinugual=true
+lid=false
+single_lang=eng # lang for single lang data preparation 
+                # candidates: eng, deu, rus, pol, swe, jpn, cmn, sat, nob, xty
 
  . utils/parse_options.sh || exit 1;
 
@@ -33,35 +37,64 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_${duration}
-train_dev=dev_${duration}
-test_set=test_${duration}
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
     log "stage1: Download data to ${MSUPERB}"
     log "Not released yet"
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage2: Preparing data for multilingual SUPERB"
-    mkdir -p data/${train_set}
-    mkdir -p data/${train_dev}
-    mkdir -p data/${test_set}
- 
-    python local/data_prep.py \
-        --train_set ${train_set} \
-        --train_dev ${train_dev} \
-        --test_set ${test_set} \
-        --duration ${duration} \
-        --source ${MSUPERB} \
-        --lid false
 
-    for x in ${train_set} ${train_dev} ${test_set}; do
-        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
-        utils/fix_data_dir.sh data/${x}
-    done
+    if "${multilingual}"; then
+        mkdir -p data/train_${duration}
+        mkdir -p data/dev_${duration}
+        mkdir -p data/test_${duration}
+ 
+        python local/data_prep.py \
+            --train_set train_${duration} \
+            --train_dev dev_${duration} \
+            --test_set test_${duration} \
+            --duration ${duration} \
+            --source ${MSUPERB} \
+            --lid ${lid}
+
+        for x in ${train_set} ${train_dev} ${test_set}; do
+            utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+            utils/fix_data_dir.sh data/${x}
+        done
+    else
+        for x in "train" "dev" "test"; do
+            mkdir -p data/${x}_${duration}_${single_lang}
+        done
+        
+        python local/single_lang_data_prep.py \
+            --duration ${duration} \
+            --source ${MSUPERB} \
+            --lid ${lid} \
+            --lang ${single_lang}
+
+        for x in "train" "dev" "test"; do
+             utils/utt2spk_to_spk2utt.pl \
+                 data/${x}_${duration}_${single_lang}/utt2spk \
+                 > data/${x}_${duration}_${single_lang}/spk2utt
+             utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
+        done
+    fi
 fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage3: Create non-linguistic symbols for language ID"
+    if "${multilinugal}"; then
+        train_set=data/train_${duration}
+    else
+        train_set=data/train_${duration}_${single_lang}
+    fi
+    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
+    log "save non-linguistic symbols in ${nlsyms_txt}"
+fi
+
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
