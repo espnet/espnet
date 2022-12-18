@@ -30,14 +30,12 @@ model_conf:
     ctc_weight: 0.0
     lsm_weight: 0.1
     length_normalized_loss: false
-    sos_index: 50258
-    eos_index: 50257
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
     # do_pad_trim: true         # should be set when doing zero-shot inference
 
-frontend_conf:
-    n_fft: 512
-    win_length: 400
-    hop_length: 160
+frontend: null
+input_size: 1                   # to prevent build_model() from complaining
 
 seed: 2022
 log_interval: 100   
@@ -46,7 +44,7 @@ num_workers: 4
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
-batch_bins: 4000000
+batch_bins: 16000000
 accum_grad: 4
 max_epoch: 3
 patience: none

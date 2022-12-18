@@ -71,7 +71,10 @@ class ESPnetASRModel(AbsESPnetModel):
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__()
-        self.blank_id = token_list.index(sym_blank)
+        if sym_blank in token_list:
+            self.blank_id = token_list.index(sym_blank)
+        else:
+            self.blank_id = 0
         if sym_sos in token_list:
             self.sos = token_list.index(sym_sos)
         else:
@@ -162,6 +165,10 @@ class ESPnetASRModel(AbsESPnetModel):
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
         self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+
+        if self.is_encoder_whisper:
+            assert self.frontend is None, \
+                   "frontend should be None when using full Whisper model"
 
         if lang_token_id != -1:
             self.lang_token_id = torch.tensor([[lang_token_id]])
@@ -386,13 +393,11 @@ class ESPnetASRModel(AbsESPnetModel):
         # for data-parallel
         speech = speech[:, : speech_lengths.max()]
 
-        if self.frontend is not None and not self.is_encoder_whisper:
+        if self.frontend is not None:
             # Frontend
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            # NOTE (Shih-Lun): Whisper uses its own log-mel computation,
-            #                  hence should skip this step
             feats, feats_lengths = self.frontend(speech, speech_lengths)
         else:
             # No frontend and no feature extract

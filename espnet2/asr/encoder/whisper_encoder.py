@@ -1,7 +1,6 @@
 import copy
 from typing import Optional, Tuple, Union
 
-import humanfriendly
 import torch
 import torch.nn.functional as F
 
@@ -9,8 +8,6 @@ from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
-
-N_SAMPLES = 480000 # for input wav padding
 
 class OpenAIWhisperEncoder(AbsEncoder):
     """Transformer-based Speech Encoder from OpenAI's Whisper Model:
@@ -21,11 +18,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
     def __init__(
         self,
         input_size: int = 1,
-        fs: Union[int, str] = 16000,
-        n_fft: int = 400,
-        win_length: int = None,
-        hop_length: int = 160,
-        n_mels: int = 80,
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
         download_dir: str = None,
@@ -35,6 +27,12 @@ class OpenAIWhisperEncoder(AbsEncoder):
     ):
         try:
             import whisper
+            from whisper.audio import (
+                N_FFT,
+                HOP_LENGTH,
+                N_MELS,
+                N_SAMPLES,
+            )
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
@@ -45,31 +43,10 @@ class OpenAIWhisperEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
 
-        if isinstance(fs, str):
-            fs = humanfriendly.parse_size(fs)
-        if fs != 16000:
-            raise ValueError(
-                "whisper is trained on 16kHz audios, set fs=16000 instead of {}".format(
-                    fs
-                )
-            )
-
-        self.n_fft = n_fft
-        if win_length is None:
-            self.win_length = n_fft
-        else:
-            self.win_length = win_length
-        self.hop_length = hop_length
-        self.n_mels = n_mels
-
-        if n_fft != 400 or self.win_length != 400 or hop_length != 160 or n_mels != 80:
-            raise ValueError(
-                "Please use STFT settings under which whisper is trained:\n"
-                + "  n_fft = 400, win_length = 400, hop_length = 160, n_mels = 80\n"
-                + "  you set n_fft = {}, win_length = {}, hop_length = {}, n_mels = {}".format(
-                    self.n_fft, self.win_length, self.hop_length, self.n_mels
-                )
-            )
+        self.n_fft = N_FFT
+        self.win_length = N_FFT
+        self.hop_length = HOP_LENGTH
+        self.n_mels = N_MELS
 
         self.mel_filters = whisper.audio.mel_filters
 
@@ -89,6 +66,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
             self.specaug = None
 
         self.do_pad_trim = do_pad_trim
+        self.pad_samples = N_SAMPLES
 
     def output_size(self) -> int:
         return self.encoders.ln_post.normalized_shape[-1]
@@ -96,7 +74,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
     def pad_or_trim(
         self,
         array: torch.Tensor, 
-        length: int = N_SAMPLES, 
+        length: int, 
         axis: int = -1,
     ) -> torch.Tensor:
         """
@@ -197,7 +175,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         if self.do_pad_trim:
-            xs_pad = self.pad_or_trim(xs_pad)
+            xs_pad = self.pad_or_trim(xs_pad, self.pad_samples)
 
         feats, feats_lens = self.log_mel_spectrogram(xs_pad, ilens)
 
