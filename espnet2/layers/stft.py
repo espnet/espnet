@@ -117,6 +117,7 @@ class Stft(torch.nn.Module, InversibleInterface):
                 hop_length=self.hop_length,
                 center=self.center,
                 window=window,
+                pad_mode='reflect',
             )
 
             if window is not None:
