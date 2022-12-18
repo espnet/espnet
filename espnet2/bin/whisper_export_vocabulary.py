@@ -36,13 +36,13 @@ def export_vocabulary(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    if whisper_model == 'whisper_en':
+    if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(
                                                 multilingual=False
                                             )
-        # TODO (Shih-Lun): should support feeding in 
-        #                  different languages (default is en)
-    elif whisper_model == 'whisper_multilingual':
+    # TODO (Shih-Lun): should support feeding in 
+    #                  different languages (default is en)
+    elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(
                                                 multilingual=True,
                                                 language=None
@@ -54,7 +54,16 @@ def export_vocabulary(
                  len(tokenizer.tokenizer.get_added_vocab())
 
     for i in range(vocab_size):
-        fout.write(tokenizer.tokenizer.convert_ids_to_tokens(i) + '\n')
+        # take care of special char for <space>
+        tkn = tokenizer.tokenizer.convert_ids_to_tokens(i).replace("Ġ", " ")
+        fout.write(tkn + '\n')
+    
+    # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
+    #                  stored in the wrapped tokenizer
+    full_vocab_size = 51865 if whisper_model == "whisper_multilingual" \
+                            else 51864
+    for i in range(full_vocab_size - vocab_size):
+        fout.write("()" + '\n')
 
 
 

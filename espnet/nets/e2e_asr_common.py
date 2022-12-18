@@ -129,12 +129,6 @@ class ErrorCalculator(object):
         else:
             self.idx_space = None
 
-        # NOTE (Shih-Lun): to accomodate Whisper vocab
-        if "<|transcribe|>" in self.char_list:
-            self.use_whisper_vocab = True
-        else:
-            self.use_whisper_vocab = False
-
     def __call__(self, ys_hat, ys_pad, is_ctc=False):
         """Calculate sentence-level WER/CER score.
 
@@ -215,11 +209,6 @@ class ErrorCalculator(object):
             seq_hat_text = "".join(seq_hat).replace(self.space, " ")
             seq_hat_text = seq_hat_text.replace(self.blank, "")
             seq_true_text = "".join(seq_true).replace(self.space, " ")
-
-            if self.use_whisper_vocab:
-                seq_hat_text = seq_hat_text.replace("|>", "|> ").replace("Ġ", " ")
-                seq_true_text = seq_true_text.replace("|>", "|> ").replace("Ġ", " ")
-
             seqs_hat.append(seq_hat_text)
             seqs_true.append(seq_true_text)
         return seqs_hat, seqs_true
