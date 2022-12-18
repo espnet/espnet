@@ -19,7 +19,28 @@ DATA = [
     "mexico-el",
 ]  # missing voxpopuli
 
-RESERVE_LANG = ["swa", "lit", "tur", "srp", "vie", "kaz", "zul", "tsn", "epo", "frr", "tok", "umb", "bos", "ful", "ceb", "luo", "kea", "sum", "tso", "tos"]
+RESERVE_LANG = [
+    "swa",
+    "lit",
+    "tur",
+    "srp",
+    "vie",
+    "kaz",
+    "zul",
+    "tsn",
+    "epo",
+    "frr",
+    "tok",
+    "umb",
+    "bos",
+    "ful",
+    "ceb",
+    "luo",
+    "kea",
+    "sum",
+    "tso",
+    "tos",
+]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -67,7 +88,7 @@ if __name__ == "__main__":
         langs = os.listdir(os.path.join(args.source, dataset))
         for lang in langs:
             if lang in RESERVE_LANG:
-                continue # skip reserve lange for zero-shot
+                continue  # skip reserve lange for zero-shot
             if lang not in langs_info:
                 langs_info[lang] = []
             langs_info[lang].append(dataset)

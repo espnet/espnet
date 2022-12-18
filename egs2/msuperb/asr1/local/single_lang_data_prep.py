@@ -35,29 +35,51 @@ if __name__ == "__main__":
 
     # process train
     train_wavscp = open(
-        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "wav.scp"),
+        "w",
+        encoding="utf-8",
     )
     train_text = open(
-        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "text"),
+        "w",
+        encoding="utf-8",
     )
     train_utt2spk = open(
-        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "train_{}_{}".format(args.duration, args.lang), "utt2spk"),
+        "w",
+        encoding="utf-8",
     )
     # process dev
     dev_wavscp = open(
-        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "wav.scp"),
+        "w",
+        encoding="utf-8",
     )
-    dev_text = open(os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8")
+    dev_text = open(
+        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "text"),
+        "w",
+        encoding="utf-8",
+    )
     dev_utt2spk = open(
-        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "dev_{}_{}".format(args.duration, args.lang), "utt2spk"),
+        "w",
+        encoding="utf-8",
     )
     # process test
     test_wavscp = open(
-        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "wav.scp"), "w", encoding="utf-8"
+        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "wav.scp"),
+        "w",
+        encoding="utf-8",
     )
-    test_text = open(os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "text"), "w", encoding="utf-8")
+    test_text = open(
+        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "text"),
+        "w",
+        encoding="utf-8",
+    )
     test_utt2spk = open(
-        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "utt2spk"), "w", encoding="utf-8"
+        os.path.join("data", "test_{}_{}".format(args.duration, args.lang), "utt2spk"),
+        "w",
+        encoding="utf-8",
     )
 
     # iterate through dataset
