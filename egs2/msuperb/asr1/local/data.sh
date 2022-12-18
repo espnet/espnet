@@ -13,7 +13,7 @@ stop_stage=100
 SECONDS=0
 nlsyms_txt=data/local/nlsyms.txt
 duration=10min # duration can be either 10min or 1h
-multilinugual=true
+multilingual=true
 lid=false
 single_lang=eng # lang for single lang data preparation 
                 # candidates: eng, deu, rus, pol, swe, jpn, cmn, sat, nob, xty
@@ -61,9 +61,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --source ${MSUPERB} \
             --lid ${lid}
 
-        for x in ${train_set} ${train_dev} ${test_set}; do
-            utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
-            utils/fix_data_dir.sh data/${x}
+        for x in "train" "dev" "test"; do
+            utils/utt2spk_to_spk2utt.pl \
+                data/${x}_${duration}/utt2spk \
+                > data/${x}_${duration}/spk2utt
+            utils/fix_data_dir.sh data/${x}_${duration}
         done
     else
         for x in "train" "dev" "test"; do
@@ -87,7 +89,7 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage3: Create non-linguistic symbols for language ID"
-    if "${multilinugal}"; then
+    if "${multilingual}"; then
         train_set=data/train_${duration}
     else
         train_set=data/train_${duration}_${single_lang}
