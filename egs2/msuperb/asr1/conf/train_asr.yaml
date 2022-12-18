@@ -1,10 +1,10 @@
 # Trained with Tesla V100 (32GB) x 4 GPUs. It takes about 3.5 days.
 encoder: conformer
 encoder_conf:
-    output_size: 512
+    output_size: 256
     attention_heads: 8
-    linear_units: 2048
-    num_blocks: 12
+    linear_units: 1024
+    num_blocks: 3
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
@@ -16,13 +16,13 @@ encoder_conf:
     selfattention_layer_type: rel_selfattn
     activation_type: swish
     use_cnn_module: true
-    cnn_module_kernel: 31
+    cnn_module_kernel: 15
 
 decoder: transformer
 decoder_conf:
     attention_heads: 8
-    linear_units: 2048
-    num_blocks: 6
+    linear_units: 1024
+    num_blocks: 3
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.1
@@ -34,8 +34,8 @@ model_conf:
     length_normalized_loss: false
 
 frontend_conf:
-    n_fft: 512
-    hop_length: 160
+    n_fft: 1024
+    hop_length: 320
 
 num_workers: 4
 batch_type: sorted
