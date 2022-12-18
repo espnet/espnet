@@ -56,7 +56,6 @@ if [ ! -e "${output_dir}/etc/profile.d/conda.sh" ]; then
     if "${is_windows}"; then
         echo "Error: Miniconda installation is not supported for Windows for now."
         exit 1
-
         # https://conda.io/projects/conda/en/latest/user-guide/install/windows.html#installing-in-silent-mode
         # shellcheck disable=SC2317
         _output_dir="$(realpath ${output_dir} | tr / \\)"
