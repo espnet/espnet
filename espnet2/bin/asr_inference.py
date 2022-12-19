@@ -34,6 +34,7 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.asr.decoder.s4_decoder import S4Decoder
 
 try:
     from transformers import AutoModelForSeq2SeqLM
@@ -412,6 +413,12 @@ class Speech2Text:
                 + "\n"
             )
         else:
+            if hasattr(self.beam_search.nn_dict, 'decoder'):
+                if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
+                    # Setup: required for S4 autoregressive generation
+                    for module in self.beam_search.nn_dict.decoder.modules():
+                        if hasattr(module, 'setup_step'):
+                            module.setup_step()
             nbest_hyps = self.beam_search(
                 x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )

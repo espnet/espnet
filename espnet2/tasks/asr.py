@@ -21,6 +21,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
 )
+from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -171,6 +172,7 @@ decoder_choices = ClassChoices(
         transducer=TransducerDecoder,
         mlm=MLMDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
+        s4=S4Decoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
