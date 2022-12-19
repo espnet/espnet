@@ -773,7 +773,6 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
         elif grep -q "whisper" <<< ${token_type}; then
             log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
-
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
             # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             echo ${token_list}
@@ -782,7 +781,6 @@ if ! "${skip_data_prep}"; then
                 --output "${token_list}"
         elif [ "${token_type}" = hugging_face ]; then
             log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
-
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
             # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
@@ -1425,27 +1423,16 @@ if ! "${skip_eval}"; then
             for _tok_type in "char" "word" "bpe"; do
                 [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
 
-                _scoredir="${_dir}/score_${_type}"
-                mkdir -p "${_scoredir}"
+                _opts="--token_type ${_tok_type} "
+                if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
+                    _type="${_tok_type:0:1}er"
+                    _opts+="--non_linguistic_symbols \"${nlsyms_txt}\" "
+                    _opts+="--remove_non_linguistic_symbols true "
 
-                # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
-                    # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
-                    suffix=$(echo ${ref_txt} | sed 's/text//')
                 elif [ "${_tok_type}" = "bpe" ]; then
                     _type="ter"
                     _opts+="--bpemodel ${bpemodel} "
 
-                    # Tokenize text to ${_tok_type} level
-                    paste \
-                        <(<"${_data}/${ref_txt}" \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                --cleaner "${cleaner}" \
-                                ${_opts} \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref${suffix:-${suffix}}.trn"
                 else
                     log "Error: unsupported token type ${_tok_type}"
                 fi
@@ -1458,39 +1445,24 @@ if ! "${skip_eval}"; then
                     # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
                     suffix=$(echo ${ref_txt} | sed 's/text//')
 
-                    # NOTE(kamo): Don't use cleaner for hyp
+                    # Tokenize text to ${_tok_type} level
                     paste \
-                        <(<"${_dir}/${ref_txt}"  \
+                        <(<"${_data}/${ref_txt}" \
                             ${python} -m espnet2.bin.tokenize_text  \
                                 -f 2- --input - --output - \
-                                --cleaner "${hyp_cleaner}" \
+                                --cleaner "${cleaner}" \
                                 ${_opts} \
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
+                            >"${_scoredir}/ref${suffix:-${suffix}}.trn"
 
-                done
-
-                # Note(simpleoier): score across all possible permutations
-                if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
-                    for i in $(seq ${num_ref}); do
-                        for j in $(seq ${num_inf}); do
-                            sclite \
-                                ${score_opts} \
-                                -r "${_scoredir}/ref_spk${i}.trn" trn \
-                                -h "${_scoredir}/hyp_spk${j}.trn" trn \
-                                -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
-                        done
-                    done
-                    # Generate the oracle permutation hyp.trn and ref.trn
-                    scripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                        --results-dir ${_scoredir}
                     # NOTE(kamo): Don't use cleaner for hyp
                     paste \
                         <(<"${_dir}/${ref_txt}"  \
                             ${python} -m espnet2.bin.tokenize_text  \
                                 -f 2- --input - --output - \
                                 ${_opts} \
+                                --cleaner "${hyp_cleaner}" \
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
