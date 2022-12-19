@@ -1,6 +1,45 @@
 # RESULTS
 
 ## Environments
+- date: `Sat Dec 17 04:27:41 CST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202209`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `26f432bc859e5e40cac1a86042d498ba7baffbb0`
+  - Commit date: `Fri Dec 9 02:16:01 2022 +0000`
+
+## asr_train_asr_conformer_e15_raw_en_bpe500_sp
+
+Config: [conf/tuning/train_asr_conformer_e15.yaml](conf/tuning/train_asr_conformer_e15.yaml)
+Params: 35.53 M
+Model: [https://huggingface.co/pyf98/tedlium2_conformer_e15](https://huggingface.co/pyf98/tedlium2_conformer_e15)
+
+## Without LM
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev|466|14671|93.5|4.1|2.5|1.0|7.5|70.0|
+|decode_asr_asr_model_valid.acc.ave/test|1155|27500|93.4|4.0|2.6|1.0|7.6|64.2|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev|466|78259|97.0|0.8|2.1|0.8|3.8|70.0|
+|decode_asr_asr_model_valid.acc.ave/test|1155|145066|97.0|0.9|2.2|0.9|4.0|64.2|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev|466|28296|95.0|2.8|2.2|0.8|5.9|70.0|
+|decode_asr_asr_model_valid.acc.ave/test|1155|52113|95.1|2.5|2.4|0.9|5.8|64.2|
+
+
+
+## Environments
 - date: `Fri Dec 16 05:04:30 CST 2022`
 - python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
 - espnet version: `espnet 202209`
