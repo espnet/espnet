@@ -5,29 +5,29 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train_clean_100"
+train_set="train"
 valid_set="dev"
-test_sets="test_clean test_other dev_clean dev_other"
+test_sets="test dev"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr_e_branchformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --lang en \
-    --ngpu 1 \
-    --nj 16 \
+    --nj 8 \
+    --ngpu 2 \
     --gpu_inference true \
     --inference_nj 2 \
-    --nbpe 5000 \
-    --max_wav_duration 30 \
-    --speed_perturb_factors "0.9 1.0 1.1" \
-    --audio_format "flac.ark" \
     --feats_type raw \
+    --audio_format "flac.ark" \
+    --token_type bpe \
+    --nbpe 500 \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --lm_train_text "data/${train_set}/text" \
-    --bpe_train_text "data/${train_set}/text" "$@"
+    --speed_perturb_factors "0.9 1.0 1.1" \
+    --bpe_train_text "data/${train_set}/text" \
+    --lm_train_text "data/${train_set}/text" "$@"

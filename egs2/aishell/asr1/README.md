@@ -42,6 +42,31 @@
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.0|6.7|0.2|0.8|7.8|50.7|
 
 
+# E-Branchformer
+
+## Environments
+- date: `Sun Dec 18 12:21:46 CST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202209`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `26f432bc859e5e40cac1a86042d498ba7baffbb0`
+  - Commit date: `Fri Dec 9 02:16:01 2022 +0000`
+
+## Without LM
+
+- ASR config: [conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024_mactrue_amp.yaml](conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024_mactrue_amp.yaml)
+- #Params: 37.88 M
+- Model link: [https://huggingface.co/pyf98/aishell_e_branchformer](https://huggingface.co/pyf98/aishell_e_branchformer)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_branchformer_asr_model_valid.acc.ave/dev|14326|205341|95.9|4.0|0.1|0.1|4.2|33.1|
+|decode_asr_branchformer_asr_model_valid.acc.ave/test|7176|104765|95.6|4.3|0.1|0.1|4.5|34.6|
+
+
+
 
 # Branchformer: initial
 
