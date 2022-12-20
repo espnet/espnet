@@ -46,8 +46,8 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-min_wav_duration=1 # Minimum duration in second.
+audio_format=wav     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false        # Whether to use language id as the inputs (Need utt2lang in data directory).
