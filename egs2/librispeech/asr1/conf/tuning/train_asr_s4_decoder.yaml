@@ -1,0 +1,95 @@
+# Trained with Tesla A100 (40GB) x 4 GPUs. It takes about 2.5 days.
+encoder: conformer
+encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+decoder: s4
+decoder_conf:
+  dropinp: 0.0
+  dropout: 0.1
+  drop_path: 0.1
+  prenorm: true
+  n_layers: 6
+  transposed: false
+  tie_dropout: false
+    - _name_: s4
+      postact: glu
+      dropout: 0.1
+      n_ssm: 1
+      bidirectional: false
+      lr: 0.0025
+      dt_min: 0.001
+      dt_max: 0.1
+      measure: legs
+    - _name_: mha
+      n_head: 8
+      dropout: 0.1
+    - _name_: ff
+      expand: 4
+      activation: gelu
+      dropout: 0.1
+  residual: residual
+  norm: layer
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+frontend_conf:
+    n_fft: 512
+    hop_length: 160
+
+use_amp: true
+num_workers: 4
+batch_type: numel
+batch_bins: 35000000
+accum_grad: 4
+max_epoch: 60
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+optim: adamw
+exclude_weight_decay: true
+optim_conf:
+    lr: 0.0025
+    weight_decay: 0.01
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 40000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
