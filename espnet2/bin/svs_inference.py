@@ -248,7 +248,6 @@ def inference(
     key_file: Optional[str],
     train_config: Optional[str],
     model_file: Optional[str],
-    # maxlenratio: float, TODO: add maxlenratio
     use_teacher_forcing: bool,
     noise_scale: float,
     noise_scale_dur: float,
@@ -358,9 +357,6 @@ def inference(
                     )
                 )
                 logging.info(f"{key} (size:{insize}->{feat_gen.size(0)})")
-                # TODO: add maxlenratio
-                # if feat_gen.size(0) == insize * maxlenratio:
-                #     logging.warning(f"output length reaches maximum length ({key}).")
 
                 norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
                 shape_writer.write(
