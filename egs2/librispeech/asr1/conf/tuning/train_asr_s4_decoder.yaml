@@ -1,3 +1,10 @@
+# wandb
+use_wandb: true
+wandb_project: null
+wandb_id: null
+wandb_entity: null
+wandb_name: asr_librispeech_conformer10_s4_dp2
+
 # Trained with Tesla A100 (40GB) x 4 GPUs. It takes about 2.5 days.
 encoder: conformer
 encoder_conf:
@@ -27,6 +34,7 @@ decoder_conf:
   n_layers: 6
   transposed: false
   tie_dropout: false
+  layer:
     - _name_: s4
       postact: glu
       dropout: 0.1
