@@ -17,7 +17,8 @@ DATA = [
     "swc",
     "voxforge",
     "mexico-el",
-]  # missing voxpopuli
+    "voxpopuli",
+]
 
 RESERVE_LANG = [
     "swa",
