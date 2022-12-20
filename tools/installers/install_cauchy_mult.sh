@@ -7,6 +7,16 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
+# Install pykeops
+if ! python3 -c "import pykeops.version" &> /dev/null; then
+    (
+        set -euo pipefail
+        python3 -m pip install pykeops
+    )
+else
+    echo "pykeops is already installed."
+fi
+
 # Install custom cuda kernel
 if [ ! -e cauchy_mult.done ]; then
 
