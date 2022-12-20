@@ -41,7 +41,6 @@ class SingingGenerate:
         train_config: Optional[Union[Path, str]],
         model_file: Optional[Union[Path, str]] = None,
         use_teacher_forcing: bool = False,
-        speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
         vocoder_config: Union[Path, str] = None,
@@ -90,8 +89,6 @@ class SingingGenerate:
         # setup decoding config
         decode_conf = {}
         decode_conf.update({"use_teacher_forcing": use_teacher_forcing})
-        if isinstance(self.svs, (VITS)):
-            decode_conf.update(alpha=speed_control_alpha)
         if isinstance(self.svs, VITS):
             decode_conf.update(
                 noise_scale=noise_scale,
@@ -253,7 +250,6 @@ def inference(
     model_file: Optional[str],
     # maxlenratio: float, TODO: add maxlenratio
     use_teacher_forcing: bool,
-    speed_control_alpha: float,
     noise_scale: float,
     noise_scale_dur: float,
     allow_variable_data_keys: bool,
@@ -284,7 +280,6 @@ def inference(
         train_config=train_config,
         model_file=model_file,
         use_teacher_forcing=use_teacher_forcing,
-        speed_control_alpha=speed_control_alpha,
         noise_scale=noise_scale,
         noise_scale_dur=noise_scale_dur,
         vocoder_config=vocoder_config,
@@ -560,12 +555,6 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Whether to use teacher forcing",
-    )
-    parser.add_argument(
-        "--speed_control_alpha",
-        type=float,
-        default=1.0,
-        help="Alpha in FastSpeech to change the speed of generated speech",
     )
     parser.add_argument(
         "--noise_scale",
