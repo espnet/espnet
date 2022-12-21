@@ -19,6 +19,7 @@ def build_tokenizer(
     space_symbol: str = "<space>",
     delimiter: str = None,
     g2p_type: str = None,
+    nonsplit_symbol: Iterable[str] = None,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
     assert check_argument_types()
@@ -58,6 +59,7 @@ def build_tokenizer(
             non_linguistic_symbols=non_linguistic_symbols,
             space_symbol=space_symbol,
             remove_non_linguistic_symbols=remove_non_linguistic_symbols,
+            nonsplit_symbols=nonsplit_symbol,
         )
 
     elif token_type == "phn":
