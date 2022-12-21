@@ -384,7 +384,7 @@ class BeamSearch(torch.nn.Module):
         logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(x)
+        running_hyps = self.init_hyp(x if pre_x is None else pre_x)
         ended_hyps = []
         for i in range(maxlen):
             logging.debug("position " + str(i))

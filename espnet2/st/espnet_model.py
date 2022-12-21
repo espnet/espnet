@@ -48,17 +48,20 @@ class ESPnetSTModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
+        hier_encoder: Optional[AbsEncoder],
         md_encoder: Optional[AbsEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
         extra_mt_decoder: Optional[AbsDecoder],
         ctc: Optional[CTC],
+        st_ctc: Optional[CTC],
         src_vocab_size: Optional[int],
         src_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,
+        st_mtlalpha: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -87,6 +90,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.asr_weight = asr_weight
         self.mt_weight = mt_weight
         self.mtlalpha = mtlalpha
+        self.st_mtlalpha = st_mtlalpha
         self.token_list = token_list.copy()
         self.src_token_list = src_token_list.copy()
         self.ctc_sample_rate = ctc_sample_rate
@@ -96,6 +100,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.normalize = normalize
         self.preencoder = preencoder
         self.postencoder = postencoder
+        self.hier_encoder = hier_encoder
         self.encoder = encoder
         self.decoder = (
             decoder  # TODO(jiatong): directly implement multi-decoder structure at here
@@ -108,6 +113,9 @@ class ESPnetSTModel(AbsESPnetModel):
             smoothing=lsm_weight,
             normalize_length=length_normalized_loss,
         )
+
+        if self.st_mtlalpha > 0.0:
+            self.st_ctc = st_ctc
 
         self.criterion_asr = LabelSmoothingLoss(
             size=src_vocab_size,
@@ -213,18 +221,29 @@ class ESPnetSTModel(AbsESPnetModel):
             src_text = src_text[:, : src_text_lengths.max()]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        if self.hier_encoder is not None:
+            st_encoder_out, st_encoder_out_lens, asr_encoder_out, asr_encoder_out_lens = self.encode(speech, speech_lengths, return_int_enc=True)
+        else:
+            st_encoder_out, st_encoder_out_lens = self.encode(speech, speech_lengths)
+            asr_encoder_out, asr_encoder_out_lens = st_encoder_out, st_encoder_out_lens
 
         # 2a. CTC branch
         if self.asr_weight > 0:
             assert src_text is not None, "missing source text for asr sub-task of ST"
 
         if self.asr_weight > 0 and self.mtlalpha > 0:
-            loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, src_text, src_text_lengths
+            loss_asr_ctc, cer_asr_ctc = self._calc_asr_ctc_loss(
+                asr_encoder_out, asr_encoder_out_lens, src_text, src_text_lengths
             )
         else:
-            loss_asr_ctc, cer_asr_ctc = 0, None
+            loss_asr_ctc, cer_asr_ctc = 0.0, None
+
+        if self.st_mtlalpha > 0:
+            loss_st_ctc, bleu_st_ctc = self._calc_mt_ctc_loss(
+                st_encoder_out, st_encoder_out_lens, text, text_lengths
+            )
+        else:
+            loss_st_ctc, bleu_st_ctc = 0.0, None
 
         # 2b. Attention-decoder branch (extra ASR)
         if self.asr_weight > 0 and self.mtlalpha < 1.0:
@@ -235,41 +254,47 @@ class ESPnetSTModel(AbsESPnetModel):
                 wer_asr_att,
                 hs_dec_asr,
             ) = self._calc_asr_att_loss(
-                encoder_out, encoder_out_lens, src_text, src_text_lengths, self.use_multidecoder
+                asr_encoder_out, asr_encoder_out_lens, src_text, src_text_lengths, self.use_multidecoder
             )
         else:
-            loss_asr_att, acc_asr_att, cer_asr_att, wer_asr_att = 0, None, None, None
+            loss_asr_att, acc_asr_att, cer_asr_att, wer_asr_att = 0.0, None, None, None
 
         # 2c. Attention-decoder branch (extra MT)
         if self.mt_weight > 0:
             loss_mt_att, acc_mt_att = self._calc_mt_att_loss(
-                encoder_out, encoder_out_lens, text, text_lengths, st=False
+                st_encoder_out, st_encoder_out_lens, text, text_lengths, st=False
             )
         else:
-            loss_mt_att, acc_mt_att = 0, None
+            loss_mt_att, acc_mt_att = 0.0, None
 
         # 2d. Multi-Decoder encoder
         if self.use_speech_attn:
-            speech_out = encoder_out
-            speech_lens = encoder_out_lens
+            speech_out = st_encoder_out
+            speech_lens = st_encoder_out_lens
         else:
             speech_out = None
             speech_lens = None
 
         if self.use_multidecoder:
             dec_asr_lengths = src_text_lengths + 1
-            md_encoder_out, md_encoder_out_lens, _ = self.md_encoder(hs_dec_asr, dec_asr_lengths)
-            encoder_out = md_encoder_out
-            encoder_out_lens = md_encoder_out_lens
+            st_encoder_out, st_encoder_out_lens, _ = self.md_encoder(hs_dec_asr, dec_asr_lengths)
         
         # 2e. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
-            encoder_out, encoder_out_lens, text, text_lengths, speech_out, speech_lens, st=True
+            st_encoder_out, st_encoder_out_lens, text, text_lengths, speech_out, speech_lens, st=True
         )
 
         # 3. Loss computation
         asr_ctc_weight = self.mtlalpha
-        loss_st = loss_st_att
+        st_ctc_weight = self.st_mtlalpha
+        if st_ctc_weight == 1.0:
+            loss_st = loss_st_ctc
+        elif st_ctc_weight == 0.0:
+            loss_st = loss_st_att
+        else:
+            loss_st = (
+                st_ctc_weight * loss_st_ctc + (1 - st_ctc_weight) * loss_st_att
+            )
         if asr_ctc_weight == 1.0:
             loss_asr = loss_asr_ctc
         elif asr_ctc_weight == 0.0:
@@ -287,9 +312,7 @@ class ESPnetSTModel(AbsESPnetModel):
 
         stats = dict(
             loss=loss.detach(),
-            loss_asr=loss_asr.detach()
-            if type(loss_asr) not in {float, int}
-            else loss_asr,
+            loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
@@ -299,6 +322,7 @@ class ESPnetSTModel(AbsESPnetModel):
             cer=cer_asr_att,
             wer=wer_asr_att,
             bleu=bleu_st_att,
+            bleu_ctc=bleu_st_ctc,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -328,7 +352,7 @@ class ESPnetSTModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor, return_int_enc: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by st_inference.py
 
@@ -357,6 +381,12 @@ class ESPnetSTModel(AbsESPnetModel):
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
 
+        if return_int_enc:
+            int_encoder_out, int_encoder_out_lens = encoder_out, encoder_out_lens
+
+        if self.hier_encoder is not None:
+            encoder_out, encoder_out_lens, _ = self.hier_encoder(encoder_out, encoder_out_lens)
+
         # Post-encoder, e.g. NLU
         if self.postencoder is not None:
             encoder_out, encoder_out_lens = self.postencoder(
@@ -372,6 +402,8 @@ class ESPnetSTModel(AbsESPnetModel):
             encoder_out_lens.max(),
         )
 
+        if return_int_enc:
+            return encoder_out, encoder_out_lens, int_encoder_out, int_encoder_out_lens
         return encoder_out, encoder_out_lens
 
     def _extract_feats(
@@ -492,7 +524,7 @@ class ESPnetSTModel(AbsESPnetModel):
 
         return loss_att, acc_att, cer_att, wer_att, hs_dec_asr
 
-    def _calc_ctc_loss(
+    def _calc_asr_ctc_loss(
         self,
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
@@ -508,3 +540,20 @@ class ESPnetSTModel(AbsESPnetModel):
             ys_hat = self.ctc.argmax(encoder_out).data
             cer_ctc = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
+
+    def _calc_mt_ctc_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+    ):
+        # Calc CTC loss
+        loss_ctc = self.st_ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+
+        # Calc CER using CTC
+        bleu_ctc = None
+        if not self.training and self.mt_error_calculator is not None:
+            ys_hat = self.st_ctc.argmax(encoder_out).data
+            bleu_ctc = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+        return loss_ctc, bleu_ctc

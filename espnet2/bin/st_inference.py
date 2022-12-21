@@ -64,6 +64,7 @@ class Speech2Text:
         batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
+        ctc_weight: float = 0.0,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -106,6 +107,11 @@ class Speech2Text:
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
         )
+
+        if ctc_weight > 0:
+            assert hasattr(st_model, "st_ctc")
+            ctc = CTCPrefixScorer(ctc=st_model.st_ctc, eos=st_model.eos)
+            scorers.update(ctc=ctc)
 
         src_token_list = st_model.src_token_list
         if st_model.use_multidecoder:
@@ -161,7 +167,8 @@ class Speech2Text:
 
         # 4. Build BeamSearch object
         weights = dict(
-            decoder=1.0,
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
             lm=lm_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
@@ -318,14 +325,14 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.st_model.encode(**batch)
+        enc, _, asr_enc, _ = self.st_model.encode(**batch, return_int_enc=True)
         assert len(enc) == 1, len(enc)
         x = enc[0]
 
         # Multi-decoder ASR beam search
         if self.st_model.use_multidecoder:
             asr_nbest_hyps = self.asr_beam_search(
-                x=enc[0], maxlenratio=self.asr_maxlenratio, minlenratio=self.asr_minlenratio
+                x=asr_enc[0], maxlenratio=self.asr_maxlenratio, minlenratio=self.asr_minlenratio
             )
             
             asr_results = []
@@ -440,6 +447,7 @@ def inference(
     asr_beam_size: int,
     ngpu: int,
     seed: int,
+    ctc_weight: float,
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
@@ -515,6 +523,7 @@ def inference(
         asr_minlenratio=asr_minlenratio,
         dtype=dtype,
         beam_size=beam_size,
+        ctc_weight=ctc_weight,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
@@ -768,6 +777,7 @@ def get_parser():
     group.add_argument("--asr_lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--asr_ngram_weight", type=float, default=0.9, help="ngram weight")
+    group.add_argument("--ctc_weight", type=float, default=0.0, help="ST CTC weight")
     group.add_argument("--asr_ctc_weight", type=float, default=0.3, help="ASR CTC weight")
 
     group = parser.add_argument_group("Text converter related")

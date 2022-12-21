@@ -89,7 +89,7 @@ class ConformerEncoder(AbsEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: str = "conv2d",
+        input_layer: Optional[str] = "conv2d",
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",

@@ -8,6 +8,7 @@
 
 import nltk
 import numpy as np
+from itertools import groupby
 
 
 class ErrorCalculator(object):
@@ -28,12 +29,13 @@ class ErrorCalculator(object):
         self.space = sym_space
         self.pad = sym_pad
         self.report_bleu = report_bleu
+        self.idx_blank = self.char_list.index(self.pad)
         if self.space in self.char_list:
             self.idx_space = self.char_list.index(self.space)
         else:
             self.idx_space = None
 
-    def __call__(self, ys_hat, ys_pad):
+    def __call__(self, ys_hat, ys_pad, is_ctc=False):
         """Calculate corpus-level BLEU score.
 
         :param torch.Tensor ys_hat: prediction (batch, seqlen)
@@ -42,7 +44,9 @@ class ErrorCalculator(object):
         :rtype float
         """
         bleu = None
-        if not self.report_bleu:
+        if is_ctc:
+            return self.calculate_bleu_ctc(ys_hat, ys_pad)
+        elif not self.report_bleu:
             return bleu
 
         bleu = self.calculate_corpus_bleu(ys_hat, ys_pad)
@@ -72,3 +76,35 @@ class ErrorCalculator(object):
             seqs_true.append(seq_true_text)
         bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
         return bleu * 100
+
+    def calculate_bleu_ctc(self, ys_hat, ys_pad):
+        """Calculate sentence-level BLEU score for CTC.
+
+        :param torch.Tensor ys_hat: prediction (batch, seqlen)
+        :param torch.Tensor ys_pad: reference (batch, seqlen)
+        :return: corpus-level BLEU score
+        :rtype float
+        """
+        seqs_hat, seqs_true = [], []
+        for i, y in enumerate(ys_hat):
+            y_hat = [x[0] for x in groupby(y)]
+            y_true = ys_pad[i]
+            seq_hat, seq_true = [], []
+            for idx in y_hat:
+                idx = int(idx)
+                if idx != -1 and idx != self.idx_blank and idx != self.idx_space:
+                    seq_hat.append(self.char_list[int(idx)])
+
+            for idx in y_true:
+                idx = int(idx)
+                if idx != -1 and idx != self.idx_blank and idx != self.idx_space:
+                    seq_true.append(self.char_list[int(idx)])
+
+            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
+            seq_hat_text = seq_hat_text.replace(self.pad, "")
+            seq_true_text = "".join(seq_true).replace(self.space, " ")
+            seqs_hat.append(seq_hat_text)
+            seqs_true.append(seq_true_text)
+
+        bleu = nltk.bleu_score.corpus_bleu([[ref] for ref in seqs_true], seqs_hat)
+        return bleu

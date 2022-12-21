@@ -180,6 +180,20 @@ md_encoder_choices = ClassChoices(
     default=None,
     optional=True,
 )
+hier_encoder_choices = ClassChoices(
+    "hier_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
 
 
 class STTask(AbsTask):
@@ -208,6 +222,8 @@ class STTask(AbsTask):
         extra_mt_decoder_choices,
         # --md_encoder and --md_encoder_conf
         md_encoder_choices,
+        # --hier_encoder and --hier_encoder_conf
+        hier_encoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -523,9 +539,15 @@ class STTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
+        encoder_output_size = encoder.output_size()
+        if getattr(args, "hier_encoder", None) is not None:
+            hier_encoder_class = hier_encoder_choices.get_class(args.hier_encoder)
+            hier_encoder = hier_encoder_class(input_size=encoder_output_size, **args.hier_encoder_conf)
+        else:
+            hier_encoder = None
+
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(
@@ -553,6 +575,12 @@ class STTask(AbsTask):
             )
         else:
             ctc = None
+
+        st_ctc = CTC(
+            odim=vocab_size,
+            encoder_output_size=encoder_output_size,
+            **args.ctc_conf,
+        )
 
         # 7. ASR extra decoder
         if (
@@ -599,10 +627,12 @@ class STTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
+            hier_encoder=hier_encoder,
             md_encoder=md_encoder,
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
+            st_ctc=st_ctc,
             extra_asr_decoder=extra_asr_decoder,
             extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,

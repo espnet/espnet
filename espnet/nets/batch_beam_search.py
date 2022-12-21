@@ -178,7 +178,7 @@ class BatchBeamSearch(BeamSearch):
         return scores, states
 
     def score_partial(
-        self, hyp: BatchHypothesis, ids: torch.Tensor, x: torch.Tensor
+        self, hyp: BatchHypothesis, ids: torch.Tensor, x: torch.Tensor, pre_x: torch.Tensor=None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -198,9 +198,14 @@ class BatchBeamSearch(BeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.part_scorers.items():
-            scores[k], states[k] = d.batch_score_partial(
-                hyp.yseq, ids, hyp.states[k], x
-            )
+            if 'ctc' in k and pre_x is not None:
+                scores[k], states[k] = d.batch_score_partial(
+                    hyp.yseq, ids, hyp.states[k], pre_x
+                )
+            else:
+                scores[k], states[k] = d.batch_score_partial(
+                    hyp.yseq, ids, hyp.states[k], x
+                )
         return scores, states
 
     def merge_states(self, states: Any, part_states: Any, part_idx: int) -> Any:
@@ -260,7 +265,7 @@ class BatchBeamSearch(BeamSearch):
         # NOTE(takaaki-hori): Unlike BeamSearch, we assume that score_partial returns
         # full-size score matrices, which has non-zero scores for part_ids and zeros
         # for others.
-        part_scores, part_states = self.score_partial(running_hyps, part_ids, x)
+        part_scores, part_states = self.score_partial(running_hyps, part_ids, x, pre_x)
         for k in self.part_scorers:
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores
