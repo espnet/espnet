@@ -238,6 +238,10 @@ class Speech2Text:
                     raise NotImplementedError(
                         "TimeSyncBeamSearch without CTC is not supported."
                     )
+                if batch_size != 1:
+                    raise NotImplementedError(
+                        "TimeSyncBeamSearch with batching is not yet supported."
+                    )
                 logging.info("TimeSyncBeamSearch implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
