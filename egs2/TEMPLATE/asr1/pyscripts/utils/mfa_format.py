@@ -9,13 +9,18 @@ def make_labs_[dataset]:
 """
 
 import argparse
+import kaldiio
+import logging
 import os
 import re
+import soundfile as sf
 import sys
 import traceback
 from pathlib import Path
 
-from praatio import textgrid
+from typing import Dict
+
+# from praatio import textgrid
 from tacotron_cleaner import cleaners
 
 ROOT_DIR = os.getcwd()
@@ -26,8 +31,12 @@ DURATIONS_PATH = f"{ROOT_DIR}/data/train/durations"
 
 punctuation = "!',.?" + '"'
 
-fs = 22050
-hop_length = 256
+
+def get_path(s, sep=os.sep):
+    for x in s:
+        if len(x.split(sep)) > 1:
+            return x
+    return ""
 
 
 def get_parser():
@@ -43,31 +52,46 @@ def get_parser():
     )
 
     parser.add_argument(
-        "type",
+        "task",
         choices=["labs", "validate", "durations"],
         help='Must be "labs, "validate" or "durations',
     )
     parser.add_argument(
-        "--dataset",
-        choices=["ljspeech"],
-        help='Currently only supports "ljspeech"',
+        "--data_sets",
+        help="",
     )
     parser.add_argument(
-        "--wavs_dir",
-        help="Path to wavs dir, lab files will be added here",
+        "--save_dir",
+        type=str,
+        help="",
+    )
+    parser.add_argument(
+        "--samplerate",
+        type=int,
+        default=22050,
+        help="",
+    )
+    parser.add_argument(
+        "--hop_size",
+        type=int,
+        default=256,
+        help="",
     )
     parser.add_argument(
         "--textgrid_dir",
+        type=str,
         default=TEXTGRID_DIR,
         help="Path to output MFA .TextGrid files",
     )
     parser.add_argument(
         "--train_text_path",
+        type=str,
         default=TRAIN_TEXT_PATH,
         help="Path to output list of utterances to phonemes",
     )
     parser.add_argument(
         "--durations_path",
+        type=str,
         default=DURATIONS_PATH,
         help="Path to output durations file",
     )
@@ -75,16 +99,26 @@ def get_parser():
     return parser
 
 
-def make_labs_ljspeech(args):
-    """Make lab file for ljspeech dataset."""
-    wavs_dir = Path(args.wavs_dir)
-    with open(wavs_dir / "../metadata.csv") as f:
-        for line in f:
-            items = line.rstrip().split("|")
-            filename = items[0]
-            text = items[-1]
-            with open(wavs_dir / f"{filename}.lab", "w") as lab_f:
-                # Same as custom_english_cleaners but without uppercasing.
+def make_labs(args):
+    """Make lab file for datasets."""
+
+    save_dir = Path(args.save_dir)
+    for dset in args.data_sets.split():
+        logging.info("Preparing data for %s", dset)
+        dset: Path = Path("data") / dset
+        # Generate directories according to spk2utt
+        speakers = dict()
+        with open(dset / "spk2utt") as reader:
+            for line in reader:
+                line = line.split()
+                (save_dir / line[0]).mkdir(parents=True, exist_ok=True)
+                speakers.update({key: line[0] for key in line[1:]})
+
+        # Generate labs according to text file
+        with open(dset / "text", encoding="utf-8") as reader:
+            for line in reader:
+                key = line.split()[0]
+                text = " ".join(line.split()[1:])
                 text = cleaners.convert_to_ascii(text)
                 text = cleaners.lowercase(text)
                 text = cleaners.expand_numbers(text)
@@ -96,12 +130,43 @@ def make_labs_ljspeech(args):
                 #   so that MFA doesn't confuse them with clitics.
                 # Find ' not preceded by a letter to the last ' not followed by a letter
                 text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
-                lab_f.write(text)
-                print(filename)
-    print("Finished writing .lab files")
+                spk = speakers.get(key, None)
+                if spk is None:
+                    continue
+                with open(save_dir / spk / f"{key}.lab", "w", encoding="utf-8") as writer:
+                    writer.write(text)
+
+        # Generate wavs according to wav.scp and segment files
+        if (dset / "segments").exists():
+            wscp = (dset / "wav.scp").as_posix()
+            segments = (dset / "segments").as_posix()
+            with kaldiio.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
+                for key, (rate, array) in reader:
+                    spk: str = speakers.get(key, None)
+                    if spk is None:
+                        continue
+                    dst_file = (save_dir / spk / f"{key}.wav").as_posix()
+                    sf.write(dst_file, array, rate)
+        else:
+            with open(dset / "wav.scp") as reader:
+                for line in reader:
+                    line = line.split()
+                    src_file = os.path.abspath(get_path(line))
+                    spk: str = speakers.get(line[0], None)
+                    if spk is None:
+                        continue
+                    dst_file = (save_dir / spk / f"{line[0]}.wav")
+                    if src_file.endswith(".wav"):
+                        # Create symlink
+                        dst_file.symlink_to(src_file)
+                    else:
+                        # Create wav file
+                        rate, array = kaldiio.load_mat(" ".join(line[1:]))
+                        sf.write(dst_file.as_posix(), array, rate)
+    logging.info("Finished writing .lab files")
 
 
-def get_phoneme_durations(tg: textgrid.Textgrid, original_text: str):
+def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
     """Get phohene durations."""
     orig_text = original_text.replace(" ", "").rstrip()
     text_pos = 0
@@ -182,8 +247,8 @@ def get_phoneme_durations(tg: textgrid.Textgrid, original_text: str):
 
     assert len(new_phones) + 1 == len(timings)
 
-    total_durations = int(tg.maxTimestamp * fs) // hop_length + 1
-    timing_frames = [int(timing * fs / hop_length + 0.5) for timing in timings]
+    total_durations = int(tg.maxTimestamp * fs) // hop_size + 1
+    timing_frames = [int(timing * fs / hop_size + 0.5) for timing in timings]
     durations = [
         timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
     ]
@@ -227,7 +292,12 @@ def make_durations(args):
                     original_text = lab_file.read()
                 tg_path = os.path.join(textgrid_dir, f"{filename}.TextGrid")
                 tg = textgrid.openTextgrid(tg_path, False)
-                new_phones, durations = get_phoneme_durations(tg, original_text)
+                new_phones, durations = get_phoneme_durations(
+                    tg,
+                    original_text,
+                    args.samplerate,
+                    args.hop_size
+                )
                 text_file.write(f'{filename} {" ".join(new_phones)}\n')
                 durations = " ".join(str(d) for d in durations)
                 durations_file.write(f"{filename} {durations} 0\n")
@@ -235,13 +305,16 @@ def make_durations(args):
 
 if __name__ == "__main__":
     args = get_parser().parse_args()
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+    )
     try:
-        if args.type == "labs":
-            func = globals()[f"make_labs_{args.dataset}"]
-            func(args)
-        elif args.type == "validate":
+        if args.task == "labs":
+            make_labs(args)
+        elif args.task == "validate":
             validate(args)
-        elif args.type == "durations":
+        elif args.task == "durations":
             make_durations(args)
         else:
             raise NotImplementedError

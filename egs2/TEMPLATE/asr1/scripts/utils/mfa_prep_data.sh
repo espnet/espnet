@@ -28,17 +28,20 @@ workdir=data/local/mfa
 clean_temp=false
 split_sets=
 
-# Feature extraction related
-fs=16000
+# Data prep related
+local_data_opts="" # Options to be passed to local/data.sh.
 
-# Tokenization related
+# Feature extraction related
+fs=22050
+
+# MFA/Tokenization related
 lang="english_us_tacotron"
 acoustic_model="english_mfa"
 dictionary="english_us_mfa"
-g2p_model="english_us_mfa"  # espeak_ng_english_us_vits
+g2p_model="english_us_mfa"
 cleaner=tacotron
-train=true
-max_phonemes_word=7
+train=false
+max_phonemes_word=7  # split the phonemes durations for word durations. (Ref. PortaSpeech)
 
 help_message=$(cat << EOF
 Usage: $0 --stage "<stage>" --stop-stage "<stop_stage>" --fs "<fs>"
@@ -46,14 +49,17 @@ Usage: $0 --stage "<stage>" --stop-stage "<stop_stage>" --fs "<fs>"
 Options:
     # General configuration
     --stage                # Processes starts from the specified stage (default="${stage}").
-    --stop_stage            # Processes is stopped at the specified stage (default="${stop_stage}").
-    --nj                    # The number of parallel jobs (default="${nj}").
+    --stop_stage           # Processes is stopped at the specified stage (default="${stop_stage}").
+    --nj                   # The number of parallel jobs (default="${nj}").
     --workdir
     --clean_temp
     --datasets
 
+    # Data prep related
+    --local_data_opts      # Options to be passed to local/data.sh (default="${local_data_opts}").
+
     # Feature extraction related
-    --fs                      # Sampling rate (default="${fs}").
+    --fs                   # Sampling rate (default="${fs}").
 
     # Tokenization related
     --lang
@@ -65,8 +71,7 @@ EOF
 )
 
 log "$0 $*"
-# Save command line args for logging (they will be lost after utils/parse_options.sh)
-# run_args=$(pyscripts/utils/print_args.py $0 "$@")
+
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
@@ -83,37 +88,31 @@ if [[ "$(basename "$(pwd)")" != tts* ]]; then
     exit 1
 fi
 
-if [ -z "${datasets}" ]; then
+if [ -z "${split_sets}" ]; then
     log "Error: You need to add the split sets with --split_sets train dev eval"
+fi
+
+if ! [ -x "$(command -v mfa)" ]; then
+    log "ERROR: Missing mfa, run 'cd ../../../tools; make mfa.done; cd -;'"
+    exit 1
 fi
 
 mkdir -p ${workdir}
 tempdir=${workdir}/tmp
 
-# create new dictionary including OOV
-mfa_dir="$HOME/Documents/MFA"
-dict_dir="${mfa_dir}/pretrained_models/dictionary"
-oov_dict="${dict_dir}/oov_${dataset}.dict"
-
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: Prepare Data"
-    local/data.sh
+    # [Task dependent] Need to create data.sh for new corpus
+    log "Stage 0: Data preparation for ${split_sets}"
+    local/data.sh ${local_data_opts}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Prepare Data set for MFA"
     # Text cleaning and save it in wav/lab files (by file)
-    python pyscripts/utils/mfa/prepare_data.py --cleaner ${cleaner} \
-        ${corpus_txt} \
-        ${corpus_dir}
+    python pyscripts/utils/mfa_format.py labs \
+                                    --data_sets "${split_sets}" \
+                                    --save_dir "${workdir}/corpus"
 
-    # Generate a text using espnet2-based g2p
-    python pyscripts/mfa/reformat_dict.py \
-            --g2p ${g2p} \
-            ${workdir}/list2.txt.tmp
-    
-    mv ${workdir}/modified_list2.txt.tmp ${workdir}/train_dict.txt
-    rm ${workdir}/*.tmp
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -135,6 +134,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             ${corpus_dir} \
             ${workdir}/lexicon.txt \
             ${workdir}/acoustic_model.zip
+    else
+        log "stage 2: Download pretrained MFA models"
+        # download pretrained MFA models
+        mfa models download acoustic "${acoustic_model}"
+        mfa models download dictionary "${dictionary}"
+        mfa models download g2p "${g2p_model}"
     fi
 fi
 
@@ -142,11 +147,30 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Generating aligments using MFA model"
 
     if ${train}; then
+        # # Generate a text using espnet2-based g2p
+        # python pyscripts/mfa/reformat_dict.py \
+        #         --g2p ${g2p} \
+        #         ${workdir}/list2.txt.tmp
         lexicon=${workdir}/lexicon.txt
         acoustic=${workdir}/acoustic_model.zip
+
+        # Remove punctuation and clitic from aligment, otherwise it will generate a issue with g2p model
+        echo "punctuation: null" > "${workdir}"/config.yaml
+        echo "clitic_markers: null" >> "${workdir}"/config.yaml
+
     else
-        lexicon=data/mfa_local/modified_librispeech-lexicon.txt
-        acoustic=data/mfa_local/english.zip
+
+# # create OOV dictionary
+# set +e
+# mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
+#     if [[ $line =~ "jobs" ]]; then
+#         echo "OOV file created, stopping MFA."
+#         pkill mfa
+#     else
+#         echo "$line"
+#     fi
+# done
+# set -e
 
         mfa validate --clean -j ${nj} \
         -t ${tempdir} \
@@ -154,12 +178,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${lexicon} \
         ${acoustic}
     fi
-
-# Remove punctuation and clitic from aligment, otherwise it will generate a issue with g2p model
-cat << EOF > "${workdir}"/config.yaml
-punctuation: null
-clitic_markers: null
-EOF
 
     mfa align -j ${nj} \
         --clean \
@@ -192,7 +210,7 @@ fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "stage 5: Prepare data sets with phoneme alignments"
-    for dset in ${datasets}; do
+    for dset in ${split_sets}; do
         utils/copy_data_dir.sh data/"${dset}"{,_phn}
         cp ${workdir}/text.phn data/${dset}_phn/text
         utils/fix_data_dir.sh data/${dset}_phn
@@ -202,35 +220,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     done
 fi
 
-# download pretrained MFA models
-mfa models download acoustic "${acoustic_model}"
-mfa models download dictionary "${dictionary}"
-mfa models download g2p "${g2p_model}"
-python scripts/utils/mfa_format.py labs --dataset "${dataset}" --wavs_dir "${wavs_dir}"
 
-# create OOV dictionary
-set +e
-mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
-    if [[ $line =~ "jobs" ]]; then
-        echo "OOV file created, stopping MFA."
-        pkill mfa
-    else
-        echo "$line"
-    fi
-done
-set -e
+# mfa g2p "${g2p_model}" "${mfa_dir}/wavs_validate_pretrained/oovs_found_${dictionary}.txt" "${oov_dict}"
+# cat "${dict_dir}/${dictionary}.dict" "${oov_dict}" > "${dict_dir}/${dictionary}_${dataset}.dict"
 
+# # check again
+# mfa validate "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" --brackets ''
 
-mfa g2p "${g2p_model}" "${mfa_dir}/wavs_validate_pretrained/oovs_found_${dictionary}.txt" "${oov_dict}"
-cat "${dict_dir}/${dictionary}.dict" "${oov_dict}" > "${dict_dir}/${dictionary}_${dataset}.dict"
+# # perform force alignment
+# mfa align "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" ./textgrids
 
-# check again
-mfa validate "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" --brackets ''
-
-# perform force alignment
-mfa align "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" ./textgrids
-
-echo "Successfully finished generating MFA alignments."
+echo "Successfully finished generating data and MFA alignments."
 
 # NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
 #   please check `egs2/ljspeech/tts1/local/run_mfa.sh`. For example:
