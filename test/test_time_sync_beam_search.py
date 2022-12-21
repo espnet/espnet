@@ -142,8 +142,8 @@ def test_beam_search_equal(
         pytest.skip("no cuda device is available")
     if device == "cpu" and dtype == "float16":
         pytest.skip("cpu float16 implementation is not available in pytorch yet")
-    if mtlalpha == 0.0 and ctc_weight > 0.0:
-        pytest.skip("no CTC + CTC decoding.")
+    if mtlalpha == 0.0 or ctc_weight == 0:
+        pytest.skip("no CTC.")
     if mtlalpha == 1.0 and ctc_weight < 1.0:
         pytest.skip("pure CTC + attention decoding")
 
