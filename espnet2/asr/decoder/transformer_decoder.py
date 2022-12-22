@@ -735,7 +735,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         return logp.squeeze(0), state
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor,
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
