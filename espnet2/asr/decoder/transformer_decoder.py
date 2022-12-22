@@ -706,7 +706,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                     x, tgt_mask, memory, None, c, speech, None
                 )
             else:
-                 x, tgt_mask, memory, memory_mask = self.decoders(
+                 x, tgt_mask, memory, memory_mask = self.decoder(
                     x, tgt_mask, memory, None, cache=c
                 )
             new_cache.append(x)
