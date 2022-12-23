@@ -163,7 +163,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         assert ys.size(1) == 1, ys.shape
         ys = ys.squeeze(1)
 
-        ys, states = self.decoder.step(ys, state=states, tgt=xs)
+        ys, states = self.decoder.step(ys, state=states, memory=xs)
         logp = self.output(ys).log_softmax(dim=-1)
 
         states_list = [
