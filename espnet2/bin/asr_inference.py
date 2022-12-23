@@ -413,11 +413,11 @@ class Speech2Text:
                 + "\n"
             )
         else:
-            if hasattr(self.beam_search.nn_dict, 'decoder'):
+            if hasattr(self.beam_search.nn_dict, "decoder"):
                 if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
                     # Setup: required for S4 autoregressive generation
                     for module in self.beam_search.nn_dict.decoder.modules():
-                        if hasattr(module, 'setup_step'):
+                        if hasattr(module, "setup_step"):
                             module.setup_step()
             nbest_hyps = self.beam_search(
                 x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio

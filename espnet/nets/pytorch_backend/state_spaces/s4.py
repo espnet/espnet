@@ -16,7 +16,11 @@ from typing import Callable, Any, Optional
 import os
 from einops import rearrange, repeat
 import opt_einsum as oe
-from espnet.nets.pytorch_backend.state_spaces.components import LinearActivation, DropoutNd, Activation
+from espnet.nets.pytorch_backend.state_spaces.components import (
+    LinearActivation,
+    DropoutNd,
+    Activation,
+)
 
 contract = oe.contract
 contract_expression = oe.contract_expression
@@ -183,7 +187,6 @@ try:  # Try pykeops
         r = vandermonde_mult(u, v, x, l, backend="GPU")
         return _r2c(r)
 
-
 except ImportError:
     has_pykeops = False
     if not has_cauchy_extension:
@@ -339,7 +342,7 @@ def transition(measure, N):
         A = 2 * np.pi * (-np.diag(d, 1) + np.diag(d, -1))
         A = A - 0.5 * np.eye(N)
         B = np.zeros(N)
-        B[0::2] = 2 ** 0.5
+        B[0::2] = 2**0.5
         B[0] = 1
         B = B[:, None]
     elif measure in ["fourier", "fout"]:
@@ -347,7 +350,7 @@ def transition(measure, N):
         d = np.stack([np.zeros(N // 2), freqs], axis=-1).reshape(-1)[1:]
         A = np.pi * (-np.diag(d, 1) + np.diag(d, -1))
         B = np.zeros(N)
-        B[0::2] = 2 ** 0.5
+        B[0::2] = 2**0.5
         B[0] = 1
 
         # Subtract off rank correction - this corresponds to the other endpoint u(t-1) in this case
@@ -378,7 +381,7 @@ def rank_correction(measure, N, rank=1, dtype=torch.float):
         )  # Halve the rank correct just like the original matrix was halved
     elif measure in ["fourier", "fout"]:
         P = torch.zeros(N)
-        P[0::2] = 2 ** 0.5
+        P[0::2] = 2**0.5
         P[0] = 1
         P = P.unsqueeze(0)
     elif measure in ["fourier_diag", "foud", "legsd"]:
@@ -440,8 +443,8 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
     assert w[-2].abs() > 1e-4, "Only 1 zero eigenvalue allowed in diagonal part of A"
     if w[-1].abs() < 1e-4:
         V[:, -1] = 0.0
-        V[0, -1] = 2 ** -0.5
-        V[1, -1] = 2 ** -0.5 * 1j
+        V[0, -1] = 2**-0.5
+        V[1, -1] = 2**-0.5 * 1j
 
     _AP = V @ torch.diag_embed(w) @ V.conj().transpose(-1, -2)
     if (err := torch.sum((2 * _AP.real - AP) ** 2) / N) > 1e-5:
@@ -524,7 +527,7 @@ def dplr(
         zeta = 2 * torch.sum(
             torch.abs(norm) ** 2, dim=-1, keepdim=True
         )  # Variance with a random C vector
-        B = B / zeta ** 0.5
+        B = B / zeta**0.5
 
     P = torch.randn(rank, H, N // 2, dtype=dtype)
     if diagonal:

@@ -158,6 +158,7 @@ def get_initializer(name, activation=None):
 
     return initializer
 
+
 def LinearActivation(
     d_input,
     d_output,

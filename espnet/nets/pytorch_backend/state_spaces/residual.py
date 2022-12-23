@@ -90,7 +90,7 @@ class DecayResidual(Residual):
     def forward(self, x, y, transposed):
         beta = self.i_layer ** (-self.power)
         if self.l2:
-            alpha = (1.0 - beta ** 2) ** 0.5
+            alpha = (1.0 - beta**2) ** 0.5
         else:
             alpha = 1.0 - beta
 

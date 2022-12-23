@@ -33,6 +33,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         track_norms: log norms of each layer output
         drop_path: drop rate for stochastic depth
     """
+
     def __init__(
         self,
         vocab_size: int,
