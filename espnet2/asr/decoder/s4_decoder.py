@@ -1,15 +1,13 @@
 """Decoder definition."""
-from typing import Any
-from typing import List
-from typing import Tuple
+from typing import Any, List, Tuple
 
 import torch
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.state_spaces.model import SequenceModel
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class S4Decoder(AbsDecoder, BatchScorerInterface):

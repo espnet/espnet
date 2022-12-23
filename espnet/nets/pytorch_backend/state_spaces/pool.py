@@ -3,9 +3,9 @@
 """Implements downsampling and upsampling on sequences."""
 
 import torch
-from torch import nn
 import torch.nn.functional as F
-from einops import rearrange, repeat, reduce
+from einops import rearrange, reduce, repeat
+from torch import nn
 
 from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 from espnet.nets.pytorch_backend.state_spaces.components import LinearActivation

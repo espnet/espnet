@@ -1,7 +1,8 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-from torch import nn
 import functools
+
+from torch import nn
 
 
 class SequenceModule(nn.Module):

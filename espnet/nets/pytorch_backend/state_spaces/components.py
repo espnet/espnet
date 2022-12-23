@@ -2,8 +2,9 @@
 
 """ Utility nn components, in particular handling activations, initializations, and normalization layers """
 
-from functools import partial
 import math
+from functools import partial
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

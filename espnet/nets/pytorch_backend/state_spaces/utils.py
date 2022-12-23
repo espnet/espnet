@@ -1,10 +1,12 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
 """ Utilities for dealing with collection objects (lists, dicts) and configs """
-from typing import Sequence, Mapping, Optional, Callable
 import functools
+from typing import Callable, Mapping, Optional, Sequence
+
 import hydra
-from omegaconf import ListConfig, DictConfig
+from omegaconf import DictConfig, ListConfig
+
 
 # TODO this is usually used in a pattern where it's turned into a list, so can just do that here
 def is_list(x):

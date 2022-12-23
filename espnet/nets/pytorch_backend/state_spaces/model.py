@@ -11,12 +11,13 @@ import torch
 import torch.nn as nn
 from einops import rearrange
 
-from espnet.nets.pytorch_backend.state_spaces.block import SequenceResidualBlock
 from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
-from espnet.nets.pytorch_backend.state_spaces.components import Normalization, DropoutNd
+from espnet.nets.pytorch_backend.state_spaces.block import SequenceResidualBlock
+from espnet.nets.pytorch_backend.state_spaces.components import DropoutNd, Normalization
 
 """ Utilities for dealing with collection objects (lists, dicts) and configs """
-from typing import Sequence, Mapping
+from typing import Mapping, Sequence
+
 
 # TODO this is usually used in a pattern where it's turned into a list, so can just do that here
 def is_list(x):

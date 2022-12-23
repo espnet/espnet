@@ -1,15 +1,13 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
 import torch
-
-from einops import rearrange
-
 from cauchy_mult import (
-    cauchy_mult_fwd,
     cauchy_mult_bwd,
-    cauchy_mult_sym_fwd,
+    cauchy_mult_fwd,
     cauchy_mult_sym_bwd,
+    cauchy_mult_sym_fwd,
 )
+from einops import rearrange
 
 
 def cauchy_mult_torch(

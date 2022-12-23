@@ -2,8 +2,9 @@
 Code from https://github.com/HazyResearch/state-spaces/blob/main/src/utils/optim_groups.py
 """
 
-import torch.nn as nn
 import logging
+
+import torch.nn as nn
 
 
 def add_optimizer_hooks(

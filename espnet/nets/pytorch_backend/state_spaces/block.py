@@ -9,21 +9,22 @@ subsampling/pooling
 residual options: feedforward, residual, affine scalars, depth-dependent scaling, etc.
 """
 
+from functools import partial
+
 from torch import nn
 
-from functools import partial
 import espnet.nets.pytorch_backend.state_spaces.utils as utils
+from espnet.nets.pytorch_backend.state_spaces import registry
+from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 from espnet.nets.pytorch_backend.state_spaces.components import (
+    DropoutNd,
     Normalization,
     StochasticDepth,
-    DropoutNd,
 )
-from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 from espnet.nets.pytorch_backend.state_spaces.pool import registry as pool_registry
 from espnet.nets.pytorch_backend.state_spaces.residual import (
     registry as residual_registry,
 )
-from espnet.nets.pytorch_backend.state_spaces import registry
 
 
 class SequenceResidualBlock(SequenceModule):

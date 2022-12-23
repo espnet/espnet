@@ -3,23 +3,25 @@
 """ Standalone version of Structured (Sequence) State Space (S4) model. """
 
 import logging
-from functools import partial, wraps
 import math
+import os
+from functools import partial, wraps
+
+# from pytorch_lightning.utilities import rank_zero_only
+from typing import Any, Callable, Optional
+
 import numpy as np
-from scipy import special as ss
+import opt_einsum as oe
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# from pytorch_lightning.utilities import rank_zero_only
-from typing import Callable, Any, Optional
-import os
 from einops import rearrange, repeat
-import opt_einsum as oe
+from scipy import special as ss
+
 from espnet.nets.pytorch_backend.state_spaces.components import (
-    LinearActivation,
-    DropoutNd,
     Activation,
+    DropoutNd,
+    LinearActivation,
 )
 
 contract = oe.contract

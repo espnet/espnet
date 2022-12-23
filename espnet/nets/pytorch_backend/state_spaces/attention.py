@@ -5,6 +5,7 @@ import math
 import numpy
 import torch
 from torch import nn
+
 from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 
 

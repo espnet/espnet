@@ -3,11 +3,13 @@
 """ Implementation of FFN block in the style of Transformers """
 
 from functools import partial
+
 from torch import nn
+
 from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 from espnet.nets.pytorch_backend.state_spaces.components import (
-    LinearActivation,
     DropoutNd,
+    LinearActivation,
 )
 
 

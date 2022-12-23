@@ -11,6 +11,7 @@ import torch
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
@@ -34,7 +35,6 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.asr.decoder.s4_decoder import S4Decoder
 
 try:
     from transformers import AutoModelForSeq2SeqLM
