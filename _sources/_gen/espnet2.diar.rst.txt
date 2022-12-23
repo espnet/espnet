@@ -4,23 +4,12 @@ espnet2.diar package
 
 
 
-.. _espnet2.diar.__init__:
+.. _espnet2.diar.label_processor:
 
-espnet2.diar.__init__
----------------------
+espnet2.diar.label_processor
+----------------------------
 
-.. automodule:: espnet2.diar.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.diar.abs_diar:
-
-espnet2.diar.abs_diar
----------------------
-
-.. automodule:: espnet2.diar.abs_diar
+.. automodule:: espnet2.diar.label_processor
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,67 +26,23 @@ espnet2.diar.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.diar.label_processor:
+.. _espnet2.diar.abs_diar:
 
-espnet2.diar.label_processor
-----------------------------
+espnet2.diar.abs_diar
+---------------------
 
-.. automodule:: espnet2.diar.label_processor
+.. automodule:: espnet2.diar.abs_diar
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.diar.separator.__init__:
+.. _espnet2.diar.__init__:
 
-espnet2.diar.separator.__init__
--------------------------------
+espnet2.diar.__init__
+---------------------
 
-.. automodule:: espnet2.diar.separator.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.diar.separator.tcn_separator_nomask:
-
-espnet2.diar.separator.tcn_separator_nomask
--------------------------------------------
-
-.. automodule:: espnet2.diar.separator.tcn_separator_nomask
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.diar.layers.__init__:
-
-espnet2.diar.layers.__init__
-----------------------------
-
-.. automodule:: espnet2.diar.layers.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.diar.layers.multi_mask:
-
-espnet2.diar.layers.multi_mask
-------------------------------
-
-.. automodule:: espnet2.diar.layers.multi_mask
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.diar.layers.tcn_nomask:
-
-espnet2.diar.layers.tcn_nomask
-------------------------------
-
-.. automodule:: espnet2.diar.layers.tcn_nomask
+.. automodule:: espnet2.diar.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,12 +59,56 @@ espnet2.diar.layers.abs_mask
     :show-inheritance:
 
 
-.. _espnet2.diar.attractor.__init__:
+.. _espnet2.diar.layers.__init__:
 
-espnet2.diar.attractor.__init__
+espnet2.diar.layers.__init__
+----------------------------
+
+.. automodule:: espnet2.diar.layers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.layers.tcn_nomask:
+
+espnet2.diar.layers.tcn_nomask
+------------------------------
+
+.. automodule:: espnet2.diar.layers.tcn_nomask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.layers.multi_mask:
+
+espnet2.diar.layers.multi_mask
+------------------------------
+
+.. automodule:: espnet2.diar.layers.multi_mask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.separator.tcn_separator_nomask:
+
+espnet2.diar.separator.tcn_separator_nomask
+-------------------------------------------
+
+.. automodule:: espnet2.diar.separator.tcn_separator_nomask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.separator.__init__:
+
+espnet2.diar.separator.__init__
 -------------------------------
 
-.. automodule:: espnet2.diar.attractor.__init__
+.. automodule:: espnet2.diar.separator.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -147,12 +136,23 @@ espnet2.diar.attractor.rnn_attractor
     :show-inheritance:
 
 
-.. _espnet2.diar.decoder.__init__:
+.. _espnet2.diar.attractor.__init__:
 
-espnet2.diar.decoder.__init__
------------------------------
+espnet2.diar.attractor.__init__
+-------------------------------
 
-.. automodule:: espnet2.diar.decoder.__init__
+.. automodule:: espnet2.diar.attractor.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.decoder.abs_decoder:
+
+espnet2.diar.decoder.abs_decoder
+--------------------------------
+
+.. automodule:: espnet2.diar.decoder.abs_decoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -169,12 +169,12 @@ espnet2.diar.decoder.linear_decoder
     :show-inheritance:
 
 
-.. _espnet2.diar.decoder.abs_decoder:
+.. _espnet2.diar.decoder.__init__:
 
-espnet2.diar.decoder.abs_decoder
---------------------------------
+espnet2.diar.decoder.__init__
+-----------------------------
 
-.. automodule:: espnet2.diar.decoder.abs_decoder
+.. automodule:: espnet2.diar.decoder.__init__
     :members:
     :undoc-members:
     :show-inheritance:
