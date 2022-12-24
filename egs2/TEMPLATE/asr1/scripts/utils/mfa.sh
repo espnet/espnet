@@ -89,7 +89,9 @@ if [[ "$(basename "$(pwd)")" != tts* ]]; then
 fi
 
 if [ -z "${split_sets}" ]; then
-    log "Error: You need to add the split sets with --split_sets train dev eval"
+    log "Error: You need to add the split sets with --split_sets <train> <dev> <tests>"
+    log "Error: Check you 'local/data.sh' or 'run.sh' file to get the name of the split sets."
+    exit 1
 fi
 
 if ! [ -x "$(command -v mfa)" ]; then
@@ -99,6 +101,7 @@ fi
 
 mkdir -p ${workdir}
 tempdir=${workdir}/tmp
+corpus_dir=${workdir}/corpus
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # [Task dependent] Need to create data.sh for new corpus
@@ -111,20 +114,27 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # Text cleaning and save it in wav/lab files (by file)
     python pyscripts/utils/mfa_format.py labs \
                                     --data_sets "${split_sets}" \
-                                    --save_dir "${workdir}/corpus"
+                                    --save_dir "${corpus_dir}"
 
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    if ${train}; then
+if ${train}; then
+    if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    
         log "stage 2: Training MFA"
 
-        # Complete training
+        # Generate dictionary using ESPnet TTS frontend
+        python pyscripts/utils/mfa_format.py dictionary \
+            --corpus_dir "${corpus_dir}" \
+            --save_dict "${workdir}/lexicon.txt"
+
+        # Train G2P
         mfa train_g2p --clean\
             --phonetisaurus \
             -t ${tempdir} \
             ${workdir}/train_dict.txt ${workdir}/${lang}.zip
 
+        # Train G2P
         mfa g2p --clean -t ${tempdir} \
             ${workdir}/${lang}.zip \
             ${corpus_dir} \
@@ -134,64 +144,88 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             ${corpus_dir} \
             ${workdir}/lexicon.txt \
             ${workdir}/acoustic_model.zip
-    else
+    fi
+
+    # # create OOV dictionary
+    # set +e
+    # mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
+    #     if [[ $line =~ "jobs" ]]; then
+    #         echo "OOV file created, stopping MFA."
+    #         pkill mfa
+    #     else
+    #         echo "$line"
+    #     fi
+    # done
+    # set -e
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+        log "stage 3: Generating aligments using MFA model"
+
+            # # Generate a text using espnet2-based g2p
+            # python pyscripts/mfa/reformat_dict.py \
+            #         --g2p ${g2p} \
+            #         ${workdir}/list2.txt.tmp
+            lexicon=${workdir}/lexicon.txt
+            acoustic=${workdir}/acoustic_model.zip
+
+            # Remove punctuation and clitic from aligment, otherwise it will generate a issue with g2p model
+            echo "punctuation: null" > "${workdir}"/config.yaml
+            echo "clitic_markers: null" >> "${workdir}"/config.yaml
+
+
+        mfa align -j ${nj} \
+            --clean \
+            -t ${tempdir} \
+            --config_path "${workdir}"/config.yaml \
+            --output_format json \
+            ${corpus_dir} \
+            ${lexicon} \
+            ${acoustic} \
+            ${workdir}/alignments
+
+        if ${clean_temp}; then
+            # Be careful, this will delete all the files employed for training the mfa's models.
+            rm -rf ${tempdir}
+        fi
+    fi
+else
+    if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "stage 2: Download pretrained MFA models"
         # download pretrained MFA models
         mfa models download acoustic "${acoustic_model}"
         mfa models download dictionary "${dictionary}"
         mfa models download g2p "${g2p_model}"
     fi
-fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: Generating aligments using MFA model"
+    # # create OOV dictionary
+    # set +e
+    # mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
+    #     if [[ $line =~ "jobs" ]]; then
+    #         echo "OOV file created, stopping MFA."
+    #         pkill mfa
+    #     else
+    #         echo "$line"
+    #     fi
+    # done
+    # set -e
 
-    if ${train}; then
-        # # Generate a text using espnet2-based g2p
-        # python pyscripts/mfa/reformat_dict.py \
-        #         --g2p ${g2p} \
-        #         ${workdir}/list2.txt.tmp
-        lexicon=${workdir}/lexicon.txt
-        acoustic=${workdir}/acoustic_model.zip
-
-        # Remove punctuation and clitic from aligment, otherwise it will generate a issue with g2p model
-        echo "punctuation: null" > "${workdir}"/config.yaml
-        echo "clitic_markers: null" >> "${workdir}"/config.yaml
-
-    else
-
-# # create OOV dictionary
-# set +e
-# mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
-#     if [[ $line =~ "jobs" ]]; then
-#         echo "OOV file created, stopping MFA."
-#         pkill mfa
-#     else
-#         echo "$line"
-#     fi
-# done
-# set -e
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+        log "stage 3: Generating aligments using MFA model"
 
         mfa validate --clean -j ${nj} \
-        -t ${tempdir} \
-        ${corpus_dir} \
-        ${lexicon} \
-        ${acoustic}
-    fi
-
-    mfa align -j ${nj} \
-        --clean \
-        -t ${tempdir} \
-        --config_path "${workdir}"/config.yaml \
-        --output_format json \
-        ${corpus_dir} \
-        ${lexicon} \
-        ${acoustic} \
-        ${workdir}/alignments
-
-    if ${clean_temp}; then
-        # Be careful, this will delete all the files employed for training the mfa's models.
-        rm -rf ${tempdir}
+                -t ${tempdir} \
+                ${corpus_dir} \
+                ${lexicon} \
+                ${acoustic}
+        
+        mfa align -j ${nj} \
+                --clean \
+                -t ${tempdir} \
+                --config_path "${workdir}"/config.yaml \
+                --output_format json \
+                ${corpus_dir} \
+                ${lexicon} \
+                ${acoustic} \
+                ${workdir}/alignments
     fi
 fi
 
@@ -219,7 +253,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         utils/filter_scp.pl data/${dset}_phn/utt2spk ${workdir}/word_durations > data/${dset}_phn/word_durations
     done
 fi
-
 
 # mfa g2p "${g2p_model}" "${mfa_dir}/wavs_validate_pretrained/oovs_found_${dictionary}.txt" "${oov_dict}"
 # cat "${dict_dir}/${dictionary}.dict" "${oov_dict}" > "${dict_dir}/${dictionary}_${dataset}.dict"
