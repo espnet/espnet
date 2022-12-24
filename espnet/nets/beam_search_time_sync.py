@@ -30,7 +30,7 @@ class CacheItem:
     log_sum: float
 
 
-class TimeSyncBeamSearch(torch.nn.Module):
+class BeamSearchTimeSync(torch.nn.Module):
     """Time synchronous beam search algorithm."""
 
     def __init__(

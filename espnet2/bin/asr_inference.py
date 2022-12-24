@@ -29,11 +29,11 @@ from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.beam_search_time_sync import BeamSearchTimeSync
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.nets.time_sync_beam_search import TimeSyncBeamSearch
 from espnet.utils.cli_utils import get_commandline_args
 
 try:
@@ -236,16 +236,16 @@ class Speech2Text:
             if time_sync:
                 if not hasattr(asr_model, "ctc"):
                     raise NotImplementedError(
-                        "TimeSyncBeamSearch without CTC is not supported."
+                        "BeamSearchTimeSync without CTC is not supported."
                     )
                 if batch_size != 1:
                     raise NotImplementedError(
-                        "TimeSyncBeamSearch with batching is not yet supported."
+                        "BeamSearchTimeSync with batching is not yet supported."
                     )
-                logging.info("TimeSyncBeamSearch implementation is selected.")
+                logging.info("BeamSearchTimeSync implementation is selected.")
 
                 scorers["ctc"] = asr_model.ctc
-                beam_search = TimeSyncBeamSearch(
+                beam_search = BeamSearchTimeSync(
                     beam_size=beam_size,
                     weights=weights,
                     scorers=scorers,
