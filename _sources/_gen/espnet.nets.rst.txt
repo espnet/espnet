@@ -125,6 +125,17 @@ espnet.nets.ctc_prefix_score
     :show-inheritance:
 
 
+.. _espnet.nets.beam_search_timesync:
+
+espnet.nets.beam_search_timesync
+--------------------------------
+
+.. automodule:: espnet.nets.beam_search_timesync
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.batch_beam_search:
 
 espnet.nets.batch_beam_search
