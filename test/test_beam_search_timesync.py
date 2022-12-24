@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from espnet.nets.asr_interface import dynamic_import_asr
-from espnet.nets.beam_search_time_sync import BeamSearchTimeSync
+from espnet.nets.beam_search_timesync import BeamSearchTimeSync
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
 
