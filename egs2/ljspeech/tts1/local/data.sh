@@ -13,8 +13,6 @@ SECONDS=0
 stage=-1
 stop_stage=2
 
-token_type=phn
-g2p=g2p_en_no_space
 log "$0 $*"
 . utils/parse_options.sh
 

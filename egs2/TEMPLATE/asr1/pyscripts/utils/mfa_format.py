@@ -15,14 +15,15 @@ import kaldiio
 import logging
 import os
 import re
-import soundfile as sf
 import sys
 import traceback
 from pathlib import Path
 
 from typing import Dict
 
-from tacotron_cleaner import cleaners
+from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
+
+from pyopenjtalk import run_frontend
 
 # To Generate Phonemes from words:
 # from montreal_forced_aligner.g2p.generator import PyniniValidator
@@ -38,25 +39,29 @@ from tacotron_cleaner import cleaners
 # g2p.word_list = "my word list".split(" ")
 # phones = g2p.generate_pronunciations()
 
-# stfs = torch.stft(
-#             values, n_fft=args.n_fft, win_length=args.n_fft, hop_length=args.n_shift,
-#             center=True, normalized=False, onesided = True, return_complex = False
-#         )
-
 ROOT_DIR = os.getcwd()
 
-TEXTGRID_DIR = os.path.join(ROOT_DIR, "data", "local", "mfa", "alignments")
-TRAIN_TEXT_PATH = os.path.join(ROOT_DIR, "data", "local", "mfa", "text")
-DURATIONS_PATH = os.path.join(ROOT_DIR, "data", "local", "mfa", "durations")
+WORK_DIR = os.path.join(ROOT_DIR, "data", "local", "mfa")
+TEXTGRID_DIR = os.path.join(WORK_DIR, "alignments")
+TRAIN_TEXT_PATH = os.path.join(WORK_DIR, "text")
+DURATIONS_PATH = os.path.join(WORK_DIR, "durations")
+DICTIONARY_PATH = os.path.join(WORK_DIR, "train_dict.txt")
 
 punctuation = "!',.?" + '"'
 
+# JP_DICT_URL = "https://raw.githubusercontent.com/r9y9/open_jtalk/1.11/src/mecab-naist-jdic/unidic-csj.csv"
 
 def get_path(s, sep=os.sep):
     for x in s:
         if len(x.split(sep)) > 1:
             return x
     return ""
+
+
+def get_jp_text(text):
+    new_text = run_frontend(text)[0]
+    new_text = " ".join(x.split(",")[0] for x in new_text)
+    return new_text
 
 
 def get_parser():
@@ -73,7 +78,7 @@ def get_parser():
 
     parser.add_argument(
         "task",
-        choices=["labs", "validate", "durations"],
+        choices=["labs", "validate", "durations", "dictionary"],
         help='Must be "labs, "validate" or "durations',
     )
     parser.add_argument(
@@ -81,7 +86,7 @@ def get_parser():
         help="",
     )
     parser.add_argument(
-        "--save_dir",
+        "--corpus_dir",
         type=str,
         help="",
     )
@@ -89,6 +94,17 @@ def get_parser():
         "--samplerate",
         type=int,
         default=22050,
+        help="",
+    )
+    parser.add_argument(
+        "--g2p_model",
+        type=str,
+        help="",
+    )
+    parser.add_argument(
+        "--text_cleaner",
+        type=str,
+        default="tacotron",
         help="",
     )
     parser.add_argument(
@@ -115,82 +131,13 @@ def get_parser():
         default=DURATIONS_PATH,
         help="Path to output durations file",
     )
+    parser.add_argument(
+        "--dictionary_path",
+        type=str,
+        default=DICTIONARY_PATH,
+        help="Path to output dictionary file",
+    )
     return parser
-
-
-def make_labs(args):
-    """Make lab file for datasets."""
-
-    save_dir = Path(args.save_dir)
-    fs = None
-    for dset in args.data_sets.split():
-        logging.info("Preparing data for %s", dset)
-        dset: Path = Path("data") / dset
-        # Generate directories according to spk2utt
-        speakers = dict()
-        with open(dset / "spk2utt") as reader:
-            for line in reader:
-                line = line.split()
-                (save_dir / line[0]).mkdir(parents=True, exist_ok=True)
-                speakers.update({key: line[0] for key in line[1:]})
-
-        # Generate labs according to text file
-        with open(dset / "text", encoding="utf-8") as reader:
-            for line in reader:
-                key = line.split()[0]
-                text = " ".join(line.split()[1:])
-                text = cleaners.convert_to_ascii(text)
-                text = cleaners.lowercase(text)
-                text = cleaners.expand_numbers(text)
-                text = cleaners.expand_abbreviations(text)
-                text = cleaners.expand_symbols(text)
-                text = cleaners.remove_unnecessary_symbols(text)
-                text = cleaners.collapse_whitespace(text)
-                # Convert single quotes into double quotes
-                #   so that MFA doesn't confuse them with clitics.
-                # Find ' not preceded by a letter to the last ' not followed by a letter
-                text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
-                spk = speakers.get(key, None)
-                if spk is None:
-                    continue
-                with open(save_dir / spk / f"{key}.lab", "w", encoding="utf-8") as writer:
-                    writer.write(text)
-
-        # Generate wavs according to wav.scp and segment files
-        if (dset / "segments").exists():
-            wscp = (dset / "wav.scp").as_posix()
-            segments = (dset / "segments").as_posix()
-            with kaldiio.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
-                for key, (rate, array) in reader:
-                    spk: str = speakers.get(key, None)
-                    if spk is None:
-                        continue
-                    dst_file = (save_dir / spk / f"{key}.wav").as_posix()
-                    sf.write(dst_file, array, rate)
-        else:
-            with open(dset / "wav.scp") as reader:
-                rate = None
-                for line in reader:
-                    line = line.split()
-                    src_file = os.path.abspath(get_path(line))
-                    spk: str = speakers.get(line[0], None)
-                    if spk is None:
-                        continue
-                    dst_file = (save_dir / spk / f"{line[0]}.wav")
-                    if src_file.endswith(".wav"):
-                        # Create symlink
-                        dst_file.symlink_to(src_file)
-                    else:
-                        # Create wav file
-                        rate, array = kaldiio.load_mat(" ".join(line[1:]))
-                        sf.write(dst_file.as_posix(), array, rate)
-                if not rate:
-                    _, rate = sf.read(src_file)
-        if not fs:
-            fs = rate
-    with open(save_dir / "sample_rate", "w") as writer:
-        writer.write(str(fs))
-    logging.info("Finished writing .lab files")
 
 
 def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int):
@@ -288,10 +235,10 @@ def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int
 def validate(args):
     """Validate arguments."""
     valid = True
-    filelist = sorted(Path(args.save_dir).glob("**/*.json"))
+    filelist = sorted(Path(args.corpus_dir).glob("**/*.json"))
     for _file in filelist:
         # File contains folder of speaker and file
-        filename = _file.as_posix().replace(args.save_dir + "/", "").replace(".json", "")
+        filename = _file.as_posix().replace(args.corpus_dir + "/", "").replace(".json", "")
         with codecs.open(_file, "r", encoding="utf-8") as reader:
             _data_dict = json.load(reader)
         phones = (x[-1] for x in _data_dict["tiers"]["phones"]["entries"])
@@ -306,7 +253,7 @@ def validate(args):
 
 def make_durations(args):
     """Make durations file."""
-    wavs_dir = Path(args.save_dir)
+    wavs_dir = Path(args.corpus_dir)
     textgrid_dir = args.textgrid_dir
     train_text_path = args.train_text_path
     durations_path = args.durations_path
@@ -317,7 +264,7 @@ def make_durations(args):
             lab_paths = sorted(wavs_dir.glob("**/*.lab"))
             assert len(lab_paths) > 0, f"The folder {wavs_dir} does not contain any transcription."
             for lab_path in lab_paths:
-                filename = lab_path.as_posix().replace(args.save_dir + "/", "").replace(".lab", "")
+                filename = lab_path.as_posix().replace(args.corpus_dir + "/", "").replace(".lab", "")
                 with open(lab_path) as lab_file:
                     original_text = lab_file.read()
                 tg_path = os.path.join(textgrid_dir, f"{filename}.json")
@@ -338,6 +285,110 @@ def make_durations(args):
                 durations_file.write(f"{key} {durations} 0\n")
 
 
+def make_dictionary(args):
+    corpus_dir = Path(args.corpus_dir)
+    filelist = sorted(corpus_dir.glob("**/*.lab"))
+    words = list()
+    for _file in filelist:
+        with codecs.open(_file, "r", encoding="utf-8") as reader:
+            text = reader.read().rstrip()
+        words.extend(text.split())
+
+    phoneme_tokenizer = PhonemeTokenizer(args.g2p_model)
+    words = sorted(list(set(words)))
+    
+    with codecs.open(args.dictionary_path, "w", encoding="utf-8") as writer:
+        for word in words:
+            phonemes = phoneme_tokenizer.text2tokens(word)
+            phonemes = [x for x in phonemes if (x != "<space>" and len(x) > 0)]
+            if len(phonemes) < 1:
+                continue
+            phonemes = " ".join(phonemes)
+            writer.write(f"{word}\t{phonemes}\n")
+
+
+def make_labs(args):
+    """Make lab file for datasets."""
+    import soundfile as sf
+    from espnet2.text.cleaner import TextCleaner
+
+    corpus_dir = Path(args.corpus_dir)
+    fs = None
+    cleaner = TextCleaner(args.text_cleaner)
+
+    frontend = None
+    if args.g2p_model.startswith("pyopenjtalk"):
+        frontend = get_jp_text
+
+    for dset in args.data_sets.split():
+        logging.info("Preparing data for %s", dset)
+        dset: Path = Path("data") / dset
+        # Generate directories according to spk2utt
+        speakers = dict()
+        with open(dset / "spk2utt") as reader:
+            for line in reader:
+                line = line.split()
+                (corpus_dir / line[0]).mkdir(parents=True, exist_ok=True)
+                speakers.update({key: line[0] for key in line[1:]})
+
+        # Generate labs according to text file
+        with open(dset / "text", encoding="utf-8") as reader:
+            for line in reader:
+                key = line.split()[0]
+                text = " ".join(line.split()[1:])
+                text = cleaner(text).lower()
+                # Convert single quotes into double quotes
+                #   so that MFA doesn't confuse them with clitics.
+                # Find ' not preceded by a letter to the last ' not followed by a letter
+                text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
+
+                # In case of frontend, preprocess data. 
+                if frontend is not None:
+                    text = frontend(text)
+
+                spk = speakers.get(key, None)
+                if spk is None:
+                    continue
+                with open(corpus_dir / spk / f"{key}.lab", "w", encoding="utf-8") as writer:
+                    writer.write(text)
+
+        # Generate wavs according to wav.scp and segment files
+        if (dset / "segments").exists():
+            wscp = (dset / "wav.scp").as_posix()
+            segments = (dset / "segments").as_posix()
+            with kaldiio.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
+                for key, (rate, array) in reader:
+                    spk: str = speakers.get(key, None)
+                    if spk is None:
+                        continue
+                    dst_file = (corpus_dir / spk / f"{key}.wav").as_posix()
+                    sf.write(dst_file, array, rate)
+        else:
+            with open(dset / "wav.scp") as reader:
+                rate = None
+                for line in reader:
+                    line = line.split()
+                    src_file = os.path.abspath(get_path(line))
+                    spk: str = speakers.get(line[0], None)
+                    if spk is None:
+                        continue
+                    dst_file = (corpus_dir / spk / f"{line[0]}.wav")
+                    if src_file.endswith(".wav"):
+                        # Create symlink
+                        dst_file.symlink_to(src_file)
+                    else:
+                        # Create wav file
+                        rate, array = kaldiio.load_mat(" ".join(line[1:]))
+                        sf.write(dst_file.as_posix(), array, rate)
+                if not rate:
+                    _, rate = sf.read(src_file)
+        if not fs:
+            fs = rate
+    with open(corpus_dir / "sample_rate", "w") as writer:
+        writer.write(str(fs))
+    logging.info("Finished writing .lab files")
+
+
 if __name__ == "__main__":
     args = get_parser().parse_args()
     logging.basicConfig(
@@ -349,6 +400,8 @@ if __name__ == "__main__":
             make_labs(args)
         elif args.task == "validate":
             validate(args)
+        elif args.task == "dictionary":
+            make_dictionary(args)
         elif args.task == "durations":
             make_durations(args)
         else:
