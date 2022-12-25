@@ -29,6 +29,8 @@ split_sets="tr_no_dev dev eval1"
 
 # Data prep related
 local_data_opts="" # Options to be passed to local/data.sh.
+hop_size=256  # TTS hop size 
+samplerate=22050  # TTS samplerate
 
 # MFA/Tokenization related
 language=""
@@ -53,6 +55,8 @@ Options:
 
     # Data prep related
     --local_data_opts      # Options to be passed to local/data.sh (default="${local_data_opts}").
+    --samplerate
+    --hop_size
 
     # Tokenization related
     --language
@@ -113,15 +117,15 @@ if [ -n "${language}" ]; then
 fi
    
 if [ -z "${acoustic_model}" ]; then
-    log "ERROR: You need to <language> or <acoustic_model>."
+    log "ERROR: You need to add <language> or <acoustic_model>."
     exit 1
 fi
 if [ -z "${dictionary}" ]; then
-    log "ERROR: You need to <language> or <dictionary>."
+    log "ERROR: You need to add <language> or <dictionary>."
     exit 1
 fi
 if [ -z "${g2p_model}" ]; then
-    log "ERROR: You need to <language> or <g2p_model>."
+    log "ERROR: You need to add <language> or <g2p_model>."
     exit 1
 fi
 
@@ -164,7 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Training G2P model with custom dictionary."
         ${train_cmd} ${tempdir}/logs/train_g2p.log \
             mfa train_g2p -j ${nj} \
-                --clean\
+                --clean \
                 --phonetisaurus \
                 -t ${tempdir} \
                 ${workdir}/train_dict.txt \
@@ -258,6 +262,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Obtaining aligments..."
     ${train_cmd} ${tempdir}/logs/align.log \
         mfa align -j ${nj} \
+                --clean \
                 -t "${tempdir}" \
                 --output_format json \
                 "${corpus_dir}" \
@@ -278,10 +283,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         validate \
         --corpus_dir "${corpus_dir}"
 
-    samplerate=$(cat ${corpus_dir}/sample_rate)
     python pyscripts/utils/mfa_format.py \
         durations \
         --samplerate "${samplerate}" \
+        --hop_size "${hop_size}" \
         --corpus_dir "${corpus_dir}"
 
 fi

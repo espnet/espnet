@@ -322,7 +322,6 @@ def make_labs(args):
     from espnet2.text.cleaner import TextCleaner
 
     corpus_dir = Path(args.corpus_dir)
-    fs = None
     cleaner = TextCleaner(args.text_cleaner)
 
     frontend = None
@@ -391,12 +390,6 @@ def make_labs(args):
                         # Create wav file
                         rate, array = kaldiio.load_mat(" ".join(line[1:]))
                         sf.write(dst_file.as_posix(), array, rate)
-                if not rate:
-                    _, rate = sf.read(src_file)
-        if not fs:
-            fs = rate
-    with open(corpus_dir / "sample_rate", "w") as writer:
-        writer.write(str(fs))
     logging.info("Finished writing .lab files")
 
 
