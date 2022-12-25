@@ -72,7 +72,9 @@ class ESPnetExtractionModel(AbsESPnetModel):
                             speech_lengths returned. see in
                             espnet2/iterators/chunk_iter_factory.py
             enroll_ref1: (Batch, samples_aux)
+                                enrollment (raw audio or embedding) for speaker 1
             enroll_ref2: (Batch, samples_aux)
+                                enrollment (raw audio or embedding) for speaker 2
             ...
             kwargs: "utt_id" is among the input.
         """

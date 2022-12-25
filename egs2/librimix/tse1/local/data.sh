@@ -67,9 +67,9 @@ trap 'rm -rf ${tmpdir}' EXIT
 
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-	log "stage 0: LibriMix Data Simulation"
+    log "stage 0: LibriMix Data Simulation"
 
-	local/librimix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate}
+    local/librimix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate}
 fi
 
 
@@ -105,36 +105,56 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Prepare LibriMix target-speaker enroll signal"
 
     python local/prepare_spk2enroll_librispeech.py \
-        "${LIBRISPEECH}/train-clean-100" \
-        "${LIBRISPEECH}/train-clean-360" \
+        "${librimix}/wav${sample_rate}/${min_or_max}/train-100" \
+        "${librimix}/wav${sample_rate}/${min_or_max}/train-360" \
+        --is_librimix True \
         --outfile data/train/spk2enroll.json \
-		--audio_format flac
+        --audio_format wav
 
     python local/prepare_spk2enroll_librispeech.py \
-        "${LIBRISPEECH}/dev-clean" \
+        "${librimix}/wav${sample_rate}/${min_or_max}/dev" \
+        --is_librimix True \
         --outfile data/dev/spk2enroll.json \
-		--audio_format flac
+        --audio_format wav
 
     python local/prepare_spk2enroll_librispeech.py \
-        "${LIBRISPEECH}/test-clean" \
+        "${librimix}/wav${sample_rate}/${min_or_max}/test" \
+        --is_librimix True \
         --outfile data/test/spk2enroll.json \
-		--audio_format flac
+        --audio_format wav
+
+    if [ $num_spk -eq 2 ]; then
+        wget -O "data/dev/mixture2enrollment" https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/main/egs/libri2mix/data/wav8k/min/dev/map_mixture2enrollment
+        wget -O "data/test/mixture2enrollment" https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/main/egs/libri2mix/data/wav8k/min/test/map_mixture2enrollment
+    else
+        wget -O "data/dev/mixture2enrollment" https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/main/egs/libri3mix/data/wav8k/min/dev/map_mixture2enrollment
+        wget -O "data/test/mixture2enrollment" https://raw.githubusercontent.com/BUTSpeechFIT/speakerbeam/main/egs/libri3mix/data/wav8k/min/test/map_mixture2enrollment
+    fi
 
     for dset in train dev test; do
         if [ "${dset}" = "train" ]; then
             is_train=True
+            # This script generates enroll_spk?.scp under "data/${dset}"
+            python local/prepare_librimix_enroll.py \
+                data/${dset}/wav.scp \
+                data/${dset}/spk2enroll.json \
+                --num_spk ${num_spk} \
+                --train ${is_train} \
+                --seed 1 \
+                --output_dir data/${dset} \
+                --outfile_prefix "enroll_spk"
         else
             is_train=False
+            python local/prepare_librimix_enroll.py \
+                data/${dset}/wav.scp \
+                data/${dset}/spk2enroll.json \
+                --librimix_dir "${librimix}/wav${sample_rate}/${min_or_max}" \
+                --mix2enroll "data/${dset}/mixture2enrollment" \
+                --num_spk ${num_spk} \
+                --train ${is_train} \
+                --output_dir data/${dset} \
+                --outfile_prefix "enroll_spk"
         fi
-        # This script generates enroll_spk?.scp under "data/${dset}"
-        python local/prepare_librimix_enroll.py \
-            data/${dset}/wav.scp \
-            data/${dset}/spk2enroll.json \
-            --num_spk ${num_spk} \
-            --train ${is_train} \
-            --seed 1 \
-            --output_dir data/${dset} \
-            --outfile_prefix "enroll_spk"
     done
 fi
 
