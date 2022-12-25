@@ -9,6 +9,8 @@ def make_labs_[dataset]:
 """
 
 import argparse
+import codecs
+import json
 import kaldiio
 import logging
 import os
@@ -20,14 +22,32 @@ from pathlib import Path
 
 from typing import Dict
 
-# from praatio import textgrid
 from tacotron_cleaner import cleaners
+
+# To Generate Phonemes from words:
+# from montreal_forced_aligner.g2p.generator import PyniniValidator
+# from montreal_forced_aligner.models import (
+#     G2PModel,
+#     ModelManager,
+# )
+# language = "english_us_mfa"
+# manager = ModelManager()
+# manager.download_model("g2p", language)
+# model_path = G2PModel.get_pretrained_path(language)
+# g2p = PyniniValidator(g2p_model_path=model_path, num_pronunciations=1, quiet=True)
+# g2p.word_list = "my word list".split(" ")
+# phones = g2p.generate_pronunciations()
+
+# stfs = torch.stft(
+#             values, n_fft=args.n_fft, win_length=args.n_fft, hop_length=args.n_shift,
+#             center=True, normalized=False, onesided = True, return_complex = False
+#         )
 
 ROOT_DIR = os.getcwd()
 
-TEXTGRID_DIR = f"{ROOT_DIR}/textgrids"
-TRAIN_TEXT_PATH = f"{ROOT_DIR}/data/train/text"
-DURATIONS_PATH = f"{ROOT_DIR}/data/train/durations"
+TEXTGRID_DIR = os.path.join(ROOT_DIR, "data", "local", "mfa", "alignments")
+TRAIN_TEXT_PATH = os.path.join(ROOT_DIR, "data", "local", "mfa", "text")
+DURATIONS_PATH = os.path.join(ROOT_DIR, "data", "local", "mfa", "durations")
 
 punctuation = "!',.?" + '"'
 
@@ -95,7 +115,6 @@ def get_parser():
         default=DURATIONS_PATH,
         help="Path to output durations file",
     )
-
     return parser
 
 
@@ -103,6 +122,7 @@ def make_labs(args):
     """Make lab file for datasets."""
 
     save_dir = Path(args.save_dir)
+    fs = None
     for dset in args.data_sets.split():
         logging.info("Preparing data for %s", dset)
         dset: Path = Path("data") / dset
@@ -149,6 +169,7 @@ def make_labs(args):
                     sf.write(dst_file, array, rate)
         else:
             with open(dset / "wav.scp") as reader:
+                rate = None
                 for line in reader:
                     line = line.split()
                     src_file = os.path.abspath(get_path(line))
@@ -163,25 +184,29 @@ def make_labs(args):
                         # Create wav file
                         rate, array = kaldiio.load_mat(" ".join(line[1:]))
                         sf.write(dst_file.as_posix(), array, rate)
+                if not rate:
+                    _, rate = sf.read(src_file)
+        if not fs:
+            fs = rate
+    with open(save_dir / "sample_rate", "w") as writer:
+        writer.write(str(fs))
     logging.info("Finished writing .lab files")
 
 
-def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
+def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int):
     """Get phohene durations."""
     orig_text = original_text.replace(" ", "").rstrip()
     text_pos = 0
-
-    words = tg.tierDict["words"].entryList
-    phones = tg.tierDict["phones"].entryList
-
-    prev_end = 0.0
+    maxTimestamp = data["end"]
+    words = [x for x in data["tiers"]["words"]["entries"]]
+    phones = (x for x in data["tiers"]["phones"]["entries"])
+    word_end = 0.0
     time2punc = {}
     phrase_words = []
-    word = None
     for word in words:
-        start = word.start
-        if start == prev_end:
-            phrase_words.append(word.label)
+        start, end, label = word
+        if start == word_end:
+            phrase_words.append(label)
         else:
             # find punctuation at end of previous phrase
             phrase = "".join(phrase_words)
@@ -192,7 +217,7 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
                     char = orig_text[text_pos]
                 text_pos += 1
 
-            timing = (prev_end, start)
+            timing = (word_end, start)
             puncs = []
             while text_pos < len(orig_text):
                 char = orig_text[text_pos]
@@ -203,8 +228,8 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
                     text_pos += 1
             time2punc[timing] = puncs if puncs else ["sil"]
 
-            phrase_words = [word.label]
-        prev_end = word.end
+            phrase_words = [label]
+        word_end = end
 
     # We preserve the start/end timings and not interval lengths
     #   due to rounding errors when converted to frames.
@@ -212,7 +237,7 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
     new_phones = []
     prev_end = 0.0
     for phone in phones:
-        start = phone.start
+        start, end, label = phone
         if start > prev_end:
             # insert punctuation
             try:
@@ -227,12 +252,12 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
             for i in range(1, len(puncs) + 1):
                 timings.append(prev_end + pause_time * i)
 
-        new_phones.append(phone.label)
-        timings.append(phone.end)
-        prev_end = phone.end
+        new_phones.append(label)
+        timings.append(end)
+        prev_end = end
 
     # Add end-of-utterance punctuations
-    if word.end < tg.maxTimestamp:
+    if word_end < maxTimestamp:
         text_pos = len(orig_text) - 1
         while orig_text[text_pos] in punctuation:
             text_pos -= 1
@@ -241,19 +266,21 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
             puncs = ["sil"]
         new_phones.extend(puncs)
         num_puncs = len(puncs)
-        pause_time = (tg.maxTimestamp - word.end) / num_puncs
+        pause_time = (maxTimestamp - word_end) / num_puncs
         for i in range(1, len(puncs) + 1):
             timings.append(prev_end + pause_time * i)
 
     assert len(new_phones) + 1 == len(timings)
 
-    total_durations = int(tg.maxTimestamp * fs) // hop_size + 1
+    # Should use same frame formaluzation for both
+    total_durations = int(maxTimestamp * fs / hop_size + 0.5)
     timing_frames = [int(timing * fs / hop_size + 0.5) for timing in timings]
     durations = [
         timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
     ]
 
-    assert sum(durations) == total_durations
+    sum_durations = sum(durations)
+    assert sum_durations == total_durations, f"{total_durations} != {sum_durations}, {maxTimestamp}"
 
     return new_phones, durations
 
@@ -261,23 +288,25 @@ def get_phoneme_durations(tg: Dict, original_text: str, fs: int, hop_size: int):
 def validate(args):
     """Validate arguments."""
     valid = True
-    tg_paths = sorted(Path(args.textgrid_dir).glob("*.TextGrid"))
-    for tg_path in tg_paths:
-        filename = tg_path.stem
-        tg = textgrid.openTextgrid(tg_path, False)
-        phones = tg.tierDict["phones"].entryList
+    filelist = sorted(Path(args.save_dir).glob("**/*.json"))
+    for _file in filelist:
+        # File contains folder of speaker and file
+        filename = _file.as_posix().replace(args.save_dir + "/", "").replace(".json", "")
+        with codecs.open(_file, "r", encoding="utf-8") as reader:
+            _data_dict = json.load(reader)
+        phones = (x[-1] for x in _data_dict["tiers"]["phones"]["entries"])
         for phone in phones:
-            if phone.label == "spn":
+            if phone == "spn":
                 with open(Path(args.wavs_dir) / f"{filename}.lab") as f:
                     original_text = f.read()
-                    print(f"{filename} contains spn. Text: {original_text}")
+                    logging.error(f"{filename} contains spn. Text: {original_text}")
                 valid = False
     assert valid
 
 
 def make_durations(args):
     """Make durations file."""
-    wavs_dir = Path(args.wavs_dir)
+    wavs_dir = Path(args.save_dir)
     textgrid_dir = args.textgrid_dir
     train_text_path = args.train_text_path
     durations_path = args.durations_path
@@ -285,22 +314,28 @@ def make_durations(args):
     os.makedirs(os.path.dirname(train_text_path), exist_ok=True)
     with open(train_text_path, "w") as text_file:
         with open(durations_path, "w") as durations_file:
-            lab_paths = sorted(wavs_dir.glob("*.lab"))
+            lab_paths = sorted(wavs_dir.glob("**/*.lab"))
+            assert len(lab_paths) > 0, f"The folder {wavs_dir} does not contain any transcription."
             for lab_path in lab_paths:
-                filename = lab_path.stem
+                filename = lab_path.as_posix().replace(args.save_dir + "/", "").replace(".lab", "")
                 with open(lab_path) as lab_file:
                     original_text = lab_file.read()
-                tg_path = os.path.join(textgrid_dir, f"{filename}.TextGrid")
-                tg = textgrid.openTextgrid(tg_path, False)
+                tg_path = os.path.join(textgrid_dir, f"{filename}.json")
+                if not os.path.exists(tg_path):
+                    logging.warning("There is no alignment for %s, skipping.", lab_path)
+                    continue
+                with codecs.open(tg_path, "r", encoding="utf-8") as reader:
+                    _data_dict = json.load(reader)
                 new_phones, durations = get_phoneme_durations(
-                    tg,
+                    _data_dict,
                     original_text,
                     args.samplerate,
                     args.hop_size
                 )
-                text_file.write(f'{filename} {" ".join(new_phones)}\n')
+                key = filename.split("/")[-1]
+                text_file.write(f'{key} {" ".join(new_phones)}\n')
                 durations = " ".join(str(d) for d in durations)
-                durations_file.write(f"{filename} {durations} 0\n")
+                durations_file.write(f"{key} {durations} 0\n")
 
 
 if __name__ == "__main__":

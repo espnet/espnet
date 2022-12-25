@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright 2022 Hitachi LTD. (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Preparation of data and generation of MFA alignments
@@ -24,21 +23,19 @@ SECONDS=0
 stage=0
 stop_stage=100
 nj=12
-workdir=data/local/mfa  
+workdir=data/local/mfa
 clean_temp=false
-split_sets=
+split_sets="tr_no_dev dev eval1"
 
 # Data prep related
 local_data_opts="" # Options to be passed to local/data.sh.
 
-# Feature extraction related
-fs=22050
-
 # MFA/Tokenization related
-lang="english_us_tacotron"
-acoustic_model="english_mfa"
-dictionary="english_us_mfa"
-g2p_model="english_us_mfa"
+hub_tag=""
+lang="english_mfa"
+acoustic_model=""
+dictionary=""
+g2p_model=""
 cleaner=tacotron
 train=false
 max_phonemes_word=7  # split the phonemes durations for word durations. (Ref. PortaSpeech)
@@ -58,9 +55,6 @@ Options:
     # Data prep related
     --local_data_opts      # Options to be passed to local/data.sh (default="${local_data_opts}").
 
-    # Feature extraction related
-    --fs                   # Sampling rate (default="${fs}").
-
     # Tokenization related
     --lang
     --g2p
@@ -71,6 +65,14 @@ EOF
 )
 
 log "$0 $*"
+
+# NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
+#   please check `egs2/ljspeech/tts1/local/run_mfa.sh`. For example:
+# $ ./local/run_mfa.sh --stage 2 \
+#     --train_config conf/tuning/train_fastspeech2.yaml \
+#     --teacher_dumpdir data \
+#     --tts_stats_dir data/stats \
+#     --write_collected_feats true
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -99,9 +101,35 @@ if ! [ -x "$(command -v mfa)" ]; then
     exit 1
 fi
 
-mkdir -p ${workdir}
-tempdir=${workdir}/tmp
-corpus_dir=${workdir}/corpus
+if [ ! -z "${lang}" ]; then
+    if [ -z "${acoustic_model}" ]; then
+        acoustic_model="${lang}"
+    fi
+    if [ -z "${dictionary}" ]; then
+        dictionary="${lang}"
+    fi
+    if [ -z "${g2p_model}" ]; then
+        g2p_model="${lang}"
+    fi
+fi
+   
+if [ -z "${acoustic_model}" ]; then
+    log "ERROR: You need to <lang> or <acoustic_model>."
+    exit 1
+fi
+if [ -z "${dictionary}" ]; then
+    log "ERROR: You need to <lang> or <dictionary>."
+    exit 1
+fi
+if [ -z "${g2p_model}" ]; then
+    log "ERROR: You need to <lang> or <g2p_model>."
+    exit 1
+fi
+
+mkdir -p "${workdir}"
+tempdir="${workdir}/tmp"
+corpus_dir="${workdir}/corpus"
+oov_dict="${workdir}/oov_corpus.dict"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # [Task dependent] Need to create data.sh for new corpus
@@ -188,6 +216,7 @@ if ${train}; then
         fi
     fi
 else
+    dict_dir="${HOME}/Documents/MFA/pretrained_models/dictionary"
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "stage 2: Download pretrained MFA models"
         # download pretrained MFA models
@@ -195,89 +224,77 @@ else
         mfa models download dictionary "${dictionary}"
         mfa models download g2p "${g2p_model}"
     fi
+fi
 
-    # # create OOV dictionary
-    # set +e
-    # mfa validate "${wavs_dir}" "${dictionary}" "${acoustic_model}" --brackets '' | while read -r line; do
-    #     if [[ $line =~ "jobs" ]]; then
-    #         echo "OOV file created, stopping MFA."
-    #         pkill mfa
-    #     else
-    #         echo "$line"
-    #     fi
-    # done
-    # set -e
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Generating aligments using MFA model"
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "stage 3: Generating aligments using MFA model"
+    log "Generating Dictionary & OOV Dictionary..."
+    # create OOV dictionary using validation and skip acoustics
+    ${train_cmd} ${tempdir}/logs/validate_oov.log \
+        mfa validate \
+            --clean \
+            --skip_acoustics \
+            -t "${tempdir}" \
+            "${corpus_dir}" \
+            "${dictionary}" \
+            "${acoustic_model}" \
+            --brackets ''
 
-        mfa validate --clean -j ${nj} \
-                -t ${tempdir} \
-                ${corpus_dir} \
-                ${lexicon} \
-                ${acoustic}
-        
+    # create new dictionary including OOV
+    ${train_cmd} ${tempdir}/logs/generate_dict.log \
+        mfa g2p -t ${tempdir} \
+            "${g2p_model}" \
+            "${tempdir}/corpus_validate_pretrained/oovs_found_${dictionary}.txt" \
+            "${oov_dict}"
+    
+    cat "${dict_dir}/${dictionary}.dict" "${oov_dict}" > "${workdir}/${dictionary}.dict"
+    
+    # Validate data set with acoustics.
+    log "Validating corpus..."
+    ${train_cmd} ${tempdir}/logs/validate.log \
+        mfa validate \
+            -j ${nj} \
+            --clean \
+            -t "${tempdir}" \
+            "${corpus_dir}" \
+            "${dictionary}" \
+            "${acoustic_model}" \
+            --brackets ''
+
+    log "Obtaining aligments..."
+    ${train_cmd} ${tempdir}/logs/align.log \
         mfa align -j ${nj} \
-                --clean \
-                -t ${tempdir} \
-                --config_path "${workdir}"/config.yaml \
+                -t "${tempdir}" \
                 --output_format json \
-                ${corpus_dir} \
-                ${lexicon} \
-                ${acoustic} \
-                ${workdir}/alignments
-    fi
+                "${corpus_dir}" \
+                "${workdir}/${dictionary}.dict" \
+                "${acoustic_model}" \
+                "${workdir}/alignments"
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Prepare phoneme-text labels"
 
-    echo "<sil>" > data/local/nlsyms.txt
+    python pyscripts/utils/mfa_format.py \
+        validate \
+        --save_dir "${corpus_dir}"
 
-    python local/get_phones_alignments.py \
-        --samplerate ${fs} \
-        --g2p ${g2p} \
-        --max_phonemes_word ${max_phonemes_word} \
-        ${workdir}/alignments \
-        ${workdir}
+    python pyscripts/utils/mfa_format.py \
+        durations \
+        --save_dir "${corpus_dir}"
+
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     log "stage 5: Prepare data sets with phoneme alignments"
     for dset in ${split_sets}; do
         utils/copy_data_dir.sh data/"${dset}"{,_phn}
-        cp ${workdir}/text.phn data/${dset}_phn/text
+        cp ${workdir}/text data/${dset}_phn/text
         utils/fix_data_dir.sh data/${dset}_phn
 
         utils/filter_scp.pl data/${dset}_phn/utt2spk ${workdir}/durations > data/${dset}_phn/durations
-        utils/filter_scp.pl data/${dset}_phn/utt2spk ${workdir}/word_durations > data/${dset}_phn/word_durations
     done
 fi
 
-# mfa g2p "${g2p_model}" "${mfa_dir}/wavs_validate_pretrained/oovs_found_${dictionary}.txt" "${oov_dict}"
-# cat "${dict_dir}/${dictionary}.dict" "${oov_dict}" > "${dict_dir}/${dictionary}_${dataset}.dict"
-
-# # check again
-# mfa validate "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" --brackets ''
-
-# # perform force alignment
-# mfa align "${wavs_dir}" "${dictionary}_${dataset}" "${acoustic_model}" ./textgrids
-
-echo "Successfully finished generating data and MFA alignments."
-
-# NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
-#   please check `egs2/ljspeech/tts1/local/run_mfa.sh`. For example:
-# $ ./local/run_mfa.sh --stage 0 --stop_stage 0
-# $ ./local/run_mfa.sh --stage 1 --stop_stage 1
-# $ ./local/run_mfa.sh --stage 2 --stop_stage 2
-# $ ./local/run_mfa.sh --stage 3 --stop_stage 3
-# $ ./local/run_mfa.sh --stage 4 --stop_stage 4
-# $ ./local/run_mfa.sh --stage 5 --stop_stage 5 \
-#     --train_config conf/tuning/train_fastspeech2.yaml \
-#     --teacher_dumpdir data \
-#     --tts_stats_dir data/stats \
-#     --write_collected_feats true
-# $ ./local/run_mfa.sh --stage 6 --stop_stage 6 \
-#     --train_config conf/tuning/train_fastspeech2.yaml \
-#     --teacher_dumpdir data \
-#     --tts_stats_dir data/stats
+log "Successfully finished generating data and MFA alignments."
