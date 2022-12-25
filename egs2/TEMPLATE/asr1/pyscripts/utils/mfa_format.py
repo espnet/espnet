@@ -11,19 +11,18 @@ def make_labs_[dataset]:
 import argparse
 import codecs
 import json
-import kaldiio
 import logging
 import os
 import re
 import sys
 import traceback
 from pathlib import Path
-
 from typing import Dict
 
-from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
-
+import kaldiio
 from pyopenjtalk import run_frontend
+
+from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 
 # To Generate Phonemes from words:
 # from montreal_forced_aligner.g2p.generator import PyniniValidator
@@ -49,7 +48,9 @@ DICTIONARY_PATH = os.path.join(WORK_DIR, "train_dict.txt")
 
 punctuation = "!',.?" + '"'
 
-# JP_DICT_URL = "https://raw.githubusercontent.com/r9y9/open_jtalk/1.11/src/mecab-naist-jdic/unidic-csj.csv"
+# JP_DICT_URL =
+# "https://raw.githubusercontent.com/r9y9/open_jtalk/1.11/src/mecab-naist-jdic/unidic-csj.csv"
+
 
 def get_path(s, sep=os.sep):
     for x in s:
@@ -227,7 +228,9 @@ def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int
     ]
 
     sum_durations = sum(durations)
-    assert sum_durations == total_durations, f"{total_durations} != {sum_durations}, {maxTimestamp}"
+    assert (
+        sum_durations == total_durations
+    ), f"{total_durations} != {sum_durations}, {maxTimestamp}"
 
     return new_phones, durations
 
@@ -238,7 +241,9 @@ def validate(args):
     filelist = sorted(Path(args.corpus_dir).glob("**/*.json"))
     for _file in filelist:
         # File contains folder of speaker and file
-        filename = _file.as_posix().replace(args.corpus_dir + "/", "").replace(".json", "")
+        filename = (
+            _file.as_posix().replace(args.corpus_dir + "/", "").replace(".json", "")
+        )
         with codecs.open(_file, "r", encoding="utf-8") as reader:
             _data_dict = json.load(reader)
         phones = (x[-1] for x in _data_dict["tiers"]["phones"]["entries"])
@@ -262,9 +267,15 @@ def make_durations(args):
     with open(train_text_path, "w") as text_file:
         with open(durations_path, "w") as durations_file:
             lab_paths = sorted(wavs_dir.glob("**/*.lab"))
-            assert len(lab_paths) > 0, f"The folder {wavs_dir} does not contain any transcription."
+            assert (
+                len(lab_paths) > 0
+            ), f"The folder {wavs_dir} does not contain any transcription."
             for lab_path in lab_paths:
-                filename = lab_path.as_posix().replace(args.corpus_dir + "/", "").replace(".lab", "")
+                filename = (
+                    lab_path.as_posix()
+                    .replace(args.corpus_dir + "/", "")
+                    .replace(".lab", "")
+                )
                 with open(lab_path) as lab_file:
                     original_text = lab_file.read()
                 tg_path = os.path.join(textgrid_dir, f"{filename}.json")
@@ -274,10 +285,7 @@ def make_durations(args):
                 with codecs.open(tg_path, "r", encoding="utf-8") as reader:
                     _data_dict = json.load(reader)
                 new_phones, durations = get_phoneme_durations(
-                    _data_dict,
-                    original_text,
-                    args.samplerate,
-                    args.hop_size
+                    _data_dict, original_text, args.samplerate, args.hop_size
                 )
                 key = filename.split("/")[-1]
                 text_file.write(f'{key} {" ".join(new_phones)}\n')
@@ -296,7 +304,7 @@ def make_dictionary(args):
 
     phoneme_tokenizer = PhonemeTokenizer(args.g2p_model)
     words = sorted(list(set(words)))
-    
+
     with codecs.open(args.dictionary_path, "w", encoding="utf-8") as writer:
         for word in words:
             phonemes = phoneme_tokenizer.text2tokens(word)
@@ -310,6 +318,7 @@ def make_dictionary(args):
 def make_labs(args):
     """Make lab file for datasets."""
     import soundfile as sf
+
     from espnet2.text.cleaner import TextCleaner
 
     corpus_dir = Path(args.corpus_dir)
@@ -342,14 +351,16 @@ def make_labs(args):
                 # Find ' not preceded by a letter to the last ' not followed by a letter
                 text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
 
-                # In case of frontend, preprocess data. 
+                # In case of frontend, preprocess data.
                 if frontend is not None:
                     text = frontend(text)
 
                 spk = speakers.get(key, None)
                 if spk is None:
                     continue
-                with open(corpus_dir / spk / f"{key}.lab", "w", encoding="utf-8") as writer:
+                with open(
+                    corpus_dir / spk / f"{key}.lab", "w", encoding="utf-8"
+                ) as writer:
                     writer.write(text)
 
         # Generate wavs according to wav.scp and segment files
@@ -372,7 +383,7 @@ def make_labs(args):
                     spk: str = speakers.get(line[0], None)
                     if spk is None:
                         continue
-                    dst_file = (corpus_dir / spk / f"{line[0]}.wav")
+                    dst_file = corpus_dir / spk / f"{line[0]}.wav"
                     if src_file.endswith(".wav"):
                         # Create symlink
                         dst_file.symlink_to(src_file)
