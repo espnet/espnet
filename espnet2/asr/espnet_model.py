@@ -389,10 +389,11 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        assert encoder_out.size(-2) <= encoder_out_lens.max(), (
-            encoder_out.size(),
-            encoder_out_lens.max(),
-        )
+        if getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn":
+            assert encoder_out.size(-2) <= encoder_out_lens.max(), (
+                encoder_out.size(),
+                encoder_out_lens.max(),
+            )
 
         if intermediate_outs is not None:
             return (encoder_out, intermediate_outs), encoder_out_lens
