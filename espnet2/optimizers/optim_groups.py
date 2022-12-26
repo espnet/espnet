@@ -1,8 +1,11 @@
 """Utilities for special optimizer hyperparameters.
-Code from https://github.com/HazyResearch/state-spaces/blob/main/src/utils/optim_groups.py
-"""
 
-import logging
+group_parameters_for_optimizer is a modification of timm's optimizer logic, which is
+currently unused add_optimizer_hooks is an improved version that uses this codebase's
+_optim dictionary
+
+"""
+# noqa: E501 This code is modified from: https://github.com/HazyResearch/state-spaces/blob/main/src/utils/optim_groups.py
 
 import torch.nn as nn
 
@@ -13,11 +16,11 @@ def add_optimizer_hooks(
     normalization_weight_decay=False,
 ):
     """Set weight_decay=0.0 for parameters in model.no_weight_decay, for parameters with
-    attribute _no_weight_decay==True, for bias parameters if bias_weight_decay==False, for
-    normalization parameters if normalization_weight_decay==False
+    attribute _no_weight_decay==True, for bias parameters if bias_weight_decay==False,
+    for normalization parameters if normalization_weight_decay==False
     """
-
-    # Separate out all parameters to those that will and won't experience regularizing weight decay
+    # Separate out all parameters to those that will and won't experience regularizing
+    # weight decay
     blacklist_weight_modules = (nn.Embedding,)
     if not normalization_weight_decay:
         blacklist_weight_modules += (
@@ -44,13 +47,11 @@ def add_optimizer_hooks(
                 setattr(p, "_optim", {"weight_decay": 0.0})
 
 
-def configure_optimizer(model, optim_class, **optim_conf):
+def configure_optimizer(model, optim_class, optim_conf, weight_decay_conf):
     # Set zero weight decay for some params
-    # TODO: fix hard coding
     add_optimizer_hooks(
         model,
-        bias_weight_decay=False,
-        normalization_weight_decay=False,
+        **weight_decay_conf,
     )
 
     # Normal parameters
@@ -63,12 +64,9 @@ def configure_optimizer(model, optim_class, **optim_conf):
     # Add parameters with special hyperparameters
     hps = [getattr(p, "_optim") for p in all_params if hasattr(p, "_optim")]
     hps = [
-        # dict(s) for s in set(frozenset(hp.items()) for hp in hps)
         dict(s)
         for s in sorted(list(dict.fromkeys(frozenset(hp.items()) for hp in hps)))
-        # dict(s) for s in dict.fromkeys(frozenset(hp.items()) for hp in hps)
     ]  # Unique dicts
-    # logging.info("Hyperparameter groups", hps)
     for hp in hps:
         params = [p for p in all_params if getattr(p, "_optim", None) == hp]
         optimizer.add_param_group({"params": params, **optim_conf, **hp})
