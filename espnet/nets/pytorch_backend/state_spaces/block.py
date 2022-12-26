@@ -66,7 +66,8 @@ class SequenceResidualBlock(SequenceModule):
 
         # Normalization
         d_norm = d_input if self.prenorm else self.d_residual
-        # We don't use config to directly instantiate since Normalization has some special cases
+        # We don't use config to directly instantiate
+        # since Normalization has some special cases
         if norm is None:
             self.norm = None
         elif isinstance(norm, str):

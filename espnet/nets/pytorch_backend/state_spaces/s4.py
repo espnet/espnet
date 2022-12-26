@@ -5,7 +5,7 @@
 import logging
 import math
 import os
-from functools import partial, wraps
+from functools import wraps
 
 # from pytorch_lightning.utilities import rank_zero_only
 from typing import Any, Callable, Optional
@@ -16,7 +16,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from scipy import special as ss
 
 from espnet.nets.pytorch_backend.state_spaces.components import (
     Activation,
@@ -29,7 +28,8 @@ contract_expression = oe.contract_expression
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-    """Function that can be used as a decorator to enable a function/method being called only on global rank 0."""
+    """Function that can be used as a decorator
+    to enable a function/method being called only on global rank 0."""
 
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
@@ -52,7 +52,8 @@ def _get_rank() -> int:
     return 0
 
 
-# add the attribute to the function but don't overwrite in case Trainer has already set it
+# add the attribute to the function but don't overwrite
+# in case Trainer has already set it
 rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
@@ -96,7 +97,7 @@ except ImportError:
     has_cauchy_extension = False
 
 try:  # Try pykeops
-    import pykeops
+    import pykeops  # noqa
     from pykeops.torch import Genred
 
     has_pykeops = True
@@ -147,11 +148,11 @@ try:  # Try pykeops
             axis=1,
         )
 
-        l = torch.arange(L).to(x)
-        v, x, l = _broadcast_dims(v, x, l)
+        l = torch.arange(L).to(x)  # noqa
+        v, x, l = _broadcast_dims(v, x, l)  # noqa
         v = _c2r(v)
         x = _c2r(x)
-        l = _c2r(l)
+        l = _c2r(l)  # noqa
 
         r = vandermonde_mult(v, x, l, backend="GPU")
         return 2 * _r2c(r).real
@@ -179,12 +180,12 @@ try:  # Try pykeops
             axis=1,
         )
 
-        l = torch.arange(L).to(x)
-        u, v, x, l = _broadcast_dims(u, v, x, l)
+        l = torch.arange(L).to(x)  # noqa
+        u, v, x, l = _broadcast_dims(u, v, x, l)  # noqa
         u = _c2r(u)
         v = _c2r(v)
         x = _c2r(x)
-        l = _c2r(l)
+        l = _c2r(l)  # noqa
 
         r = vandermonde_mult(u, v, x, l, backend="GPU")
         return _r2c(r)
@@ -193,7 +194,8 @@ except ImportError:
     has_pykeops = False
     if not has_cauchy_extension:
         log.warning(
-            "Falling back on slow Cauchy kernel. Install at least one of pykeops or the CUDA extension for efficiency."
+            "Falling back on slow Cauchy kernel. "
+            "Install at least one of pykeops or the CUDA extension for efficiency."
         )
 
         def cauchy_naive(v, z, w):
@@ -209,14 +211,15 @@ except ImportError:
 
     # Vandermonde functions
     log.warning(
-        "Falling back on slow Vandermonde kernel. Install pykeops for improved memory efficiency."
+        "Falling back on slow Vandermonde kernel. "
+        "Install pykeops for improved memory efficiency."
     )
 
     def log_vandermonde(v, x, L):
         """
         v: (..., N)
         x: (..., N)
-        returns: (..., L) \sum v x^l
+        returns: (..., L) \sum v x^l # noqa
         """
         vandermonde_matrix = torch.exp(
             x.unsqueeze(-1) * torch.arange(L).to(x)
@@ -236,13 +239,13 @@ except ImportError:
         return vandermonde_prod
 
 
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
+_conj = lambda x: torch.cat([x, x.conj()], dim=-1)  # noqa
 _c2r = torch.view_as_real
 _r2c = torch.view_as_complex
 if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
-    _resolve_conj = lambda x: x.conj().resolve_conj()
+    _resolve_conj = lambda x: x.conj().resolve_conj()  # noqa
 else:
-    _resolve_conj = lambda x: x.conj()
+    _resolve_conj = lambda x: x.conj()  # noqa
 
 
 """ Misc functional utilities """
@@ -255,17 +258,17 @@ def power(L, A, v=None):
     v: (..., N, L)
     """
 
-    I = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device)
+    I = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device) # noqa
 
     powers = [A]
-    l = 1
+    l = 1  # noqa  # nopep8
     while True:
         if L % 2 == 1:
-            I = powers[-1] @ I
+            I = powers[-1] @ I  # noqa  # nopep8
         L //= 2
         if L == 0:
             break
-        l *= 2
+        l *= 2  # noqa  # nopep8
         powers.append(powers[-1] @ powers[-1])
 
     if v is None:
@@ -275,7 +278,8 @@ def power(L, A, v=None):
     # powers[-1] := A^l
     # l := largest po2 at most L
 
-    # Note that an alternative divide and conquer to compute the reduction is possible and can be embedded into the above loop without caching intermediate powers of A
+    # Note that an alternative divide and conquer to compute the reduction is possible
+    # and can be embedded into the above loop without caching intermediate powers of A
     # We do this reverse divide-and-conquer for efficiency reasons:
     # 1) it involves fewer padding steps for non-po2 L
     # 2) it involves more contiguous arrays
@@ -320,9 +324,8 @@ def transition(measure, N):
         T = np.sqrt(np.diag(2 * q + 1))
         A = T @ M @ np.linalg.inv(T)
         B = np.diag(T)[:, None]
-        B = (
-            B.copy()
-        )  # Otherwise "UserWarning: given NumPY array is not writeable..." after torch.as_tensor(B)
+        B = B.copy()  # Otherwise "UserWarning: given NumPY array is not writeable..."
+        # after torch.as_tensor(B)
     elif measure == "legsd":
         # Essentially equivalent to S4D-LegS
         q = np.arange(N, dtype=np.float64)
@@ -332,9 +335,8 @@ def transition(measure, N):
         T = np.sqrt(np.diag(2 * q + 1))
         A = T @ M @ np.linalg.inv(T)
         B = np.diag(T)[:, None]
-        B = (
-            B.copy()
-        )  # Otherwise "UserWarning: given NumPY array is not writeable..." after torch.as_tensor(B)
+        B = B.copy()  # Otherwise "UserWarning: given NumPY array is not writeable..."
+        # after torch.as_tensor(B)
         A += 0.5 * B * B[None, :, 0]
         B = B / 2.0
     elif measure in ["fourier_diag", "foud"]:
@@ -355,7 +357,8 @@ def transition(measure, N):
         B[0::2] = 2**0.5
         B[0] = 1
 
-        # Subtract off rank correction - this corresponds to the other endpoint u(t-1) in this case
+        # Subtract off rank correction - this corresponds
+        # to the other endpoint u(t-1) in this case
         A = A - B[:, None] * B[None, :]
         B = B[:, None]
     else:
@@ -414,12 +417,12 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
 
     # We require AP to be nearly skew-symmetric
     _A = AP + AP.transpose(-1, -2)
-    if (
-        err := torch.sum((_A - _A[0, 0] * torch.eye(N)) ** 2) / N
-    ) > 1e-5:  # if not torch.allclose(_A - _A[0,0]*torch.eye(N), torch.zeros(N, N), atol=1e-5):
+    # if not torch.allclose(_A - _A[0,0]*torch.eye(N), torch.zeros(N, N), atol=1e-5):
+    if (err := torch.sum((_A - _A[0, 0] * torch.eye(N)) ** 2) / N) > 1e-5:
         print("WARNING: HiPPO matrix not skew symmetric", err)
 
-    # Take advantage of identity + skew-symmetric form to calculate real and imaginary parts separately
+    # Take advantage of identity + skew-symmetric form
+    # to calculate real and imaginary parts separately
     # Imaginary part can use eigh instead of eig
     w_re = torch.mean(torch.diagonal(AP), -1, keepdim=True)
 
@@ -438,8 +441,10 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
     w_sorted = w[idx]
     V_sorted = V[:, idx]
 
-    # There is an edge case when eigenvalues can be 0, which requires some machinery to handle
-    # We use a huge hack here: Assume only one pair is 0, and that it is the first row/column of A (only happens in Fourier case)
+    # There is an edge case when eigenvalues can be 0,
+    # which requires some machinery to handle
+    # We use a huge hack here: Assume only one pair is 0,
+    # and that it is the first row/column of A (only happens in Fourier case)
     V = V_sorted[:, : N // 2]
     w = w_sorted[: N // 2]
     assert w[-2].abs() > 1e-4, "Only 1 zero eigenvalue allowed in diagonal part of A"
@@ -575,9 +580,10 @@ def combination(measures, N, R, S, **ssm_args):
     if isinstance(measures, str):
         measures = combinations[measures] if measures in combinations else [measures]
 
-    assert (
-        S % len(measures) == 0
-    ), f"{S} independent trainable SSM copies must be multiple of {len(measures)} different measures"
+    assert S % len(measures) == 0, (
+        f"{S} independent trainable SSM copies must be multiple of {len(measures)} "
+        "different measures"
+    )
     w, P, B, V = zip(
         *[ssm(measure, N, R, S // len(measures), **ssm_args) for measure in measures]
     )
@@ -589,7 +595,8 @@ def combination(measures, N, R, S, **ssm_args):
 
 
 class OptimModule(nn.Module):
-    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters"""
+    """Interface for Module that allows registering buffers/parameters
+    with configurable optimizer hyperparameters"""
 
     def register(self, name, tensor, lr=None):
         """Register a tensor with a configurable learning rate and 0 weight decay"""
@@ -605,13 +612,16 @@ class OptimModule(nn.Module):
 
 
 class SSKernelNPLR(OptimModule):
-    """Stores a representation of and computes the SSKernel function K_L(A^dt, B^dt, C) corresponding to a discretized state space, where A is Normal + Low Rank (NPLR)"""
+    """Stores a representation of and computes the SSKernel function
+    K_L(A^dt, B^dt, C) corresponding to a discretized state space,
+    where A is Normal + Low Rank (NPLR)"""
 
     @torch.no_grad()
     def _setup_C(self, L):
         """Construct C~ from C
 
-        Two modes are supported: go directly to length L if self.L is 1, or length is doubled
+        Two modes are supported: go directly to length L if self.L is 1,
+        or length is doubled
         """
 
         if self.L.item() == 0:
@@ -643,7 +653,8 @@ class SSKernelNPLR(OptimModule):
         self.L = 2 * self.L if double_length else self.L + L  # Preserve type/device
 
     def _omega(self, L, dtype, device, cache=True):
-        """Calculate (and cache) FFT nodes and their "unprocessed" version with the bilinear transform
+        """Calculate (and cache) FFT nodes and
+        their "unprocessed" version with the bilinear transform
         This should be called everytime the internal length self.L changes"""
 
         # Use cached if available
@@ -697,7 +708,8 @@ class SSKernelNPLR(OptimModule):
 
         The forward pass of this Module returns a tensor of shape (C, H, L)
 
-        Note: tensor shape N here denotes half the true state size, because of conjugate symmetry
+        Note: tensor shape N here denotes half the true state size,
+            because of conjugate symmetry
         """
 
         super().__init__()
@@ -783,12 +795,15 @@ class SSKernelNPLR(OptimModule):
         (B, H, L) output from initial state
         """
 
-        # Initialize C~ if necessary (done in forward pass so it's on the correct device)
+        # Initialize C~
+        # if necessary (done in forward pass so it's on the correct device)
         if self.L.item() == 0 and self.l_max is not None and self.l_max > 0:
             self._setup_C(self.l_max)
 
         # Handle sampling rate logic
-        # The idea is that this kernel's length (in continuous units) is self.L, while we are asked to provide a kernel of length L at (relative) frequency rate
+        # The idea is that this kernel's length (in continuous units) is self.L,
+        # while we are asked
+        # to provide a kernel of length L at (relative) frequency rate
         if L is None:
             L = round(self.L.item() / rate)
 
@@ -828,7 +843,9 @@ class SSKernelNPLR(OptimModule):
             # Have to "unbilinear" the state to put it into the same "type" as B
             # Compute 1/dt * (I + dt/2 A) @ state
 
-            # Can do this without expanding (maybe minor speedup using conj symmetry in theory), but it's easier to read this way
+            # Can do this without expanding
+            # (maybe minor speedup using conj symmetry in theory),
+            # but it's easier to read this way
             s = _conj(state) if state.size(-1) == self.N else state  # (B H N)
             sA = s * _conj(w) - contract(  # (B H N)
                 "bhm, rhm, rhn -> bhn", s, _conj(Q), _conj(P)
@@ -931,7 +948,7 @@ class SSKernelNPLR(OptimModule):
         Q_D = rearrange(Q * D, "r h n -> h r n")
         try:
             R = torch.linalg.solve(R, Q_D)  # (H R N)
-        except:
+        except:  # noqa
             R = torch.tensor(
                 np.linalg.solve(
                     R.to(Q_D).contiguous().detach().cpu(),
@@ -951,9 +968,12 @@ class SSKernelNPLR(OptimModule):
 
     def _step_state_linear(self, u=None, state=None):
         """
-        Version of the step function that has time O(N) instead of O(N^2) per step, which takes advantage of the DPLR form and bilinear discretization.
+        Version of the step function that has time O(N) instead of O(N^2) per step,
+        which takes advantage of the DPLR form and bilinear discretization.
 
-        Unfortunately, as currently implemented it's about 2x slower because it calls several sequential operations. Perhaps a fused CUDA kernel implementation would be much faster
+        Unfortunately, as currently implemented it's about 2x slower
+        because it calls several sequential operations.
+        Perhaps a fused CUDA kernel implementation would be much faster
 
         u: (H) input
         state: (H, N/2) state with conjugate pairs
@@ -972,7 +992,7 @@ class SSKernelNPLR(OptimModule):
             state.size(-1) == self.N
         ):  # Only store half of the conjugate pairs; should be true by default
             # There should be a slightly faster way using conjugate symmetry
-            contract_fn = lambda p, x, y: contract(
+            contract_fn = lambda p, x, y: contract(  # noqa
                 "r h n, r h m, ... h m -> ... h n", _conj(p), _conj(x), _conj(y)
             )[
                 ..., : self.N
@@ -980,8 +1000,9 @@ class SSKernelNPLR(OptimModule):
         else:
             assert state.size(-1) == 2 * self.N
             step_params = {k: _conj(v) for k, v in step_params.items()}
-            # TODO worth setting up a contract_expression in default_state if we want to use this at inference time for stepping
-            contract_fn = lambda p, x, y: contract(
+            # TODO worth setting up a contract_expression in default_state
+            # if we want to use this at inference time for stepping
+            contract_fn = lambda p, x, y: contract(  # noqa
                 "r h n, r h m, ... h m -> ... h n", p, x, y
             )  # inner outer product
         D = step_params["D"]  # (H N)
@@ -1017,7 +1038,8 @@ class SSKernelNPLR(OptimModule):
         return dA, dB
 
     def _step_state(self, u, state):
-        """Must be called after self.default_state() is used to construct an initial state!"""
+        """Must be called after self.default_state() is used
+        to construct an initial state!"""
         next_state = self.state_contraction(self.dA, state) + self.input_contraction(
             self.dB, u
         )
@@ -1034,7 +1056,7 @@ class SSKernelNPLR(OptimModule):
         else:
             # self.C represents C_tilde
             dA_L = power(self.L.item(), self.dA)
-            I = torch.eye(self.dA.size(-1)).to(dA_L)
+            I = torch.eye(self.dA.size(-1)).to(dA_L)  # noqa  # nopep8
 
             dC = torch.linalg.solve(
                 I - dA_L.transpose(-1, -2),
@@ -1079,9 +1101,8 @@ class SSKernelNPLR(OptimModule):
 
         # Cache the tensor contractions we will later do, for efficiency
         # These are put in this function because they depend on the batch size
-        step_mode = getattr(
-            self, "_step_mode", "dense"
-        )  # Used in default_state, which is called without _setup_step() in forward_state()
+        step_mode = getattr(self, "_step_mode", "dense")  # Used in default_state,
+        # which is called without _setup_step() in forward_state()
         if step_mode != "linear":
             N *= 2
 
@@ -1115,7 +1136,9 @@ class SSKernelNPLR(OptimModule):
         return state
 
     def step(self, u, state):
-        """Must have called self._setup_step() and created state with self.default_state() before calling this"""
+        """Must have called self._setup_step()
+        and created state with self.default_state() before calling this
+        """
 
         if self._step_mode == "linear":
             new_state = self._step_state_linear(u, state)
@@ -1193,7 +1216,8 @@ class SSKernelDiag(OptimModule):
         elif self.real_type == "exp":
             A_real = -torch.exp(self.inv_A_real)
         elif self.real_type == "relu":
-            # JAX version seems to NaN if you alloA 0's, although this code Aas fine Aithout it
+            # JAX version seems to NaN if you alloA 0's,
+            # although this code Aas fine Aithout it
             A_real = -F.relu(self.inv_A_real) - 1e-4
         elif self.real_type == "sigmoid":
             A_real = -F.sigmoid(self.inv_A_real)
@@ -1250,7 +1274,8 @@ class SSKernelDiag(OptimModule):
             dA = (1.0 + dtA / 2) / (1.0 - dtA / 2)
             K = log_vandermonde(C, dA.log(), L)
         elif self.disc == "dss":
-            # Implementation from DSS meant for case when real eigenvalues can be positive
+            # Implementation from DSS meant for case
+            # when real eigenvalues can be positive
             P = dtA.unsqueeze(-1) * torch.arange(L, device=C.device)  # [H N L]
             A_gt_0 = A.real > 0  # [N]
             if A_gt_0.any():
@@ -1282,7 +1307,8 @@ class SSKernelDiag(OptimModule):
         return K, K_state
 
     def _setup_step(self):
-        # These methods are organized like this to be compatible with the NPLR kernel interface
+        # These methods are organized
+        # like this to be compatible with the NPLR kernel interface
         dt = torch.exp(self.log_dt)  # (H)
         B = _r2c(self.B)  # (H N)
         C = _r2c(self.C)  # (C H N)
@@ -1353,16 +1379,38 @@ class SSKernel(nn.Module):
     ):
         """State Space Kernel which computes the convolution kernel $\\bar{K}$
 
-        H: Number of independent SSM copies; controls the size of the model. Also called d_model in the config.
-        N: State size (dimensionality of parameters A, B, C). Also called d_state in the config. Generally shouldn't need to be adjusted and doens't affect speed much.
-        L: Maximum length of convolution kernel, if known. Should work in the majority of cases even if not known.
-        measure: Options for initialization of (A, B). For NPLR mode, recommendations are "legs", "fout", "hippo" (combination of both). For Diag mode, recommendations are "diag-inv", "diag-lin", "diag-legs", and "diag" (combination of diag-inv and diag-lin)
-        rank: Rank of low-rank correction for NPLR mode. Needs to be increased for measure "legt"
-        channels: C channels turns the SSM from a 1-dim to C-dim map; can think of it having C separate "heads" per SSM. This was partly a feature to make it easier to implement bidirectionality; it is recommended to set channels=1 and adjust H to control parameters instead
-        dt_min, dt_max: min and max values for the step size dt (\Delta)
-        mode: Which kernel algorithm to use. 'nplr' is the full S4 model; 'diag' is the simpler S4D; 'slow' is a dense version for testing
-        n_ssm: Number of independent trainable (A, B) SSMs, e.g. n_ssm=1 means all A/B parameters are tied across the H different instantiations of C. n_ssm=None means all H SSMs are completely independent. Generally, changing this option can save parameters but doesn't affect performance or speed much. This parameter must divide H
-        lr: Passing in a number (e.g. 0.001) sets attributes of SSM parameers (A, B, dt). A custom optimizer hook is needed to configure the optimizer to set the learning rates appropriately for these parameters.
+        H: Number of independent SSM copies;
+            controls the size of the model. Also called d_model in the config.
+        N: State size (dimensionality of parameters A, B, C).
+            Also called d_state in the config.
+            Generally shouldn't need to be adjusted and doens't affect speed much.
+        L: Maximum length of convolution kernel, if known.
+            Should work in the majority of cases even if not known.
+        measure: Options for initialization of (A, B).
+            For NPLR mode, recommendations are "legs",
+            "fout", "hippo" (combination of both).
+            For Diag mode, recommendations are "diag-inv",
+            "diag-lin", "diag-legs", and "diag" (combination of diag-inv and diag-lin)
+        rank: Rank of low-rank correction for NPLR mode.
+            Needs to be increased for measure "legt"
+        channels: C channels turns the SSM from a 1-dim to C-dim map;
+            can think of it having C separate "heads" per SSM.
+            This was partly a feature to make it easier to implement bidirectionality;
+            it is recommended to set channels=1
+            and adjust H to control parameters instead
+        dt_min, dt_max: min and max values for the step size dt (\Delta) # noqa
+        mode: Which kernel algorithm to use. 'nplr' is the full S4 model;
+            'diag' is the simpler S4D; 'slow' is a dense version for testing
+        n_ssm: Number of independent trainable (A, B) SSMs,
+            e.g. n_ssm=1 means all A/B parameters are tied across
+            the H different instantiations of C.
+            n_ssm=None means all H SSMs are completely independent.
+            Generally, changing this option can save parameters but doesn't affect
+            performance or speed much. This parameter must divide H
+        lr: Passing in a number (e.g. 0.001) sets
+            attributes of SSM parameers (A, B, dt).
+            A custom optimizer hook is needed to configure the optimizer
+            to set the learning rates appropriately for these parameters.
         """
         super().__init__()
         self.N = N
@@ -1400,7 +1448,8 @@ class SSKernel(nn.Module):
             and self.n_ssm % w.size(-2) == 0
         )
         # Broadcast tensors to n_ssm copies
-        # These will be the parameters, so make sure tensors are materialized and contiguous
+        # These will be the parameters,
+        # so make sure tensors are materialized and contiguous
         B = repeat(B, "t n -> (v t) n", v=self.n_ssm // B.size(-2)).clone().contiguous()
         P = (
             repeat(P, "r t n -> r (v t) n", v=self.n_ssm // P.size(-2))
@@ -1425,7 +1474,10 @@ class SSKernel(nn.Module):
         elif mode == "diag":
             if not measure.startswith("diag"):
                 log.warning(
-                    "Diagonal kernel (S4D) activated but initialization is not intended for S4D. Set `measure` to 'diag-lin', 'diag-inv', or 'diag-legs' for the main variants, or 'diag' for a combination of S4D-Lin and S4D-Inv."
+                    "Diagonal kernel (S4D) activated but initialization is not "
+                    "intended for S4D. Set `measure` to 'diag-lin', 'diag-inv', or "
+                    "'diag-legs' for the main variants, or 'diag' "
+                    "for a combination of S4D-Lin and S4D-Inv."
                 )
             C = C * repeat(B, "t n -> (v t) n", v=H // self.n_ssm)
             self.kernel = SSKernelDiag(
@@ -1445,7 +1497,8 @@ class SSKernel(nn.Module):
 
     @torch.no_grad()
     def forward_state(self, u, state):
-        """Forward the state through a sequence, i.e. computes the state after passing chunk through SSM
+        """Forward the state through a sequence,
+        i.e. computes the state after passing chunk through SSM
 
         state: (B, H, N)
         u: (B, H, L)
@@ -1513,8 +1566,12 @@ class S4(nn.Module):
     ):
         """
         d_state: the dimension of the state, also denoted by N
-        l_max: the maximum kernel length, also denoted by L. Set l_max=None to always use a global kernel
-        channels: can be interpreted as a number of "heads"; the SSM is a map from a 1-dim to C-dim sequence. It's not recommended to change this unless desperate for things to tune; instead, increase d_model for larger models
+        l_max: the maximum kernel length, also denoted by L.
+                Set l_max=None to always use a global kernel
+        channels: can be interpreted as a number of "heads";
+                the SSM is a map from a 1-dim to C-dim sequence.
+                It's not recommended to change this unless desperate for things to tune;
+                instead, increase d_model for larger models
         bidirectional: if True, convolution kernel will be two-sided
 
         Position-wise feedforward components:
@@ -1522,15 +1579,20 @@ class S4(nn.Module):
         activation: activation in between SS and FF
         postact: activation after FF
         hyper_act: use a "hypernetwork" multiplication (experimental)
-        dropout: standard dropout argument. tie_dropout=True ties the dropout mask across the sequence length, emulating nn.Dropout1d
+        dropout: standard dropout argument. tie_dropout=True ties the dropout
+                mask across the sequence length, emulating nn.Dropout1d
 
         Other arguments:
         --------------------
-        transposed: choose backbone axis ordering of (B, L, H) (if False) or (B, H, L) (if True) [B=batch size, L=sequence length, H=hidden dimension]
+        transposed: choose backbone axis ordering of
+                (B, L, H) (if False) or (B, H, L) (if True)
+                [B=batch size, L=sequence length, H=hidden dimension]
         gate: add gated activation (GSS)
         bottleneck: reduce SSM dimension (GSS)
 
-        See the class SSKernel for the kernel constructor which accepts kernel_args. Relevant options that are worth considering and tuning include "mode" + "measure", "dt_min", "dt_max", "lr"
+        See the class SSKernel for the kernel constructor which accepts kernel_args.
+        Relevant options that are worth considering
+        and tuning include "mode" + "measure", "dt_min", "dt_max", "lr"
 
         Other options are all experimental and should not need to be configured
         """
@@ -1702,7 +1764,8 @@ class S4(nn.Module):
         self.kernel._setup_step(**kwargs)
 
     def step(self, u, state, **kwargs):
-        """Step one time step as a recurrent model. Intended to be used during validation.
+        """Step one time step as a recurrent model.
+        Intended to be used during validation.
 
         u: (B H)
         state: (B H N)

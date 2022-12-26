@@ -2,13 +2,14 @@
 
 """ Utilities for dealing with collection objects (lists, dicts) and configs """
 import functools
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, Sequence
 
 import hydra
 from omegaconf import DictConfig, ListConfig
 
 
-# TODO this is usually used in a pattern where it's turned into a list, so can just do that here
+# TODO this is usually used in a pattern where it's turned into a list,
+# so can just do that here
 def is_list(x):
     return isinstance(x, Sequence) and not isinstance(x, str)
 
@@ -61,10 +62,13 @@ def extract_attrs_from_obj(obj, *attrs):
 
 def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
     """
-    registry: Dictionary mapping names to functions or target paths (e.g. {'model': 'models.SequenceModel'})
-    config: Dictionary with a '_name_' key indicating which element of the registry to grab, and kwargs to be passed into the target constructor
+    registry: Dictionary mapping names to functions or target paths
+            (e.g. {'model': 'models.SequenceModel'})
+    config: Dictionary with a '_name_' key indicating which element of the registry
+            to grab, and kwargs to be passed into the target constructor
     wrap: wrap the target class (e.g. ema optimizer or tasks.wrap)
-    *args, **kwargs: additional arguments to override the config to pass into the target constructor
+    *args, **kwargs: additional arguments
+            to override the config to pass into the target constructor
     """
 
     # Case 1: no config
@@ -112,7 +116,7 @@ def omegaconf_filter_keys(d, fn=None):
     # TODO can make this inplace?
     """
     if fn is None:
-        fn = lambda _: True
+        fn = lambda _: True  # noqa
     if is_list(d):
         return ListConfig([omegaconf_filter_keys(v, fn) for v in d])
     elif is_dict(d):

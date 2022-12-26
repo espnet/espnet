@@ -1,6 +1,8 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Utility nn components, in particular handling activations, initializations, and normalization layers """
+""" Utility nn components,
+in particular handling activations,initializations, and normalization layers
+"""
 
 import math
 from functools import partial
@@ -19,8 +21,8 @@ def stochastic_depth(input: torch.tensor, p: float, mode: str, training: bool = 
     branches of residual architectures.
 
     Args:
-        input (Tensor[N, ...]): The input tensor or arbitrary dimensions with the first one
-                    being its batch i.e. a batch with ``N`` rows.
+        input (Tensor[N, ...]): The input tensor or arbitrary dimensions with the first
+                    one being its batch i.e. a batch with ``N`` rows.
         p (float): probability of the input to be zeroed.
         mode (str): ``"batch"`` or ``"row"``.
                     ``"batch"`` randomly zeroes the entire input, ``"row"`` zeroes
@@ -94,7 +96,8 @@ class DropoutNd(nn.Module):
         if self.training:
             if not self.transposed:
                 X = rearrange(X, "b d ... -> b ... d")
-            # binomial = torch.distributions.binomial.Binomial(probs=1-self.p) # This is incredibly slow
+            # binomial = torch.distributions.binomial.Binomial(
+            #   probs=1-self.p) # This is incredibly slow
             mask_shape = X.shape[:2] + (1,) * (X.ndim - 2) if self.tie else X.shape
             # mask = self.binomial.sample(mask_shape)
             mask = torch.rand(*mask_shape, device=X.device) < 1.0 - self.p
@@ -172,7 +175,9 @@ def LinearActivation(
     weight_norm=False,
     **kwargs,
 ):
-    """Returns a linear nn.Module with control over axes order, initialization, and activation"""
+    """Returns a linear nn.Module with control over axes order,
+    initialization, and activation
+    """
 
     # Construct core module
     # linear_cls = partial(nn.Conv1d, kernel_size=1) if transposed else nn.Linear
@@ -214,7 +219,8 @@ class TransposedLinear(nn.Module):
 
         self.weight = nn.Parameter(torch.empty(d_output, d_input))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # nn.Linear default init
-        # nn.init.kaiming_uniform_(self.weight, nonlinearity='linear') # should be equivalent
+        # nn.init.kaiming_uniform_(
+        #   self.weight, nonlinearity='linear') # should be equivalent
 
         if bias:
             self.bias = nn.Parameter(torch.empty(d_output))
@@ -236,7 +242,8 @@ class TransposedLN(nn.Module):
     """LayerNorm module over second dimension
     Assumes shape (B, D, L), where L can be 1 or more axis
 
-    This is slow and a dedicated CUDA/Triton implementation shuld provide substantial end-to-end speedup
+    This is slow and a dedicated CUDA/Triton implementation
+    shuld provide substantial end-to-end speedup
     """
 
     def __init__(self, d, scalar=True):
@@ -256,7 +263,8 @@ class TransposedLN(nn.Module):
             s, m = torch.std_mean(x, dim=1, unbiased=False, keepdim=True)
             y = (self.s / s) * (x - m + self.m)
         else:
-            # move channel to last axis, apply layer_norm, then move channel back to second axis
+            # move channel to last axis, apply layer_norm,
+            # then move channel back to second axis
             _x = self.ln(rearrange(x, "b d ... -> b ... d"))
             y = rearrange(_x, "b ... d -> b d ...")
         return y
@@ -309,7 +317,8 @@ class Normalization(nn.Module):
         else:
             x = rearrange(x, "b ... d -> b (...)d ")
 
-        # The cases of LayerNorm / no normalization are automatically handled in all cases
+        # The cases of LayerNorm / no normalization
+        # are automatically handled in all cases
         # Instance/Batch Norm work automatically with transposed axes
         if self.channel or self.transposed:
             x = self.norm(x)

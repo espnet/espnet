@@ -17,8 +17,8 @@ def cauchy_mult_torch(
     v: (B, N)
     z: (L)
     w: (B, N)
-    symmetric: whether to assume that v and w contain complex conjugate pairs, of the form
-    [v_half, v_half.conj()] and [w_half, w_half.conj()]
+    symmetric: whether to assume that v and w contain complex conjugate pairs, of the
+    form [v_half, v_half.conj()] and [w_half, w_half.conj()]
     """
     if not symmetric:
         return (
@@ -83,12 +83,12 @@ class CauchyMultiply(torch.autograd.Function):
         # supported_N_values = [1 << log_n for log_n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
         supported_N_values = [1 << log_n for log_n in [6]]
         L = z.shape[-1]
-        if not N in supported_N_values:
+        if N not in supported_N_values:
             raise NotImplementedError(f"Only support N values in {supported_N_values}")
         if L % 32 != 0:
-            raise NotImplementedError(f"Only support L values that are multiples of 32")
+            raise NotImplementedError("Only support L values that are multiples of 32")
         if not v.is_cuda and z.is_cuda and w.is_cuda:
-            raise NotImplementedError(f"Only support CUDA tensors")
+            raise NotImplementedError("Only support CUDA tensors")
         ctx.save_for_backward(v, z, w)
         return cauchy_mult_fwd(v, z, w)
 
@@ -105,13 +105,13 @@ class CauchyMultiplySymmetric(torch.autograd.Function):
         batch, N = v.shape
         supported_N_values = [1 << log_n for log_n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
         L = z.shape[-1]
-        if not N in supported_N_values:
+        if N not in supported_N_values:
             raise NotImplementedError(f"Only support N values in {supported_N_values}")
         max_L_value = 32 * 1024 * 64 * 1024
         if L > max_L_value:
-            raise NotImplementedError(f"Only support L values <= {max_L_value}")
+            raise NotImplementedError("Only support L values <= {max_L_value}")
         if not v.is_cuda and z.is_cuda and w.is_cuda:
-            raise NotImplementedError(f"Only support CUDA tensors")
+            raise NotImplementedError("Only support CUDA tensors")
         ctx.save_for_backward(v, z, w)
         return cauchy_mult_sym_fwd(v, z, w)
 

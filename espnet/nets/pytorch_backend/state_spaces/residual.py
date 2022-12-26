@@ -7,7 +7,9 @@ from torch import nn
 
 
 class Residual(nn.Module):
-    """Residual connection with constant affine weights. Can simulate standard residual, no residual, and "constant gates"."""
+    """Residual connection with constant affine weights.
+    Can simulate standard residual, no residual, and "constant gates".
+    """
 
     def __init__(self, i_layer, d_input, d_model, alpha=1.0, beta=1.0):
         # print("ConstantResidual extra kwargs", kwargs)

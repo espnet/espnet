@@ -2,7 +2,8 @@
 
 """ Isotropic deep sequence model backbone, in the style of ResNets / Transformers.
 
-The SequenceModel class implements a generic (batch, length, d_input) -> (batch, length, d_output) transformation
+The SequenceModel class implements a generic
+(batch, length, d_input) -> (batch, length, d_output) transformation
 """
 
 from functools import partial
@@ -14,50 +15,7 @@ from einops import rearrange
 from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
 from espnet.nets.pytorch_backend.state_spaces.block import SequenceResidualBlock
 from espnet.nets.pytorch_backend.state_spaces.components import DropoutNd, Normalization
-
-""" Utilities for dealing with collection objects (lists, dicts) and configs """
-from typing import Mapping, Sequence
-
-
-# TODO this is usually used in a pattern where it's turned into a list, so can just do that here
-def is_list(x):
-    return isinstance(x, Sequence) and not isinstance(x, str)
-
-
-def is_dict(x):
-    return isinstance(x, Mapping)
-
-
-def to_dict(x, recursive=True):
-    """Convert Sequence or Mapping object to dict
-    lists get converted to {0: x[0], 1: x[1], ...}
-    """
-    if is_list(x):
-        x = {i: v for i, v in enumerate(x)}
-    if is_dict(x):
-        if recursive:
-            return {k: to_dict(v, recursive=recursive) for k, v in x.items()}
-        else:
-            return dict(x)
-    else:
-        return x
-
-
-def to_list(x, recursive=False):
-    """Convert an object to list.
-    If Sequence (e.g. list, tuple, Listconfig): just return it
-    Special case: If non-recursive and not a list, wrap in list
-    """
-    if is_list(x):
-        if recursive:
-            return [to_list(_x) for _x in x]
-        else:
-            return list(x)
-    else:
-        if recursive:
-            return x
-        else:
-            return [x]
+from espnet.nets.pytorch_backend.state_spaces.utils import to_dict, to_list
 
 
 class SequenceModel(SequenceModule):
@@ -65,9 +23,11 @@ class SequenceModel(SequenceModule):
         self,
         d_model,  # Resize input (useful for deep models with residuals)
         n_layers=1,  # Number of layers
-        transposed=False,  # Transpose inputs so each layer receives (batch, dim, length)
+        transposed=False,  # Transpose inputs so each layer receives
+        # (batch, dim, length)
         dropout=0.0,  # Dropout parameter applied on every residual and every layer
-        tie_dropout=False,  # Tie dropout mask across sequence like nn.Dropout1d/nn.Dropout2d
+        tie_dropout=False,  # Tie dropout mask across sequence
+        # like nn.Dropout1d/nn.Dropout2d
         prenorm=True,  # Pre-norm vs. post-norm
         n_repeat=1,  # Each layer is repeated n times per stage before applying pooling
         layer=None,  # Layer config, must be specified
@@ -76,7 +36,7 @@ class SequenceModel(SequenceModule):
         pool=None,  # Config for pooling layer per stage
         track_norms=True,  # Log norms of each layer output
         dropinp=0.0,  # Input dropout
-        drop_path=0.0,  #
+        drop_path=0.0,  # stochastic depth for each residual path
     ):
         super().__init__()
         # Save arguments needed for forward pass
@@ -107,12 +67,12 @@ class SequenceModel(SequenceModule):
         # Instantiate layers
         _layers = []
         d = d_model
-        for l, layer in enumerate(layers):
+        for i, layer in enumerate(layers):
             # Pool at the end of every n_repeat blocks
-            pool_cfg = pool if (l + 1) % n_repeat == 0 else None
+            pool_cfg = pool if (i + 1) % n_repeat == 0 else None
             block = SequenceResidualBlock(
                 d,
-                l + 1,
+                i + 1,
                 prenorm=prenorm,
                 dropout=dropout,
                 tie_dropout=tie_dropout,
@@ -180,8 +140,10 @@ class SequenceModel(SequenceModule):
 
     @property
     def state_to_tensor(self):
-        # Slightly hacky way to implement this in a curried manner (so that the function can be extracted from an instance)
-        # Somewhat more sound may be to turn this into a @staticmethod and grab subclasses using hydra.utils.get_class
+        # Slightly hacky way to implement this in a curried manner
+        # (so that the function can be extracted from an instance)
+        # Somewhat more sound may be to turn this into a
+        # @staticmethod and grab subclasses using hydra.utils.get_class
         def fn(state):
             x = [
                 _layer.state_to_tensor(_state)

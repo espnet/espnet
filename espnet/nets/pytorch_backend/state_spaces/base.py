@@ -12,8 +12,10 @@ class SequenceModule(nn.Module):
     (n_batch, l_sequence, d_model) to (n_batch, l_sequence, d_output)
 
     REQUIRED methods and attributes
-    forward, d_model, d_output: controls standard forward pass, a sequence-to-sequence transformation
-    __init__ should also satisfy the following interface; see SequenceIdentity for an example
+    forward, d_model, d_output: controls standard forward pass,
+    a sequence-to-sequence transformation
+    __init__ should also satisfy the following interface;
+    see SequenceIdentity for an example
         def __init__(self, d_model, transposed=False, **kwargs)
 
     OPTIONAL methods
@@ -26,7 +28,8 @@ class SequenceModule(nn.Module):
         """Model dimension (generally same as input dimension).
 
         This attribute is required for all SequenceModule instantiations.
-        It is used by the rest of the pipeline (e.g. model backbone, encoder) to track the internal shapes of the full model.
+        It is used by the rest of the pipeline
+        (e.g. model backbone, encoder) to track the internal shapes of the full model.
         """
         if getattr(self, "_d_model", None) is None:
             raise NotImplementedError("SequenceModule instantiation must set d_model")
@@ -41,7 +44,8 @@ class SequenceModule(nn.Module):
         """Output dimension of model.
 
         This attribute is required for all SequenceModule instantiations.
-        It is used by the rest of the pipeline (e.g. model backbone, decoder) to track the internal shapes of the full model.
+        It is used by the rest of the pipeline
+        (e.g. model backbone, decoder) to track the internal shapes of the full model.
         """
         if getattr(self, "_d_output", None) is None:
             raise NotImplementedError(
@@ -54,13 +58,16 @@ class SequenceModule(nn.Module):
         self._d_output = d
 
     def forward(self, x, state=None, **kwargs):
-        """Forward pass of sequence model, a sequence-to-sequence transformation with an optional state.
+        """Forward pass of sequence model,
+        a sequence-to-sequence transformation with an optional state.
 
-        Generally, this should map a tensor of shape (batch, length, self.d_model) to (batch, length, self.d_output)
+        Generally, this should map a tensor of shape
+        (batch, length, self.d_model) to (batch, length, self.d_output)
 
         Additionally, it returns a "state" which can be any additional information
         For example, RNN and SSM layers may return their hidden state,
-        while some types of transformer layers (e.g. Transformer-XL) may want to pass a state as well
+        while some types of transformer layers
+        (e.g. Transformer-XL) may want to pass a state as well
         """
         return x, None
 
@@ -68,7 +75,8 @@ class SequenceModule(nn.Module):
     def state_to_tensor(self):
         """Returns a function mapping a state to a single tensor.
 
-        This method should be implemented if one wants to use the hidden state instead of the output sequence for final prediction.
+        This method should be implemented if one wants to use
+        the hidden state insteadof the output sequence for final prediction.
         Currently only used with the StateDecoder.
         """
         return lambda _: None
@@ -88,13 +96,15 @@ class SequenceModule(nn.Module):
 
         For example, this should correspond to unrolling an RNN for one step.
         If the forward pass has signature (B, L, H1) -> (B, L, H2),
-        this method should generally have signature (B, H1) -> (B, H2) with an optional recurrent state.
+        this method should generally have signature
+        (B, H1) -> (B, H2) with an optional recurrent state.
         """
         raise NotImplementedError
 
 
 def TransposedModule(module):
-    """Wrap a SequenceModule class to accept transposed parameter, handle state, absorb kwargs"""
+    """Wrap a SequenceModule class to accept transposed parameter,
+    handle state, absorb kwargs"""
     # https://stackoverflow.com/a/65470430/1980685
     @functools.wraps(module, updated=())
     class TransposedModule(module):

@@ -21,9 +21,10 @@ def downsample(x, stride=1, expand=1, transposed=False):
     if x is None:
         return None
     if stride > 1:
-        assert (
-            x.ndim == 3
-        ), "Downsampling with higher-dimensional inputs is currently not supported. It is recommended to use average or spectral pooling instead."
+        assert x.ndim == 3, (
+            "Downsampling with higher-dimensional inputs is currently not supported."
+            "It is recommended to use average or spectral pooling instead."
+        )
         if transposed:
             x = x[..., 0::stride]
         else:
@@ -144,7 +145,7 @@ class DownSpectralPool(SequenceModule):
                 [torch.arange(0, new_l - new_l // 2), l + torch.arange(-new_l // 2, 0)]
             ).to(x_f.device)
             x_f = torch.index_select(x_f, 2 + axis, idx)
-        x = torch.fft.ifftn(x_f, s=[l // self.stride for l in shape])
+        x = torch.fft.ifftn(x_f, s=[length // self.stride for length in shape])
         x = x.real
 
         if self.expand > 1:
@@ -184,7 +185,8 @@ class UpSample(nn.Module):
         return x, state
 
 
-""" Pooling functions with trainable parameters """  # For the flexible backbone SequenceModel
+""" Pooling functions with trainable parameters """
+# For the flexible backbone SequenceModel
 
 
 class DownLinearPool(SequenceModule):
