@@ -703,7 +703,7 @@ if ! "${skip_data_prep}"; then
                 "${data_feats}/${dset}"
         done
 
-        if [ ! -z "${post_process_local_data_opts}" ]; then
+        if [ -n "${post_process_local_data_opts}" ]; then
             # Do any additional local data post-processing here
             local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
         fi 
