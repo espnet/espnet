@@ -33,7 +33,9 @@
   - Commit date: `Wed Dec 22 14:08:29 2021 -0500`
 
 ## asr_train_asr_conformer_raw_zh_char_sp
-- Model link: https://huggingface.co/sw005320/aidatatang_200zh_conformer
+- ASR config: [conf/train_asr_conformer.yaml](conf/train_asr_conformer.yaml)
+- Params: 45.98M
+- Model link: [https://huggingface.co/sw005320/aidatatang_200zh_conformer](https://huggingface.co/sw005320/aidatatang_200zh_conformer)
 
 ### CER
 
