@@ -352,8 +352,7 @@ class ASRTask(AbsTask):
             type=str,
             nargs="+",
             default=[],
-            help="Auxillary tasks to train on using CTC loss. "
-            "Data file should be in same dir as training data and have same name as task",
+            help="Auxillary tasks to train on using CTC loss. ",
         )
 
         for class_choices in cls.class_choices_list:

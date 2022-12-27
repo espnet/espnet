@@ -247,7 +247,7 @@ class ESPnetASRModel(AbsESPnetModel):
                             )
                         else:
                             raise Exception(
-                                "Auxillary CTC tasks were specified but no data was found"
+                                "Aux. CTC tasks were specified but no data was found"
                             )
                 if loss_ic is None:
                     loss_ic, cer_ic = self._calc_ctc_loss(
