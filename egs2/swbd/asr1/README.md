@@ -1,3 +1,38 @@
+# E-Branchformer
+## Environments
+- date: `Tue Dec 27 05:05:40 CST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `ef3ce328551c12c03284defc757f42df47c46170`
+  - Commit date: `Mon Dec 26 20:34:28 2022 -0500`
+
+## asr_train_asr_e_branchformer_e12_size256_mlp1024_linear1024_macaron_raw_en_bpe2000_sp
+- ASR config: [conf/tuning/train_asr_e_branchformer_e12_size256_mlp1024_linear1024_macaron.yaml](conf/tuning/train_asr_e_branchformer_e12_size256_mlp1024_linear1024_macaron.yaml)
+- Params: 36.16M
+- Model link: [https://huggingface.co/pyf98/swbd_e_branchformer](https://huggingface.co/pyf98/swbd_e_branchformer)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.callhm.ctm.filt.sys|2628|21594|88.7|8.4|2.9|2.1|13.4|46.2|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.ctm.filt.sys|4459|42989|91.2|6.1|2.8|1.5|10.4|41.5|
+|decode_asr_asr_model_valid.acc.ave/eval2000/hyp.swbd.ctm.filt.sys|1831|21395|93.7|3.7|2.6|1.0|7.3|34.8|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/eval2000|4322|181952|93.1|3.3|3.6|10.7|17.7|67.7|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/eval2000|4322|47227|83.0|12.6|4.4|15.3|32.3|67.7|
+
+
 # Conformer
 ## Environments
 - date: `Tue Dec 27 03:17:13 CST 2022`
