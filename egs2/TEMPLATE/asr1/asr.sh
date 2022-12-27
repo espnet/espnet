@@ -706,7 +706,7 @@ if ! "${skip_data_prep}"; then
         read -r -a aux_list <<< "$auxiliary_data_tags"
         if [ ${#aux_list[@]} != 0 ]; then
             # Do any additional local data post-processing here
-            local/data.sh ${post_process_local_data_opts} --data_tags ${auxiliary_data_tags} --asr_data_dir "${data_feats}/${train_set}"
+            local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
         fi 
 
         # shellcheck disable=SC2002,SC2068,SC2005

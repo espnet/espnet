@@ -13,7 +13,6 @@ stop_stage=100
 nlsyms_txt=data/nlsyms.txt
 SECONDS=0
 lang=af_za # see https://huggingface.co/datasets/google/fleurs#dataset-structure for list of all langs
-data_tags=
 asr_data_dir=
 
  . utils/parse_options.sh || exit 1;

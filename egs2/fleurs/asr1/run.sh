@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=en_us # all, en_us, af_za, fr_fr ... see https://huggingface.co/datasets/google/fleurs#dataset-structure for list of all langs
+lang=all # all, en_us, af_za, fr_fr ... see https://huggingface.co/datasets/google/fleurs#dataset-structure for list of all langs
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -30,35 +30,11 @@ else
 fi
 
 if [[ "all" == *"${lang}"* ]]; then
-
-  # pre-processing steps
   ./asr.sh \
-      --stage 0 \
-      --stop_stage 10 \
       --lang "${lang}" \
+      --auxiliary_data_tags "lid_utt " \
       --local_data_opts "--stage 0 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
-      --audio_format "wav" \
-      --use_lm false \
-      --feats_normalize utt_mvn \
-      --lm_config "${lm_config}" \
-      --token_type bpe \
-      --nbpe $nbpe \
-      --bpe_nlsyms "${nlsyms_txt}" \
-      --feats_type raw \
-      --speed_perturb_factors "0.9 1.0 1.1" \
-      --asr_config "${multilingual_asr_config}" \
-      --train_set "${train_set}" \
-      --valid_set "${train_dev}" \
-      --test_sets "${test_set}" \
-      --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" "$@" 
-
-  # create auxillary labels once pre-processing is finished
-  python local/create_lids.py
-
-  ./asr.sh \
-      --stage 11 \
-      --lang "${lang}" \
+      --post_process_local_data_opts "--stage 3 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
       --audio_format "wav" \
       --use_lm false \
       --feats_normalize utt_mvn \
@@ -74,9 +50,8 @@ if [[ "all" == *"${lang}"* ]]; then
       --valid_set "${train_dev}" \
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" \
       --local_score_opts "--score_lang_id true" "$@" \
-      --asr_args "--allow_variable_data_keys True --train_data_path_and_name_and_type dump/raw/train_all_sp/lid_utt,lid_utt,text" \
+      --lm_train_text "data/${train_set}/text" "$@" 
 else
   ./asr.sh \
       --lang "${lang}" \
