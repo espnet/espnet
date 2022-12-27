@@ -443,13 +443,13 @@ class ASRTask(AbsTask):
     ) -> Tuple[str, ...]:
         MAX_REFERENCE_NUM = 4
         retval = []
-        
+
         if not inference and aux_tasks is not None:
             retval = aux_tasks
-            
+
         retval += ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
-        
+
         logging.info(f"Optional Data Names: {retval }")
         assert check_return_type(retval)
         return retval
