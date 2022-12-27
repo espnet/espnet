@@ -703,8 +703,7 @@ if ! "${skip_data_prep}"; then
                 "${data_feats}/${dset}"
         done
 
-        read -r -a aux_list <<< "$auxiliary_data_tags"
-        if [ ${#aux_list[@]} != 0 ]; then
+        if [ ! -z "${post_process_local_data_opts}" ]; then
             # Do any additional local data post-processing here
             local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
         fi 
