@@ -443,6 +443,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names=None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
@@ -465,6 +466,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
             short_noise_thres=short_noise_thres,
+            aux_task_names=aux_task_names,
             speech_volume_normalize=speech_volume_normalize,
             speech_name=speech_name,
             fs=fs,
@@ -484,6 +486,14 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[text_n] = np.array(text_ints, dtype=np.int64)
+        if self.aux_task_names is not None and self.tokenizer is not None:
+            for name in self.aux_task_names:
+                if name in data:
+                    text = data[name]
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    data[name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
