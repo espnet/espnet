@@ -413,9 +413,7 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
-                aux_task_names=cls.optional_data_names(
-                    train=train, aux_tasks=args.aux_ctc_tasks
-                )
+                aux_task_names=args.aux_ctc_tasks
                 if hasattr(args, "aux_ctc_tasks")
                 else None,
                 **args.preprocessor_conf,
@@ -438,15 +436,11 @@ class ASRTask(AbsTask):
 
     @classmethod
     def optional_data_names(
-        cls, train: bool = True, inference: bool = False, aux_tasks: list = []
+        cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         MAX_REFERENCE_NUM = 4
-        retval = []
 
-        if not inference and aux_tasks is not None:
-            retval = aux_tasks
-
-        retval += ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval }")
