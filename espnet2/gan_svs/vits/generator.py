@@ -2,7 +2,7 @@
 # Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Generator module in VITS.
+"""Generator module in VISinger.
 
 This code is based on https://github.com/jaywalnut310/vits.
 
@@ -282,11 +282,6 @@ class VITSGenerator(torch.nn.Module):
             self.langs = langs
             self.lang_emb = torch.nn.Embedding(langs, global_channels)
 
-        # delayed import
-        from espnet2.gan_tts.vits.monotonic_align import maximum_path
-
-        self.maximum_path = maximum_path
-
     def forward(
         self,
         text: torch.Tensor,
@@ -436,27 +431,10 @@ class VITSGenerator(torch.nn.Module):
 
             x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
 
-        # TODO: modify PositionalEncoding, shape and transpose problem
-
-        # self.pos_encoder = PositionalEncoding(
-        #     d_model=x_frame.size(1), dropout_rate=0.1, max_len=x_frame.size(2)
-        # )
-        # x_frame = self.pos_encoder(x_frame)
-
-        # position encoding
-        max_len = x.size(2)
-        d_model = x.size(1)
-        batch_size = x.size(0)
-
-        pe = torch.zeros(batch_size, max_len, d_model)
-        position = torch.arange(0, max_len).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
+        self.pos_encoder = PositionalEncoding(
+            d_model=x.size(1), dropout_rate=0, max_len=x.size(2)
         )
-        pe[:, :, 0::2] = torch.sin(position * div_term)
-        pe[:, :, 1::2] = torch.cos(position * div_term)
-        pe = pe.transpose(1, 2).to(x.device)
-        x = x + pe
+        x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
 
         if self.use_visinger:
             pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
@@ -633,20 +611,10 @@ class VITSGenerator(torch.nn.Module):
                     x, frame_pitch, x_lengths = self.lr(x, melody, w, label_lengths)
                     x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
 
-                # position encoding
-                max_len = x.size(2)
-                d_model = x.size(1)
-                batch_size = x.size(0)
-
-                pe = torch.zeros(batch_size, max_len, d_model)
-                position = torch.arange(0, max_len).unsqueeze(1)
-                div_term = torch.exp(
-                    torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)
+                self.pos_encoder = PositionalEncoding(
+                    d_model=x.size(1), dropout_rate=0, max_len=x.size(2)
                 )
-                pe[:, :, 0::2] = torch.sin(position * div_term)
-                pe[:, :, 1::2] = torch.cos(position * div_term)
-                pe = pe.transpose(1, 2).to(x.device)
-                x = x + pe
+                x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
 
                 _, pitch_embedding = self.pitch_predictor(x, x_mask)
                 x = self.frame_prior_net(x, pitch_embedding, x_mask)
