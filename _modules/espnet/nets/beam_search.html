@@ -573,6 +573,16 @@
                 <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
                 <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
+        <span class="k">if</span> <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;best hypo length: </span><span class="si">{}</span><span class="s2"> == max output length: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxlen</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;decoding may be stopped by the max output length limitation, &quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;please consider to increase the maxlenratio.&quot;</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="BeamSearch.post_process"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.post_process">[docs]</a>    <span class="k">def</span> <span class="nf">post_process</span><span class="p">(</span>
