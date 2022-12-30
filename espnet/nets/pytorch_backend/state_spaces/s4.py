@@ -216,10 +216,10 @@ except ImportError:
     )
 
     def log_vandermonde(v, x, L):
-        """
+        r"""
         v: (..., N)
         x: (..., N)
-        returns: (..., L) \sum v x^l # noqa
+        returns: (..., L) \sum v x^l
         """
         vandermonde_matrix = torch.exp(
             x.unsqueeze(-1) * torch.arange(L).to(x)
@@ -239,13 +239,21 @@ except ImportError:
         return vandermonde_prod
 
 
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)  # noqa
+def _conj(x):
+    return torch.cat([x, x.conj()], dim=-1)
+
+
 _c2r = torch.view_as_real
 _r2c = torch.view_as_complex
 if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
-    _resolve_conj = lambda x: x.conj().resolve_conj()  # noqa
+
+    def _resolve_conj(x):
+        return x.conj().resolve_conj()
+
 else:
-    _resolve_conj = lambda x: x.conj()  # noqa
+
+    def _resolve_conj(x):
+        return x.conj()
 
 
 """ Misc functional utilities """
@@ -992,19 +1000,24 @@ class SSKernelNPLR(OptimModule):
             state.size(-1) == self.N
         ):  # Only store half of the conjugate pairs; should be true by default
             # There should be a slightly faster way using conjugate symmetry
-            contract_fn = lambda p, x, y: contract(  # noqa
-                "r h n, r h m, ... h m -> ... h n", _conj(p), _conj(x), _conj(y)
-            )[
-                ..., : self.N
-            ]  # inner outer product
+            def contract_fn(p, x, y):
+                return contract(
+                    "r h n, r h m, ... h m -> ... h n", _conj(p), _conj(x), _conj(y)
+                )[
+                    ..., : self.N
+                ]  # inner outer product
+
         else:
             assert state.size(-1) == 2 * self.N
             step_params = {k: _conj(v) for k, v in step_params.items()}
             # TODO worth setting up a contract_expression in default_state
             # if we want to use this at inference time for stepping
-            contract_fn = lambda p, x, y: contract(  # noqa
-                "r h n, r h m, ... h m -> ... h n", p, x, y
-            )  # inner outer product
+
+            def contract_fn(p, x, y):
+                return contract(  # noqa
+                    "r h n, r h m, ... h m -> ... h n", p, x, y
+                )  # inner outer product
+
         D = step_params["D"]  # (H N)
         E = step_params["E"]  # (H N)
         R = step_params["R"]  # (R H N)
@@ -1377,7 +1390,7 @@ class SSKernel(nn.Module):
         measure_args={},
         **kernel_args,
     ):
-        """State Space Kernel which computes the convolution kernel $\\bar{K}$
+        r"""State Space Kernel which computes the convolution kernel $\\bar{K}$
 
         H: Number of independent SSM copies;
             controls the size of the model. Also called d_model in the config.
@@ -1398,7 +1411,7 @@ class SSKernel(nn.Module):
             This was partly a feature to make it easier to implement bidirectionality;
             it is recommended to set channels=1
             and adjust H to control parameters instead
-        dt_min, dt_max: min and max values for the step size dt (\Delta) # noqa
+        dt_min, dt_max: min and max values for the step size dt (\Delta)
         mode: Which kernel algorithm to use. 'nplr' is the full S4 model;
             'diag' is the simpler S4D; 'slow' is a dense version for testing
         n_ssm: Number of independent trainable (A, B) SSMs,

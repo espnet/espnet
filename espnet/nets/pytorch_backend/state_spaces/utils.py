@@ -116,7 +116,10 @@ def omegaconf_filter_keys(d, fn=None):
     # TODO can make this inplace?
     """
     if fn is None:
-        fn = lambda _: True  # noqa
+
+        def fn(_):
+            return True
+
     if is_list(d):
         return ListConfig([omegaconf_filter_keys(v, fn) for v in d])
     elif is_dict(d):
