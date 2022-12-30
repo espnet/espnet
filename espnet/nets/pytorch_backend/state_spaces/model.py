@@ -1,11 +1,5 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Isotropic deep sequence model backbone, in the style of ResNets / Transformers.
-
-The SequenceModel class implements a generic
-(batch, length, d_input) -> (batch, length, d_output) transformation
-"""
-
 from functools import partial
 
 import torch
@@ -19,24 +13,43 @@ from espnet.nets.pytorch_backend.state_spaces.utils import to_dict, to_list
 
 
 class SequenceModel(SequenceModule):
+    """ Isotropic deep sequence model backbone, in the style of ResNets / Transformers.
+
+    The SequenceModel class implements a generic
+    (batch, length, d_input) -> (batch, length, d_output) transformation
+
+    Args:
+        d_model: Resize input (useful for deep models with residuals)
+        n_layers: Number of layers
+        transposed: Transpose inputs so each layer receives (batch, dim, length)
+        dropout: Dropout parameter applied on every residual and every layer
+        tie_dropout: Tie dropout mask across sequence like nn.Dropout1d/nn.Dropout2d
+        prenorm: Pre-norm vs. post-norm
+        n_repeat: Each layer is repeated n times per stage before applying pooling
+        layer: Layer config, must be specified
+        residual: Residual config
+        norm: Normalization config (e.g. layer vs batch)
+        pool: Config for pooling layer per stage
+        track_norms: Log norms of each layer output
+        dropinp: Input dropout
+        drop_path: Stochastic depth for each residual path
+    """
     def __init__(
         self,
-        d_model,  # Resize input (useful for deep models with residuals)
-        n_layers=1,  # Number of layers
-        transposed=False,  # Transpose inputs so each layer receives
-        # (batch, dim, length)
-        dropout=0.0,  # Dropout parameter applied on every residual and every layer
-        tie_dropout=False,  # Tie dropout mask across sequence
-        # like nn.Dropout1d/nn.Dropout2d
-        prenorm=True,  # Pre-norm vs. post-norm
-        n_repeat=1,  # Each layer is repeated n times per stage before applying pooling
-        layer=None,  # Layer config, must be specified
-        residual=None,  # Residual config
-        norm=None,  # Normalization config (e.g. layer vs batch)
-        pool=None,  # Config for pooling layer per stage
-        track_norms=True,  # Log norms of each layer output
-        dropinp=0.0,  # Input dropout
-        drop_path=0.0,  # stochastic depth for each residual path
+        d_model,
+        n_layers=1,
+        transposed=False,
+        dropout=0.0,
+        tie_dropout=False,
+        prenorm=True,
+        n_repeat=1,
+        layer=None,
+        residual=None,
+        norm=None,
+        pool=None,
+        track_norms=True,
+        dropinp=0.0,
+        drop_path=0.0,
     ):
         super().__init__()
         # Save arguments needed for forward pass

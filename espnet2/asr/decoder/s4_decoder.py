@@ -155,7 +155,8 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         # merge states
         n_batch = len(ys)
         ys = self.embed(ys[:, -1:])
-        # TODO:
+
+        # workaround for remaining beam width of 1
         if type(states[0]) is list:
             states = states[0]
 
