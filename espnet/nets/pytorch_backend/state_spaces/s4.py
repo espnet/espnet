@@ -148,13 +148,13 @@ try:  # Try pykeops
             axis=1,
         )
 
-        l = torch.arange(L).to(x)  # noqa
-        v, x, l = _broadcast_dims(v, x, l)  # noqa
+        length = torch.arange(L).to(x)
+        v, x, length = _broadcast_dims(v, x, length)
         v = _c2r(v)
         x = _c2r(x)
-        l = _c2r(l)  # noqa
+        length = _c2r(length)
 
-        r = vandermonde_mult(v, x, l, backend="GPU")
+        r = vandermonde_mult(v, x, length, backend="GPU")
         return 2 * _r2c(r).real
 
     def log_vandermonde_transpose(u, v, x, L):
@@ -180,14 +180,14 @@ try:  # Try pykeops
             axis=1,
         )
 
-        l = torch.arange(L).to(x)  # noqa
-        u, v, x, l = _broadcast_dims(u, v, x, l)  # noqa
+        length = torch.arange(L).to(x)
+        u, v, x, length = _broadcast_dims(u, v, x, length)
         u = _c2r(u)
         v = _c2r(v)
         x = _c2r(x)
-        l = _c2r(l)  # noqa
+        length = _c2r(length)
 
-        r = vandermonde_mult(u, v, x, l, backend="GPU")
+        r = vandermonde_mult(u, v, x, length, backend="GPU")
         return _r2c(r)
 
 except ImportError:
@@ -266,25 +266,25 @@ def power(L, A, v=None):
     v: (..., N, L)
     """
 
-    I = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device) # noqa
+    E = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device)
 
     powers = [A]
-    l = 1  # noqa  # nopep8
+    length = 1
     while True:
         if L % 2 == 1:
-            I = powers[-1] @ I  # noqa  # nopep8
+            E = powers[-1] @ E
         L //= 2
         if L == 0:
             break
-        l *= 2  # noqa  # nopep8
+        length *= 2
         powers.append(powers[-1] @ powers[-1])
 
     if v is None:
-        return I
+        return E
 
     # Invariants:
-    # powers[-1] := A^l
-    # l := largest po2 at most L
+    # powers[-1] := A^length
+    # length := largest po2 at most L
 
     # Note that an alternative divide and conquer to compute the reduction is possible
     # and can be embedded into the above loop without caching intermediate powers of A
@@ -293,17 +293,17 @@ def power(L, A, v=None):
     # 2) it involves more contiguous arrays
 
     # Take care of edge case for non-po2 arrays
-    # Note that this initial step is a no-op for the case of power of 2 (l == L)
-    k = v.size(-1) - l
-    v_ = powers.pop() @ v[..., l:]
-    v = v[..., :l]
+    # Note that this initial step is a no-op for the case of power of 2 (length == L)
+    k = v.size(-1) - length
+    v_ = powers.pop() @ v[..., length:]
+    v = v[..., :length]
     v[..., :k] = v[..., :k] + v_
 
     # Handle reduction for power of 2
     while v.size(-1) > 1:
         v = rearrange(v, "... (z l) -> ... z l", z=2)
         v = v[..., 0, :] + powers.pop() @ v[..., 1, :]
-    return I, v.squeeze(-1)
+    return E, v.squeeze(-1)
 
 
 """ HiPPO utilities """
@@ -1014,7 +1014,7 @@ class SSKernelNPLR(OptimModule):
             # if we want to use this at inference time for stepping
 
             def contract_fn(p, x, y):
-                return contract(  # noqa
+                return contract(
                     "r h n, r h m, ... h m -> ... h n", p, x, y
                 )  # inner outer product
 
@@ -1069,10 +1069,10 @@ class SSKernelNPLR(OptimModule):
         else:
             # self.C represents C_tilde
             dA_L = power(self.L.item(), self.dA)
-            I = torch.eye(self.dA.size(-1)).to(dA_L)  # noqa  # nopep8
+            E = torch.eye(self.dA.size(-1)).to(dA_L)
 
             dC = torch.linalg.solve(
-                I - dA_L.transpose(-1, -2),
+                E - dA_L.transpose(-1, -2),
                 C.unsqueeze(-1),
             ).squeeze(-1)
         self.dC = dC
