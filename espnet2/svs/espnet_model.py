@@ -578,7 +578,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
+        """Calculate features and return them as a dict.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
