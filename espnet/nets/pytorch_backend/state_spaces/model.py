@@ -13,7 +13,7 @@ from espnet.nets.pytorch_backend.state_spaces.utils import to_dict, to_list
 
 
 class SequenceModel(SequenceModule):
-    """ Isotropic deep sequence model backbone, in the style of ResNets / Transformers.
+    """Isotropic deep sequence model backbone, in the style of ResNets / Transformers.
 
     The SequenceModel class implements a generic
     (batch, length, d_input) -> (batch, length, d_output) transformation
@@ -34,6 +34,7 @@ class SequenceModel(SequenceModule):
         dropinp: Input dropout
         drop_path: Stochastic depth for each residual path
     """
+
     def __init__(
         self,
         d_model,
