@@ -133,6 +133,21 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     cd "${cwd}"
 fi
 
+# [ESPnet2] test enh_tse recipe
+if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/tse1
+    echo "==== [ESPnet2] ENH_TSE ==="
+    feats_types="raw"
+    for t in ${feats_types}; do
+        echo "==== feats_type=${t} ==="
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}"
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment.yaml
+    done
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
 # [ESPnet2] test ssl1 recipe
 if python3 -c "import fairseq" &> /dev/null; then
     cd ./egs2/mini_an4/ssl1
