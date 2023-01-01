@@ -761,37 +761,37 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-#            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
-#            ${python} -m espnet2.bin.tokenize_text \
-#                --token_type phn \
-#                --input ${split_dir}/JOB/text \
-#                --output ${split_dir}/JOB/unpaired_text_nosil \
-#                --g2p "${g2p}" \
-#                --write_vocabulary false \
-#                --field "2-"
+            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
+            ${python} -m espnet2.bin.tokenize_text \
+                --token_type phn \
+                --input ${split_dir}/JOB/text \
+                --output ${split_dir}/JOB/unpaired_text_nosil \
+                --g2p "${g2p}" \
+                --write_vocabulary false \
+                --field "2-"
 
-#             # FIXME(jiatong): this post process is very hard-coded, need fix
-#             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
-#             ${python} pyscripts/text/post_processing.py \
-#               --word_boundary "${postprocess_word_boundary}" \
-#               --sil_prob ${postprocess_sil_prob} \
-#               --sil_token ${postprocess_sil_token} \
-#               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
-#               --output_text "${split_dir}/JOB/unpaired_text" \
-#               --reduce_vocab true
+             # FIXME(jiatong): this post process is very hard-coded, need fix
+             ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
+             ${python} pyscripts/text/post_processing.py \
+               --word_boundary "${postprocess_word_boundary}" \
+               --sil_prob ${postprocess_sil_prob} \
+               --sil_token ${postprocess_sil_token} \
+               --input_text "${split_dir}/JOB/unpaired_text_nosil" \
+               --output_text "${split_dir}/JOB/unpaired_text" \
+               --reduce_vocab true
 
-#            ${python} pyscripts/text/combine_text_and_vocab.py \
-#                    --split_dir ${split_dir} \
-#                    --num_splits ${nj} \
-#                    --output_dir "${data_feats}/${train_set}" \
-#                    --text_file "unpaired_text" \
-#                    --vocab_file "tokens.txt" \
-#                    --add_symbol "<blank>" \
-#                    --add_symbol "<s>" \
-#                    --add_symbol "<pad>" \
-#                    --add_symbol "</s>" \
-#                    --add_symbol "<unk>" \
-#                    --add_symbol "${postprocess_sil_token}"
+            ${python} pyscripts/text/combine_text_and_vocab.py \
+                    --split_dir ${split_dir} \
+                    --num_splits ${nj} \
+                    --output_dir "${data_feats}/${train_set}" \
+                    --text_file "unpaired_text" \
+                    --vocab_file "tokens.txt" \
+                    --add_symbol "<blank>" \
+                    --add_symbol "<s>" \
+                    --add_symbol "<pad>" \
+                    --add_symbol "</s>" \
+                    --add_symbol "<unk>" \
+                    --add_symbol "${postprocess_sil_token}"
 
             # Note(Dongji): for dev text we keep utterance ids to compute PER
             log "Tokenizing ${lm_dev_text}"
@@ -972,7 +972,7 @@ if ! "${skip_train}"; then
             fi
 
             # shellcheck disable=SC2086
-            ${python} -m espnet3.bin.launch \
+            ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
                 --log "${lm_exp}"/train.log \
                 --ngpu "${ngpu}" \
