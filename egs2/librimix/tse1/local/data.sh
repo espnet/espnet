@@ -69,7 +69,7 @@ trap 'rm -rf ${tmpdir}' EXIT
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: LibriMix Data Simulation"
 
-    local/librimix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate}
+    local/librimix_data.sh --min_or_max ${min_or_max} --sample_rate ${sample_rate} --num_spk ${num_spk}
 fi
 
 
