@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="StatelessDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder">[docs]</a><span class="k">class</span> <span class="nc">StatelessDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Stateless Transducer decoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stateless Transducer decoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        vocab_size: Output size.</span>
@@ -197,7 +197,7 @@
         <span class="n">embed_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">embed_pad</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a StatelessDecoder object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a StatelessDecoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -216,7 +216,7 @@
         <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            labels: Label ID sequences. (B, L)</span>
@@ -236,7 +236,7 @@
         <span class="n">label_sequence</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">state</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            label: Previous label. (1, 1)</span>
@@ -263,7 +263,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses.</span>
@@ -279,7 +279,7 @@
         <span class="k">return</span> <span class="n">dec_embed</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="StatelessDecoder.set_device"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.set_device">[docs]</a>    <span class="k">def</span> <span class="nf">set_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            device: Device ID.</span>
@@ -288,7 +288,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span></div>
 
 <div class="viewcode-block" id="StatelessDecoder.init_state"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.init_state">[docs]</a>    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch_size: Batch size.</span>
@@ -300,7 +300,7 @@
         <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="StatelessDecoder.select_state"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.select_state">[docs]</a>    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get specified ID state from decoder hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get specified ID state from decoder hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            states: Decoder hidden states. None</span>

@@ -177,16 +177,16 @@
 
 
 <div class="viewcode-block" id="ASRInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface">[docs]</a><span class="k">class</span> <span class="nc">ASRInterface</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;ASR Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ASR Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ASRInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments to parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments to parser.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="ASRInterface.build"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.build">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): The number of an input feature dim.</span>
@@ -206,7 +206,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute loss for training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute loss for training.</span>
 
 <span class="sd">        :param xs:</span>
 <span class="sd">            For pytorch, batch of padded source sequences torch.Tensor (B, Tmax, idim)</span>
@@ -223,7 +223,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;forward method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.recognize"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Recognize x for evaluation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize x for evaluation.</span>
 
 <span class="sd">        :param ndarray x: input acouctic feature (B, T, D) or (T, D)</span>
 <span class="sd">        :param namespace recog_args: argment namespace contraining options</span>
@@ -235,7 +235,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;recognize method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.recognize_batch"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.recognize_batch">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Beam search implementation for batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Beam search implementation for batch.</span>
 
 <span class="sd">        :param torch.Tensor x: encoder hidden state sequences (B, Tmax, Henc)</span>
 <span class="sd">        :param namespace recog_args: argument namespace containing options</span>
@@ -247,7 +247,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Batch decoding is not supported yet.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.calculate_all_attentions"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate attention.</span>
 
 <span class="sd">        :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]</span>
 <span class="sd">        :param ndarray ilens: batch of lengths of input sequences (B)</span>
@@ -258,7 +258,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;calculate_all_attentions method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.calculate_all_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.calculate_all_ctc_probs">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate CTC probability.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate CTC probability.</span>
 
 <span class="sd">        :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]</span>
 <span class="sd">        :param ndarray ilens: batch of lengths of input sequences (B)</span>
@@ -270,26 +270,26 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get attention plot class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get attention plot class.&quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
 
         <span class="k">return</span> <span class="n">PlotAttentionReport</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ctc_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get CTC plot class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get CTC plot class.&quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">PlotCTCReport</span>
 
         <span class="k">return</span> <span class="n">PlotCTCReport</span>
 
 <div class="viewcode-block" id="ASRInterface.get_total_subsampling_factor"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;get_total_subsampling_factor method is not implemented&quot;</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.encode"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feat</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode feature in `beam_search` (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode feature in `beam_search` (optional).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (numpy.ndarray): input feature (T, D)</span>
@@ -301,7 +301,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;encode method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ASRInterface.scorers"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.ASRInterface.scorers">[docs]</a>    <span class="k">def</span> <span class="nf">scorers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get scorers for `beam_search` (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get scorers for `beam_search` (optional).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            dict[str, ScorerInterface]: dict of `ScorerInterface` objects</span>
@@ -325,7 +325,7 @@
 
 
 <div class="viewcode-block" id="dynamic_import_asr"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.asr_interface.dynamic_import_asr">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_asr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Import ASR models dynamically.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import ASR models dynamically.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        module (str): module_name:class_name or alias in `predefined_asr`</span>

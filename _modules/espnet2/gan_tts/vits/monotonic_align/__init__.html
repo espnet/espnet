@@ -194,7 +194,7 @@
 
 
 <div class="viewcode-block" id="maximum_path"><a class="viewcode-back" href="../../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path">[docs]</a><span class="k">def</span> <span class="nf">maximum_path</span><span class="p">(</span><span class="n">neg_x_ent</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">attn_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Calculate maximum path.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate maximum path.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        neg_x_ent (Tensor): Negative X entropy tensor (B, T_feats, T_text).</span>
@@ -219,7 +219,7 @@
 
 <div class="viewcode-block" id="maximum_path_each_numba"><a class="viewcode-back" href="../../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_each_numba">[docs]</a><span class="nd">@njit</span>
 <span class="k">def</span> <span class="nf">maximum_path_each_numba</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">t_y</span><span class="p">,</span> <span class="n">t_x</span><span class="p">,</span> <span class="n">max_neg_val</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate a single maximum path with numba.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate a single maximum path with numba.&quot;&quot;&quot;</span>
     <span class="n">index</span> <span class="o">=</span> <span class="n">t_x</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">t_y</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t_x</span> <span class="o">+</span> <span class="n">y</span> <span class="o">-</span> <span class="n">t_y</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">t_x</span><span class="p">,</span> <span class="n">y</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
@@ -244,7 +244,7 @@
 
 <div class="viewcode-block" id="maximum_path_numba"><a class="viewcode-back" href="../../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_numba">[docs]</a><span class="nd">@njit</span><span class="p">(</span><span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">maximum_path_numba</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">t_ys</span><span class="p">,</span> <span class="n">t_xs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate batch maximum path with numba.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate batch maximum path with numba.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">prange</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="n">maximum_path_each_numba</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">t_ys</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">t_xs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span></div>
 </pre></div>

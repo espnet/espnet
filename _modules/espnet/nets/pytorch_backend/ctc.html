@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="CTC"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC">[docs]</a><span class="k">class</span> <span class="nc">CTC</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CTC module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CTC module</span>
 
 <span class="sd">    :param int odim: dimension of outputs</span>
 <span class="sd">    :param int eprojs: number of encoder projection units</span>
@@ -241,7 +241,7 @@
             <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="CTC.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;CTC forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;CTC forward</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)</span>
 <span class="sd">        :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)</span>
@@ -303,7 +303,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
 
 <div class="viewcode-block" id="CTC.softmax"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC.softmax">[docs]</a>    <span class="k">def</span> <span class="nf">softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;softmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;softmax of frame activations</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>
 <span class="sd">        :return: log softmax applied 3d tensor (B, Tmax, odim)</span>
@@ -313,7 +313,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">probs</span></div>
 
 <div class="viewcode-block" id="CTC.log_softmax"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC.log_softmax">[docs]</a>    <span class="k">def</span> <span class="nf">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;log_softmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;log_softmax of frame activations</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>
 <span class="sd">        :return: log softmax applied 3d tensor (B, Tmax, odim)</span>
@@ -322,7 +322,7 @@
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTC.argmax"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;argmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;argmax of frame activations</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>
 <span class="sd">        :return: argmax applied 2d tensor (B, Tmax)</span>
@@ -331,7 +331,7 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTC.forced_align"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC.forced_align">[docs]</a>    <span class="k">def</span> <span class="nf">forced_align</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">blank_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;forced alignment.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;forced alignment.</span>
 
 <span class="sd">        :param torch.Tensor h: hidden state sequence, 2d tensor (T, D)</span>
 <span class="sd">        :param torch.Tensor y: id sequence tensor 1d tensor (L)</span>
@@ -341,7 +341,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">def</span> <span class="nf">interpolate_blank</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">blank_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Insert blank token between every two label token.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Insert blank token between every two label token.&quot;&quot;&quot;</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">blanks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">label</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">+</span> <span class="n">blank_id</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">blanks</span><span class="p">,</span> <span class="n">label</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -397,7 +397,7 @@
 
 
 <div class="viewcode-block" id="ctc_for"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.ctc.ctc_for">[docs]</a><span class="k">def</span> <span class="nf">ctc_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the CTC module for the given args and output dimension</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the CTC module for the given args and output dimension</span>
 
 <span class="sd">    :param Namespace args: the program args</span>
 <span class="sd">    :param int odim : The output dimension</span>

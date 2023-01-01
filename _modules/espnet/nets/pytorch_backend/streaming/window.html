@@ -174,7 +174,7 @@
 <span class="c1"># TODO(pzelasko): Currently allows half-streaming only;</span>
 <span class="c1">#  needs streaming attention decoder implementation</span>
 <div class="viewcode-block" id="WindowStreamingE2E"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.streaming.window.WindowStreamingE2E">[docs]</a><span class="k">class</span> <span class="nc">WindowStreamingE2E</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;WindowStreamingE2E constructor.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;WindowStreamingE2E constructor.</span>
 
 <span class="sd">    :param E2E e2e: E2E ASR object</span>
 <span class="sd">    :param recog_args: arguments for &quot;recognize&quot; method of E2E</span>
@@ -199,7 +199,7 @@
         <span class="p">),</span> <span class="s2">&quot;WindowStreamingE2E works only with combined CTC and attention decoders.&quot;</span>
 
 <div class="viewcode-block" id="WindowStreamingE2E.accept_input"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.streaming.window.WindowStreamingE2E.accept_input">[docs]</a>    <span class="k">def</span> <span class="nf">accept_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Call this method each time a new batch of input is available.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Call this method each time a new batch of input is available.&quot;&quot;&quot;</span>
 
         <span class="n">h</span><span class="p">,</span> <span class="n">ilen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_e2e</span><span class="o">.</span><span class="n">subsample_frames</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
@@ -236,7 +236,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="WindowStreamingE2E.decode_with_attention_offline"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.streaming.window.WindowStreamingE2E.decode_with_attention_offline">[docs]</a>    <span class="k">def</span> <span class="nf">decode_with_attention_offline</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Run the attention decoder offline.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the attention decoder offline.</span>
 
 <span class="sd">        Works even if the previous layers (encoder and CTC decoder) were</span>
 <span class="sd">        being run in the online mode.</span>

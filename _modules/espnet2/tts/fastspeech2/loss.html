@@ -185,10 +185,10 @@
 
 
 <div class="viewcode-block" id="FastSpeech2Loss"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.loss.FastSpeech2Loss">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for FastSpeech2.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for FastSpeech2.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            use_masking (bool): Whether to apply masking for padded part in loss</span>
@@ -224,7 +224,7 @@
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">olens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).</span>

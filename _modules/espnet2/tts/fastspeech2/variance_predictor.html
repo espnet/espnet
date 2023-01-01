@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="VariancePredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.variance_predictor.VariancePredictor">[docs]</a><span class="k">class</span> <span class="nc">VariancePredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Variance predictor module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Variance predictor module.</span>
 
 <span class="sd">    This is a module of variacne predictor described in `FastSpeech 2:</span>
 <span class="sd">    Fast and High-Quality End-to-End Text to Speech`_.</span>
@@ -201,7 +201,7 @@
         <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize duration predictor module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize duration predictor module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Input dimension.</span>
@@ -234,7 +234,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">n_chans</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VariancePredictor.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.variance_predictor.VariancePredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of input sequences (B, Tmax, idim).</span>

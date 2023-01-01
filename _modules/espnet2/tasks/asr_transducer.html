@@ -242,7 +242,7 @@
 
 
 <div class="viewcode-block" id="ASRTransducerTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask">[docs]</a><span class="k">class</span> <span class="nc">ASRTransducerTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ASR Transducer Task definition.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ASR Transducer Task definition.&quot;&quot;&quot;</span>
 
     <span class="n">num_optimizers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
 
@@ -257,7 +257,7 @@
 
 <div class="viewcode-block" id="ASRTransducerTask.add_task_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.add_task_arguments">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_task_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add Transducer task arguments.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add Transducer task arguments.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -395,7 +395,7 @@
         <span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Build collate function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build collate function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -414,7 +414,7 @@
     <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
-        <span class="sd">&quot;&quot;&quot;Build pre-processing function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build pre-processing function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -461,7 +461,7 @@
     <span class="k">def</span> <span class="nf">required_data_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Required data depending on task mode.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Required data depending on task mode.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -483,7 +483,7 @@
     <span class="k">def</span> <span class="nf">optional_data_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Optional data depending on task mode.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optional data depending on task mode.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -501,7 +501,7 @@
 
 <div class="viewcode-block" id="ASRTransducerTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ESPnetASRTransducerModel</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Required data depending on task mode.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Required data depending on task mode.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cls: ASRTransducerTask object.</span>
@@ -524,7 +524,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;token_list must be str or list&quot;</span><span class="p">)</span>
         <span class="n">vocab_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vocabulary size: </span><span class="si">{</span><span class="n">vocab_size</span> <span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vocabulary size: </span><span class="si">{</span><span class="n">vocab_size</span><span class="w"> </span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># 1. frontend</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">input_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

@@ -193,7 +193,7 @@
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">norm_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Temporal Convolution Separator</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Temporal Convolution Separator</span>
 
 <span class="sd">        Note that this separator is equivalent to TCNSeparator except</span>
 <span class="sd">        for not having the mask estimation part.</span>
@@ -230,7 +230,7 @@
 <div class="viewcode-block" id="TCNSeparatorNomask.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.separator.tcn_separator_nomask.TCNSeparatorNomask.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]</span>

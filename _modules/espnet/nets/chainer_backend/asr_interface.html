@@ -175,25 +175,25 @@
 
 
 <div class="viewcode-block" id="ChainerASRInterface"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.asr_interface.ChainerASRInterface">[docs]</a><span class="k">class</span> <span class="nc">ChainerASRInterface</span><span class="p">(</span><span class="n">ASRInterface</span><span class="p">,</span> <span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ASR Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ASR Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ChainerASRInterface.custom_converter"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.asr_interface.ChainerASRInterface.custom_converter">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_converter</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get customconverter of the model (Chainer only).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get customconverter of the model (Chainer only).&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;custom converter method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ChainerASRInterface.custom_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.asr_interface.ChainerASRInterface.custom_updater">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_updater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get custom_updater of the model (Chainer only).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get custom_updater of the model (Chainer only).&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;custom updater method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ChainerASRInterface.custom_parallel_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.asr_interface.ChainerASRInterface.custom_parallel_updater">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_parallel_updater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get custom_parallel_updater of the model (Chainer only).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get custom_parallel_updater of the model (Chainer only).&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;custom parallel updater method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ChainerASRInterface.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.asr_interface.ChainerASRInterface.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;get_total_subsampling_factor method is not implemented&quot;</span>
         <span class="p">)</span></div></div>

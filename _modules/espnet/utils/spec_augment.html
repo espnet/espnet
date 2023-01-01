@@ -204,7 +204,7 @@
 <div class="viewcode-block" id="specaug"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.specaug">[docs]</a><span class="k">def</span> <span class="nf">specaug</span><span class="p">(</span>
     <span class="n">spec</span><span class="p">,</span> <span class="n">W</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">num_freq_masks</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_time_masks</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;SpecAugment</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;SpecAugment</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">        SpecAugment: A Simple Data Augmentation Method for Automatic Speech Recognition</span>
@@ -235,7 +235,7 @@
 
 
 <div class="viewcode-block" id="time_warp"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.time_warp">[docs]</a><span class="k">def</span> <span class="nf">time_warp</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">W</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Time warping</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time warping</span>
 
 <span class="sd">    :param torch.Tensor spec: input tensor with shape (T, dim)</span>
 <span class="sd">    :param int W: time warp parameter</span>
@@ -263,7 +263,7 @@
 
 
 <div class="viewcode-block" id="freq_mask"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.freq_mask">[docs]</a><span class="k">def</span> <span class="nf">freq_mask</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">num_masks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Frequency masking</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Frequency masking</span>
 
 <span class="sd">    :param torch.Tensor spec: input tensor with shape (T, dim)</span>
 <span class="sd">    :param int F: maximum width of each mask</span>
@@ -291,7 +291,7 @@
 
 
 <div class="viewcode-block" id="time_mask"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.time_mask">[docs]</a><span class="k">def</span> <span class="nf">time_mask</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">num_masks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Time masking</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time masking</span>
 
 <span class="sd">    :param torch.Tensor spec: input tensor with shape (T, dim)</span>
 <span class="sd">    :param int T: maximum width of each mask</span>
@@ -430,7 +430,7 @@
 
 
 <div class="viewcode-block" id="cross_squared_distance_matrix"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.cross_squared_distance_matrix">[docs]</a><span class="k">def</span> <span class="nf">cross_squared_distance_matrix</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Pairwise squared distance between two (batch) matrices&#39; rows (2nd dim).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pairwise squared distance between two (batch) matrices&#39; rows (2nd dim).</span>
 
 <span class="sd">    Computes the pairwise distances between rows of x and rows of y</span>
 <span class="sd">    Args:</span>
@@ -452,7 +452,7 @@
 
 
 <div class="viewcode-block" id="phi"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.phi">[docs]</a><span class="k">def</span> <span class="nf">phi</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Coordinate-wise nonlinearity used to define the order of the interpolation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coordinate-wise nonlinearity used to define the order of the interpolation.</span>
 
 <span class="sd">    See https://en.wikipedia.org/wiki/Polyharmonic_spline for the definition.</span>
 <span class="sd">    Args:</span>
@@ -481,7 +481,7 @@
 
 
 <div class="viewcode-block" id="apply_interpolation"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.apply_interpolation">[docs]</a><span class="k">def</span> <span class="nf">apply_interpolation</span><span class="p">(</span><span class="n">query_points</span><span class="p">,</span> <span class="n">train_points</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply polyharmonic interpolation model to data.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply polyharmonic interpolation model to data.</span>
 
 <span class="sd">    Notes:</span>
 <span class="sd">        Given coefficients w and v for the interpolation model, we evaluate</span>
@@ -517,7 +517,7 @@
 
 
 <div class="viewcode-block" id="dense_image_warp"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.dense_image_warp">[docs]</a><span class="k">def</span> <span class="nf">dense_image_warp</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">flow</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Image warping using per-pixel flow vectors.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Image warping using per-pixel flow vectors.</span>
 
 <span class="sd">    Apply a non-linear warp to the image, where the warp is specified by a dense</span>
 <span class="sd">    flow field of offset vectors that define the correspondences of pixel values</span>
@@ -570,7 +570,7 @@
 <div class="viewcode-block" id="interpolate_bilinear"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.spec_augment.interpolate_bilinear">[docs]</a><span class="k">def</span> <span class="nf">interpolate_bilinear</span><span class="p">(</span>
     <span class="n">grid</span><span class="p">,</span> <span class="n">query_points</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;interpolate_bilinear&quot;</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">&quot;ij&quot;</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Similar to Matlab&#39;s interp2 function.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Similar to Matlab&#39;s interp2 function.</span>
 
 <span class="sd">    Notes:</span>
 <span class="sd">        Finds values for query points on a grid using bilinear interpolation.</span>

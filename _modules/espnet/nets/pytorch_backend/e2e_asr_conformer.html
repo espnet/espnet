@@ -189,7 +189,7 @@
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_conformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">E2ETransformer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E module.</span>
 
 <span class="sd">    :param int idim: dimension of inputs</span>
 <span class="sd">    :param int odim: dimension of outputs</span>
@@ -199,20 +199,20 @@
 
 <div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_conformer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
         <span class="n">E2ETransformer</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">E2E</span><span class="o">.</span><span class="n">add_conformer_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="E2E.add_conformer_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_conformer.E2E.add_conformer_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_conformer_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for conformer model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for conformer model.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;conformer model specific setting&quot;</span><span class="p">)</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">add_arguments_conformer_common</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
 
 <span class="sd">        :param int idim: dimension of inputs</span>
 <span class="sd">        :param int odim: dimension of outputs</span>

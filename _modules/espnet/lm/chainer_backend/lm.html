@@ -214,7 +214,7 @@
 
 <span class="c1"># TODO(karita): reimplement RNNLM with new interface</span>
 <div class="viewcode-block" id="DefaultRNNLM"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.DefaultRNNLM">[docs]</a><span class="k">class</span> <span class="nc">DefaultRNNLM</span><span class="p">(</span><span class="n">LMInterface</span><span class="p">,</span> <span class="n">link</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Default RNNLM wrapper to compute reduce framewise loss values.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default RNNLM wrapper to compute reduce framewise loss values.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        n_vocab (int): The size of the vocabulary</span>
@@ -241,7 +241,7 @@
 
 
 <div class="viewcode-block" id="ClassifierWithState"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.ClassifierWithState">[docs]</a><span class="k">class</span> <span class="nc">ClassifierWithState</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A wrapper for a chainer RNNLM</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A wrapper for a chainer RNNLM</span>
 
 <span class="sd">    :param link.Chain predictor : The RNNLM</span>
 <span class="sd">    :param function lossfun: The loss function to use</span>
@@ -267,7 +267,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">predictor</span> <span class="o">=</span> <span class="n">predictor</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the loss value for an input and label pair.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes the loss value for an input and label pair.</span>
 
 <span class="sd">            It also computes accuracy and stores it to the attribute.</span>
 <span class="sd">            When ``label_key`` is ``int``, the corresponding element in ``args``</span>
@@ -308,7 +308,7 @@
         <span class="k">return</span> <span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span>
 
 <div class="viewcode-block" id="ClassifierWithState.predict"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.ClassifierWithState.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Predict log probabilities for given state and input x using the predictor</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict log probabilities for given state and input x using the predictor</span>
 
 <span class="sd">        :param state : the state</span>
 <span class="sd">        :param x : the input</span>
@@ -322,7 +322,7 @@
             <span class="k">return</span> <span class="n">state</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">.</span><span class="n">data</span></div>
 
 <div class="viewcode-block" id="ClassifierWithState.final"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.ClassifierWithState.final">[docs]</a>    <span class="k">def</span> <span class="nf">final</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Predict final log probabilities for given state using the predictor</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict final log probabilities for given state using the predictor</span>
 
 <span class="sd">        :param state : the state</span>
 <span class="sd">        :return log probability vector</span>
@@ -337,7 +337,7 @@
 
 <span class="c1"># Definition of a recurrent net for language modeling</span>
 <div class="viewcode-block" id="RNNLM"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.RNNLM">[docs]</a><span class="k">class</span> <span class="nc">RNNLM</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A chainer RNNLM</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A chainer RNNLM</span>
 
 <span class="sd">    :param int n_vocab: The size of the vocabulary</span>
 <span class="sd">    :param int n_layers: The number of layers to create</span>
@@ -407,7 +407,7 @@
 
 
 <div class="viewcode-block" id="BPTTUpdater"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.BPTTUpdater">[docs]</a><span class="k">class</span> <span class="nc">BPTTUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">updaters</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;An updater for a chainer LM</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An updater for a chainer LM</span>
 
 <span class="sd">    :param chainer.dataset.Iterator train_iter : The train iterator</span>
 <span class="sd">    :param optimizer:</span>
@@ -464,7 +464,7 @@
 
 
 <div class="viewcode-block" id="LMEvaluator"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.LMEvaluator">[docs]</a><span class="k">class</span> <span class="nc">LMEvaluator</span><span class="p">(</span><span class="n">BaseEvaluator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A custom evaluator for a chainer LM</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A custom evaluator for a chainer LM</span>
 
 <span class="sd">    :param chainer.dataset.Iterator val_iter : The validation iterator</span>
 <span class="sd">    :param eval_model : The model to evaluate</span>
@@ -496,7 +496,7 @@
 
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train with the given args</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train with the given args</span>
 
 <span class="sd">    :param Namespace args: The program arguments</span>
 <span class="sd">    &quot;&quot;&quot;</span>

@@ -203,7 +203,7 @@
 
 
 <div class="viewcode-block" id="HubertPretrainModel"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.HubertPretrainModel">[docs]</a><span class="k">class</span> <span class="nc">HubertPretrainModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Hubert Pretrain model&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hubert Pretrain model&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -264,7 +264,7 @@
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Calc loss</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Calc loss</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -323,7 +323,7 @@
         <span class="n">y_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">y_pad_length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>

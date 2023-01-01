@@ -176,11 +176,11 @@
 
 
 <div class="viewcode-block" id="OptimizerFactoryInterface"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.factory.OptimizerFactoryInterface">[docs]</a><span class="k">class</span> <span class="nc">OptimizerFactoryInterface</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Optimizer adaptor.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Optimizer adaptor.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="OptimizerFactoryInterface.from_args"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.factory.OptimizerFactoryInterface.from_args">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_args</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target: for pytorch `model.parameters()`,</span>
@@ -192,12 +192,12 @@
 
 <div class="viewcode-block" id="OptimizerFactoryInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.factory.OptimizerFactoryInterface.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="OptimizerFactoryInterface.build"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.factory.OptimizerFactoryInterface.build">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize optimizer with python-level args.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize optimizer with python-level args.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target: for pytorch `model.parameters()`,</span>
@@ -213,7 +213,7 @@
 
 
 <div class="viewcode-block" id="dynamic_import_optimizer"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.factory.dynamic_import_optimizer">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_optimizer</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OptimizerFactoryInterface</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Import optimizer class dynamically.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import optimizer class dynamically.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        name (str): alias name or dynamic import syntax `module:class`</span>

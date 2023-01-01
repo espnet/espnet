@@ -205,7 +205,7 @@
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">ChainerASRInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimmensions.</span>
@@ -219,7 +219,7 @@
 
 <div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Customize flags for transformer setup.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Customize flags for transformer setup.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            parser (Namespace): Training config.</span>
@@ -308,11 +308,11 @@
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">))</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">flag_return</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the transformer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the transformer.&quot;&quot;&quot;</span>
         <span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span>
         <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;mtlalpha must be [0,1]&quot;</span>
@@ -378,7 +378,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span>
 
 <div class="viewcode-block" id="E2E.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the Weight according to the give initialize-type.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the Weight according to the give initialize-type.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            args (Namespace): Transformer config.</span>
@@ -412,7 +412,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">initialB</span> <span class="o">=</span> <span class="n">chainer</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">Uniform</span></div>
 
 <div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">calculate_attentions</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)</span>
@@ -505,11 +505,11 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.calculate_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate Attentions.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate Attentions.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_block</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E recognition function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E recognition function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (ndarray): Input acouctic feature (B, T, D) or (T, D).</span>
@@ -541,7 +541,7 @@
         <span class="k">return</span> <span class="n">y</span></div>
 
 <div class="viewcode-block" id="E2E.recognize_beam"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.recognize_beam">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_beam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            h (ndarray): Encoder output features (B, T, D) or (T, D).</span>
@@ -734,7 +734,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (List[tuple()]): List of padded input sequences.</span>
@@ -759,7 +759,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Attention plot function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attention plot function.</span>
 
 <span class="sd">        Redirects to PlotAttentionReport</span>
 
@@ -771,19 +771,19 @@
 
 <div class="viewcode-block" id="E2E.custom_converter"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_converter">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_converter</span><span class="p">(</span><span class="n">subsampling_factor</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get customconverter of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get customconverter of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">CustomConverter</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="E2E.custom_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_updater">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_updater</span><span class="p">(</span><span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get custom_updater of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get custom_updater of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">CustomUpdater</span><span class="p">(</span>
             <span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="n">accum_grad</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="E2E.custom_parallel_updater"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.e2e_asr_transformer.E2E.custom_parallel_updater">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">custom_parallel_updater</span><span class="p">(</span><span class="n">iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">devices</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get custom_parallel_updater of the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get custom_parallel_updater of the model.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">CustomParallelUpdater</span><span class="p">(</span>
             <span class="n">iters</span><span class="p">,</span>
             <span class="n">optimizer</span><span class="p">,</span>

@@ -186,7 +186,7 @@
     <span class="n">btaps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
     <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Prepare necessary statistics for constructing the specified beamformer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare necessary statistics for constructing the specified beamformer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        signal (torch.complex64): (..., F, C, T)</span>
@@ -332,7 +332,7 @@
     <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the relative transfer function (RTF).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the relative transfer function (RTF).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        psd_speech (torch.complex64):</span>
@@ -371,7 +371,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the MVDR (Minimum Variance Distortionless Response) vector:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the MVDR (Minimum Variance Distortionless Response) vector:</span>
 
 <span class="sd">        h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u</span>
 
@@ -412,7 +412,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the MVDR (Minimum Variance Distortionless Response) vector</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the MVDR (Minimum Variance Distortionless Response) vector</span>
 <span class="sd">        calculated with RTF:</span>
 
 <span class="sd">        h = (Npsd^-1 @ rtf) / (rtf^H @ Npsd^-1 @ rtf)</span>
@@ -472,7 +472,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the MWF (Minimum Multi-channel Wiener Filter) vector:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the MWF (Minimum Multi-channel Wiener Filter) vector:</span>
 
 <span class="sd">        h = (Npsd^-1 @ Spsd) @ u</span>
 
@@ -513,7 +513,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter) vector</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter) vector</span>
 
 <span class="sd">        h = (Spsd + mu * Npsd)^-1 @ Spsd @ u</span>
 
@@ -595,7 +595,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the R1-MWF (Rank-1 Multi-channel Wiener Filter) vector</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the R1-MWF (Rank-1 Multi-channel Wiener Filter) vector</span>
 
 <span class="sd">        h = (Npsd^-1 @ Spsd) / (mu + Tr(Npsd^-1 @ Spsd)) @ u</span>
 
@@ -673,7 +673,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the RTF matrix with each column the relative transfer function</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the RTF matrix with each column the relative transfer function</span>
 <span class="sd">    of the corresponding source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_noises</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
@@ -703,7 +703,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the LCMV (Linearly Constrained Minimum Variance) vector</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the LCMV (Linearly Constrained Minimum Variance) vector</span>
 <span class="sd">        calculated with RTF:</span>
 
 <span class="sd">        h = (Npsd^-1 @ rtf_mat) @ (rtf_mat^H @ Npsd^-1 @ rtf_mat)^-1 @ p</span>
@@ -739,7 +739,7 @@
 
 
 <div class="viewcode-block" id="generalized_eigenvalue_decomposition"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer_th.generalized_eigenvalue_decomposition">[docs]</a><span class="k">def</span> <span class="nf">generalized_eigenvalue_decomposition</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Solves the generalized eigenvalue decomposition through Cholesky decomposition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solves the generalized eigenvalue decomposition through Cholesky decomposition.</span>
 
 <span class="sd">    ported from https://github.com/asteroid-team/asteroid/blob/master/asteroid/dsp/beamforming.py#L464</span>
 
@@ -779,7 +779,7 @@
 
 
 <div class="viewcode-block" id="gev_phase_correction"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer_th.gev_phase_correction">[docs]</a><span class="k">def</span> <span class="nf">gev_phase_correction</span><span class="p">(</span><span class="n">vector</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Phase correction to reduce distortions due to phase inconsistencies.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Phase correction to reduce distortions due to phase inconsistencies.</span>
 
 <span class="sd">    ported from https://github.com/fgnt/nn-gev/blob/master/fgnt/beamforming.py#L169</span>
 
@@ -801,7 +801,7 @@
 
 
 <div class="viewcode-block" id="blind_analytic_normalization"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer_th.blind_analytic_normalization">[docs]</a><span class="k">def</span> <span class="nf">blind_analytic_normalization</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Blind analytic normalization (BAN) for post-filtering</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Blind analytic normalization (BAN) for post-filtering</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ws (torch.complex64): beamformer vector (..., F, C)</span>
@@ -829,7 +829,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the generalized eigenvalue (GEV) beamformer vector:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the generalized eigenvalue (GEV) beamformer vector:</span>
 
 <span class="sd">        psd_speech @ h = lambda * psd_noise @ h</span>
 
@@ -904,7 +904,7 @@
     <span class="n">pad_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">indices</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Expand `signal` into several frames, with each frame of length `frame_length`.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Expand `signal` into several frames, with each frame of length `frame_length`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        signal : (..., T)</span>
@@ -973,7 +973,7 @@
     <span class="n">btaps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">get_vector</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Calculates the power normalized spatio-temporal covariance</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculates the power normalized spatio-temporal covariance</span>
 <span class="sd">        matrix of the framed signal.</span>
 
 <span class="sd">    Args:</span>
@@ -1028,7 +1028,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the WPD vector.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the WPD vector.</span>
 
 <span class="sd">        WPD is the Weighted Power minimization Distortionless response</span>
 <span class="sd">        convolutional beamformer. As follows:</span>
@@ -1082,7 +1082,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the WPD vector (v2).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the WPD vector (v2).</span>
 
 <span class="sd">       This implementation is more efficient than `get_WPD_filter` as</span>
 <span class="sd">        it skips unnecessary computation with zeros.</span>
@@ -1132,7 +1132,7 @@
     <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-15</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the WPD vector calculated with RTF.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the WPD vector calculated with RTF.</span>
 
 <span class="sd">        WPD is the Weighted Power minimization Distortionless response</span>
 <span class="sd">        convolutional beamformer. As follows:</span>
@@ -1200,7 +1200,7 @@
     <span class="n">bdelay</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">btaps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Perform WPD filtering.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform WPD filtering.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        filter_matrix: Filter matrix (B, F, (btaps + 1) * C)</span>
@@ -1222,7 +1222,7 @@
 
 
 <div class="viewcode-block" id="tik_reg"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer_th.tik_reg">[docs]</a><span class="k">def</span> <span class="nf">tik_reg</span><span class="p">(</span><span class="n">mat</span><span class="p">,</span> <span class="n">reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform Tikhonov regularization (only modifying real part).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform Tikhonov regularization (only modifying real part).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        mat (torch.complex64): input matrix (..., C, C)</span>

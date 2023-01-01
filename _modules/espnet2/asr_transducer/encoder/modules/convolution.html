@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="ConformerConvolution"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConformerConvolution">[docs]</a><span class="k">class</span> <span class="nc">ConformerConvolution</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ConformerConvolution module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ConformerConvolution module definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        channels: The number of channels.</span>
@@ -195,7 +195,7 @@
         <span class="n">norm_args</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct an ConformerConvolution object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an ConformerConvolution object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
@@ -243,7 +243,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Compute convolution module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute convolution module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: ConformerConvolution input sequences. (B, T, D_hidden)</span>
@@ -281,7 +281,7 @@
 
 
 <div class="viewcode-block" id="ConvolutionalSpatialGatingUnit"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.convolution.ConvolutionalSpatialGatingUnit">[docs]</a><span class="k">class</span> <span class="nc">ConvolutionalSpatialGatingUnit</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional Spatial Gating Unit module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional Spatial Gating Unit module definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        size: Initial size to determine the number of channels.</span>
@@ -302,7 +302,7 @@
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a ConvolutionalSpatialGatingUnit object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a ConvolutionalSpatialGatingUnit object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">channels</span> <span class="o">=</span> <span class="n">size</span> <span class="o">//</span> <span class="mi">2</span>
@@ -336,7 +336,7 @@
         <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Compute convolution module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute convolution module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: ConvolutionalSpatialGatingUnit input sequences. (B, T, D_hidden)</span>

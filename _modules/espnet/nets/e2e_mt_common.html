@@ -181,7 +181,7 @@
 
 
 <div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_mt_common.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate BLEU for ST and MT models during training.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate BLEU for ST and MT models during training.</span>
 
 <span class="sd">    :param y_hats: numpy array with predicted text</span>
 <span class="sd">    :param y_pads: numpy array with true (target) text</span>
@@ -192,7 +192,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_pad</span><span class="p">,</span> <span class="n">report_bleu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ErrorCalculator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span> <span class="o">=</span> <span class="n">char_list</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">sym_space</span>
@@ -204,7 +204,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate corpus-level BLEU score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate corpus-level BLEU score.</span>
 
 <span class="sd">        :param torch.Tensor ys_hat: prediction (batch, seqlen)</span>
 <span class="sd">        :param torch.Tensor ys_pad: reference (batch, seqlen)</span>
@@ -219,7 +219,7 @@
         <span class="k">return</span> <span class="n">bleu</span>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_corpus_bleu"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_mt_common.ErrorCalculator.calculate_corpus_bleu">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_corpus_bleu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate corpus-level BLEU score in a mini-batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate corpus-level BLEU score in a mini-batch.</span>
 
 <span class="sd">        :param torch.Tensor seqs_hat: prediction (batch, seqlen)</span>
 <span class="sd">        :param torch.Tensor seqs_true: reference (batch, seqlen)</span>

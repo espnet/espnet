@@ -180,7 +180,7 @@
     <span class="n">dst_state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="n">src_state</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Filter name, size mismatch instances between dicts.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter name, size mismatch instances between dicts.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        dst_state: reference state dict for filtering</span>
@@ -212,7 +212,7 @@
     <span class="n">ignore_init_mismatch</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">map_location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load a model state and set it to the model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a model state and set it to the model.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        init_param: &lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_Keys&gt;</span>
@@ -248,7 +248,7 @@
     <span class="k">else</span><span class="p">:</span>
 
         <span class="k">def</span> <span class="nf">get_attr</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Get an nested attribute.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Get an nested attribute.</span>
 
 <span class="sd">            &gt;&gt;&gt; class A(torch.nn.Module):</span>
 <span class="sd">            ...     def __init__(self):</span>

@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="time_warp"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.time_warp.time_warp">[docs]</a><span class="k">def</span> <span class="nf">time_warp</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_TIME_WARP_MODE</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Time warping using torch.interpolate.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time warping using torch.interpolate.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x: (Batch, Time, Freq)</span>
@@ -217,7 +217,7 @@
 
 
 <div class="viewcode-block" id="TimeWarp"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.time_warp.TimeWarp">[docs]</a><span class="k">class</span> <span class="nc">TimeWarp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Time warping using torch.interpolate.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time warping using torch.interpolate.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        window: time warp parameter</span>
@@ -233,7 +233,7 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;window=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="si">}</span><span class="s2">, mode=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&quot;</span></div>
 
 <div class="viewcode-block" id="TimeWarp.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.time_warp.TimeWarp.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: (Batch, Time, Freq)</span>

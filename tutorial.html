@@ -253,15 +253,15 @@
 <p>Move to an example directory under the <code class="docutils literal notranslate"><span class="pre">egs</span></code> directory.
 We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
 The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> egs/an4/asr1
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>egs/an4/asr1
 </pre></div>
 </div>
 <p>Once move to the directory, then, execute the following main script with a <strong>chainer</strong> backend:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --backend chainer
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--backend<span class="w"> </span>chainer
 </pre></div>
 </div>
 <p>or execute the following main script with a <strong>pytorch</strong> backend:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --backend pytorch
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--backend<span class="w"> </span>pytorch
 </pre></div>
 </div>
 <p>With this main script, you can perform a full procedure of ASR experiments including</p>
@@ -281,7 +281,7 @@ The following directory is an example of performing ASR experiment with the CMU 
 <section id="logging">
 <h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
 <p>The training progress (loss and accuracy for training and validation data) can be monitored with the following command</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ tail -f exp/<span class="si">${</span><span class="nv">expdir</span><span class="si">}</span>/train.log
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tail<span class="w"> </span>-f<span class="w"> </span>exp/<span class="si">${</span><span class="nv">expdir</span><span class="si">}</span>/train.log
 </pre></div>
 </div>
 <p>When we use <code class="docutils literal notranslate"><span class="pre">./run.sh</span> <span class="pre">--verbose</span> <span class="pre">0</span></code> (<code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">0</span></code> is default in most recipes), it gives you the following information</p>
@@ -302,7 +302,7 @@ The following directory is an example of performing ASR experiment with the CMU 
 </div>
 <p>Note that the an4 recipe uses <code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">1</span></code> as default since this recipe is often used for a debugging purpose.</p>
 <p>In addition <a class="reference external" href="https://www.tensorflow.org/guide/summaries_and_tensorboard">Tensorboard</a> events are automatically logged in the <code class="docutils literal notranslate"><span class="pre">tensorboard/${expname}</span></code> folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ tensorboard --logdir tensorboard
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tensorboard<span class="w"> </span>--logdir<span class="w"> </span>tensorboard
 </pre></div>
 </div>
 <p>and connecting to the given address (default : localhost:6006). This will provide the following information:
@@ -316,13 +316,13 @@ Note that we would not include the installation of Tensorboard to simplify our i
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
 <span class="c1"># run.sh</span>
 <span class="nv">ngpu</span><span class="o">=</span><span class="m">1</span>
-. utils/parse_options.sh
-<span class="nb">echo</span> <span class="si">${</span><span class="nv">ngpu</span><span class="si">}</span>
+.<span class="w"> </span>utils/parse_options.sh
+<span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">ngpu</span><span class="si">}</span>
 </pre></div>
 </div>
 <p>Then you can change the value as following:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ ./run.sh --ngpu <span class="m">2</span>
-<span class="nb">echo</span> <span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
+<span class="nb">echo</span><span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 </section>
@@ -331,18 +331,18 @@ Note that we would not include the installation of Tensorboard to simplify our i
 <ul>
 <li><p>Training:
 If you want to use GPUs in your experiment, please set <code class="docutils literal notranslate"><span class="pre">--ngpu</span></code> option in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> appropriately, e.g.,</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>  <span class="c1"># use single gpu</span>
-  $ ./run.sh --ngpu <span class="m">1</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1"># use single gpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">1</span>
 
-  <span class="c1"># use multi-gpu</span>
-  $ ./run.sh --ngpu <span class="m">3</span>
+<span class="w">  </span><span class="c1"># use multi-gpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">3</span>
 
-  <span class="c1"># if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows</span>
-  <span class="c1"># (Note that if you use slurm, this specification is not needed)</span>
-  $ <span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1,2 ./run.sh --ngpu <span class="m">3</span>
+<span class="w">  </span><span class="c1"># if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows</span>
+<span class="w">  </span><span class="c1"># (Note that if you use slurm, this specification is not needed)</span>
+<span class="w">  </span>$<span class="w"> </span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1,2<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">3</span>
 
-  <span class="c1"># use cpu</span>
-  $ ./run.sh --ngpu <span class="m">0</span>
+<span class="w">  </span><span class="c1"># use cpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">0</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -381,7 +381,7 @@ ESPnet also supports the GPU-based decoding for fast recognition.</p>
 from the specified stage if some stages are failed by some reason for example.</p>
 <p>You can start from specified stage as following and stop the process at the specified stage:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start from 3rd stage and stop at 5th stage</span>
-$ ./run.sh --stage <span class="m">3</span> --stop-stage <span class="m">5</span>
+$<span class="w"> </span>./run.sh<span class="w"> </span>--stage<span class="w"> </span><span class="m">3</span><span class="w"> </span>--stop-stage<span class="w"> </span><span class="m">5</span>
 </pre></div>
 </div>
 </section>
@@ -390,33 +390,33 @@ $ ./run.sh --stage <span class="m">3</span> --stop-stage <span class="m">5</span
 <p>ESPnet can easily switch the model’s training/decoding mode from CTC, attention, and hybrid CTC/attention.</p>
 <p>Each mode can be trained by specifying <code class="docutils literal notranslate"><span class="pre">mtlalpha</span></code> in the <a class="reference external" href="https://github.com/espnet/espnet/blob/7dc9da2f07c54b4b0e878d8ef219fcd4d16a5bec/doc/tutorial.md#changing-the-training-configuration">training configuration</a>:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># hybrid CTC/attention (default)</span>
-mtlalpha: <span class="m">0</span>.3
+mtlalpha:<span class="w"> </span><span class="m">0</span>.3
 
 <span class="c1"># CTC</span>
-mtlalpha: <span class="m">1</span>.0
+mtlalpha:<span class="w"> </span><span class="m">1</span>.0
 
 <span class="c1"># attention</span>
-mtlalpha: <span class="m">0</span>.0
+mtlalpha:<span class="w"> </span><span class="m">0</span>.0
 </pre></div>
 </div>
 <p>Decoding for each mode can be done using the following decoding configurations:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># hybrid CTC/attention (default)</span>
-ctc-weight: <span class="m">0</span>.3
-beam-size: <span class="m">10</span>
+ctc-weight:<span class="w"> </span><span class="m">0</span>.3
+beam-size:<span class="w"> </span><span class="m">10</span>
 
 <span class="c1"># CTC</span>
-ctc-weight: <span class="m">1</span>.0
+ctc-weight:<span class="w"> </span><span class="m">1</span>.0
 <span class="c1">## for best path decoding</span>
-api: v1 <span class="c1"># default setting (can be omitted)</span>
+api:<span class="w"> </span>v1<span class="w"> </span><span class="c1"># default setting (can be omitted)</span>
 <span class="c1">## for prefix search decoding w/ beam search</span>
-api: v2
-beam-size: <span class="m">10</span>
+api:<span class="w"> </span>v2
+beam-size:<span class="w"> </span><span class="m">10</span>
 
 <span class="c1"># attention</span>
-ctc-weight: <span class="m">0</span>.0
-beam-size: <span class="m">10</span>
-maxlenratio: <span class="m">0</span>.8
-minlenratio: <span class="m">0</span>.3
+ctc-weight:<span class="w"> </span><span class="m">0</span>.0
+beam-size:<span class="w"> </span><span class="m">10</span>
+maxlenratio:<span class="w"> </span><span class="m">0</span>.8
+minlenratio:<span class="w"> </span><span class="m">0</span>.3
 </pre></div>
 </div>
 <ul class="simple">
@@ -631,25 +631,25 @@ The four losses can be simultaneously trained with main Transducer loss to joint
 <h2>Changing the training configuration<a class="headerlink" href="#changing-the-training-configuration" title="Permalink to this headline">¶</a></h2>
 <p>The default configurations for training and decoding are written in <code class="docutils literal notranslate"><span class="pre">conf/train.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">conf/decode.yaml</span></code> respectively.  It can be overwritten by specific arguments: e.g.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
-asr_train.py --config conf/train.yaml --batch-size <span class="m">24</span>
+asr_train.py<span class="w"> </span>--config<span class="w"> </span>conf/train.yaml<span class="w"> </span>--batch-size<span class="w"> </span><span class="m">24</span>
 <span class="c1"># e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.</span>
-asr_train.py --config conf/train.yaml --config2 conf/new.yaml
+asr_train.py<span class="w"> </span>--config<span class="w"> </span>conf/train.yaml<span class="w"> </span>--config2<span class="w"> </span>conf/new.yaml
 </pre></div>
 </div>
 <p>In this way, you need to edit <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> and it might be inconvenient sometimes.
 Instead of giving arguments directly, we recommend you to modify the yaml file and give it to <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
-./run.sh --train-config conf/train_modified.yaml
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span>conf/train_modified.yaml
 <span class="c1"># e.g.</span>
-./run.sh --train-config conf/train_modified.yaml --decode-config conf/decode_modified.yaml
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span>conf/train_modified.yaml<span class="w"> </span>--decode-config<span class="w"> </span>conf/decode_modified.yaml
 </pre></div>
 </div>
 <p>We also provide a utility to generate a yaml file from the input yaml file:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. You can give any parameters as &#39;-a key=value&#39; and &#39;-a&#39; is repeatable.</span>
 <span class="c1">#      This generates new file at &#39;conf/train_batch-size24_epochs10.yaml&#39;</span>
-./run.sh --train-config <span class="k">$(</span>change_yaml.py conf/train.yaml -a batch-size<span class="o">=</span><span class="m">24</span> -a <span class="nv">epochs</span><span class="o">=</span><span class="m">10</span><span class="k">)</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span><span class="k">$(</span>change_yaml.py<span class="w"> </span>conf/train.yaml<span class="w"> </span>-a<span class="w"> </span>batch-size<span class="o">=</span><span class="m">24</span><span class="w"> </span>-a<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">10</span><span class="k">)</span>
 <span class="c1"># e.g. &#39;-o&#39; option specifies the output file name instead of auto named file.</span>
-./run.sh --train-config <span class="k">$(</span>change_yaml.py conf/train.yaml -o conf/train2.yaml -a batch-size<span class="o">=</span><span class="m">24</span><span class="k">)</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span><span class="k">$(</span>change_yaml.py<span class="w"> </span>conf/train.yaml<span class="w"> </span>-o<span class="w"> </span>conf/train2.yaml<span class="w"> </span>-a<span class="w"> </span>batch-size<span class="o">=</span><span class="m">24</span><span class="k">)</span>
 </pre></div>
 </div>
 </section>
@@ -733,9 +733,9 @@ To disable the PCI Express ACS follow instructions written <a class="reference e
 </pre></div>
 </div>
 <p>Then, please reinstall matplotlib with the following command:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> egs/an4/asr1
-$ . ./path.sh
-$ pip install pip --upgrade<span class="p">;</span> pip uninstall matplotlib<span class="p">;</span> pip --no-cache-dir install matplotlib
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>egs/an4/asr1
+$<span class="w"> </span>.<span class="w"> </span>./path.sh
+$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>pip<span class="w"> </span>--upgrade<span class="p">;</span><span class="w"> </span>pip<span class="w"> </span>uninstall<span class="w"> </span>matplotlib<span class="p">;</span><span class="w"> </span>pip<span class="w"> </span>--no-cache-dir<span class="w"> </span>install<span class="w"> </span>matplotlib
 </pre></div>
 </div>
 </section>

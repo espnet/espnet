@@ -328,7 +328,7 @@
 
 
 <div class="viewcode-block" id="solve"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complex_utils.solve">[docs]</a><span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">a</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]):</span>
-    <span class="sd">&quot;&quot;&quot;Solve the linear equation ax = b.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Solve the linear equation ax = b.&quot;&quot;&quot;</span>
     <span class="c1"># NOTE: Do not mix ComplexTensor and torch.complex in the input!</span>
     <span class="c1"># NOTE (wangyou): Until PyTorch 1.9.0, torch.solve does not support</span>
     <span class="c1"># mixed input with complex and real tensors.</span>

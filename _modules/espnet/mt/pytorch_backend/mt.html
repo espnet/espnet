@@ -215,10 +215,10 @@
 
 
 <div class="viewcode-block" id="CustomConverter"><a class="viewcode-back" href="../../../../_gen/espnet.mt.html#espnet.mt.pytorch_backend.mt.CustomConverter">[docs]</a><span class="k">class</span> <span class="nc">CustomConverter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom batch converter for Pytorch.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom batch converter for Pytorch.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct a CustomConverter object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a CustomConverter object.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="c1"># NOTE: we reserve index:0 for &lt;pad&gt; although this is reserved for a blank class</span>
@@ -227,7 +227,7 @@
         <span class="c1"># we use index:0 for padding instead of adding one more class.</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)):</span>
-        <span class="sd">&quot;&quot;&quot;Transform a batch and send it to a device.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform a batch and send it to a device.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch (list): The batch to transform.</span>
@@ -255,7 +255,7 @@
 
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../../../_gen/espnet.mt.html#espnet.mt.pytorch_backend.mt.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train with the given args.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train with the given args.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        args (namespace): The program arguments.</span>
@@ -675,7 +675,7 @@
 
 
 <div class="viewcode-block" id="trans"><a class="viewcode-back" href="../../../../_gen/espnet.mt.html#espnet.mt.pytorch_backend.mt.trans">[docs]</a><span class="k">def</span> <span class="nf">trans</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decode with the given args.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decode with the given args.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        args (namespace): The program arguments.</span>

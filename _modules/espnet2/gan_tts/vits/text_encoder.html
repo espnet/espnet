@@ -187,7 +187,7 @@
 
 
 <div class="viewcode-block" id="TextEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.text_encoder.TextEncoder">[docs]</a><span class="k">class</span> <span class="nc">TextEncoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Text encoder module in VITS.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Text encoder module in VITS.</span>
 
 <span class="sd">    This is a module of text encoder described in `Conditional Variational Autoencoder</span>
 <span class="sd">    with Adversarial Learning for End-to-End Text-to-Speech`_.</span>
@@ -220,7 +220,7 @@
         <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize TextEncoder module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize TextEncoder module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            vocabs (int): Vocabulary size.</span>
@@ -276,7 +276,7 @@
         <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">x_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input index tensor (B, T_text).</span>

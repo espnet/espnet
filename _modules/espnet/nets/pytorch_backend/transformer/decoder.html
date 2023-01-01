@@ -212,7 +212,7 @@
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.decoder.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">BatchScorerInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transfomer decoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transfomer decoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        odim (int): Output diminsion.</span>
@@ -265,7 +265,7 @@
         <span class="n">normalize_before</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">concat_after</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Decoder object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Decoder object.&quot;&quot;&quot;</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="n">_pre_hook</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">input_layer</span> <span class="o">==</span> <span class="s2">&quot;embed&quot;</span><span class="p">:</span>
@@ -385,7 +385,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.decoder.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward decoder.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            tgt (torch.Tensor): Input token ids, int64 (#batch, maxlen_out) if</span>
@@ -417,7 +417,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span></div>
 
 <div class="viewcode-block" id="Decoder.forward_one_step"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.decoder.Decoder.forward_one_step">[docs]</a>    <span class="k">def</span> <span class="nf">forward_one_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward one step.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward one step.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            tgt (torch.Tensor): Input token ids, int64 (#batch, maxlen_out).</span>
@@ -454,7 +454,7 @@
 
     <span class="c1"># beam search API (see ScorerInterface)</span>
 <div class="viewcode-block" id="Decoder.score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.decoder.Decoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
         <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">selfattention_layer_type</span> <span class="o">!=</span> <span class="s2">&quot;selfattn&quot;</span><span class="p">:</span>
             <span class="c1"># TODO(karita): implement cache</span>
@@ -471,7 +471,7 @@
 <div class="viewcode-block" id="Decoder.batch_score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.decoder.Decoder.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token batch (required).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch (required).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>

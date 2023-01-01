@@ -192,7 +192,7 @@
 
 <span class="c1"># NOTE: you need this func to generate our sphinx doc</span>
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.mt_train.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">(</span><span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get default arguments.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get default arguments.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">parser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="n">configargparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
             <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Train a neural machine translation (NMT) model on one CPU, &quot;</span>
@@ -538,7 +538,7 @@
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.mt_train.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">cmd_args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Run the main training function.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the main training function.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">cmd_args</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;chainer&quot;</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">train_dtype</span> <span class="o">!=</span> <span class="s2">&quot;float32&quot;</span><span class="p">:</span>

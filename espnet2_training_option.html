@@ -224,9 +224,9 @@
 <h2>Show usage<a class="headerlink" href="#show-usage" title="Permalink to this headline">¶</a></h2>
 <p>There are two ways to show the command line options: <code class="docutils literal notranslate"><span class="pre">--help</span></code> and <code class="docutils literal notranslate"><span class="pre">--print_config</span></code></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Show the command line option</span>
-python -m espnet2.bin.asr_train --help
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--help
 <span class="c1"># Show the all configuration in yaml format</span>
-python -m espnet2.bin.asr_train --print_config
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--print_config
 </pre></div>
 </div>
 <p>In this section, we use <code class="docutils literal notranslate"><span class="pre">espnet2.bin.asr_train</span></code> for an example,
@@ -243,33 +243,33 @@ for the option name to avoid confusion.</p>
 <p>A notable feature of <code class="docutils literal notranslate"><span class="pre">--print_config</span></code> is that
 it shows the configuration parsing with the given arguments dynamically:
 You can look up the parameters for a <strong>changeable</strong> class.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% <span class="c1"># Show parameters of Adam optimizer</span>
-% python -m espnet2.bin.asr_train --optim adam --print_config
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span><span class="c1"># Show parameters of Adam optimizer</span>
+%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim<span class="w"> </span>adam<span class="w"> </span>--print_config
 ...
-optim: adam
+optim:<span class="w"> </span>adam
 optim_conf:
-    lr: <span class="m">0</span>.001
-    betas:
-    - <span class="m">0</span>.9
-    - <span class="m">0</span>.999
-    eps: <span class="m">1</span>.0e-08
-    weight_decay: <span class="m">0</span>
-    amsgrad: <span class="nb">false</span>
+<span class="w">    </span>lr:<span class="w"> </span><span class="m">0</span>.001
+<span class="w">    </span>betas:
+<span class="w">    </span>-<span class="w"> </span><span class="m">0</span>.9
+<span class="w">    </span>-<span class="w"> </span><span class="m">0</span>.999
+<span class="w">    </span>eps:<span class="w"> </span><span class="m">1</span>.0e-08
+<span class="w">    </span>weight_decay:<span class="w"> </span><span class="m">0</span>
+<span class="w">    </span>amsgrad:<span class="w"> </span><span class="nb">false</span>
 ...
-% <span class="c1"># Show parameters of ReduceLROnPlateau scheduler</span>
-% python -m espnet2.bin.asr_train --scheduler ReduceLROnPlateau --print_config
+%<span class="w"> </span><span class="c1"># Show parameters of ReduceLROnPlateau scheduler</span>
+%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--scheduler<span class="w"> </span>ReduceLROnPlateau<span class="w"> </span>--print_config
 ...
-scheduler: reducelronplateau
+scheduler:<span class="w"> </span>reducelronplateau
 scheduler_conf:
-    mode: min
-    factor: <span class="m">0</span>.1
-    patience: <span class="m">10</span>
-    verbose: <span class="nb">false</span>
-    threshold: <span class="m">0</span>.0001
-    threshold_mode: rel
-    cooldown: <span class="m">0</span>
-    min_lr: <span class="m">0</span>
-    eps: <span class="m">1</span>.0e-08
+<span class="w">    </span>mode:<span class="w"> </span>min
+<span class="w">    </span>factor:<span class="w"> </span><span class="m">0</span>.1
+<span class="w">    </span>patience:<span class="w"> </span><span class="m">10</span>
+<span class="w">    </span>verbose:<span class="w"> </span><span class="nb">false</span>
+<span class="w">    </span>threshold:<span class="w"> </span><span class="m">0</span>.0001
+<span class="w">    </span>threshold_mode:<span class="w"> </span>rel
+<span class="w">    </span>cooldown:<span class="w"> </span><span class="m">0</span>
+<span class="w">    </span>min_lr:<span class="w"> </span><span class="m">0</span>
+<span class="w">    </span>eps:<span class="w"> </span><span class="m">1</span>.0e-08
 ...
 </pre></div>
 </div>
@@ -277,19 +277,19 @@ scheduler_conf:
 <section id="configuration-file">
 <h2>Configuration file<a class="headerlink" href="#configuration-file" title="Permalink to this headline">¶</a></h2>
 <p>You can find the configuration files for DNN training in <code class="docutils literal notranslate"><span class="pre">conf/train_*.yaml</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls conf/
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span>conf/
 </pre></div>
 </div>
 <p>We adopt <a class="reference external" href="https://github.com/bw2/ConfigArgParse">ConfigArgParse</a> for this configuration system.
 The configuration in YAML format has an equivalent effect to the command line argument.
 e.g. The following two are equivalent:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span><span class="w"></span>
-<span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
-<span class="nt">bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w"></span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span>
+<span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="nt">bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --config conf/config.yaml
-python -m espnet2.bin.asr_train --foo <span class="m">3</span> --bar <span class="m">4</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--config<span class="w"> </span>conf/config.yaml
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--foo<span class="w"> </span><span class="m">3</span><span class="w"> </span>--bar<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
@@ -297,15 +297,15 @@ python -m espnet2.bin.asr_train --foo <span class="m">3</span> --bar <span class
 <h2>Change the configuration for dict type value<a class="headerlink" href="#change-the-configuration-for-dict-type-value" title="Permalink to this headline">¶</a></h2>
 <p>Some parameters are named as <code class="docutils literal notranslate"><span class="pre">*_conf</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">optim_conf</span></code>, <code class="docutils literal notranslate"><span class="pre">decoder_conf</span></code> and they has the <code class="docutils literal notranslate"><span class="pre">dict</span></code> type value. We also provide a way to configure the nested value in such a dict object.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. Change parameters one by one</span>
-python -m espnet2.bin.asr_train --optim_conf <span class="nv">lr</span><span class="o">=</span><span class="m">0</span>.1 --optim_conf <span class="nv">rho</span><span class="o">=</span><span class="m">0</span>.8
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim_conf<span class="w"> </span><span class="nv">lr</span><span class="o">=</span><span class="m">0</span>.1<span class="w"> </span>--optim_conf<span class="w"> </span><span class="nv">rho</span><span class="o">=</span><span class="m">0</span>.8
 <span class="c1"># e.g. Give the parameters in yaml format</span>
-python -m espnet2.bin.asr_train --optim_conf <span class="s2">&quot;{lr: 0.1, rho: 0.8}&quot;</span>
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--optim_conf<span class="w"> </span><span class="s2">&quot;{lr: 0.1, rho: 0.8}&quot;</span>
 </pre></div>
 </div>
 </section>
 <section id="resume-training-process">
 <h2>Resume training process<a class="headerlink" href="#resume-training-process" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --resume <span class="nb">true</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--resume<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 <p>The state of the training process is saved at the end of every epoch as <code class="docutils literal notranslate"><span class="pre">checkpoint.pth</span></code> and
@@ -323,30 +323,30 @@ Checkpoint includes the following states.</p>
 <h2>Transfer learning / Fine tuning using pretrained model<a class="headerlink" href="#transfer-learning-fine-tuning-using-pretrained-model" title="Permalink to this headline">¶</a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">--init_param</span> <span class="pre">&lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_keys&gt;</span></code></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load all parameters</span>
-python -m espnet2.bin.asr_train --init_param model.pth
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth
 <span class="c1"># Load only the parameters starting with &quot;decoder&quot;</span>
-python -m espnet2.bin.asr_train --init_param model.pth:decoder
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:decoder
 <span class="c1"># Load only the parameters starting with &quot;decoder&quot; and set it to model.decoder</span>
-python -m espnet2.bin.asr_train --init_param model.pth:decoder:decoder
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:decoder:decoder
 <span class="c1"># Set parameters to model.decoder</span>
-python -m espnet2.bin.asr_train --init_param decoder.pth::decoder
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>decoder.pth::decoder
 <span class="c1"># Load all parameters excluding &quot;decoder.embed&quot;</span>
-python -m espnet2.bin.asr_train --init_param model.pth:::decoder.embed
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:::decoder.embed
 <span class="c1"># Load all parameters excluding &quot;encoder&quot; and &quot;decoder.embed&quot;</span>
-python -m espnet2.bin.asr_train --init_param model.pth:::encoder,decoder.embed
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--init_param<span class="w"> </span>model.pth:::encoder,decoder.embed
 </pre></div>
 </div>
 </section>
 <section id="freeze-parameters">
 <h2>Freeze parameters<a class="headerlink" href="#freeze-parameters" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --freeze_param encoder.enc encoder.decoder
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--freeze_param<span class="w"> </span>encoder.enc<span class="w"> </span>encoder.decoder
 </pre></div>
 </div>
 </section>
 <section id="change-logging-interval">
 <h2>Change logging interval<a class="headerlink" href="#change-logging-interval" title="Permalink to this headline">¶</a></h2>
 <p>The result in the middle state of the training will be shown by the specified number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --log_interval <span class="m">100</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--log_interval<span class="w"> </span><span class="m">100</span>
 </pre></div>
 </div>
 </section>
@@ -362,7 +362,7 @@ the following steps will also run after training for every epoch:</p>
 <p>Sometimes the validation after training with a whole corpus is too coarse
 if using large corpus.
 For that case, <code class="docutils literal notranslate"><span class="pre">--num_iters_per_epoch</span></code> can restrict the number of iteration of each epoch.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --num_iters_per_epoch <span class="m">1000</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--num_iters_per_epoch<span class="w"> </span><span class="m">1000</span>
 </pre></div>
 </div>
 <p>Note that the training process can’t be resumed at the middle of an epoch
@@ -382,20 +382,20 @@ and the random seed is fixed by the epoch number, just like:</p>
 <ol>
 <li><p>Installation and setup</p>
 <p>See: https://docs.wandb.com/quickstart</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>wandb login
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>wandb<span class="w"> </span>login
 </pre></div>
 </div>
 </li>
 <li><p>Enable wandb</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --use_wandb <span class="nb">true</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--use_wandb<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 <p>and go to the shown URL.</p>
 </li>
 <li><p>[Option] To use HTTPS PROXY</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span> <span class="nv">HTTPS_PROXY</span><span class="o">=</span>...your proxy
-<span class="nb">export</span> <span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>your.pem
-<span class="nb">export</span> <span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>   <span class="c1"># Disable SSL certificate verification</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">HTTPS_PROXY</span><span class="o">=</span>...your<span class="w"> </span>proxy
+<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span>your.pem
+<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_CA_BUNDLE</span><span class="o">=</span><span class="w">   </span><span class="c1"># Disable SSL certificate verification</span>
 </pre></div>
 </div>
 </li>
@@ -403,11 +403,11 @@ and the random seed is fixed by the epoch number, just like:</p>
 </section>
 <section id="multi-gpus">
 <h2>Multi GPUs<a class="headerlink" href="#multi-gpus" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --ngpu <span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>Just using <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> to specify the device number:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3 python -m espnet2.bin.asr_train --ngpu <span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">2</span>,3<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>About distributed training, see <a class="reference internal" href="espnet2_distributed.html"><span class="doc">Distributed training</span></a>.</p>
@@ -416,15 +416,15 @@ and the random seed is fixed by the epoch number, just like:</p>
 <h2>The relation between mini-batch size and number of GPUs<a class="headerlink" href="#the-relation-between-mini-batch-size-and-number-of-gpus" title="Permalink to this headline">¶</a></h2>
 <p>The batch-size can be changed as follows:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change both of the batch_size for training and validation</span>
-python -m espnet2.bin.asr_train --batch_size <span class="m">20</span>
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">20</span>
 <span class="c1"># Change the batch_size for validation</span>
-python -m espnet2.bin.asr_train --valid_batch_size <span class="m">200</span>
+python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--valid_batch_size<span class="w"> </span><span class="m">200</span>
 </pre></div>
 </div>
 <p>The behavior for batch-size during multi-GPU training is <strong>different from that of ESPNet1</strong>.</p>
 <ul>
 <li><p>ESPNet1: The batch-size will be multiplied by the number of GPUs.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --batch_size <span class="m">10</span> --ngpu <span class="m">2</span> <span class="c1"># Actual batch_size is 20 and each GPU devices are assigned to 10</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c1"># Actual batch_size is 20 and each GPU devices are assigned to 10</span>
 </pre></div>
 </div>
 </li>
@@ -432,7 +432,7 @@ python -m espnet2.bin.asr_train --valid_batch_size <span class="m">200</span>
 <ul class="simple">
 <li><p>Therefore, you should set a more number of batch-size than that of GPUs.</p></li>
 </ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --batch_size <span class="m">10</span> --ngpu <span class="m">2</span> <span class="c1"># Actual batch_size is 10 and each GPU devices are assigned to 5</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="c1"># Actual batch_size is 10 and each GPU devices are assigned to 5</span>
 </pre></div>
 </div>
 </li>
@@ -491,12 +491,12 @@ to make the best use of the GPU memory.</p>
 If you intend to use ESPnet as <strong>not</strong> Seq2Seq task, this type may be suitable.</p>
 <p>Unlike the other mode, this mode doesn’t require the information of the feature dimension.
 In other words, it’s not mandatory to prepare <code class="docutils literal notranslate"><span class="pre">shape_file</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_size <span class="m">10</span> --batch_type unsorted <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train.scp&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid.scp&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--batch_type<span class="w"> </span>unsorted<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train.scp&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid.scp&quot;</span>
 </pre></div>
 </div>
 <p>This system might seem strange and you might also feel <code class="docutils literal notranslate"><span class="pre">--*_shape_file</span></code> is verbose
@@ -512,14 +512,14 @@ thus we need to prepare the shape information before training.</p>
 <h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">sorted</span></code><a class="headerlink" href="#batch-type-sorted" title="Permalink to this headline">¶</a></h3>
 <p>This mode creates constant-size mini-batches with sorting by the length order.
 This mode requires the information of the length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_size <span class="m">10</span> --batch_type sorted <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">10</span><span class="w"> </span>--batch_type<span class="w"> </span>sorted<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span>
 </pre></div>
 </div>
 <p>e.g. length.txt</p>
@@ -552,32 +552,32 @@ and the shape information is required only when <code class="docutils literal no
 Where <code class="docutils literal notranslate"><span class="pre">L_i</span></code> is the maximum length in the mini-batch for <code class="docutils literal notranslate"><span class="pre">i</span></code>th feature and
 <code class="docutils literal notranslate"><span class="pre">f_i</span></code> is the <code class="docutils literal notranslate"><span class="pre">--fold</span> <span class="pre">length</span></code> corresponding to the feature.
 This mode requires the information of length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_size <span class="m">20</span> --batch_type folded <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length.scp&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length2.scp&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length.scp&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length2.scp&quot;</span> <span class="se">\</span>
-  --fold_length <span class="m">5000</span> <span class="se">\</span>
-  --fold_length <span class="m">300</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">20</span><span class="w"> </span>--batch_type<span class="w"> </span>folded<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.scp&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length2.scp&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.scp&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length2.scp&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">5000</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">300</span>
 </pre></div>
 </div>
 <p>Note that the repeat number of <code class="docutils literal notranslate"><span class="pre">*_shape_file</span></code> must equal to the number of <code class="docutils literal notranslate"><span class="pre">--fold_length</span></code>, but
 <strong>you don’t need to input same number of shape files as the number of data file</strong>.
 i.e. You can give it as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_size <span class="m">20</span> --batch_type folded <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span> <span class="se">\</span>
-  --fold_length <span class="m">5000</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_size<span class="w"> </span><span class="m">20</span><span class="w"> </span>--batch_type<span class="w"> </span>folded<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--fold_length<span class="w"> </span><span class="m">5000</span>
 </pre></div>
 </div>
 <p>In this example, the length of the first feature is considered while the second can be ignored.
@@ -590,16 +590,16 @@ This technique can be also applied for <code class="docutils literal notranslate
 Each mini-batch has equal number of bins as possible counting by the total length in the mini-batch;
 i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(len(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>.
 This mode requires the information of length.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_bins <span class="m">10000</span> --batch_type length <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length.txt&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_length2.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_length2.txt&quot;</span> <span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--batch_type<span class="w"> </span>length<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_length2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_length2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
 </pre></div>
 </div>
 </section>
@@ -612,16 +612,16 @@ counting by the total number of elements;
 i.e. <code class="docutils literal notranslate"><span class="pre">bins</span> <span class="pre">=</span> <span class="pre">sum(numel(feat)</span> <span class="pre">for</span> <span class="pre">feats</span> <span class="pre">in</span> <span class="pre">batch</span> <span class="pre">for</span> <span class="pre">feat</span> <span class="pre">in</span> <span class="pre">feats)</span></code>,
 where <code class="docutils literal notranslate"><span class="pre">numel</span></code> returns the infinite product of the shape of each feature;
 <code class="docutils literal notranslate"><span class="pre">shape[0]</span> <span class="pre">*</span> <span class="pre">shape[1]</span> <span class="pre">*</span> <span class="pre">...</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train <span class="se">\</span>
-  --batch_bins <span class="m">200000</span> --batch_type numel <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --train_data_path_and_name_and_type <span class="s2">&quot;train2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type  <span class="s2">&quot;valid.scp,feats,npy&quot;</span> <span class="se">\</span>
-  --valid_data_path_and_name_and_type  <span class="s2">&quot;valid2.scp,feats2,npy&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_shape.txt&quot;</span> <span class="se">\</span>
-  --train_shape_file <span class="s2">&quot;train_shape2.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_shape.txt&quot;</span> <span class="se">\</span>
-  --valid_shape_file <span class="s2">&quot;valid_shape2.txt&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">200000</span><span class="w"> </span>--batch_type<span class="w"> </span>numel<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid2.scp,feats2,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape2.txt&quot;</span>
 </pre></div>
 </div>
 </section>
@@ -648,7 +648,7 @@ while optimizer’s updating is invoked every the number of forwarding just like
 </pre></div>
 </div>
 <p>Give <code class="docutils literal notranslate"><span class="pre">--accum_grad</span> <span class="pre">&lt;int&gt;</span></code> to use this option.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --accum_grad <span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--accum_grad<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>The effective batch_size becomes <strong>almost</strong> same as <code class="docutils literal notranslate"><span class="pre">accum_grad</span> <span class="pre">*</span> <span class="pre">batch_size</span></code> except for:</p>
@@ -660,7 +660,7 @@ while optimizer’s updating is invoked every the number of forwarding just like
 </section>
 <section id="automatic-mixed-precision-training">
 <h2>Automatic Mixed Precision training<a class="headerlink" href="#automatic-mixed-precision-training" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --use_amp <span class="nb">true</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--use_amp<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 </section>
@@ -682,7 +682,7 @@ while optimizer’s updating is invoked every the number of forwarding just like
 <li><p>CuDNN or some non-deterministic operations for CUDA: See https://pytorch.org/docs/stable/notes/randomness.html</p></li>
 </ul>
 <p>By default, CuDNN performs deterministic mode in our training and it can be turned off by:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet.bin.asr_train --cudnn_deterministic <span class="nb">false</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.asr_train<span class="w"> </span>--cudnn_deterministic<span class="w"> </span><span class="nb">false</span>
 </pre></div>
 </div>
 </section>

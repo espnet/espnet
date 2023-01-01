@@ -176,7 +176,7 @@
 
 <span class="c1"># dot product based attention</span>
 <div class="viewcode-block" id="AttDot"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttDot">[docs]</a><span class="k">class</span> <span class="nc">AttDot</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute attention based on dot product.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute attention based on dot product.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eprojs (int | None): Dimension of input vectors from encoder.</span>
@@ -199,13 +199,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="AttDot.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttDot.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute AttDot forward layer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute AttDot forward layer.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
@@ -254,7 +254,7 @@
 
 <span class="c1"># location based attention</span>
 <div class="viewcode-block" id="AttLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttLoc">[docs]</a><span class="k">class</span> <span class="nc">AttLoc</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute location-based attention.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute location-based attention.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eprojs (int | None): Dimension of input vectors from encoder.</span>
@@ -285,13 +285,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">aconv_chans</span> <span class="o">=</span> <span class="n">aconv_chans</span>
 
 <div class="viewcode-block" id="AttLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.AttLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute AttLoc forward layer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute AttLoc forward layer.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
@@ -367,7 +367,7 @@
 
 
 <div class="viewcode-block" id="NoAtt"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.NoAtt">[docs]</a><span class="k">class</span> <span class="nc">NoAtt</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute non-attention layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute non-attention layer.</span>
 
 <span class="sd">    This layer is a dummy attention layer to be compatible with other</span>
 <span class="sd">    attention-based models.</span>
@@ -382,14 +382,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="NoAtt.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.NoAtt.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset states.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute NoAtt forward layer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute NoAtt forward layer.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_hs (chainer.Variable | N-dimensional array):</span>
@@ -425,7 +425,7 @@
 
 
 <div class="viewcode-block" id="att_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.att_for">[docs]</a><span class="k">def</span> <span class="nf">att_for</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns an attention layer given the program arguments.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns an attention layer given the program arguments.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        args (Namespace): The arguments.</span>

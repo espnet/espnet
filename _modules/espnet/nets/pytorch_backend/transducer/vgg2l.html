@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="VGG2L"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L">[docs]</a><span class="k">class</span> <span class="nc">VGG2L</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;VGG2L module for custom encoder.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;VGG2L module for custom encoder.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim: Input dimension.</span>
@@ -186,7 +186,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">pos_enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct a VGG2L object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a VGG2L object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">vgg2l</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
@@ -215,7 +215,7 @@
         <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward VGG2L bottleneck.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward VGG2L bottleneck.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            feats: Feature sequences. (B, F, D_feats)</span>
@@ -244,7 +244,7 @@
         <span class="k">return</span> <span class="n">vgg_output</span><span class="p">,</span> <span class="n">vgg_mask</span></div>
 
 <div class="viewcode-block" id="VGG2L.create_new_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L.create_new_mask">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feats_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create a subsampled mask of feature sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a subsampled mask of feature sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            feats_mask: Mask of feature sequences. (B, 1, F)</span>

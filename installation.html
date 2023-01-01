@@ -221,39 +221,39 @@ the following packages are installed using Anaconda, so you can skip them.)</p>
 <ul>
 <li><p>cmake3 for some extensions</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$ sudo apt-get install cmake
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>cmake
 </pre></div>
 </div>
 </li>
 <li><p>sox</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$ sudo apt-get install sox
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>sox
 <span class="c1"># For CentOS</span>
-$ sudo yum install sox
+$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>sox
 </pre></div>
 </div>
 </li>
 <li><p>sndfile</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$ sudo apt-get install libsndfile1-dev
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libsndfile1-dev
 <span class="c1"># For CentOS</span>
-$ sudo yum install libsndfile
+$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>libsndfile
 </pre></div>
 </div>
 </li>
 <li><p>ffmpeg (This is not required when installing, but used in some recipes)</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$ sudo apt-get install ffmpeg
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ffmpeg
 <span class="c1"># For CentOS</span>
-$ sudo yum install ffmpeg
+$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>ffmpeg
 </pre></div>
 </div>
 </li>
 <li><p>flac (This is not required when installing, but used in some recipes)</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$ sudo apt-get install flac
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>flac
 <span class="c1"># For CentOS</span>
-$ sudo yum install flac
+$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>flac
 </pre></div>
 </div>
 </li>
@@ -294,14 +294,14 @@ to prepare the appropriate environments</p>
 </ul>
 <ol>
 <li><p>Git clone Kaldi</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;any-place&gt;
-$ git clone https://github.com/kaldi-asr/kaldi
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;any-place&gt;
+$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/kaldi-asr/kaldi
 </pre></div>
 </div>
 </li>
 <li><p>Install tools</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;kaldi-root&gt;/tools
-$ make -j &lt;NUM-CPU&gt;
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
+$<span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>&lt;NUM-CPU&gt;
 </pre></div>
 </div>
 <ol class="simple">
@@ -310,34 +310,34 @@ $ make -j &lt;NUM-CPU&gt;
 <ul class="simple">
 <li><p>OpenBLAS</p></li>
 </ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;kaldi-root&gt;/tools
-$ ./extras/install_openblas.sh
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
+$<span class="w"> </span>./extras/install_openblas.sh
 </pre></div>
 </div>
 <ul class="simple">
 <li><p>MKL (You need sudo privilege)</p></li>
 </ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;kaldi-root&gt;/tools
-$ sudo ./extras/install_mkl.sh
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/tools
+$<span class="w"> </span>sudo<span class="w"> </span>./extras/install_mkl.sh
 </pre></div>
 </div>
 <ul class="simple">
 <li><p>ATLAS (You need sudo privilege)</p></li>
 </ul>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ubuntu</span>
-$ sudo apt-get install libatlas-base-dev
+$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libatlas-base-dev
 </pre></div>
 </div>
 </li>
 <li><p>Compile Kaldi &amp; install</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;kaldi-root&gt;/src
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/src
 <span class="c1"># [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA</span>
-$ ./configure --use-cuda<span class="o">=</span>no
+$<span class="w"> </span>./configure<span class="w"> </span>--use-cuda<span class="o">=</span>no
 <span class="c1"># [With OpenBLAS]</span>
 <span class="c1"># $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no</span>
 <span class="c1"># If you&#39;ll use CUDA</span>
 <span class="c1"># ./configure --cudatk-dir=/usr/local/cuda-10.0</span>
-$ make -j clean depend<span class="p">;</span> make -j &lt;NUM-CPU&gt;
+$<span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>clean<span class="w"> </span>depend<span class="p">;</span><span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>&lt;NUM-CPU&gt;
 </pre></div>
 </div>
 </li>
@@ -348,15 +348,15 @@ $ make -j clean depend<span class="p">;</span> make -j &lt;NUM-CPU&gt;
 <h2>Step 2) Installation ESPnet<a class="headerlink" href="#step-2-installation-espnet" title="Permalink to this headline">¶</a></h2>
 <ol>
 <li><p>Git clone ESPnet</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;any-place&gt;
-$ git clone https://github.com/espnet/espnet
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;any-place&gt;
+$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/espnet/espnet
 </pre></div>
 </div>
 </li>
 <li><p>[Optional] Put compiled Kaldi under espnet/tools</p>
 <p>If you have compiled Kaldi at Step1, put it under <code class="docutils literal notranslate"><span class="pre">tools</span></code>.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ ln -s &lt;kaldi-root&gt; .
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>&lt;kaldi-root&gt;<span class="w"> </span>.
 </pre></div>
 </div>
 <p>If you don’t have <code class="docutils literal notranslate"><span class="pre">espnet/tools/kaldi</span></code> when <code class="docutils literal notranslate"><span class="pre">make</span></code>, Kaldi repository is automatically put without compiling.</p>
@@ -367,63 +367,63 @@ $ ln -s &lt;kaldi-root&gt; .
 <p>We also have some scripts to generate <code class="docutils literal notranslate"><span class="pre">tools/activate_python.sh</span></code>.</p>
 <ul>
 <li><p>Option A) Setup Anaconda environment</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ ./setup_anaconda.sh <span class="o">[</span>output-dir-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>venv<span class="o">]</span> <span class="o">[</span>conda-env-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>root<span class="o">]</span> <span class="o">[</span>python-version<span class="p">|</span><span class="nv">default</span><span class="o">=</span>none<span class="o">]</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="o">[</span>output-dir-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>venv<span class="o">]</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>root<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="p">|</span><span class="nv">default</span><span class="o">=</span>none<span class="o">]</span>
 <span class="c1"># e.g.</span>
-$ ./setup_anaconda.sh anaconda espnet <span class="m">3</span>.8
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span>anaconda<span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
 </pre></div>
 </div>
 <p>This script tries to create a new miniconda if the output directory doesn’t exist.
 If you already have Anaconda and you’ll use it then,</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ <span class="nv">CONDA_TOOLS_DIR</span><span class="o">=</span><span class="k">$(</span>dirname <span class="si">${</span><span class="nv">CONDA_EXE</span><span class="si">}</span><span class="k">)</span>/..
-$ ./setup_anaconda.sh <span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span> <span class="o">[</span>conda-env-name<span class="o">]</span> <span class="o">[</span>python-version<span class="o">]</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span><span class="nv">CONDA_TOOLS_DIR</span><span class="o">=</span><span class="k">$(</span>dirname<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_EXE</span><span class="si">}</span><span class="k">)</span>/..
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="o">]</span>
 <span class="c1"># e.g.</span>
-$ ./setup_anaconda.sh <span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span> espnet <span class="m">3</span>.8
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span><span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
 </pre></div>
 </div>
 </li>
 <li><p>Option B) Setup venv from system Python</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ ./setup_venv.sh <span class="k">$(</span><span class="nb">command</span> -v python3<span class="k">)</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>./setup_venv.sh<span class="w"> </span><span class="k">$(</span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>python3<span class="k">)</span>
 </pre></div>
 </div>
 </li>
 <li><p>Option C) Setup system Python environment</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ ./setup_python.sh <span class="k">$(</span><span class="nb">command</span> -v python3<span class="k">)</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k">$(</span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>python3<span class="k">)</span>
 </pre></div>
 </div>
 </li>
 <li><p>Option D) Without setting Python environment.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost same. This option might be suitable for Google colab.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ rm -f activate_python.sh <span class="o">&amp;&amp;</span> touch activate_python.sh
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
 </pre></div>
 </div>
 </li>
 </ul>
 </li>
 <li><p>Install ESPnet</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>make
 </pre></div>
 </div>
 <p>The Makefile tries to install ESPnet and all dependencies including PyTorch.
 You can also specify PyTorch version, for example:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>make<span class="w"> </span><span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1
 </pre></div>
 </div>
 <p>Note that the CUDA version is derived from <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command. If you’d like to specify the other CUDA version, you need to give <code class="docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1 <span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.3
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>make<span class="w"> </span><span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1<span class="w"> </span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.3
 </pre></div>
 </div>
 <p>If you don’t have <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command, packages are installed for CPU mode by default.
 If you’ll turn it on manually, give <code class="docutils literal notranslate"><span class="pre">CPU_ONLY</span></code> option.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make <span class="nv">CPU_ONLY</span><span class="o">=</span><span class="m">0</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+$<span class="w"> </span>make<span class="w"> </span><span class="nv">CPU_ONLY</span><span class="o">=</span><span class="m">0</span>
 </pre></div>
 </div>
 </li>
@@ -436,24 +436,24 @@ so if you meet some installation error when running these recipe, you need to in
 <p>e.g.</p>
 <ul>
 <li><p>To install Warp Transducer</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> &lt;espnet-root&gt;/tools
-. activate_python.sh
-. ./setup_cuda_env.sh &lt;cuda-root&gt;  <span class="c1"># e.g. &lt;cuda-root&gt; = /usr/local/cuda</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+.<span class="w"> </span>activate_python.sh
+.<span class="w"> </span>./setup_cuda_env.sh<span class="w"> </span>&lt;cuda-root&gt;<span class="w">  </span><span class="c1"># e.g. &lt;cuda-root&gt; = /usr/local/cuda</span>
 ./installers/install_warp-transducer.sh
 </pre></div>
 </div>
 </li>
 <li><p>To install PyOpenJTalk</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> &lt;espnet-root&gt;/tools
-. activate_python.sh
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+.<span class="w"> </span>activate_python.sh
 ./installers/install_pyopenjtalk.sh
 </pre></div>
 </div>
 </li>
 <li><p>To install a module using pip: e.g. to intstall ipython</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> &lt;espnet-root&gt;/tools
-. activate_python.sh
-pip install ipython
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+.<span class="w"> </span>activate_python.sh
+pip<span class="w"> </span>install<span class="w"> </span>ipython
 </pre></div>
 </div>
 </li>
@@ -462,8 +462,8 @@ pip install ipython
 <section id="check-installation">
 <h2>Check installation<a class="headerlink" href="#check-installation" title="Permalink to this headline">¶</a></h2>
 <p>You can check whether your installation is successfully finished by</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> &lt;espnet-root&gt;/tools
-. ./activate_python.sh<span class="p">;</span> python3 check_install.py
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+.<span class="w"> </span>./activate_python.sh<span class="p">;</span><span class="w"> </span>python3<span class="w"> </span>check_install.py
 </pre></div>
 </div>
 <p>Note that this check is always called in the last stage of the above installation.</p>

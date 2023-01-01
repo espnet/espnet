@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="EncoderLayer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.encoder_layer.EncoderLayer">[docs]</a><span class="k">class</span> <span class="nc">EncoderLayer</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Single encoder layer module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Single encoder layer module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        n_units (int): Number of input/output dimension of a FeedForward layer.</span>
@@ -195,7 +195,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">n_units</span><span class="p">,</span> <span class="n">d_units</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize EncoderLayer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize EncoderLayer.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">EncoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span> <span class="o">=</span> <span class="n">MultiHeadAttention</span><span class="p">(</span>
@@ -218,7 +218,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_units</span> <span class="o">=</span> <span class="n">n_units</span>
 
 <div class="viewcode-block" id="EncoderLayer.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.encoder_layer.EncoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">xx_mask</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward Positional Encoding.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Positional Encoding.&quot;&quot;&quot;</span>
         <span class="n">n_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
         <span class="n">n_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">n_e</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">xx_mask</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="n">batch</span><span class="p">)</span>
         <span class="n">e</span> <span class="o">=</span> <span class="n">e</span> <span class="o">+</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">n_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>

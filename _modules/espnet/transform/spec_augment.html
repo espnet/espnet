@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="time_warp"><a class="viewcode-back" href="../../../_gen/espnet.transform.html#espnet.transform.spec_augment.time_warp">[docs]</a><span class="k">def</span> <span class="nf">time_warp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">max_time_warp</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;PIL&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;time warp for spec augment</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;time warp for spec augment</span>
 
 <span class="sd">    move random center frame by the random width ~ uniform(-window, window)</span>
 <span class="sd">    :param numpy.ndarray x: spectrogram (time, freq)</span>
@@ -233,7 +233,7 @@
 
 
 <div class="viewcode-block" id="freq_mask"><a class="viewcode-back" href="../../../_gen/espnet.transform.html#espnet.transform.spec_augment.freq_mask">[docs]</a><span class="k">def</span> <span class="nf">freq_mask</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">F</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">n_mask</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;freq mask for spec agument</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;freq mask for spec agument</span>
 
 <span class="sd">    :param numpy.ndarray x: (time, freq)</span>
 <span class="sd">    :param int n_mask: the number of masks</span>
@@ -274,7 +274,7 @@
 
 
 <div class="viewcode-block" id="time_mask"><a class="viewcode-back" href="../../../_gen/espnet.transform.html#espnet.transform.spec_augment.time_mask">[docs]</a><span class="k">def</span> <span class="nf">time_mask</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">n_mask</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;freq mask for spec agument</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;freq mask for spec agument</span>
 
 <span class="sd">    :param numpy.ndarray spec: (time, freq)</span>
 <span class="sd">    :param int n_mask: the number of masks</span>
@@ -326,7 +326,7 @@
     <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">replace_with_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;spec agument</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;spec agument</span>
 
 <span class="sd">    apply random time warping and time/freq masking</span>
 <span class="sd">    default setting is based on LD (Librispeech double) in Table 2</span>

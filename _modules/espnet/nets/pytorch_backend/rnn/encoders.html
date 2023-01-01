@@ -181,7 +181,7 @@
 
 
 <div class="viewcode-block" id="RNNP"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.RNNP">[docs]</a><span class="k">class</span> <span class="nc">RNNP</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;RNN with projection layer module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RNN with projection layer module</span>
 
 <span class="sd">    :param int idim: dimension of inputs</span>
 <span class="sd">    :param int elayers: number of encoder layers</span>
@@ -222,7 +222,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
 
 <div class="viewcode-block" id="RNNP.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.RNNP.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">prev_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;RNNP forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;RNNP forward</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
@@ -262,7 +262,7 @@
 
 
 <div class="viewcode-block" id="RNN"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.RNN">[docs]</a><span class="k">class</span> <span class="nc">RNN</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;RNN module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RNN module</span>
 
 <span class="sd">    :param int idim: dimension of inputs</span>
 <span class="sd">    :param int elayers: number of encoder layers</span>
@@ -301,7 +301,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">typ</span> <span class="o">=</span> <span class="n">typ</span>
 
 <div class="viewcode-block" id="RNN.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.RNN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">prev_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;RNN forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;RNN forward</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
@@ -333,7 +333,7 @@
 
 
 <div class="viewcode-block" id="reset_backward_rnn_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.reset_backward_rnn_state">[docs]</a><span class="k">def</span> <span class="nf">reset_backward_rnn_state</span><span class="p">(</span><span class="n">states</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Sets backward BRNN states to zeroes</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sets backward BRNN states to zeroes</span>
 
 <span class="sd">    Useful in processing of sliding windows over the inputs</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -346,7 +346,7 @@
 
 
 <div class="viewcode-block" id="VGG2L"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.VGG2L">[docs]</a><span class="k">class</span> <span class="nc">VGG2L</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;VGG-like module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;VGG-like module</span>
 
 <span class="sd">    :param int in_channel: number of input channels</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -362,7 +362,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">in_channel</span> <span class="o">=</span> <span class="n">in_channel</span>
 
 <div class="viewcode-block" id="VGG2L.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.VGG2L.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;VGG2L forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;VGG2L forward</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
@@ -408,7 +408,7 @@
 
 
 <div class="viewcode-block" id="Encoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.Encoder">[docs]</a><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encoder module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encoder module</span>
 
 <span class="sd">    :param str etype: type of encoder network</span>
 <span class="sd">    :param int idim: number of dimensions of encoder network</span>
@@ -475,7 +475,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">=</span> <span class="mi">1</span>
 
 <div class="viewcode-block" id="Encoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">prev_states</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encoder forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encoder forward</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, D)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
@@ -499,7 +499,7 @@
 
 
 <div class="viewcode-block" id="encoder_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.encoders.encoder_for">[docs]</a><span class="k">def</span> <span class="nf">encoder_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">subsample</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Instantiates an encoder module given the program arguments</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instantiates an encoder module given the program arguments</span>
 
 <span class="sd">    :param Namespace args: The arguments</span>
 <span class="sd">    :param int or List of integer idim: dimension of input, e.g. 83, or</span>

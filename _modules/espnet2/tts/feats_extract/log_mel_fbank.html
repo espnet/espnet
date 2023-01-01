@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="LogMelFbank"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank">[docs]</a><span class="k">class</span> <span class="nc">LogMelFbank</span><span class="p">(</span><span class="n">AbsFeatsExtract</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conventional frontend structure for TTS.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conventional frontend structure for TTS.</span>
 
 <span class="sd">    Stft -&gt; amplitude-spec -&gt; Log-Mel-Fbank</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -239,7 +239,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mels</span></div>
 
 <div class="viewcode-block" id="LogMelFbank.get_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank.get_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return the parameters required by Vocoder&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the parameters required by Vocoder&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
             <span class="n">n_fft</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span><span class="p">,</span>

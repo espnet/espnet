@@ -176,7 +176,7 @@
 <div class="viewcode-block" id="get_power_spectral_density_matrix"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.beamformer.get_power_spectral_density_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_power_spectral_density_matrix</span><span class="p">(</span>
     <span class="n">xs</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-15</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComplexTensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return cross-channel power spectral density (PSD) matrix</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return cross-channel power spectral density (PSD) matrix</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        xs (ComplexTensor): (..., F, C, T)</span>
@@ -213,7 +213,7 @@
     <span class="n">reference_vector</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-15</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComplexTensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return the MVDR(Minimum Variance Distortionless Response) vector:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the MVDR(Minimum Variance Distortionless Response) vector:</span>
 
 <span class="sd">        h = (Npsd^-1 @ Spsd) / (Tr(Npsd^-1 @ Spsd)) @ u</span>
 

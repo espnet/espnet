@@ -192,7 +192,7 @@
 
 <span class="c1"># NOTE: you need this func to generate our sphinx doc</span>
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.tts_train.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get parser of training arguments.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get parser of training arguments.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">configargparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Train a new text-to-speech (TTS) model on one CPU, &quot;</span>
         <span class="s2">&quot;one or multiple GPUs&quot;</span><span class="p">,</span>
@@ -462,7 +462,7 @@
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.tts_train.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">cmd_args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Run training.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run training.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">cmd_args</span><span class="p">)</span>
 

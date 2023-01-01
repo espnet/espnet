@@ -189,14 +189,14 @@
 
 
 <div class="viewcode-block" id="HuggingFaceTransformersPostDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postdecoder.hugging_face_transformers_postdecoder.HuggingFaceTransformersPostDecoder">[docs]</a><span class="k">class</span> <span class="nc">HuggingFaceTransformersPostDecoder</span><span class="p">(</span><span class="n">AbsPostDecoder</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Hugging Face Transformers PostEncoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hugging Face Transformers PostEncoder.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">output_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">is_transformers_available</span><span class="p">:</span>
@@ -222,7 +222,7 @@
         <span class="n">transcript_token_type_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
         <span class="n">transcript_position_ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.&quot;&quot;&quot;</span>
         <span class="n">transcript_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span>
             <span class="n">input_ids</span><span class="o">=</span><span class="n">transcript_input_ids</span><span class="p">,</span>
             <span class="n">position_ids</span><span class="o">=</span><span class="n">transcript_position_ids</span><span class="p">,</span>
@@ -233,7 +233,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_linear</span><span class="p">(</span><span class="n">transcript_outputs</span><span class="o">.</span><span class="n">last_hidden_state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="HuggingFaceTransformersPostDecoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postdecoder.hugging_face_transformers_postdecoder.HuggingFaceTransformersPostDecoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size_dim</span></div>
 
 <div class="viewcode-block" id="HuggingFaceTransformersPostDecoder.convert_examples_to_features"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postdecoder.hugging_face_transformers_postdecoder.HuggingFaceTransformersPostDecoder.convert_examples_to_features">[docs]</a>    <span class="k">def</span> <span class="nf">convert_examples_to_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">):</span>

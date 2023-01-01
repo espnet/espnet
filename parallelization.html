@@ -250,7 +250,7 @@ you can submit more number of Jobs with multiple machines.</p>
 <p><code class="docutils literal notranslate"><span class="pre">run.pl</span></code>, <code class="docutils literal notranslate"><span class="pre">queue.pl</span></code>, <code class="docutils literal notranslate"><span class="pre">slurm.pl</span></code>, <code class="docutils literal notranslate"><span class="pre">pbs.pl</span></code> and <code class="docutils literal notranslate"><span class="pre">ssh.pl</span></code> have a unified interface,
 therefore we can assign any one of them to <code class="docutils literal notranslate"><span class="pre">${cmd}</span></code> in the shell script:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">nj</span><span class="o">=</span><span class="m">4</span>
-<span class="si">${</span><span class="nv">cmd</span><span class="si">}</span> <span class="nv">JOB</span><span class="o">=</span><span class="m">1</span>:<span class="si">${</span><span class="nv">nj</span><span class="si">}</span> JOB.log <span class="nb">echo</span> JOB
+<span class="si">${</span><span class="nv">cmd</span><span class="si">}</span><span class="w"> </span><span class="nv">JOB</span><span class="o">=</span><span class="m">1</span>:<span class="si">${</span><span class="nv">nj</span><span class="si">}</span><span class="w"> </span>JOB.log<span class="w"> </span><span class="nb">echo</span><span class="w"> </span>JOB
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">JOB=1:${nj}</span></code> indicates the parallelization, which is known as “array-job”, with <code class="docutils literal notranslate"><span class="pre">${nj}</span></code> number of jobs.
@@ -258,10 +258,10 @@ therefore we can assign any one of them to <code class="docutils literal notrans
 The string of <code class="docutils literal notranslate"><span class="pre">JOB</span></code> will be changed to the job number
 if it’s included in the log file name or command line arguments.
 i.e. The following commands are almost equivalent to the above:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span> <span class="m">1</span> <span class="p">&amp;</span>&gt; <span class="m">1</span>.log <span class="p">&amp;</span>
-<span class="nb">echo</span> <span class="m">2</span> <span class="p">&amp;</span>&gt; <span class="m">2</span>.log <span class="p">&amp;</span>
-<span class="nb">echo</span> <span class="m">3</span> <span class="p">&amp;</span>&gt; <span class="m">3</span>.log <span class="p">&amp;</span>
-<span class="nb">echo</span> <span class="m">4</span> <span class="p">&amp;</span>&gt; <span class="m">4</span>.log <span class="p">&amp;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span><span class="m">1</span>.log<span class="w"> </span><span class="p">&amp;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span><span class="m">2</span>.log<span class="w"> </span><span class="p">&amp;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span><span class="m">3</span>.log<span class="w"> </span><span class="p">&amp;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="m">4</span><span class="w"> </span><span class="p">&amp;</span>&gt;<span class="w"> </span><span class="m">4</span>.log<span class="w"> </span><span class="p">&amp;</span>
 <span class="nb">wait</span>
 </pre></div>
 </div>
@@ -292,11 +292,11 @@ Instead, you can use <code class="docutils literal notranslate"><span class="pre
 </div>
 <p>This line means that the optional argument specified by the second column, <code class="docutils literal notranslate"><span class="pre">gpu=*</span></code>,
 will be converted to the options after it: <code class="docutils literal notranslate"><span class="pre">-l</span> <span class="pre">gpu=$0</span> <span class="pre">-q</span> <span class="pre">g.q</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>queue.pl --gpu <span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>queue.pl<span class="w"> </span>--gpu<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>will be converted to</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>qsub -v PATH -cwd -S /bin/bash -j y -l <span class="nv">arch</span><span class="o">=</span>*64* -l <span class="nv">gpu</span><span class="o">=</span><span class="m">2</span> -q g.q
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>qsub<span class="w"> </span>-v<span class="w"> </span>PATH<span class="w"> </span>-cwd<span class="w"> </span>-S<span class="w"> </span>/bin/bash<span class="w"> </span>-j<span class="w"> </span>y<span class="w"> </span>-l<span class="w"> </span><span class="nv">arch</span><span class="o">=</span>*64*<span class="w"> </span>-l<span class="w"> </span><span class="nv">gpu</span><span class="o">=</span><span class="m">2</span><span class="w"> </span>-q<span class="w"> </span>g.q
 </pre></div>
 </div>
 <p>You can also add a new option for your system using this syntax.</p>

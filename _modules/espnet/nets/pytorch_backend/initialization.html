@@ -179,7 +179,7 @@
 
 
 <div class="viewcode-block" id="lecun_normal_init_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.initialization.lecun_normal_init_parameters">[docs]</a><span class="k">def</span> <span class="nf">lecun_normal_init_parameters</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initialize parameters in the LeCun&#39;s manner.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize parameters in the LeCun&#39;s manner.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -202,7 +202,7 @@
 
 
 <div class="viewcode-block" id="uniform_init_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.initialization.uniform_init_parameters">[docs]</a><span class="k">def</span> <span class="nf">uniform_init_parameters</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initialize parameters with an uniform distribution.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize parameters with an uniform distribution.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">data</span>
         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -219,7 +219,7 @@
 
 
 <div class="viewcode-block" id="set_forget_bias_to_one"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.initialization.set_forget_bias_to_one">[docs]</a><span class="k">def</span> <span class="nf">set_forget_bias_to_one</span><span class="p">(</span><span class="n">bias</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initialize a bias vector in the forget gate with one.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize a bias vector in the forget gate with one.&quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="n">bias</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">2</span>
     <span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span></div>

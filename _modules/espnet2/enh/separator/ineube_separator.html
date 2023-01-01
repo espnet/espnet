@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="iNeuBe"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.ineube_separator.iNeuBe">[docs]</a><span class="k">class</span> <span class="nc">iNeuBe</span><span class="p">(</span><span class="n">AbsSeparator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;iNeuBe, iterative neural/beamforming enhancement</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;iNeuBe, iterative neural/beamforming enhancement</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">    Lu, Y. J., Cornell, S., Chang, X., Zhang, W., Li, C., Ni, Z., ... &amp; Watanabe, S.</span>
@@ -292,7 +292,7 @@
 
 <div class="viewcode-block" id="iNeuBe.unfold"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.ineube_separator.iNeuBe.unfold">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">unfold</span><span class="p">(</span><span class="n">tf_rep</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;unfolding STFT representation to add context in the mics channel.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;unfolding STFT representation to add context in the mics channel.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mixture (torch.Tensor): 3D tensor (monaural complex STFT)</span>
@@ -324,7 +324,7 @@
 
 <div class="viewcode-block" id="iNeuBe.mfmcwf"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.ineube_separator.iNeuBe.mfmcwf">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">mfmcwf</span><span class="p">(</span><span class="n">mixture</span><span class="p">,</span> <span class="n">estimate</span><span class="p">,</span> <span class="n">n_chunks</span><span class="p">,</span> <span class="n">tik_eps</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;multi-frame multi-channel wiener filter.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;multi-frame multi-channel wiener filter.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mixture (torch.Tensor): multi-channel STFT complex mixture tensor,</span>
@@ -375,7 +375,7 @@
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">additional</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): batched multi-channel audio tensor with</span>

@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="Conv1d"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d">[docs]</a><span class="k">class</span> <span class="nc">Conv1d</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conv1d module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conv1d module definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_size: Input dimension.</span>
@@ -207,7 +207,7 @@
         <span class="n">causal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a Conv1d object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Conv1d object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="n">causal</span><span class="p">:</span>
@@ -251,7 +251,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Conv1d.reset_streaming_cache"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.reset_streaming_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_streaming_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize/Reset Conv1d cache for streaming.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize/Reset Conv1d cache for streaming.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            left_context: Number of left frames during chunk-by-chunk inference.</span>
@@ -269,7 +269,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">chunk_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Conv1d input sequences. (B, T, D_in)</span>
@@ -314,7 +314,7 @@
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Encode chunk of input sequence.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode chunk of input sequence.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Conv1d input sequences. (B, T, D_in)</span>
@@ -350,7 +350,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_pos</span><span class="p">(</span><span class="n">pos_enc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Conv1d.create_new_mask"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.create_new_mask">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create new mask for output sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create new mask for output sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mask: Mask of input sequences. (B, T)</span>
@@ -365,7 +365,7 @@
         <span class="k">return</span> <span class="n">mask</span><span class="p">[:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Conv1d.create_new_pos_enc"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conv1d.Conv1d.create_new_pos_enc">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_pos_enc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos_enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create new positional embedding vector.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create new positional embedding vector.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            pos_enc: Input sequences positional embedding.</span>

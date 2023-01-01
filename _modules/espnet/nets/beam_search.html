@@ -181,7 +181,7 @@
 
 
 <div class="viewcode-block" id="Hypothesis"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.Hypothesis">[docs]</a><span class="k">class</span> <span class="nc">Hypothesis</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Hypothesis data type.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hypothesis data type.&quot;&quot;&quot;</span>
 
     <span class="n">yseq</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="n">score</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
@@ -189,7 +189,7 @@
     <span class="n">states</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Hypothesis.asdict"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.Hypothesis.asdict">[docs]</a>    <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Convert data to JSON-friendly dict.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert data to JSON-friendly dict.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_replace</span><span class="p">(</span>
             <span class="n">yseq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
             <span class="n">score</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">),</span>
@@ -198,7 +198,7 @@
 
 
 <div class="viewcode-block" id="BeamSearch"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch">[docs]</a><span class="k">class</span> <span class="nc">BeamSearch</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Beam search implementation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Beam search implementation.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -212,7 +212,7 @@
         <span class="n">pre_beam_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
         <span class="n">pre_beam_score_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            scorers (dict[str, ScorerInterface]): Dict of decoder modules</span>
@@ -275,7 +275,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="BeamSearch.init_hyp"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.init_hyp">[docs]</a>    <span class="k">def</span> <span class="nf">init_hyp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Get an initial hypothesis data.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial hypothesis data.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The encoder output feature</span>
@@ -300,7 +300,7 @@
 
 <div class="viewcode-block" id="BeamSearch.append_token"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.append_token">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">append_token</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Append new token to prefix tokens.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Append new token to prefix tokens.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (torch.Tensor): The prefix token</span>
@@ -316,7 +316,7 @@
 <div class="viewcode-block" id="BeamSearch.score_full"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.score_full">[docs]</a>    <span class="k">def</span> <span class="nf">score_full</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">Hypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyp (Hypothesis): Hypothesis with prefix tokens to score</span>
@@ -339,7 +339,7 @@
 <div class="viewcode-block" id="BeamSearch.score_partial"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">score_partial</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">Hypothesis</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.part_scorers`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.part_scorers`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyp (Hypothesis): Hypothesis with prefix tokens to score</span>
@@ -363,7 +363,7 @@
 <div class="viewcode-block" id="BeamSearch.beam"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.beam">[docs]</a>    <span class="k">def</span> <span class="nf">beam</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">weighted_scores</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Compute topk full token ids and partial token ids.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute topk full token ids and partial token ids.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            weighted_scores (torch.Tensor): The weighted sum scores for each tokens.</span>
@@ -397,7 +397,7 @@
         <span class="n">next_part_scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">part_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Merge scores for new hypothesis.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge scores for new hypothesis.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            prev_scores (Dict[str, float]):</span>
@@ -422,7 +422,7 @@
         <span class="k">return</span> <span class="n">new_scores</span></div>
 
 <div class="viewcode-block" id="BeamSearch.merge_states"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.merge_states">[docs]</a>    <span class="k">def</span> <span class="nf">merge_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">part_states</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">part_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Merge states for new hypothesis.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge states for new hypothesis.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            states: states of `self.full_scorers`</span>
@@ -445,7 +445,7 @@
 <div class="viewcode-block" id="BeamSearch.search"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">running_hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">],</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Search new tokens for running hypotheses and encoded speech x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search new tokens for running hypotheses and encoded speech x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            running_hyps (List[Hypothesis]): Running hypotheses on beam</span>
@@ -500,7 +500,7 @@
 <div class="viewcode-block" id="BeamSearch.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
@@ -562,10 +562,10 @@
         <span class="n">best</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">best</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total number of ended hypotheses: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -593,7 +593,7 @@
         <span class="n">running_hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">],</span>
         <span class="n">ended_hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform post-processing of beam search iterations.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform post-processing of beam search iterations.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            i (int): The length of hypothesis tokens.</span>
@@ -650,7 +650,7 @@
     <span class="n">pre_beam_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
     <span class="n">pre_beam_score_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Perform beam search with scorers.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform beam search with scorers.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x (torch.Tensor): Encoded speech feature (T, D)</span>

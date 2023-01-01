@@ -324,7 +324,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="mf">1e-8</span>
 
 <div class="viewcode-block" id="FaSNet_base.pad_input"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_base.pad_input">[docs]</a>    <span class="k">def</span> <span class="nf">pad_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Zero-padding input according to window/stride size.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Zero-padding input according to window/stride size.&quot;&quot;&quot;</span>
 
         <span class="n">batch_size</span><span class="p">,</span> <span class="n">nmic</span><span class="p">,</span> <span class="n">nsample</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
 
@@ -341,7 +341,7 @@
         <span class="k">return</span> <span class="nb">input</span><span class="p">,</span> <span class="n">rest</span></div>
 
 <div class="viewcode-block" id="FaSNet_base.seg_signal_context"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_base.seg_signal_context">[docs]</a>    <span class="k">def</span> <span class="nf">seg_signal_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">window</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Segmenting the signal into chunks with specific context.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Segmenting the signal into chunks with specific context.</span>
 
 <span class="sd">        input:</span>
 <span class="sd">            x: size (B, ch, T)</span>
@@ -379,7 +379,7 @@
         <span class="k">return</span> <span class="n">center_frame</span><span class="p">,</span> <span class="n">chunks</span><span class="p">,</span> <span class="n">rest</span></div>
 
 <div class="viewcode-block" id="FaSNet_base.signal_context"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_base.signal_context">[docs]</a>    <span class="k">def</span> <span class="nf">signal_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;signal context function</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;signal context function</span>
 
 <span class="sd">        Segmenting the signal into chunks with specific context.</span>
 <span class="sd">        input:</span>
@@ -409,7 +409,7 @@
         <span class="k">return</span> <span class="n">all_context</span></div>
 
 <div class="viewcode-block" id="FaSNet_base.seq_cos_sim"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_base.seq_cos_sim">[docs]</a>    <span class="k">def</span> <span class="nf">seq_cos_sim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Cosine similarity between some reference mics and some target mics</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cosine similarity between some reference mics and some target mics</span>
 
 <span class="sd">        ref: shape (nmic1, L, seg1)</span>
 <span class="sd">        target: shape (nmic2, L, seg2)</span>
@@ -454,7 +454,7 @@
         <span class="k">return</span> <span class="n">cos_sim</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">larger_ch</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="FaSNet_base.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_base.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">num_mic</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;abstract forward function</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;abstract forward function</span>
 
 <span class="sd">        input: shape (batch, max_num_ch, T)</span>
 <span class="sd">        num_mic: shape (batch, ), the number of channels for each input.</span>

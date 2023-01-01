@@ -210,7 +210,7 @@
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">STInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E module.</span>
 
 <span class="sd">    :param int idim: dimension of inputs</span>
 <span class="sd">    :param int odim: dimension of outputs</span>
@@ -220,22 +220,22 @@
 
 <div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;transformer model setting&quot;</span><span class="p">)</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">add_arguments_transformer_common</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return PlotAttentionReport.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return PlotAttentionReport.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">PlotAttentionReport</span>
 
 <div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">))</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
 
 <span class="sd">        :param int idim: dimension of inputs</span>
 <span class="sd">        :param int odim: dimension of outputs</span>
@@ -352,7 +352,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">replace_sos</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;replace_sos&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 
 <div class="viewcode-block" id="E2E.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize parameters.&quot;&quot;&quot;</span>
         <span class="n">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_init</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span>
@@ -361,7 +361,7 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder_mt</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_pad_src</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E forward.</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of source sequences (B)</span>
@@ -452,7 +452,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
 
 <div class="viewcode-block" id="E2E.forward_asr"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.forward_asr">[docs]</a>    <span class="k">def</span> <span class="nf">forward_asr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward pass in the auxiliary ASR task.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass in the auxiliary ASR task.</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: batch of padded source sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor hs_mask: batch of input token mask (B, Lmax)</span>
@@ -512,7 +512,7 @@
         <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span><span class="p">,</span> <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span></div>
 
 <div class="viewcode-block" id="E2E.forward_mt"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.forward_mt">[docs]</a>    <span class="k">def</span> <span class="nf">forward_mt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward pass in the auxiliary MT task.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass in the auxiliary MT task.</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor ys_in_pad: batch of padded target sequences (B, Lmax)</span>
@@ -544,11 +544,11 @@
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">acc</span></div>
 
 <div class="viewcode-block" id="E2E.scorers"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.scorers">[docs]</a>    <span class="k">def</span> <span class="nf">scorers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Scorers.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scorers.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="E2E.encode"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode source acoustic features.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode source acoustic features.</span>
 
 <span class="sd">        :param ndarray x: source acoustic feature (T, D)</span>
 <span class="sd">        :return: encoder outputs</span>
@@ -565,7 +565,7 @@
         <span class="n">trans_args</span><span class="p">,</span>
         <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Translate input speech.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Translate input speech.</span>
 
 <span class="sd">        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)</span>
 <span class="sd">        :param Namespace trans_args: argment Namespace contraining options</span>
@@ -709,7 +709,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_pad_src</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>
@@ -732,7 +732,7 @@
         <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_all_ctc_probs"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_transformer.E2E.calculate_all_ctc_probs">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_pad_src</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E CTC probability calculation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E CTC probability calculation.</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of input sequences (B)</span>

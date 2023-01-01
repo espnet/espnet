@@ -221,7 +221,7 @@
         <span class="k">return</span> <span class="n">ys_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">m</span>
 
 <div class="viewcode-block" id="TransformerLM.forward"><a class="viewcode-back" href="../../../_gen/espnet2.lm.html#espnet2.lm.transformer_lm.TransformerLM.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">hidden</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Compute LM loss value from buffer sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute LM loss value from buffer sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): Input ids. (batch, len)</span>
@@ -237,7 +237,7 @@
 <div class="viewcode-block" id="TransformerLM.score"><a class="viewcode-back" href="../../../_gen/espnet2.lm.html#espnet2.lm.transformer_lm.TransformerLM.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D torch.int64 prefix tokens.</span>
@@ -261,7 +261,7 @@
 <div class="viewcode-block" id="TransformerLM.batch_score"><a class="viewcode-back" href="../../../_gen/espnet2.lm.html#espnet2.lm.transformer_lm.TransformerLM.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>

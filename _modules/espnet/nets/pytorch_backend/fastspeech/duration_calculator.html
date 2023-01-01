@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="DurationCalculator"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_calculator.DurationCalculator">[docs]</a><span class="k">class</span> <span class="nc">DurationCalculator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Duration calculator module for FastSpeech.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Duration calculator module for FastSpeech.</span>
 
 <span class="sd">    Todo:</span>
 <span class="sd">        * Fix the duplicated calculation of diagonal head decision</span>
@@ -192,7 +192,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">teacher_model</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize duration calculator module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize duration calculator module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            teacher_model (e2e_tts_transformer.Transformer):</span>
@@ -212,7 +212,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">teacher_model</span> <span class="o">=</span> <span class="n">teacher_model</span>
 
 <div class="viewcode-block" id="DurationCalculator.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_calculator.DurationCalculator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of the padded sequences of character ids (B, Tmax).</span>

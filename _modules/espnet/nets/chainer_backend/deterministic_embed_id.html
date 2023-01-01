@@ -255,7 +255,7 @@
                     <span class="k">continue</span>
                 <span class="n">gW</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">+=</span> <span class="n">igy</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            # original code based on cuda elementwise method</span>
 <span class="sd">            if self.ignore_label is None:</span>
 <span class="sd">                cuda.elementwise(</span>
@@ -311,7 +311,7 @@
 
 
 <div class="viewcode-block" id="embed_id"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.embed_id">[docs]</a><span class="k">def</span> <span class="nf">embed_id</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">ignore_label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Efficient linear function for one-hot input.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Efficient linear function for one-hot input.</span>
 
 <span class="sd">    This function implements so called *word embeddings*. It takes two</span>
 <span class="sd">    arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer</span>
@@ -358,7 +358,7 @@
 
 
 <div class="viewcode-block" id="EmbedID"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedID">[docs]</a><span class="k">class</span> <span class="nc">EmbedID</span><span class="p">(</span><span class="n">link</span><span class="o">.</span><span class="n">Link</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Efficient linear layer for one-hot input.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Efficient linear layer for one-hot input.</span>
 
 <span class="sd">    This is a link that wraps the :func:`~chainer.functions.embed_id` function.</span>
 <span class="sd">    This link holds the ID (word) embedding matrix ``W`` as a parameter.</span>
@@ -407,7 +407,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">W</span> <span class="o">=</span> <span class="n">variable</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">initialW</span><span class="p">,</span> <span class="p">(</span><span class="n">in_size</span><span class="p">,</span> <span class="n">out_size</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Extracts the word embedding of given IDs.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extracts the word embedding of given IDs.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (chainer.Variable): Batch vectors of IDs.</span>

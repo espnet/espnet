@@ -174,7 +174,7 @@
 
 
 <div class="viewcode-block" id="CTC"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC">[docs]</a><span class="k">class</span> <span class="nc">CTC</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CTC module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CTC module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        odim: dimension of outputs</span>
@@ -240,7 +240,7 @@
             <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="CTC.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_lens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate CTC loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate CTC loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs_pad: batch of padded hidden state sequences (B, Tmax, D)</span>
@@ -267,7 +267,7 @@
         <span class="k">return</span> <span class="n">loss</span></div>
 
 <div class="viewcode-block" id="CTC.softmax"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC.softmax">[docs]</a>    <span class="k">def</span> <span class="nf">softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;softmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;softmax of frame activations</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>
@@ -277,7 +277,7 @@
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTC.log_softmax"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC.log_softmax">[docs]</a>    <span class="k">def</span> <span class="nf">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;log_softmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;log_softmax of frame activations</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>
@@ -287,7 +287,7 @@
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTC.argmax"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC.argmax">[docs]</a>    <span class="k">def</span> <span class="nf">argmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;argmax of frame activations</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;argmax of frame activations</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            torch.Tensor hs_pad: 3d tensor (B, Tmax, eprojs)</span>

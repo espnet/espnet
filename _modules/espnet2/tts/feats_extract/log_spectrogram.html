@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="LogSpectrogram"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram">[docs]</a><span class="k">class</span> <span class="nc">LogSpectrogram</span><span class="p">(</span><span class="n">AbsFeatsExtract</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conventional frontend structure for ASR</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conventional frontend structure for ASR</span>
 
 <span class="sd">    Stft -&gt; log-amplitude-spec</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -214,7 +214,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span></div>
 
 <div class="viewcode-block" id="LogSpectrogram.get_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram.get_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">get_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return the parameters required by Vocoder&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the parameters required by Vocoder&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">n_fft</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span><span class="p">,</span>
             <span class="n">n_shift</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">,</span>

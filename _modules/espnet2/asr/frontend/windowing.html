@@ -183,7 +183,7 @@
 
 
 <div class="viewcode-block" id="SlidingWindow"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow">[docs]</a><span class="k">class</span> <span class="nc">SlidingWindow</span><span class="p">(</span><span class="n">AbsFrontend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Sliding Window.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sliding Window.</span>
 
 <span class="sd">    Provides a sliding window over a batched continuous raw audio tensor.</span>
 <span class="sd">    Optionally, provides padding (Currently not implemented).</span>
@@ -204,7 +204,7 @@
         <span class="n">padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">fs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            win_length: Length of frame.</span>
@@ -224,7 +224,7 @@
 <div class="viewcode-block" id="SlidingWindow.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Apply a sliding window on the input.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply a sliding window on the input.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input (B, T, C*D) or (B, T*C*D), with D=C=1.</span>
@@ -249,7 +249,7 @@
         <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">output_lengths</span></div>
 
 <div class="viewcode-block" id="SlidingWindow.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return output length of feature dimension D, i.e. the window length.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return output length of feature dimension D, i.e. the window length.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span></div></div>
 </pre></div>
 

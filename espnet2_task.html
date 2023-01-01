@@ -265,11 +265,11 @@ our <code class="docutils literal notranslate"><span class="pre">Task</span></co
 This is because we aim at the task related to speech/text only,
 so we don’t need such general system so far.</p>
 <p>The following is an example of the command lint arguments:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>/some/path/tr/wav.scp,speech,sound <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>/some/path/tr/token_int,text,text_int <span class="se">\</span>
-  --valid_data_path_and_name_and_type<span class="o">=</span>/some/path/dev/wav.scp,speech,sound <span class="se">\</span>
-  --valid_data_path_and_name_and_type<span class="o">=</span>/some/path/dev/token_int,text,text_int
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>/some/path/tr/wav.scp,speech,sound<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>/some/path/tr/token_int,text,text_int<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="o">=</span>/some/path/dev/wav.scp,speech,sound<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="o">=</span>/some/path/dev/token_int,text,text_int
 </pre></div>
 </div>
 <p>First of all, our mini-batch is always a <code class="docutils literal notranslate"><span class="pre">dict</span></code> object:</p>
@@ -297,7 +297,7 @@ like <code class="docutils literal notranslate"><span class="pre">&lt;file-path&
 <section id="scp-file">
 <h3><code class="docutils literal notranslate"><span class="pre">scp</span></code> file<a class="headerlink" href="#scp-file" title="Permalink to this headline">¶</a></h3>
 <p>You can show the supported file format using <code class="docutils literal notranslate"><span class="pre">--help</span></code> option.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --help
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--help
 </pre></div>
 </div>
 <p>Almost all formats are referred as <code class="docutils literal notranslate"><span class="pre">scp</span></code> file  according to Kaldi-ASR.
@@ -362,21 +362,21 @@ See again the methods of <code class="docutils literal notranslate"><span class=
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">required_data_names()</span></code> determines the mandatory data names and <code class="docutils literal notranslate"><span class="pre">optional_data_names()</span></code> gives optional data. It means that the other names are allowed to given by command line arguments.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># The following is the expected argument</span>
-python -m new_task <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>filepath,input,sometype <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>filepath,target,sometype <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>filepath,auxially_feature,sometype
+python<span class="w"> </span>-m<span class="w"> </span>new_task<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,input,sometype<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,target,sometype<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,auxially_feature,sometype
 <span class="c1"># The following raises an error</span>
-python -m new_task <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>filepath,unknown,sometype
+python<span class="w"> </span>-m<span class="w"> </span>new_task<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,unknown,sometype
 </pre></div>
 </div>
 <p>The intention of this system is just an assertion check, so if feel unnecessary,
 you can turn off this checking with <code class="docutils literal notranslate"><span class="pre">--allow_variable_data_keys</span> <span class="pre">true</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Ignore assertion checking for data names</span>
-python -m new_task <span class="se">\</span>
-  --train_data_path_and_name_and_type<span class="o">=</span>filepath,unknown_name,sometype <span class="se">\</span>
-  --allow_variable_data_keys <span class="nb">true</span>
+python<span class="w"> </span>-m<span class="w"> </span>new_task<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,unknown_name,sometype<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--allow_variable_data_keys<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 </section>
@@ -447,7 +447,7 @@ This collate_fn is aware of variable sequence features for seq2seq task:</p>
 </div>
 </li>
 <li><p>If the feature is not sequential data, this behavior can be disabled.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m new_task --train_data_path_and_name_and_type<span class="o">=</span>filepath,foo,npy
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>new_task<span class="w"> </span>--train_data_path_and_name_and_type<span class="o">=</span>filepath,foo,npy
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@classmethod</span>

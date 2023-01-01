@@ -183,7 +183,7 @@
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decoder layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        odim (int): The output dimension.</span>
@@ -198,7 +198,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Decoder.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Decoder.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Decoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">1</span>
@@ -236,7 +236,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dlayers</span>
 
 <div class="viewcode-block" id="Decoder.make_attention_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder.make_attention_mask">[docs]</a>    <span class="k">def</span> <span class="nf">make_attention_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_block</span><span class="p">,</span> <span class="n">target_block</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Prepare the attention mask.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare the attention mask.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            source_block (ndarray): Source block with dimensions: (B x S).</span>
@@ -250,7 +250,7 @@
         <span class="k">return</span> <span class="n">mask</span></div>
 
 <div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward decoder.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder.</span>
 
 <span class="sd">        :param xp.array e: input token ids, int64 (batch, maxlen_out)</span>
 <span class="sd">        :param xp.array yy_mask: input token mask, uint8  (batch, maxlen_out)</span>
@@ -278,7 +278,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_norm</span><span class="p">(</span><span class="n">e</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.recognize"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">yy_mask</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Process recognition function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process recognition function.&quot;&quot;&quot;</span>
         <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">yy_mask</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div></div>
 </pre></div>

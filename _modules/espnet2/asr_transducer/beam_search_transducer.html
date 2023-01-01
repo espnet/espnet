@@ -182,7 +182,7 @@
 
 <div class="viewcode-block" id="Hypothesis"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.Hypothesis">[docs]</a><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">Hypothesis</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Default hypothesis definition for Transducer search algorithms.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default hypothesis definition for Transducer search algorithms.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        score: Total log-probability.</span>
@@ -201,7 +201,7 @@
 
 <div class="viewcode-block" id="ExtendedHypothesis"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.ExtendedHypothesis">[docs]</a><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">ExtendedHypothesis</span><span class="p">(</span><span class="n">Hypothesis</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extended hypothesis definition for NSC beam search and mAES.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extended hypothesis definition for NSC beam search and mAES.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        : Hypothesis dataclass arguments.</span>
@@ -215,7 +215,7 @@
 
 
 <div class="viewcode-block" id="BeamSearchTransducer"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchTransducer</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Beam search implementation for Transducer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Beam search implementation for Transducer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        decoder: Decoder module.</span>
@@ -253,7 +253,7 @@
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a BeamSearchTransducer object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a BeamSearchTransducer object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
@@ -323,7 +323,7 @@
         <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">is_final</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_out: Encoder output sequence. (T, D_enc)</span>
@@ -347,12 +347,12 @@
         <span class="k">return</span> <span class="n">hyps</span>
 
 <div class="viewcode-block" id="BeamSearchTransducer.reset_inference_cache"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.reset_inference_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_inference_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Reset cache for decoder scoring and streaming.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset cache for decoder scoring and streaming.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">score_cache</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">search_cache</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="BeamSearchTransducer.sort_nbest"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.sort_nbest">[docs]</a>    <span class="k">def</span> <span class="nf">sort_nbest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Sort in-place hypotheses by score or score given sequence length.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sort in-place hypotheses by score or score given sequence length.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypothesis.</span>
@@ -369,7 +369,7 @@
         <span class="k">return</span> <span class="n">hyps</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="BeamSearchTransducer.recombine_hyps"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.recombine_hyps">[docs]</a>    <span class="k">def</span> <span class="nf">recombine_hyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Recombine hypotheses with same label ID sequence.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recombine hypotheses with same label ID sequence.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses.</span>
@@ -396,7 +396,7 @@
         <span class="n">topk_idx</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">topk_logp</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ExtendedHypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Return K hypotheses candidates for expansion from a list of hypothesis.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return K hypotheses candidates for expansion from a list of hypothesis.</span>
 
 <span class="sd">        K candidates are selected according to the extended hypotheses probabilities</span>
 <span class="sd">        and a prune-by-value method. Where K is equal to beam_size + beta.</span>
@@ -432,7 +432,7 @@
         <span class="k">return</span> <span class="n">k_expansions</span></div>
 
 <div class="viewcode-block" id="BeamSearchTransducer.create_lm_batch_inputs"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.create_lm_batch_inputs">[docs]</a>    <span class="k">def</span> <span class="nf">create_lm_batch_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps_seq</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Make batch of inputs with left padding for LM scoring.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make batch of inputs with left padding for LM scoring.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps_seq: Hypothesis sequences.</span>
@@ -449,7 +449,7 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="BeamSearchTransducer.default_beam_search"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.default_beam_search">[docs]</a>    <span class="k">def</span> <span class="nf">default_beam_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Beam search implementation without prefix search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Beam search implementation without prefix search.</span>
 
 <span class="sd">        Modified from https://arxiv.org/pdf/1211.3711.pdf</span>
 
@@ -550,7 +550,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Alignment-length synchronous beam search implementation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Alignment-length synchronous beam search implementation.</span>
 
 <span class="sd">        Based on https://ieeexplore.ieee.org/document/9053040</span>
 
@@ -638,7 +638,7 @@
         <span class="k">return</span> <span class="n">B</span></div>
 
 <div class="viewcode-block" id="BeamSearchTransducer.time_sync_decoding"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.beam_search_transducer.BeamSearchTransducer.time_sync_decoding">[docs]</a>    <span class="k">def</span> <span class="nf">time_sync_decoding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Time synchronous beam search implementation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Time synchronous beam search implementation.</span>
 
 <span class="sd">        Based on https://ieeexplore.ieee.org/document/9053040</span>
 
@@ -732,7 +732,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ExtendedHypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Modified version of Adaptive Expansion Search (mAES).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Modified version of Adaptive Expansion Search (mAES).</span>
 
 <span class="sd">        Based on AES (https://ieeexplore.ieee.org/document/9250505) and</span>
 <span class="sd">                 NSC (https://arxiv.org/abs/2201.05420).</span>

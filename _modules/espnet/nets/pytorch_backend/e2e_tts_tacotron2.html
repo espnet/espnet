@@ -190,7 +190,7 @@
 
 
 <div class="viewcode-block" id="GuidedAttentionLoss"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.GuidedAttentionLoss">[docs]</a><span class="k">class</span> <span class="nc">GuidedAttentionLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Guided attention loss function module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Guided attention loss function module.</span>
 
 <span class="sd">    This module calculates the guided attention loss described</span>
 <span class="sd">    in `Efficiently Trainable Text-to-Speech System Based</span>
@@ -204,7 +204,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">reset_always</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize guided attention loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize guided attention loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            sigma (float, optional): Standard deviation to control</span>
@@ -225,7 +225,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">masks</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="GuidedAttentionLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.GuidedAttentionLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            att_ws (Tensor): Batch of attention weights (B, T_max_out, T_max_in).</span>
@@ -261,7 +261,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_make_guided_attention_mask</span><span class="p">(</span><span class="n">ilen</span><span class="p">,</span> <span class="n">olen</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make guided attention mask.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make guided attention mask.</span>
 
 <span class="sd">        Examples:</span>
 <span class="sd">            &gt;&gt;&gt; guided_attn_mask =_make_guided_attention(5, 5, 0.4)</span>
@@ -293,7 +293,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_make_masks</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make masks indicating non-padded part.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make masks indicating non-padded part.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ilens (LongTensor or List): Batch of lengths (B,).</span>
@@ -331,12 +331,12 @@
 
 
 <div class="viewcode-block" id="Tacotron2Loss"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2Loss">[docs]</a><span class="k">class</span> <span class="nc">Tacotron2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for Tacotron2.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for Tacotron2.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bce_pos_weight</span><span class="o">=</span><span class="mf">20.0</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tactoron2 loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tactoron2 loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            use_masking (bool): Whether to apply masking</span>
@@ -363,7 +363,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_state_dict_pre_hook</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Tacotron2Loss.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2Loss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).</span>
@@ -423,7 +423,7 @@
         <span class="n">unexpected_keys</span><span class="p">,</span>
         <span class="n">error_msgs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Apply pre hook function before loading state dict.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply pre hook function before loading state dict.</span>
 
 <span class="sd">        From v.0.6.1 `bce_criterion.pos_weight` param is registered as a parameter but</span>
 <span class="sd">        old models do not include it and as a result, it causes missing key error when</span>
@@ -438,7 +438,7 @@
 
 
 <div class="viewcode-block" id="Tacotron2"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2">[docs]</a><span class="k">class</span> <span class="nc">Tacotron2</span><span class="p">(</span><span class="n">TTSInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Tacotron2 module for end-to-end text-to-speech (E2E-TTS).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tacotron2 module for end-to-end text-to-speech (E2E-TTS).</span>
 
 <span class="sd">    This is a module of Spectrogram prediction network in Tacotron2 described</span>
 <span class="sd">    in `Natural TTS Synthesis</span>
@@ -453,7 +453,7 @@
 
 <div class="viewcode-block" id="Tacotron2.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;tacotron 2 model setting&quot;</span><span class="p">)</span>
         <span class="c1"># encoder</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -684,7 +684,7 @@
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -869,7 +869,7 @@
 <div class="viewcode-block" id="Tacotron2.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -960,7 +960,7 @@
         <span class="k">return</span> <span class="n">loss</span></div>
 
 <div class="viewcode-block" id="Tacotron2.inference"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">inference_args</span><span class="p">,</span> <span class="n">spemb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input sequence of characters (T,).</span>
@@ -1010,7 +1010,7 @@
 <div class="viewcode-block" id="Tacotron2.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_tacotron2.Tacotron2.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keep_tensor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -1045,7 +1045,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_plot_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
 
 <span class="sd">        keys should match what `chainer.reporter` reports.</span>
 <span class="sd">        If you add the key `loss`, the reporter will report `main/loss`</span>

@@ -180,7 +180,7 @@
     <span class="n">eps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">partial</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Get normalization module and arguments given parameters.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get normalization module and arguments given parameters.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        normalization_type: Normalization module type.</span>
@@ -215,7 +215,7 @@
 
 
 <div class="viewcode-block" id="BasicNorm"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm">[docs]</a><span class="k">class</span> <span class="nc">BasicNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;BasicNorm module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;BasicNorm module definition.</span>
 
 <span class="sd">    Reference: https://github.com/k2-fsa/icefall/pull/288</span>
 
@@ -230,13 +230,13 @@
         <span class="n">normalized_shape</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a BasicNorm object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a BasicNorm object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">log</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
 
 <div class="viewcode-block" id="BasicNorm.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute basic normalization.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute basic normalization.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequences. (B, T, D_hidden)</span>
@@ -251,7 +251,7 @@
 
 
 <div class="viewcode-block" id="RMSNorm"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm">[docs]</a><span class="k">class</span> <span class="nc">RMSNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;RMSNorm module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RMSNorm module definition.</span>
 
 <span class="sd">    Reference: https://arxiv.org/pdf/1910.07467.pdf</span>
 
@@ -268,7 +268,7 @@
         <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
         <span class="n">partial</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a RMSNorm object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a RMSNorm object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">normalized_shape</span> <span class="o">=</span> <span class="n">normalized_shape</span>
@@ -280,7 +280,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">normalized_shape</span><span class="p">))</span>
 
 <div class="viewcode-block" id="RMSNorm.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute RMS normalization.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute RMS normalization.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequences. (B, T, D_hidden)</span>
@@ -308,7 +308,7 @@
 
 
 <div class="viewcode-block" id="ScaleNorm"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm">[docs]</a><span class="k">class</span> <span class="nc">ScaleNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ScaleNorm module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ScaleNorm module definition.</span>
 
 <span class="sd">    Reference: https://arxiv.org/pdf/1910.05895.pdf</span>
 
@@ -319,14 +319,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalized_shape</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a ScaleNorm object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a ScaleNorm object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">normalized_shape</span><span class="o">**</span><span class="mf">0.5</span><span class="p">))</span>
 
 <div class="viewcode-block" id="ScaleNorm.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute scale normalization.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute scale normalization.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequences. (B, T, D_hidden)</span>

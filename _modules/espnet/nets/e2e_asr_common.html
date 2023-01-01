@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="end_detect"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.end_detect">[docs]</a><span class="k">def</span> <span class="nf">end_detect</span><span class="p">(</span><span class="n">ended_hyps</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">D_end</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">))):</span>
-    <span class="sd">&quot;&quot;&quot;End detection.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;End detection.</span>
 
 <span class="sd">    described in Eq. (50) of S. Watanabe et al</span>
 <span class="sd">    &quot;Hybrid CTC/Attention Architecture for End-to-End Speech Recognition&quot;</span>
@@ -220,7 +220,7 @@
 
 <span class="c1"># TODO(takaaki-hori): add different smoothing methods</span>
 <div class="viewcode-block" id="label_smoothing_dist"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.label_smoothing_dist">[docs]</a><span class="k">def</span> <span class="nf">label_smoothing_dist</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">lsm_type</span><span class="p">,</span> <span class="n">transcript</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Obtain label distribution for loss smoothing.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Obtain label distribution for loss smoothing.</span>
 
 <span class="sd">    :param odim:</span>
 <span class="sd">    :param lsm_type:</span>
@@ -254,7 +254,7 @@
 
 
 <div class="viewcode-block" id="get_vgg2l_odim"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.get_vgg2l_odim">[docs]</a><span class="k">def</span> <span class="nf">get_vgg2l_odim</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">in_channel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">out_channel</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the output size of the VGG frontend.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the output size of the VGG frontend.</span>
 
 <span class="sd">    :param in_channel: input channel size</span>
 <span class="sd">    :param out_channel: output channel size</span>
@@ -268,7 +268,7 @@
 
 
 <div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate CER and WER for E2E_ASR and CTC models during training.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate CER and WER for E2E_ASR and CTC models during training.</span>
 
 <span class="sd">    :param y_hats: numpy array with predicted text</span>
 <span class="sd">    :param y_pads: numpy array with true (target) text</span>
@@ -281,7 +281,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_cer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">report_wer</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ErrorCalculator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="o">=</span> <span class="n">report_cer</span>
@@ -297,7 +297,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER/CER score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level WER/CER score.</span>
 
 <span class="sd">        :param torch.Tensor ys_hat: prediction (batch, seqlen)</span>
 <span class="sd">        :param torch.Tensor ys_pad: reference (batch, seqlen)</span>
@@ -322,7 +322,7 @@
         <span class="k">return</span> <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_cer_ctc"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator.calculate_cer_ctc">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_cer_ctc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score for CTC.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score for CTC.</span>
 
 <span class="sd">        :param torch.Tensor ys_hat: prediction (batch, seqlen)</span>
 <span class="sd">        :param torch.Tensor ys_pad: reference (batch, seqlen)</span>
@@ -356,7 +356,7 @@
         <span class="k">return</span> <span class="n">cer_ctc</span></div>
 
 <div class="viewcode-block" id="ErrorCalculator.convert_to_char"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator.convert_to_char">[docs]</a>    <span class="k">def</span> <span class="nf">convert_to_char</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert index to character.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert index to character.</span>
 
 <span class="sd">        :param torch.Tensor seqs_hat: prediction (batch, seqlen)</span>
 <span class="sd">        :param torch.Tensor seqs_true: reference (batch, seqlen)</span>
@@ -381,7 +381,7 @@
         <span class="k">return</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span></div>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_cer"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator.calculate_cer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score.</span>
 
 <span class="sd">        :param list seqs_hat: prediction</span>
 <span class="sd">        :param list seqs_true: reference</span>
@@ -400,7 +400,7 @@
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">char_eds</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">char_ref_lens</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_wer"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_asr_common.ErrorCalculator.calculate_wer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_wer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score.</span>
 
 <span class="sd">        :param list seqs_hat: prediction</span>
 <span class="sd">        :param list seqs_true: reference</span>

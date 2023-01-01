@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="overlap_and_add"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.svoice_separator.overlap_and_add">[docs]</a><span class="k">def</span> <span class="nf">overlap_and_add</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">frame_step</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Reconstructs a signal from a framed representation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reconstructs a signal from a framed representation.</span>
 
 <span class="sd">        Adds potentially overlapping frames of a signal with shape</span>
 <span class="sd">        `[..., frames, frame_length]`, offsetting subsequent frames by `frame_step`.</span>
@@ -262,7 +262,7 @@
 
 
 <div class="viewcode-block" id="SVoiceSeparator"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.svoice_separator.SVoiceSeparator">[docs]</a><span class="k">class</span> <span class="nc">SVoiceSeparator</span><span class="p">(</span><span class="n">AbsSeparator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;SVoice model for speech separation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;SVoice model for speech separation.</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">        Voice Separation with an Unknown Number of Multiple Speakers;</span>
@@ -318,7 +318,7 @@
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">additional</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]</span>

@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="PositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.embedding.PositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">PositionalEncoding</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Positional encoding module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Positional encoding module.</span>
 
 <span class="sd">    :param int n_units: embedding dim</span>
 <span class="sd">    :param float dropout: dropout rate</span>
@@ -186,7 +186,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_units</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Positional Encoding.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Positional Encoding.&quot;&quot;&quot;</span>
         <span class="c1"># Implementation described in the paper</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">PositionalEncoding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
@@ -200,7 +200,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">n_units</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.embedding.PositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward Positional Encoding.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Positional Encoding.&quot;&quot;&quot;</span>
         <span class="n">length</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">e</span> <span class="o">=</span> <span class="n">e</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="p">[:</span><span class="n">length</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span></div></div>

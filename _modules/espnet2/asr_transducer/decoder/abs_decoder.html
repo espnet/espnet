@@ -177,11 +177,11 @@
 
 
 <div class="viewcode-block" id="AbsDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder">[docs]</a><span class="k">class</span> <span class="nc">AbsDecoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Abstract decoder module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract decoder module.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AbsDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.forward">[docs]</a>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            labels: Label ID sequences. (B, L)</span>
@@ -199,7 +199,7 @@
         <span class="n">label_sequence</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">dec_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]]:</span>
-        <span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            label: Previous label. (1, 1)</span>
@@ -220,7 +220,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]]:</span>
-        <span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses.</span>
@@ -235,7 +235,7 @@
 
 <div class="viewcode-block" id="AbsDecoder.set_device"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder.set_device">[docs]</a>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">set_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            device: Device ID.</span>
@@ -247,7 +247,7 @@
     <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]]:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch_size: Batch size.</span>
@@ -265,7 +265,7 @@
         <span class="n">states</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]:</span>
-        <span class="sd">&quot;&quot;&quot;Get specified ID state from batch of states, if provided.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get specified ID state from batch of states, if provided.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            states: Decoder hidden states.</span>

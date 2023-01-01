@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="field2slice"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tokenize_text.field2slice">[docs]</a><span class="k">def</span> <span class="nf">field2slice</span><span class="p">(</span><span class="n">field</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">slice</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Convert field string to slice</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert field string to slice</span>
 
 <span class="sd">    Note that field string accepts 1-based integer.</span>
 
@@ -339,7 +339,7 @@
     <span class="c1"># Logging</span>
     <span class="n">total_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counter</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
     <span class="n">invocab_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">words_and_counts</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;OOV rate = </span><span class="si">{</span><span class="p">(</span><span class="n">total_count</span> <span class="o">-</span> <span class="n">invocab_count</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_count</span> <span class="o">*</span> <span class="mi">100</span><span class="si">}</span><span class="s2"> %&quot;</span><span class="p">)</span></div>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;OOV rate = </span><span class="si">{</span><span class="p">(</span><span class="n">total_count</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">invocab_count</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">total_count</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span><span class="si">}</span><span class="s2"> %&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tokenize_text.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>

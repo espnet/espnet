@@ -212,10 +212,10 @@
 
 
 <div class="viewcode-block" id="CustomEvaluator"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomEvaluator">[docs]</a><span class="k">class</span> <span class="nc">CustomEvaluator</span><span class="p">(</span><span class="n">BaseEvaluator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom evaluator.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom evaluator.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">iterator</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model (torch.nn.Module): Pytorch model instance.</span>
@@ -230,7 +230,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomEvaluator.evaluate"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomEvaluator.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate over validation iterator.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate over validation iterator.&quot;&quot;&quot;</span>
         <span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterators</span><span class="p">[</span><span class="s2">&quot;main&quot;</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_hook</span><span class="p">:</span>
@@ -267,10 +267,10 @@
 
 
 <div class="viewcode-block" id="CustomUpdater"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomUpdater">[docs]</a><span class="k">class</span> <span class="nc">CustomUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom updater.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom updater.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">grad_clip</span><span class="p">,</span> <span class="n">iterator</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model (torch.nn.Module) model: Pytorch model instance.</span>
@@ -290,7 +290,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomUpdater.update_core"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update model one step.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update model one step.&quot;&quot;&quot;</span>
         <span class="c1"># When we pass one iterator and optimizer to StandardUpdater.__init__,</span>
         <span class="c1"># they are automatically named &#39;main&#39;.</span>
         <span class="n">train_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iterator</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
@@ -328,22 +328,22 @@
         <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CustomUpdater.update"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomUpdater.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Run update function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run update function.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span></div></div>
 
 
 <div class="viewcode-block" id="CustomConverter"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.CustomConverter">[docs]</a><span class="k">class</span> <span class="nc">CustomConverter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom converter.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom converter.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize module.&quot;&quot;&quot;</span>
         <span class="c1"># NOTE: keep as class for future development</span>
         <span class="k">pass</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)):</span>
-        <span class="sd">&quot;&quot;&quot;Convert a given batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert a given batch.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch (list): List of ndarrays.</span>
@@ -422,7 +422,7 @@
 
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train E2E-TTS model.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train E2E-TTS model.&quot;&quot;&quot;</span>
     <span class="n">set_deterministic_pytorch</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
     <span class="c1"># check cuda availability</span>
@@ -731,7 +731,7 @@
 
 <div class="viewcode-block" id="decode"><a class="viewcode-back" href="../../../../_gen/espnet.tts.html#espnet.tts.pytorch_backend.tts.decode">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decode with E2E-TTS model.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decode with E2E-TTS model.&quot;&quot;&quot;</span>
     <span class="n">set_deterministic_pytorch</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="c1"># read training config</span>
     <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">train_args</span> <span class="o">=</span> <span class="n">get_model_conf</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">)</span>

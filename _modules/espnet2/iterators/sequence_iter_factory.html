@@ -181,7 +181,7 @@
 
 
 <div class="viewcode-block" id="worker_init_fn"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.worker_init_fn">[docs]</a><span class="k">def</span> <span class="nf">worker_init_fn</span><span class="p">(</span><span class="n">worker_id</span><span class="p">,</span> <span class="n">base_seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set random seed for each worker in DataLoader.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set random seed for each worker in DataLoader.&quot;&quot;&quot;</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="n">worker_id</span>
     <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span></div>
@@ -202,7 +202,7 @@
 
 
 <div class="viewcode-block" id="SequenceIterFactory"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.SequenceIterFactory">[docs]</a><span class="k">class</span> <span class="nc">SequenceIterFactory</span><span class="p">(</span><span class="n">AbsIterFactory</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Build iterator for each epoch.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build iterator for each epoch.</span>
 
 <span class="sd">    This class simply creates pytorch DataLoader except for the following points:</span>
 <span class="sd">    - The random seed is decided according to the number of epochs. This feature</span>

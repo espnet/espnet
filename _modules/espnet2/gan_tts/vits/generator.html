@@ -194,7 +194,7 @@
 
 
 <div class="viewcode-block" id="VITSGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.generator.VITSGenerator">[docs]</a><span class="k">class</span> <span class="nc">VITSGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generator module in VITS.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator module in VITS.</span>
 
 <span class="sd">    This is a module of VITS described in `Conditional Variational Autoencoder</span>
 <span class="sd">    with Adversarial Learning for End-to-End Text-to-Speech`_.</span>
@@ -257,7 +257,7 @@
         <span class="n">stochastic_duration_predictor_flows</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">stochastic_duration_predictor_dds_conv_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize VITS generator module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize VITS generator module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            vocabs (int): Input vocabulary size.</span>
@@ -451,7 +451,7 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="p">],</span>
     <span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -594,7 +594,7 @@
         <span class="n">max_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Run inference.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run inference.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Input text index tensor (B, T_text,).</span>
@@ -720,7 +720,7 @@
         <span class="k">return</span> <span class="n">wav</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">attn</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">dur</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_generate_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dur</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Generate path a.k.a. monotonic attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate path a.k.a. monotonic attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            dur (Tensor): Duration tensor (B, 1, T_text).</span>

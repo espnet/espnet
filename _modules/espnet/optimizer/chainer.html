@@ -179,16 +179,16 @@
 
 
 <div class="viewcode-block" id="AdamFactory"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdamFactory">[docs]</a><span class="k">class</span> <span class="nc">AdamFactory</span><span class="p">(</span><span class="n">OptimizerFactoryInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Adam factory.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adam factory.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AdamFactory.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdamFactory.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">adam</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AdamFactory.from_args"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdamFactory.from_args">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_args</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target: for pytorch `model.parameters()`,</span>
@@ -207,16 +207,16 @@
 
 
 <div class="viewcode-block" id="SGDFactory"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.SGDFactory">[docs]</a><span class="k">class</span> <span class="nc">SGDFactory</span><span class="p">(</span><span class="n">OptimizerFactoryInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;SGD factory.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;SGD factory.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SGDFactory.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.SGDFactory.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">sgd</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SGDFactory.from_args"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.SGDFactory.from_args">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_args</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target: for pytorch `model.parameters()`,</span>
@@ -233,16 +233,16 @@
 
 
 <div class="viewcode-block" id="AdadeltaFactory"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdadeltaFactory">[docs]</a><span class="k">class</span> <span class="nc">AdadeltaFactory</span><span class="p">(</span><span class="n">OptimizerFactoryInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Adadelta factory.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adadelta factory.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AdadeltaFactory.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdadeltaFactory.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register args.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">adadelta</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AdadeltaFactory.from_args"><a class="viewcode-back" href="../../../_gen/espnet.optimizer.html#espnet.optimizer.chainer.AdadeltaFactory.from_args">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_args</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize optimizer from argparse Namespace.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            target: for pytorch `model.parameters()`,</span>

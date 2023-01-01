@@ -193,7 +193,7 @@
 
 
 <div class="viewcode-block" id="StochasticDurationPredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor">[docs]</a><span class="k">class</span> <span class="nc">StochasticDurationPredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Stochastic duration predictor module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stochastic duration predictor module.</span>
 
 <span class="sd">    This is a module of stochastic duration predictor described in `Conditional</span>
 <span class="sd">    Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech`_.</span>
@@ -212,7 +212,7 @@
         <span class="n">dds_conv_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">global_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize StochasticDurationPredictor module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize StochasticDurationPredictor module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            channels (int): Number of channels.</span>
@@ -281,7 +281,7 @@
         <span class="n">inverse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, channels, T_text).</span>

@@ -195,7 +195,7 @@
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.decoders.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">ScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decoder module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder module</span>
 
 <span class="sd">    :param int eprojs: encoder projection units</span>
 <span class="sd">    :param int odim: dimension of outputs</span>
@@ -308,7 +308,7 @@
         <span class="k">return</span> <span class="n">z_list</span><span class="p">,</span> <span class="n">c_list</span></div>
 
 <div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.decoders.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">strm_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lang_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Decoder forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decoder forward</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)</span>
 <span class="sd">                                    [in multi-encoder case,</span>
@@ -475,7 +475,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">ppl</span></div>
 
 <div class="viewcode-block" id="Decoder.recognize_beam"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.decoders.Decoder.recognize_beam">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_beam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">strm_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;beam search implementation</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;beam search implementation</span>
 
 <span class="sd">        :param torch.Tensor h: encoder hidden state (T, eprojs)</span>
 <span class="sd">                                [in multi-encoder case, list of torch.Tensor,</span>
@@ -1131,7 +1131,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="Decoder.calculate_all_attentions"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.decoders.Decoder.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlen</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">strm_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">lang_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of attentions</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of attentions</span>
 
 <span class="sd">        :param torch.Tensor hs_pad: batch of padded hidden state sequences</span>
 <span class="sd">                                    (B, Tmax, D)</span>

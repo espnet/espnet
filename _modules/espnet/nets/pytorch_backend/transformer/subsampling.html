@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="TooShortUttError"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.TooShortUttError">[docs]</a><span class="k">class</span> <span class="nc">TooShortUttError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when the utt is too short for subsampling.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when the utt is too short for subsampling.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        message (str): Message for error catch</span>
@@ -192,14 +192,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">actual_size</span><span class="p">,</span> <span class="n">limit</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct a TooShortUttError for error handler.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a TooShortUttError for error handler.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">actual_size</span> <span class="o">=</span> <span class="n">actual_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="n">limit</span></div>
 
 
 <div class="viewcode-block" id="check_short_utt"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.check_short_utt">[docs]</a><span class="k">def</span> <span class="nf">check_short_utt</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Check if the utterance is too short for subsampling.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the utterance is too short for subsampling.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">Conv2dSubsampling2</span><span class="p">)</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">7</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">Conv2dSubsampling</span><span class="p">)</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
@@ -212,7 +212,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsampling"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/4 length).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/4 length).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -223,7 +223,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">pos_enc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
@@ -237,7 +237,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Conv2dSubsampling.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>
@@ -259,7 +259,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get item.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get item.</span>
 
 <span class="sd">        When reset_parameters() is called, if use_scaled_pos_enc is used,</span>
 <span class="sd">            return the positioning encoding.</span>
@@ -271,7 +271,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsampling2"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling2">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling2</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/2 length).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/2 length).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -282,7 +282,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">pos_enc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling2 object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling2 object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
@@ -296,7 +296,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Conv2dSubsampling2.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>
@@ -318,7 +318,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get item.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get item.</span>
 
 <span class="sd">        When reset_parameters() is called, if use_scaled_pos_enc is used,</span>
 <span class="sd">            return the positioning encoding.</span>
@@ -330,7 +330,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsampling6"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling6">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling6</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/6 length).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/6 length).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -341,7 +341,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">pos_enc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling6 object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling6 object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling6</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
@@ -355,7 +355,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Conv2dSubsampling6.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling6.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>
@@ -378,7 +378,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsampling8"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling8">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling8</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/8 length).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/8 length).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -389,7 +389,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">pos_enc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling8 object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling8 object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling8</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
@@ -405,7 +405,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Conv2dSubsampling8.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling8.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>

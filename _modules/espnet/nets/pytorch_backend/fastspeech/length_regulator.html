@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="LengthRegulator"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.length_regulator.LengthRegulator">[docs]</a><span class="k">class</span> <span class="nc">LengthRegulator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Length regulator module for feed-forward Transformer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Length regulator module for feed-forward Transformer.</span>
 
 <span class="sd">    This is a module of length regulator described in</span>
 <span class="sd">    `FastSpeech: Fast, Robust and Controllable Text to Speech`_.</span>
@@ -198,7 +198,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize length regulator module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize length regulator module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            pad_value (float, optional): Value used for padding.</span>
@@ -208,7 +208,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_value</span> <span class="o">=</span> <span class="n">pad_value</span>
 
 <div class="viewcode-block" id="LengthRegulator.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.length_regulator.LengthRegulator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of sequences of char or phoneme embeddings (B, Tmax, D).</span>

@@ -190,7 +190,7 @@
     <span class="n">unexpected_keys</span><span class="p">,</span>
     <span class="n">error_msgs</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform pre-hook in load_state_dict for backward compatibility.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform pre-hook in load_state_dict for backward compatibility.</span>
 
 <span class="sd">    Note:</span>
 <span class="sd">        We saved self.pe until v.0.5.2 but we have omitted it later.</span>
@@ -203,7 +203,7 @@
 
 
 <div class="viewcode-block" id="PositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">PositionalEncoding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Positional encoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Positional encoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        d_model (int): Embedding dimension.</span>
@@ -215,7 +215,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">PositionalEncoding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="n">reverse</span>
@@ -226,7 +226,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="n">_pre_hook</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PositionalEncoding.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
@@ -249,7 +249,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">pe</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
@@ -263,7 +263,7 @@
 
 
 <div class="viewcode-block" id="ScaledPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.ScaledPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">ScaledPositionalEncoding</span><span class="p">(</span><span class="n">PositionalEncoding</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Scaled positional encoding module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scaled positional encoding module.</span>
 
 <span class="sd">    See Sec. 3.2  https://arxiv.org/abs/1809.08895</span>
 
@@ -275,16 +275,16 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">d_model</span><span class="o">=</span><span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="n">max_len</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
 
 <div class="viewcode-block" id="ScaledPositionalEncoding.reset_parameters"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.ScaledPositionalEncoding.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset parameters.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ScaledPositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.ScaledPositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
@@ -299,7 +299,7 @@
 
 
 <div class="viewcode-block" id="LearnableFourierPosEnc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc">[docs]</a><span class="k">class</span> <span class="nc">LearnableFourierPosEnc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Learnable Fourier Features for Positional Encoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Learnable Fourier Features for Positional Encoding.</span>
 
 <span class="sd">    See https://arxiv.org/pdf/2106.02795.pdf</span>
 
@@ -323,7 +323,7 @@
         <span class="n">apply_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LearnableFourierPosEnc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
@@ -360,7 +360,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="LearnableFourierPosEnc.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
         <span class="n">position_v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
         <span class="n">cosine</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">position_v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_r</span><span class="p">))</span>
@@ -374,7 +374,7 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">pos_enc</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="LearnableFourierPosEnc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
@@ -388,7 +388,7 @@
 
 
 <div class="viewcode-block" id="LegacyRelPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LegacyRelPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">LegacyRelPositionalEncoding</span><span class="p">(</span><span class="n">PositionalEncoding</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Relative positional encoding module (old version).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Relative positional encoding module (old version).</span>
 
 <span class="sd">    Details can be found in https://github.com/espnet/espnet/pull/2816.</span>
 
@@ -402,7 +402,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">d_model</span><span class="o">=</span><span class="n">d_model</span><span class="p">,</span>
             <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
@@ -411,7 +411,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="LegacyRelPositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LegacyRelPositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
@@ -428,7 +428,7 @@
 
 
 <div class="viewcode-block" id="RelPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.RelPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">RelPositionalEncoding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Relative positional encoding module (new implementation).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Relative positional encoding module (new implementation).</span>
 
 <span class="sd">    Details can be found in https://github.com/espnet/espnet/pull/2816.</span>
 
@@ -442,7 +442,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RelPositionalEncoding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
@@ -451,7 +451,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">extend_pe</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_len</span><span class="p">))</span>
 
 <div class="viewcode-block" id="RelPositionalEncoding.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.RelPositionalEncoding.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># self.pe contains both positive and negative parts</span>
             <span class="c1"># the length of self.pe is 2 * input_len - 1</span>
@@ -483,7 +483,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">pe</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="RelPositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.RelPositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
@@ -502,7 +502,7 @@
 
 
 <div class="viewcode-block" id="StreamPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">StreamPositionalEncoding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Streaming Positional encoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Streaming Positional encoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        d_model (int): Embedding dimension.</span>
@@ -512,7 +512,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an PositionalEncoding object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">StreamPositionalEncoding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
@@ -523,7 +523,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="n">_pre_hook</span><span class="p">)</span>
 
 <div class="viewcode-block" id="StreamPositionalEncoding.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">:</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">device</span><span class="p">:</span>
@@ -541,7 +541,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">pe</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StreamPositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">start_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>

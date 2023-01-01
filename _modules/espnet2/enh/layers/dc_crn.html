@@ -186,7 +186,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rearrange</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Grouped LSTM.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Grouped LSTM.</span>
 
 <span class="sd">        Reference:</span>
 <span class="sd">            Efficient Sequence Learning with Group Recurrent Networks; Gao et al., 2018</span>
@@ -230,7 +230,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="GLSTM.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.GLSTM.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Grouped LSTM forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Grouped LSTM forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): (B, C, T, D)</span>
@@ -272,7 +272,7 @@
 
 <div class="viewcode-block" id="GluConv2d"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.GluConv2d">[docs]</a><span class="k">class</span> <span class="nc">GluConv2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Conv2d with Gated Linear Units (GLU).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Conv2d with Gated Linear Units (GLU).</span>
 
 <span class="sd">        Input and output shapes are the same as regular Conv2d layers.</span>
 
@@ -304,7 +304,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span>
 
 <div class="viewcode-block" id="GluConv2d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.GluConv2d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;ConvGLU forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;ConvGLU forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): (B, C_in, H_in, W_in)</span>
@@ -326,7 +326,7 @@
         <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">output_padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;ConvTranspose2d with Gated Linear Units (GLU).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;ConvTranspose2d with Gated Linear Units (GLU).</span>
 
 <span class="sd">        Input and output shapes are the same as regular ConvTranspose2d layers.</span>
 
@@ -362,7 +362,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span>
 
 <div class="viewcode-block" id="GluConvTranspose2d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.GluConvTranspose2d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;DeconvGLU forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DeconvGLU forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): (B, C_in, H_in, W_in)</span>
@@ -389,7 +389,7 @@
         <span class="n">layers</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
         <span class="n">transposed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Densely-Connected Convolutional Block.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Densely-Connected Convolutional Block.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_channels (int): number of input channels</span>
@@ -462,7 +462,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="DenselyConnectedBlock.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.DenselyConnectedBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;DenselyConnectedBlock forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DenselyConnectedBlock forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): (B, C, T_in, F_in)</span>
@@ -500,7 +500,7 @@
         <span class="n">glstm_rearrange</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">output_channels</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Densely-Connected Convolutional Recurrent Network (DC-CRN).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Densely-Connected Convolutional Recurrent Network (DC-CRN).</span>
 
 <span class="sd">        Reference: Fig. 3 and Section III-B in [1]</span>
 
@@ -643,7 +643,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fc_imag</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="n">input_dim</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DC_CRN.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dc_crn.DC_CRN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;DC-CRN forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DC-CRN forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Concatenated real and imaginary spectrum features</span>

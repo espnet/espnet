@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="add_encoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_encoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_encoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--etype&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;blstmp&quot;</span><span class="p">,</span>
@@ -213,7 +213,7 @@
 
 
 <div class="viewcode-block" id="add_rnn_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define arguments for RNN encoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define arguments for RNN encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--elayers&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
@@ -243,7 +243,7 @@
 
 
 <div class="viewcode-block" id="add_custom_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define arguments for Custom encoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define arguments for Custom encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--enc-block-arch&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">eval</span><span class="p">,</span>
@@ -309,7 +309,7 @@
 
 
 <div class="viewcode-block" id="add_decoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_decoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_decoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dtype&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span>
@@ -334,7 +334,7 @@
 
 
 <div class="viewcode-block" id="add_rnn_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define arguments for RNN decoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define arguments for RNN decoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dec-embed-dim&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span>
@@ -352,7 +352,7 @@
 
 
 <div class="viewcode-block" id="add_custom_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define arguments for Custom decoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define arguments for Custom decoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dec-block-arch&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">eval</span><span class="p">,</span>
@@ -385,7 +385,7 @@
 
 
 <div class="viewcode-block" id="add_custom_training_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_training_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_training_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define arguments for training with Custom architecture.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define arguments for training with Custom architecture.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--optimizer-warmup-steps&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">25000</span><span class="p">,</span>
@@ -430,7 +430,7 @@
 
 
 <div class="viewcode-block" id="add_transducer_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_transducer_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_transducer_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Define general arguments for Transducer model.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define general arguments for Transducer model.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--transducer-weight&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
@@ -468,7 +468,7 @@
 
 
 <div class="viewcode-block" id="add_auxiliary_task_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_auxiliary_task_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_auxiliary_task_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Add arguments for auxiliary task.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add arguments for auxiliary task.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--use-ctc-loss&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>

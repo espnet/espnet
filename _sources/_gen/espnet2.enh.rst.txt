@@ -4,6 +4,17 @@ espnet2.enh package
 
 
 
+.. _espnet2.enh.espnet_model_tse:
+
+espnet2.enh.espnet_model_tse
+----------------------------
+
+.. automodule:: espnet2.enh.espnet_model_tse
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.espnet_enh_s2t_model:
 
 espnet2.enh.espnet_enh_s2t_model
@@ -54,6 +65,17 @@ espnet2.enh.layers.mask_estimator
 ---------------------------------
 
 .. automodule:: espnet2.enh.layers.mask_estimator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.adapt_layers:
+
+espnet2.enh.layers.adapt_layers
+-------------------------------
+
+.. automodule:: espnet2.enh.layers.adapt_layers
     :members:
     :undoc-members:
     :show-inheritance:
@@ -703,6 +725,39 @@ espnet2.enh.loss.criterions.__init__
 ------------------------------------
 
 .. automodule:: espnet2.enh.loss.criterions.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.extractor.abs_extractor:
+
+espnet2.enh.extractor.abs_extractor
+-----------------------------------
+
+.. automodule:: espnet2.enh.extractor.abs_extractor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.extractor.td_speakerbeam_extractor:
+
+espnet2.enh.extractor.td_speakerbeam_extractor
+----------------------------------------------
+
+.. automodule:: espnet2.enh.extractor.td_speakerbeam_extractor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.extractor.__init__:
+
+espnet2.enh.extractor.__init__
+------------------------------
+
+.. automodule:: espnet2.enh.extractor.__init__
     :members:
     :undoc-members:
     :show-inheritance:

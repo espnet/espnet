@@ -184,10 +184,10 @@
 
 
 <div class="viewcode-block" id="CBHGLoss"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.CBHGLoss">[docs]</a><span class="k">class</span> <span class="nc">CBHGLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for CBHG.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for CBHG.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize CBHG loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize CBHG loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            use_masking (bool): Whether to mask padded part in loss calculation.</span>
@@ -197,7 +197,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">use_masking</span> <span class="o">=</span> <span class="n">use_masking</span>
 
 <div class="viewcode-block" id="CBHGLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.CBHGLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cbhg_outs</span><span class="p">,</span> <span class="n">spcs</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cbhg_outs (Tensor): Batch of CBHG outputs (B, Lmax, spc_dim).</span>
@@ -223,7 +223,7 @@
 
 
 <div class="viewcode-block" id="CBHG"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.CBHG">[docs]</a><span class="k">class</span> <span class="nc">CBHG</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CBHG module to convert log Mel-filterbanks to linear spectrogram.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CBHG module to convert log Mel-filterbanks to linear spectrogram.</span>
 
 <span class="sd">    This is a module of CBHG introduced</span>
 <span class="sd">    in `Tacotron: Towards End-to-End Speech Synthesis`_.</span>
@@ -246,7 +246,7 @@
         <span class="n">highway_units</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
         <span class="n">gru_units</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize CBHG module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize CBHG module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -338,7 +338,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">gru_units</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CBHG.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.CBHG.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of the padded sequences of inputs (B, Tmax, idim).</span>
@@ -382,7 +382,7 @@
         <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span></div>
 
 <div class="viewcode-block" id="CBHG.inference"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.CBHG.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Inference.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): The sequences of inputs (T, idim).</span>
@@ -407,7 +407,7 @@
 
 
 <div class="viewcode-block" id="HighwayNet"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.HighwayNet">[docs]</a><span class="k">class</span> <span class="nc">HighwayNet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Highway Network module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Highway Network module.</span>
 
 <span class="sd">    This is a module of Highway Network introduced in `Highway Networks`_.</span>
 
@@ -416,7 +416,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Highway Network module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Highway Network module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -430,7 +430,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">idim</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">())</span>
 
 <div class="viewcode-block" id="HighwayNet.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.HighwayNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Batch of inputs (B, ..., idim).</span>

@@ -181,17 +181,17 @@
 
 
 <div class="viewcode-block" id="LogCompression"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.LogCompression">[docs]</a><span class="k">class</span> <span class="nc">LogCompression</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Log Compression Activation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Log Compression Activation.</span>
 
 <span class="sd">    Activation function `log(abs(x) + 1)`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
 <div class="viewcode-block" id="LogCompression.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.LogCompression.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Applies the Log Compression function elementwise on tensor x.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -199,7 +199,7 @@
 
 
 <div class="viewcode-block" id="SincConv"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv">[docs]</a><span class="k">class</span> <span class="nc">SincConv</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Sinc Convolution.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sinc Convolution.</span>
 
 <span class="sd">    This module performs a convolution using Sinc filters in time domain as kernel.</span>
 <span class="sd">    Sinc filters function as band passes in spectral domain.</span>
@@ -230,7 +230,7 @@
         <span class="n">scale_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mel&quot;</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Sinc convolutions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Sinc convolutions.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_channels: Number of input channels.</span>
@@ -281,30 +281,30 @@
 
 <div class="viewcode-block" id="SincConv.sinc"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.sinc">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">sinc</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Sinc function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sinc function.&quot;&quot;&quot;</span>
         <span class="n">x2</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">1e-6</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span> <span class="o">/</span> <span class="n">x2</span></div>
 
 <div class="viewcode-block" id="SincConv.none_window"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.none_window">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">none_window</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Identity-like windowing function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identity-like windowing function.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SincConv.hamming_window"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.hamming_window">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">hamming_window</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Hamming Windowing function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Hamming Windowing function.&quot;&quot;&quot;</span>
         <span class="n">L</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="mf">0.54</span> <span class="o">-</span> <span class="mf">0.46</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="n">L</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SincConv.init_filters"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.init_filters">[docs]</a>    <span class="k">def</span> <span class="nf">init_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize filters with filterbank values.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize filters with filterbank values.&quot;&quot;&quot;</span>
         <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span><span class="o">.</span><span class="n">bank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_create_filters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate coefficients.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate coefficients.</span>
 
 <span class="sd">        This function (re-)calculates the filter convolutions coefficients.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -328,7 +328,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sinc_filters</span> <span class="o">=</span> <span class="n">filters</span>
 
 <div class="viewcode-block" id="SincConv.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Sinc convolution forward function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sinc convolution forward function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs: Batch in form of torch.Tensor (B, C_in, D_in).</span>
@@ -348,28 +348,28 @@
         <span class="k">return</span> <span class="n">xs</span></div>
 
 <div class="viewcode-block" id="SincConv.get_odim"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.get_odim">[docs]</a>    <span class="k">def</span> <span class="nf">get_odim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Obtain the output dimension of the filter.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain the output dimension of the filter.&quot;&quot;&quot;</span>
         <span class="n">D_out</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">D_out</span> <span class="o">=</span> <span class="p">(</span><span class="n">D_out</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="n">D_out</span></div></div>
 
 
 <div class="viewcode-block" id="MelScale"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.MelScale">[docs]</a><span class="k">class</span> <span class="nc">MelScale</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Mel frequency scale.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mel frequency scale.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MelScale.convert"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.MelScale.convert">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert Hz to mel.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Hz to mel.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mf">1125.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mf">700.0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MelScale.invert"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.MelScale.invert">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">invert</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert mel to Hz.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert mel to Hz.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mf">700.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1125.0</span><span class="p">))</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MelScale.bank"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.MelScale.bank">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">bank</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Obtain initialization values for the mel scale.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain initialization values for the mel scale.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            channels: Number of channels.</span>
@@ -392,7 +392,7 @@
 
 
 <div class="viewcode-block" id="BarkScale"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.BarkScale">[docs]</a><span class="k">class</span> <span class="nc">BarkScale</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Bark frequency scale.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bark frequency scale.</span>
 
 <span class="sd">    Has wider bandwidths at lower frequencies, see:</span>
 <span class="sd">    Critical bandwidth: BARK</span>
@@ -401,7 +401,7 @@
 
 <div class="viewcode-block" id="BarkScale.convert"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.BarkScale.convert">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert Hz to Bark.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Hz to Bark.&quot;&quot;&quot;</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mf">1000.0</span><span class="p">)</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.4</span>
         <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.69</span><span class="p">)</span>
@@ -409,7 +409,7 @@
 
 <div class="viewcode-block" id="BarkScale.invert"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.BarkScale.invert">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">invert</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert Bark to Hz.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert Bark to Hz.&quot;&quot;&quot;</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">25.0</span><span class="p">,</span> <span class="mf">75.0</span><span class="p">)</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">0.69</span><span class="p">))</span>
         <span class="n">f</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">f</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.4</span><span class="p">)</span>
@@ -418,7 +418,7 @@
 
 <div class="viewcode-block" id="BarkScale.bank"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.sinc_conv.BarkScale.bank">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">bank</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Obtain initialization values for the Bark scale.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain initialization values for the Bark scale.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            channels: Number of channels.</span>

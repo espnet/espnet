@@ -175,7 +175,7 @@
 
 
 <div class="viewcode-block" id="STInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.st_interface.STInterface">[docs]</a><span class="k">class</span> <span class="nc">STInterface</span><span class="p">(</span><span class="n">ASRInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ST Interface for ESPnet model implementation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ST Interface for ESPnet model implementation.</span>
 
 <span class="sd">    NOTE: This class is inherited from ASRInterface to enable joint translation</span>
 <span class="sd">    and recognition when performing multi-task learning with the ASR task.</span>
@@ -183,7 +183,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="STInterface.translate"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.st_interface.STInterface.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">trans_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ensemble_models</span><span class="o">=</span><span class="p">[]):</span>
-        <span class="sd">&quot;&quot;&quot;Recognize x for evaluation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize x for evaluation.</span>
 
 <span class="sd">        :param ndarray x: input acouctic feature (B, T, D) or (T, D)</span>
 <span class="sd">        :param namespace trans_args: argment namespace contraining options</span>
@@ -195,7 +195,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;translate method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="STInterface.translate_batch"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.st_interface.STInterface.translate_batch">[docs]</a>    <span class="k">def</span> <span class="nf">translate_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">trans_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Beam search implementation for batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Beam search implementation for batch.</span>
 
 <span class="sd">        :param torch.Tensor x: encoder hidden state sequences (B, Tmax, Henc)</span>
 <span class="sd">        :param namespace trans_args: argument namespace containing options</span>
@@ -220,7 +220,7 @@
 
 
 <div class="viewcode-block" id="dynamic_import_st"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.st_interface.dynamic_import_st">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_st</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Import ST models dynamically.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import ST models dynamically.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        module (str): module_name:class_name or alias in `predefined_st`</span>

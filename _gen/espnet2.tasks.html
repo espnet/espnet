@@ -136,6 +136,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.tasks package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-diar">espnet2.tasks.diar</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-st">espnet2.tasks.st</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-enh-tse">espnet2.tasks.enh_tse</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-enh">espnet2.tasks.enh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-slu">espnet2.tasks.slu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-hubert">espnet2.tasks.hubert</a></li>
@@ -387,8 +388,95 @@ If your model is defined as following,</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-tasks-enh-tse">
+<span id="id3"></span><h2>espnet2.tasks.enh_tse<a class="headerlink" href="#espnet2-tasks-enh-tse" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tasks.enh_tse"></span><dl class="class">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.enh_tse.</code><code class="sig-name descname">TargetSpeakerExtractionTask</code><a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tasks.abs_task.AbsTask" title="espnet2.tasks.abs_task.AbsTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tasks.abs_task.AbsTask</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.add_task_arguments">
+<em class="property">classmethod </em><code class="sig-name descname">add_task_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.add_task_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.add_task_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_collate_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Callable[[Collection[Tuple[str, Dict[str, numpy.ndarray]]]], Tuple[List[str], Dict[str, torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.build_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_collate_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return “collate_fn”, which is a callable object and given to DataLoader.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">collate_fn</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In many cases, you can use our common collate_fn.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_model">
+<em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.enh.espnet_model_tse.ESPnetExtractionModel<a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_preprocess_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_preprocess_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Optional[Callable[[str, Dict[str, numpy.array]], Dict[str, numpy.ndarray]]]<a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.build_preprocess_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.build_preprocess_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.class_choices_list">
+<code class="sig-name descname">class_choices_list</code><em class="property"> = [&lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;]</em><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.class_choices_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.num_optimizers">
+<code class="sig-name descname">num_optimizers</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.num_optimizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.optional_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">optional_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.optional_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.optional_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the optional names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “optional_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optional_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;opt&#39;</span><span class="p">,)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.required_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">required_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/enh_tse.html#TargetSpeakerExtractionTask.required_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.required_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the required names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as following,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “required_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">required_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.trainer">
+<code class="sig-name descname">trainer</code><a class="headerlink" href="#espnet2.tasks.enh_tse.TargetSpeakerExtractionTask.trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="espnet2.train.html#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-tasks-enh">
-<span id="id3"></span><h2>espnet2.tasks.enh<a class="headerlink" href="#espnet2-tasks-enh" title="Permalink to this headline">¶</a></h2>
+<span id="id4"></span><h2>espnet2.tasks.enh<a class="headerlink" href="#espnet2-tasks-enh" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.enh"></span><dl class="class">
 <dt id="espnet2.tasks.enh.EnhancementTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.enh.</code><code class="sig-name descname">EnhancementTask</code><a class="reference internal" href="../_modules/espnet2/tasks/enh.html#EnhancementTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh.EnhancementTask" title="Permalink to this definition">¶</a></dt>
@@ -501,7 +589,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-slu">
-<span id="id4"></span><h2>espnet2.tasks.slu<a class="headerlink" href="#espnet2-tasks-slu" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet2.tasks.slu<a class="headerlink" href="#espnet2-tasks-slu" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.slu"></span><dl class="class">
 <dt id="espnet2.tasks.slu.SLUTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.slu.</code><code class="sig-name descname">SLUTask</code><a class="reference internal" href="../_modules/espnet2/tasks/slu.html#SLUTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.slu.SLUTask" title="Permalink to this definition">¶</a></dt>
@@ -577,7 +665,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-hubert">
-<span id="id5"></span><h2>espnet2.tasks.hubert<a class="headerlink" href="#espnet2-tasks-hubert" title="Permalink to this headline">¶</a></h2>
+<span id="id6"></span><h2>espnet2.tasks.hubert<a class="headerlink" href="#espnet2-tasks-hubert" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.hubert"></span><dl class="class">
 <dt id="espnet2.tasks.hubert.HubertTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.hubert.</code><code class="sig-name descname">HubertTask</code><a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask" title="Permalink to this definition">¶</a></dt>
@@ -664,7 +752,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-svs">
-<span id="id6"></span><h2>espnet2.tasks.svs<a class="headerlink" href="#espnet2-tasks-svs" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.tasks.svs<a class="headerlink" href="#espnet2-tasks-svs" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.svs"></span><p>Singing-voice-synthesis task.</p>
 <dl class="class">
 <dt id="espnet2.tasks.svs.SVSTask">
@@ -757,7 +845,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-asr-transducer">
-<span id="id7"></span><h2>espnet2.tasks.asr_transducer<a class="headerlink" href="#espnet2-tasks-asr-transducer" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.tasks.asr_transducer<a class="headerlink" href="#espnet2-tasks-asr-transducer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.asr_transducer"></span><p>ASR Transducer Task.</p>
 <dl class="class">
 <dt id="espnet2.tasks.asr_transducer.ASRTransducerTask">
@@ -896,7 +984,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-gan-tts">
-<span id="id8"></span><h2>espnet2.tasks.gan_tts<a class="headerlink" href="#espnet2-tasks-gan-tts" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.tasks.gan_tts<a class="headerlink" href="#espnet2-tasks-gan-tts" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.gan_tts"></span><p>GAN-based text-to-speech task.</p>
 <dl class="class">
 <dt id="espnet2.tasks.gan_tts.GANTTSTask">
@@ -990,7 +1078,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-enh-s2t">
-<span id="id9"></span><h2>espnet2.tasks.enh_s2t<a class="headerlink" href="#espnet2-tasks-enh-s2t" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.tasks.enh_s2t<a class="headerlink" href="#espnet2-tasks-enh-s2t" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.enh_s2t"></span><dl class="class">
 <dt id="espnet2.tasks.enh_s2t.EnhS2TTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.enh_s2t.</code><code class="sig-name descname">EnhS2TTask</code><a class="reference internal" href="../_modules/espnet2/tasks/enh_s2t.html#EnhS2TTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.enh_s2t.EnhS2TTask" title="Permalink to this definition">¶</a></dt>
@@ -1077,7 +1165,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-mt">
-<span id="id10"></span><h2>espnet2.tasks.mt<a class="headerlink" href="#espnet2-tasks-mt" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.tasks.mt<a class="headerlink" href="#espnet2-tasks-mt" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.mt"></span><dl class="class">
 <dt id="espnet2.tasks.mt.MTTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.mt.</code><code class="sig-name descname">MTTask</code><a class="reference internal" href="../_modules/espnet2/tasks/mt.html#MTTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.mt.MTTask" title="Permalink to this definition">¶</a></dt>
@@ -1164,10 +1252,10 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-init">
-<span id="id11"></span><h2>espnet2.tasks.__init__<a class="headerlink" href="#espnet2-tasks-init" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.tasks.__init__<a class="headerlink" href="#espnet2-tasks-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.__init__"></span></section>
 <section id="espnet2-tasks-asr">
-<span id="id12"></span><h2>espnet2.tasks.asr<a class="headerlink" href="#espnet2-tasks-asr" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.tasks.asr<a class="headerlink" href="#espnet2-tasks-asr" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.asr"></span><dl class="class">
 <dt id="espnet2.tasks.asr.ASRTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.asr.</code><code class="sig-name descname">ASRTask</code><a class="reference internal" href="../_modules/espnet2/tasks/asr.html#ASRTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.asr.ASRTask" title="Permalink to this definition">¶</a></dt>
@@ -1254,7 +1342,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-lm">
-<span id="id13"></span><h2>espnet2.tasks.lm<a class="headerlink" href="#espnet2-tasks-lm" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet2.tasks.lm<a class="headerlink" href="#espnet2-tasks-lm" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.lm"></span><dl class="class">
 <dt id="espnet2.tasks.lm.LMTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.lm.</code><code class="sig-name descname">LMTask</code><a class="reference internal" href="../_modules/espnet2/tasks/lm.html#LMTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.lm.LMTask" title="Permalink to this definition">¶</a></dt>
@@ -1341,7 +1429,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-abs-task">
-<span id="id14"></span><h2>espnet2.tasks.abs_task<a class="headerlink" href="#espnet2-tasks-abs-task" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet2.tasks.abs_task<a class="headerlink" href="#espnet2-tasks-abs-task" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.abs_task"></span><p>Abstract task module.</p>
 <dl class="class">
 <dt id="espnet2.tasks.abs_task.AbsTask">
@@ -1582,7 +1670,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-tts">
-<span id="id15"></span><h2>espnet2.tasks.tts<a class="headerlink" href="#espnet2-tasks-tts" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.tasks.tts<a class="headerlink" href="#espnet2-tasks-tts" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.tts"></span><p>Text-to-speech task.</p>
 <dl class="class">
 <dt id="espnet2.tasks.tts.TTSTask">

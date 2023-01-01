@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="MultiBlocks"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks">[docs]</a><span class="k">class</span> <span class="nc">MultiBlocks</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;MultiBlocks definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;MultiBlocks definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        block_list: Individual blocks of the encoder architecture.</span>
@@ -193,7 +193,7 @@
         <span class="n">norm_class</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">,</span>
         <span class="n">norm_args</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a MultiBlocks object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a MultiBlocks object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span><span class="n">block_list</span><span class="p">)</span>
@@ -202,7 +202,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">block_list</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiBlocks.reset_streaming_cache"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.multi_blocks.MultiBlocks.reset_streaming_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_streaming_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize/Reset encoder streaming cache.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize/Reset encoder streaming cache.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            left_context: Number of left frames during chunk-by-chunk inference.</span>
@@ -219,7 +219,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">chunk_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward each block of the encoder architecture.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward each block of the encoder architecture.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: MultiBlocks input sequences. (B, T, D_block_1)</span>
@@ -246,7 +246,7 @@
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward each block of the encoder architecture.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward each block of the encoder architecture.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: MultiBlocks input sequences. (B, T, D_block_1)</span>

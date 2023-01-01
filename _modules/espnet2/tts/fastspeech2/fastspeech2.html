@@ -201,7 +201,7 @@
 
 
 <div class="viewcode-block" id="FastSpeech2"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2</span><span class="p">(</span><span class="n">AbsTTS</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;FastSpeech2 module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;FastSpeech2 module.</span>
 
 <span class="sd">    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and</span>
 <span class="sd">    High-Quality End-to-End Text to Speech`_. Instead of quantized pitch and</span>
@@ -299,7 +299,7 @@
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -666,7 +666,7 @@
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">joint_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded token ids (B, T_text).</span>
@@ -874,7 +874,7 @@
         <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Input sequence of characters (T_text,).</span>
@@ -947,7 +947,7 @@
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of hidden state sequences (B, T_text, adim).</span>
@@ -971,7 +971,7 @@
         <span class="k">return</span> <span class="n">hs</span>
 
     <span class="k">def</span> <span class="nf">_source_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ilens (LongTensor): Batch of lengths (B,).</span>

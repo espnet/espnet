@@ -184,13 +184,13 @@
 
 
 <div class="viewcode-block" id="decoder_init"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.decoder_init">[docs]</a><span class="k">def</span> <span class="nf">decoder_init</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initialize decoder parameters.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize decoder parameters.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">):</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">calculate_gain</span><span class="p">(</span><span class="s2">&quot;tanh&quot;</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="ZoneOutCell"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.ZoneOutCell">[docs]</a><span class="k">class</span> <span class="nc">ZoneOutCell</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ZoneOut Cell module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ZoneOut Cell module.</span>
 
 <span class="sd">    This is a module of zoneout described in</span>
 <span class="sd">    `Zoneout: Regularizing RNNs by Randomly Preserving Hidden Activations`_.</span>
@@ -209,7 +209,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cell</span><span class="p">,</span> <span class="n">zoneout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize zone out cell module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize zone out cell module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            cell (torch.nn.Module): Pytorch recurrent cell module</span>
@@ -227,7 +227,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="ZoneOutCell.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.ZoneOutCell.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">hidden</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            inputs (Tensor): Batch of input tensor (B, input_size).</span>
@@ -263,7 +263,7 @@
 
 
 <div class="viewcode-block" id="Prenet"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Prenet">[docs]</a><span class="k">class</span> <span class="nc">Prenet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Prenet module for decoder of Spectrogram prediction network.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prenet module for decoder of Spectrogram prediction network.</span>
 
 <span class="sd">    This is a module of Prenet in the decoder of Spectrogram prediction network,</span>
 <span class="sd">    which described in `Natural TTS</span>
@@ -283,7 +283,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_units</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize prenet module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize prenet module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -302,7 +302,7 @@
             <span class="p">]</span>
 
 <div class="viewcode-block" id="Prenet.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Prenet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Batch of input tensors (B, ..., idim).</span>
@@ -318,7 +318,7 @@
 
 
 <div class="viewcode-block" id="Postnet"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Postnet">[docs]</a><span class="k">class</span> <span class="nc">Postnet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Postnet module for Spectrogram prediction network.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Postnet module for Spectrogram prediction network.</span>
 
 <span class="sd">    This is a module of Postnet in Spectrogram prediction network,</span>
 <span class="sd">    which described in `Natural TTS Synthesis by</span>
@@ -342,7 +342,7 @@
         <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
         <span class="n">use_batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize postnet module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize postnet module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -422,7 +422,7 @@
             <span class="p">]</span>
 
 <div class="viewcode-block" id="Postnet.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Postnet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of the sequences of padded input tensors (B, idim, Tmax).</span>
@@ -437,7 +437,7 @@
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decoder module of Spectrogram prediction network.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder module of Spectrogram prediction network.</span>
 
 <span class="sd">    This is a module of decoder of Spectrogram prediction network in Tacotron2,</span>
 <span class="sd">    which described in `Natural TTS</span>
@@ -470,7 +470,7 @@
         <span class="n">zoneout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
         <span class="n">reduction_factor</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tacotron2 decoder module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tacotron2 decoder module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -560,7 +560,7 @@
         <span class="k">return</span> <span class="n">init_hs</span>
 
 <div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).</span>
@@ -659,7 +659,7 @@
         <span class="n">backward_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            h (Tensor): Input sequence of encoder hidden states (T, C).</span>
@@ -786,7 +786,7 @@
         <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
 
 <div class="viewcode-block" id="Decoder.calculate_all_attentions"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.decoder.Decoder.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).</span>

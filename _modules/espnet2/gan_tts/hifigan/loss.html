@@ -186,14 +186,14 @@
 
 
 <div class="viewcode-block" id="GeneratorAdversarialLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.GeneratorAdversarialLoss">[docs]</a><span class="k">class</span> <span class="nc">GeneratorAdversarialLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generator adversarial loss module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generator adversarial loss module.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">average_by_discriminators</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize GeneratorAversarialLoss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize GeneratorAversarialLoss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            average_by_discriminators (bool): Whether to average the loss by</span>
@@ -213,7 +213,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calcualate generator adversarial loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calcualate generator adversarial loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            outputs (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator</span>
@@ -246,14 +246,14 @@
 
 
 <div class="viewcode-block" id="DiscriminatorAdversarialLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.DiscriminatorAdversarialLoss">[docs]</a><span class="k">class</span> <span class="nc">DiscriminatorAdversarialLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Discriminator adversarial loss module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Discriminator adversarial loss module.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">average_by_discriminators</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize DiscriminatorAversarialLoss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize DiscriminatorAversarialLoss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            average_by_discriminators (bool): Whether to average the loss by</span>
@@ -276,7 +276,7 @@
         <span class="n">outputs_hat</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">outputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calcualate discriminator adversarial loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calcualate discriminator adversarial loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            outputs_hat (Union[List[List[Tensor]], List[Tensor], Tensor]): Discriminator</span>
@@ -324,7 +324,7 @@
 
 
 <div class="viewcode-block" id="FeatureMatchLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.FeatureMatchLoss">[docs]</a><span class="k">class</span> <span class="nc">FeatureMatchLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Feature matching loss module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feature matching loss module.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -332,7 +332,7 @@
         <span class="n">average_by_discriminators</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">include_final_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize FeatureMatchLoss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize FeatureMatchLoss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            average_by_layers (bool): Whether to average the loss by the number</span>
@@ -353,7 +353,7 @@
         <span class="n">feats_hat</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
         <span class="n">feats</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate feature matching loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate feature matching loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            feats_hat (Union[List[List[Tensor]], List[Tensor]]): List of list of</span>
@@ -385,7 +385,7 @@
 
 
 <div class="viewcode-block" id="MelSpectrogramLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.MelSpectrogramLoss">[docs]</a><span class="k">class</span> <span class="nc">MelSpectrogramLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Mel-spectrogram loss.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mel-spectrogram loss.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -402,7 +402,7 @@
         <span class="n">onesided</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">log_base</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Mel-spectrogram loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Mel-spectrogram loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            fs (int): Sampling rate.</span>
@@ -441,7 +441,7 @@
         <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">spec</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate Mel-spectrogram loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate Mel-spectrogram loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y_hat (Tensor): Generated waveform tensor (B, 1, T).</span>

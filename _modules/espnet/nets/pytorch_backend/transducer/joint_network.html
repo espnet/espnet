@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="JointNetwork"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork">[docs]</a><span class="k">class</span> <span class="nc">JointNetwork</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transducer joint network module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transducer joint network module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        joint_output_size: Joint network output dimension</span>
@@ -195,7 +195,7 @@
         <span class="n">joint_space_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">joint_activation_type</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Joint network initializer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Joint network initializer.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">lin_enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="n">joint_space_size</span><span class="p">)</span>
@@ -214,7 +214,7 @@
         <span class="n">is_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Joint computation of encoder and decoder hidden state sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Joint computation of encoder and decoder hidden state sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)</span>

@@ -185,7 +185,7 @@
 
 <div class="viewcode-block" id="TemporalConvNet"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.TemporalConvNet">[docs]</a><span class="k">class</span> <span class="nc">TemporalConvNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span> <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Basic Module of tasnet.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Basic Module of tasnet.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            N: Number of filters in autoencoder</span>
@@ -228,7 +228,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">bottleneck_conv1x1</span><span class="p">,</span> <span class="n">temporal_conv_net</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TemporalConvNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.TemporalConvNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixture_w</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Keep this API same with TasNet.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Keep this API same with TasNet.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mixture_w: [M, N, K], M is batch size</span>
@@ -271,7 +271,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">conv1x1</span><span class="p">,</span> <span class="n">prelu</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">dsconv</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TemporalBlock.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.TemporalBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, B, K]</span>
@@ -324,7 +324,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">depthwise_conv</span><span class="p">,</span> <span class="n">prelu</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">pointwise_conv</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DepthwiseSeparableConv.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.DepthwiseSeparableConv.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, H, K]</span>
@@ -336,14 +336,14 @@
 
 
 <div class="viewcode-block" id="Chomp1d"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.Chomp1d">[docs]</a><span class="k">class</span> <span class="nc">Chomp1d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;To ensure the output length is the same as the input.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;To ensure the output length is the same as the input.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chomp_size</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chomp_size</span> <span class="o">=</span> <span class="n">chomp_size</span>
 
 <div class="viewcode-block" id="Chomp1d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.Chomp1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, H, Kpad]</span>
@@ -360,7 +360,7 @@
 
 
 <div class="viewcode-block" id="chose_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.chose_norm">[docs]</a><span class="k">def</span> <span class="nf">chose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
 
 <span class="sd">    C is channel size and K is sequence length.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -377,7 +377,7 @@
 
 
 <div class="viewcode-block" id="ChannelwiseLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -390,7 +390,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ChannelwiseLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y: [M, N, K], M is batch size, N is channel size, K is length</span>
@@ -405,7 +405,7 @@
 
 
 <div class="viewcode-block" id="GlobalLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.GlobalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">GlobalLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Global Layer Normalization (gLN).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Global Layer Normalization (gLN).&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -418,7 +418,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="GlobalLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.layers.tcn_nomask.GlobalLayerNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y: [M, N, K], M is batch size, N is channel size, K is length</span>

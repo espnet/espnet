@@ -197,7 +197,7 @@
 
 
 <div class="viewcode-block" id="ESPnetEnhS2TModel"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetEnhS2TModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Joint model Enhancement and Speech to Text.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Joint model Enhancement and Speech to Text.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -238,7 +238,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -520,7 +520,7 @@
 <div class="viewcode-block" id="ESPnetEnhS2TModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -544,7 +544,7 @@
 <div class="viewcode-block" id="ESPnetEnhS2TModel.encode_diar"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.encode_diar">[docs]</a>    <span class="k">def</span> <span class="nf">encode_diar</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by diar_inference.py</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by diar_inference.py</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -573,7 +573,7 @@
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
 
 <span class="sd">        Normally, this function is called in batchify_nll.</span>
 
@@ -627,7 +627,7 @@
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
 
     <span class="k">def</span> <span class="nf">_permutation_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;The basic permutation loss function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The basic permutation loss function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk</span>
@@ -652,7 +652,7 @@
         <span class="k">return</span> <span class="n">min_loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">perm_detail</span>
 
 <div class="viewcode-block" id="ESPnetEnhS2TModel.permutation_invariant_training"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.permutation_invariant_training">[docs]</a>    <span class="k">def</span> <span class="nf">permutation_invariant_training</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">losses</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute  PIT loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute  PIT loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            losses (torch.Tensor): (batch, nref, nhyp)</span>

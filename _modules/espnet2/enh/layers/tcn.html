@@ -182,14 +182,28 @@
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.adapt_layers</span> <span class="kn">import</span> <span class="n">make_adapt_layer</span>
+
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
 
 
 <div class="viewcode-block" id="TemporalConvNet"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalConvNet">[docs]</a><span class="k">class</span> <span class="nc">TemporalConvNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span> <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">N</span><span class="p">,</span>
+        <span class="n">B</span><span class="p">,</span>
+        <span class="n">H</span><span class="p">,</span>
+        <span class="n">P</span><span class="p">,</span>
+        <span class="n">X</span><span class="p">,</span>
+        <span class="n">R</span><span class="p">,</span>
+        <span class="n">C</span><span class="p">,</span>
+        <span class="n">Sc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">out_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Basic Module of tasnet.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Basic Module of tasnet.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            N: Number of filters in autoencoder</span>
@@ -199,6 +213,9 @@
 <span class="sd">            X: Number of convolutional blocks in each repeat</span>
 <span class="sd">            R: Number of repeats</span>
 <span class="sd">            C: Number of speakers</span>
+<span class="sd">            Sc: Number of channels in skip-connection paths&#39; 1x1-conv blocks</span>
+<span class="sd">            out_channel: Number of output channels</span>
+<span class="sd">                if it is None, `N` will be used instead.</span>
 <span class="sd">            norm_type: BN, gLN, cLN</span>
 <span class="sd">            causal: causal or non-causal</span>
 <span class="sd">            mask_nonlinear: use which non-linear function to generate mask</span>
@@ -207,6 +224,10 @@
         <span class="c1"># Hyper-parameter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">=</span> <span class="n">mask_nonlinear</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="o">=</span> <span class="n">Sc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channel</span> <span class="o">=</span> <span class="n">N</span> <span class="k">if</span> <span class="n">out_channel</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">out_channel</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">Sc</span> <span class="o">==</span> <span class="n">B</span><span class="p">,</span> <span class="p">(</span><span class="n">Sc</span><span class="p">,</span> <span class="n">B</span><span class="p">)</span>
         <span class="c1"># Components</span>
         <span class="c1"># [M, N, K] -&gt; [M, N, K]</span>
         <span class="n">layer_norm</span> <span class="o">=</span> <span class="n">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
@@ -223,6 +244,7 @@
                     <span class="n">TemporalBlock</span><span class="p">(</span>
                         <span class="n">B</span><span class="p">,</span>
                         <span class="n">H</span><span class="p">,</span>
+                        <span class="n">Sc</span><span class="p">,</span>
                         <span class="n">P</span><span class="p">,</span>
                         <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                         <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
@@ -234,14 +256,14 @@
             <span class="n">repeats</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">blocks</span><span class="p">)]</span>
         <span class="n">temporal_conv_net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">repeats</span><span class="p">)</span>
         <span class="c1"># [M, B, K] -&gt; [M, C*N, K]</span>
-        <span class="n">mask_conv1x1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span> <span class="o">*</span> <span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="c1"># Put together</span>
+        <span class="n">mask_conv1x1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channel</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Put together (for compatibility with older versions)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
             <span class="n">layer_norm</span><span class="p">,</span> <span class="n">bottleneck_conv1x1</span><span class="p">,</span> <span class="n">temporal_conv_net</span><span class="p">,</span> <span class="n">mask_conv1x1</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="TemporalConvNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalConvNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixture_w</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Keep this API same with TasNet.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Keep this API same with TasNet.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mixture_w: [M, N, K], M is batch size</span>
@@ -250,8 +272,28 @@
 <span class="sd">            est_mask: [M, C, N, K]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">mixture_w</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">(</span><span class="n">mixture_w</span><span class="p">)</span>  <span class="c1"># [M, N, K] -&gt; [M, C*N, K]</span>
-        <span class="n">score</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>  <span class="c1"># [M, C*N, K] -&gt; [M, C, N, K]</span>
+        <span class="n">bottleneck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">tcns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">bottleneck</span><span class="p">(</span><span class="n">mixture_w</span><span class="p">)</span>
+        <span class="n">skip_conn</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">tcns</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
+                <span class="n">tcn_out</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+                    <span class="n">residual</span><span class="p">,</span> <span class="n">skip</span> <span class="o">=</span> <span class="n">tcn_out</span>
+                    <span class="n">skip_conn</span> <span class="o">=</span> <span class="n">skip_conn</span> <span class="o">+</span> <span class="n">skip</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">residual</span> <span class="o">=</span> <span class="n">tcn_out</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">residual</span>
+        <span class="c1"># Use residual output when no skip connection</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">masknet</span><span class="p">(</span><span class="n">skip_conn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">masknet</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+        <span class="c1"># [M, C*self.out_channel, K] -&gt; [M, C, self.out_channel, K]</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channel</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;softmax&quot;</span><span class="p">:</span>
             <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
@@ -260,6 +302,130 @@
             <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;tanh&quot;</span><span class="p">:</span>
             <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">score</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported mask non-linear function&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">est_mask</span></div></div>
+
+
+<div class="viewcode-block" id="TemporalConvNetInformed"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalConvNetInformed">[docs]</a><span class="k">class</span> <span class="nc">TemporalConvNetInformed</span><span class="p">(</span><span class="n">TemporalConvNet</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">N</span><span class="p">,</span>
+        <span class="n">B</span><span class="p">,</span>
+        <span class="n">H</span><span class="p">,</span>
+        <span class="n">P</span><span class="p">,</span>
+        <span class="n">X</span><span class="p">,</span>
+        <span class="n">R</span><span class="p">,</span>
+        <span class="n">Sc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">out_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+        <span class="n">i_adapt_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span>
+        <span class="n">adapt_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mul&quot;</span><span class="p">,</span>
+        <span class="n">adapt_enroll_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">adapt_layer_kwargs</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Basic Module of TasNet with adaptation layers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            N: Number of filters in autoencoder</span>
+<span class="sd">            B: Number of channels in bottleneck 1 * 1-conv block</span>
+<span class="sd">            H: Number of channels in convolutional blocks</span>
+<span class="sd">            P: Kernel size in convolutional blocks</span>
+<span class="sd">            X: Number of convolutional blocks in each repeat</span>
+<span class="sd">            R: Number of repeats</span>
+<span class="sd">            Sc: Number of channels in skip-connection paths&#39; 1x1-conv blocks</span>
+<span class="sd">            out_channel: Number of output channels</span>
+<span class="sd">                if it is None, `N` will be used instead.</span>
+<span class="sd">            norm_type: BN, gLN, cLN</span>
+<span class="sd">            causal: causal or non-causal</span>
+<span class="sd">            mask_nonlinear: use which non-linear function to generate mask</span>
+<span class="sd">            i_adapt_layer: int, index of the adaptation layer</span>
+<span class="sd">            adapt_layer_type: str, type of adaptation layer</span>
+<span class="sd">                see espnet2.enh.layers.adapt_layers for options</span>
+<span class="sd">            adapt_enroll_dim: int, dimensionality of the speaker embedding</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">N</span><span class="p">,</span>
+            <span class="n">B</span><span class="p">,</span>
+            <span class="n">H</span><span class="p">,</span>
+            <span class="n">P</span><span class="p">,</span>
+            <span class="n">X</span><span class="p">,</span>
+            <span class="n">R</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">Sc</span><span class="o">=</span><span class="n">Sc</span><span class="p">,</span>
+            <span class="n">out_channel</span><span class="o">=</span><span class="n">out_channel</span><span class="p">,</span>
+            <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
+            <span class="n">causal</span><span class="o">=</span><span class="n">causal</span><span class="p">,</span>
+            <span class="n">mask_nonlinear</span><span class="o">=</span><span class="n">mask_nonlinear</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i_adapt_layer</span> <span class="o">=</span> <span class="n">i_adapt_layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_enroll_dim</span> <span class="o">=</span> <span class="n">adapt_enroll_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_layer_type</span> <span class="o">=</span> <span class="n">adapt_layer_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt_layer</span> <span class="o">=</span> <span class="n">make_adapt_layer</span><span class="p">(</span>
+            <span class="n">adapt_layer_type</span><span class="p">,</span>
+            <span class="n">indim</span><span class="o">=</span><span class="n">B</span><span class="p">,</span>
+            <span class="n">enrolldim</span><span class="o">=</span><span class="n">adapt_enroll_dim</span><span class="p">,</span>
+            <span class="n">ninputs</span><span class="o">=</span><span class="mi">2</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">adapt_layer_kwargs</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="TemporalConvNetInformed.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalConvNetInformed.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixture_w</span><span class="p">,</span> <span class="n">enroll_emb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;TasNet forward with adaptation layers.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mixture_w: [M, N, K], M is batch size</span>
+<span class="sd">            enroll_emb: [M, 2*adapt_enroll_dim] if self.skip_connection</span>
+<span class="sd">                        [M, adapt_enroll_dim] if not self.skip_connection</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            est_mask: [M, N, K]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">mixture_w</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+
+        <span class="n">bottleneck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">tcns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">bottleneck</span><span class="p">(</span><span class="n">mixture_w</span><span class="p">)</span>
+        <span class="n">skip_conn</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tcns</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">block</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">block</span><span class="p">)</span> <span class="o">+</span> <span class="n">j</span>
+                <span class="n">is_adapt_layer</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_adapt_layer</span>
+                <span class="n">tcn_out</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+                    <span class="n">residual</span><span class="p">,</span> <span class="n">skip</span> <span class="o">=</span> <span class="n">tcn_out</span>
+                    <span class="k">if</span> <span class="n">is_adapt_layer</span><span class="p">:</span>
+                        <span class="n">residual</span><span class="p">,</span> <span class="n">skip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt_layer</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">residual</span><span class="p">,</span> <span class="n">skip</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">enroll_emb</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="n">skip_conn</span> <span class="o">=</span> <span class="n">skip_conn</span> <span class="o">+</span> <span class="n">skip</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">residual</span> <span class="o">=</span> <span class="n">tcn_out</span>
+                    <span class="k">if</span> <span class="n">is_adapt_layer</span><span class="p">:</span>
+                        <span class="n">residual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adapt_layer</span><span class="p">(</span><span class="n">residual</span><span class="p">,</span> <span class="n">enroll_emb</span><span class="p">)</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">residual</span>
+
+        <span class="c1"># Use residual output when no skip connection</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">masknet</span><span class="p">(</span><span class="n">skip_conn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">masknet</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+        <span class="c1"># [M, self.out_channel, K]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;softmax&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;sigmoid&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;tanh&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">score</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported mask non-linear function&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">est_mask</span></div></div>
@@ -270,6 +436,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="p">,</span>
         <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">skip_channels</span><span class="p">,</span>
         <span class="n">kernel_size</span><span class="p">,</span>
         <span class="n">stride</span><span class="p">,</span>
         <span class="n">padding</span><span class="p">,</span>
@@ -278,6 +445,7 @@
         <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span> <span class="o">=</span> <span class="n">skip_channels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="c1"># [M, B, K] -&gt; [M, H, K]</span>
         <span class="n">conv1x1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">prelu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">()</span>
@@ -286,6 +454,7 @@
         <span class="n">dsconv</span> <span class="o">=</span> <span class="n">DepthwiseSeparableConv</span><span class="p">(</span>
             <span class="n">out_channels</span><span class="p">,</span>
             <span class="n">in_channels</span><span class="p">,</span>
+            <span class="n">skip_channels</span><span class="p">,</span>
             <span class="n">kernel_size</span><span class="p">,</span>
             <span class="n">stride</span><span class="p">,</span>
             <span class="n">padding</span><span class="p">,</span>
@@ -297,7 +466,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">conv1x1</span><span class="p">,</span> <span class="n">prelu</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">dsconv</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TemporalBlock.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, B, K]</span>
@@ -305,11 +474,12 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            [M, B, K]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="c1"># TODO(Jing): when P = 3 here works fine, but when P = 2 maybe need to pad?</span>
-        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="n">residual</span>  <span class="c1"># look like w/o F.relu is better than w/ F.relu</span></div></div>
-        <span class="c1"># return F.relu(out + residual)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_connection</span><span class="p">:</span>
+            <span class="n">res_out</span><span class="p">,</span> <span class="n">skip_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">res_out</span><span class="p">,</span> <span class="n">skip_out</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">res_out</span></div></div>
 
 
 <div class="viewcode-block" id="DepthwiseSeparableConv"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.DepthwiseSeparableConv">[docs]</a><span class="k">class</span> <span class="nc">DepthwiseSeparableConv</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -317,6 +487,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">in_channels</span><span class="p">,</span>
         <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">skip_channels</span><span class="p">,</span>
         <span class="n">kernel_size</span><span class="p">,</span>
         <span class="n">stride</span><span class="p">,</span>
         <span class="n">padding</span><span class="p">,</span>
@@ -349,27 +520,40 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">depthwise_conv</span><span class="p">,</span> <span class="n">prelu</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">pointwise_conv</span><span class="p">)</span>
 
+        <span class="c1"># skip connection</span>
+        <span class="k">if</span> <span class="n">skip_channels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">skip_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="DepthwiseSeparableConv.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.DepthwiseSeparableConv.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, H, K]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            result: [M, B, K]</span>
+<span class="sd">            res_out: [M, B, K]</span>
+<span class="sd">            skip_out: [M, Sc, K]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+        <span class="n">shared_block</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">shared</span> <span class="o">=</span> <span class="n">shared_block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">res_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">](</span><span class="n">shared</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">res_out</span>
+        <span class="n">skip_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_conv</span><span class="p">(</span><span class="n">shared</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res_out</span><span class="p">,</span> <span class="n">skip_out</span></div></div>
 
 
 <div class="viewcode-block" id="Chomp1d"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.Chomp1d">[docs]</a><span class="k">class</span> <span class="nc">Chomp1d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;To ensure the output length is the same as the input.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;To ensure the output length is the same as the input.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chomp_size</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">chomp_size</span> <span class="o">=</span> <span class="n">chomp_size</span>
 
 <div class="viewcode-block" id="Chomp1d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.Chomp1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: [M, H, Kpad]</span>
@@ -386,7 +570,7 @@
 
 
 <div class="viewcode-block" id="choose_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.choose_norm">[docs]</a><span class="k">def</span> <span class="nf">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
 
 <span class="sd">    C is channel size and K is sequence length.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -405,7 +589,7 @@
 
 
 <div class="viewcode-block" id="ChannelwiseLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -420,7 +604,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ChannelwiseLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y: [M, N, K], M is batch size, N is channel size, K is length</span>
@@ -445,7 +629,7 @@
 
 
 <div class="viewcode-block" id="GlobalLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.GlobalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">GlobalLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Global Layer Normalization (gLN).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Global Layer Normalization (gLN).&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -460,7 +644,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="GlobalLayerNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.GlobalLayerNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y: [M, N, K], M is batch size, N is channel size, K is length</span>

@@ -1073,9 +1073,9 @@ for i, p in enumerate(perm):
 <section id="Step-1-Create-recipe-directory">
 <h3>Step 1 Create recipe directory<a class="headerlink" href="#Step-1-Create-recipe-directory" title="Permalink to this headline">¶</a></h3>
 <p>First, run the following command to create the directory for the new recipe from our template:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>egs2/TEMPLATE/enh1/setup.sh egs2/&lt;your-recipe-name&gt;/enh1
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>egs2/TEMPLATE/enh1/setup.sh<span class="w"> </span>egs2/&lt;your-recipe-name&gt;/enh1
 
-For the following steps, we assume the operations are <span class="k">done</span> under the directory <span class="sb">``</span>egs2/&lt;your-recipe-name&gt;/enh1/<span class="sb">``</span>.
+For<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>steps,<span class="w"> </span>we<span class="w"> </span>assume<span class="w"> </span>the<span class="w"> </span>operations<span class="w"> </span>are<span class="w"> </span><span class="k">done</span><span class="w"> </span>under<span class="w"> </span>the<span class="w"> </span>directory<span class="w"> </span><span class="sb">``</span>egs2/&lt;your-recipe-name&gt;/enh1/<span class="sb">``</span>.
 </pre></div>
 </div>
 </section>
@@ -1136,7 +1136,7 @@ For the following steps, we assume the operations are <span class="k">done</span
 <p>If you want to use a new loss function for your model, you can add it to <a class="reference external" href="https://github.com/espnet/espnet/blob/master/espnet2/enh/espnet_model.py">espnet2/enh/espnet_model.py</a>, such as:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
 <span class="k">def</span> <span class="nf">new_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Your new loss</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Your new loss</span>
 <span class="sd">    Args:</span>
 <span class="sd">        ref: (Batch, samples)</span>
 <span class="sd">        inf: (Batch, samples)</span>

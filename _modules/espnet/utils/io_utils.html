@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="LoadInputsAndTargets"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.LoadInputsAndTargets">[docs]</a><span class="k">class</span> <span class="nc">LoadInputsAndTargets</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a mini-batch from a list of dicts</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a mini-batch from a list of dicts</span>
 
 <span class="sd">    &gt;&gt;&gt; batch = [(&#39;utt1&#39;,</span>
 <span class="sd">    ...           dict(input=[dict(feat=&#39;some.ark:123&#39;,</span>
@@ -261,7 +261,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">keep_all_data_on_mem</span> <span class="o">=</span> <span class="n">keep_all_data_on_mem</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">return_uttid</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Function to load inputs and targets from list of dicts</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Function to load inputs and targets from list of dicts</span>
 
 <span class="sd">        :param List[Tuple[str, dict]] batch: list of dict which is subset of</span>
 <span class="sd">            loaded data.json</span>
@@ -365,7 +365,7 @@
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">return_batch</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_create_batch_asr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
 
 <span class="sd">        :param OrderedDict x_feats_dict:</span>
 <span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
@@ -427,7 +427,7 @@
         <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
 
     <span class="k">def</span> <span class="nf">_create_batch_mt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
 
 <span class="sd">        :param OrderedDict x_feats_dict:</span>
 <span class="sd">        :param OrderedDict y_feats_dict:</span>
@@ -474,7 +474,7 @@
         <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
 
     <span class="k">def</span> <span class="nf">_create_batch_tts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">,</span> <span class="n">eos</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
 
 <span class="sd">        :param OrderedDict x_feats_dict:</span>
 <span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
@@ -551,7 +551,7 @@
         <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
 
     <span class="k">def</span> <span class="nf">_create_batch_vc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_feats_dict</span><span class="p">,</span> <span class="n">y_feats_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a OrderedDict for the mini-batch</span>
 
 <span class="sd">        :param OrderedDict x_feats_dict:</span>
 <span class="sd">            e.g. {&quot;input1&quot;: [ndarray, ndarray, ...],</span>
@@ -629,7 +629,7 @@
         <span class="k">return</span> <span class="n">return_batch</span><span class="p">,</span> <span class="n">uttid_list</span>
 
     <span class="k">def</span> <span class="nf">_get_from_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">filetype</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return ndarray</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return ndarray</span>
 
 <span class="sd">        In order to make the fds to be opened only at the first referring,</span>
 <span class="sd">        the loader are stored in self._loaders</span>
@@ -729,7 +729,7 @@
 
 
 <div class="viewcode-block" id="SoundHDF5File"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.io_utils.SoundHDF5File">[docs]</a><span class="k">class</span> <span class="nc">SoundHDF5File</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Collecting sound files to a HDF5 file</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collecting sound files to a HDF5 file</span>
 
 <span class="sd">    &gt;&gt;&gt; f = SoundHDF5File(&#39;a.flac.h5&#39;, mode=&#39;a&#39;)</span>
 <span class="sd">    &gt;&gt;&gt; array = np.random.randint(0, 100, 100, dtype=np.int16)</span>

@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="DurationPredictor"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_predictor.DurationPredictor">[docs]</a><span class="k">class</span> <span class="nc">DurationPredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Duration predictor module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Duration predictor module.</span>
 
 <span class="sd">    This is a module of duration predictor described</span>
 <span class="sd">    in `FastSpeech: Fast, Robust and Controllable Text to Speech`_.</span>
@@ -203,7 +203,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_chans</span><span class="o">=</span><span class="mi">384</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mf">1.0</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize duration predictor module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize duration predictor module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Input dimension.</span>
@@ -255,7 +255,7 @@
         <span class="k">return</span> <span class="n">xs</span>
 
 <div class="viewcode-block" id="DurationPredictor.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_predictor.DurationPredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of input sequences (B, Tmax, idim).</span>
@@ -269,7 +269,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DurationPredictor.inference"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_predictor.DurationPredictor.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Inference duration.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference duration.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of input sequences (B, Tmax, idim).</span>
@@ -284,14 +284,14 @@
 
 
 <div class="viewcode-block" id="DurationPredictorLoss"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_predictor.DurationPredictorLoss">[docs]</a><span class="k">class</span> <span class="nc">DurationPredictorLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for duration predictor.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for duration predictor.</span>
 
 <span class="sd">    The loss value is Calculated in log domain to make it Gaussian.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize duration predictor loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize duration predictor loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            offset (float, optional): Offset value to avoid nan in log domain.</span>
@@ -303,7 +303,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
 
 <div class="viewcode-block" id="DurationPredictorLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.fastspeech.duration_predictor.DurationPredictorLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            outputs (Tensor): Batch of prediction durations in log domain (B, T)</span>

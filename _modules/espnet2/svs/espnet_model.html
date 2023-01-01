@@ -203,7 +203,7 @@
 
 
 <div class="viewcode-block" id="cal_ds"><a class="viewcode-back" href="../../../_gen/espnet2.svs.html#espnet2.svs.espnet_model.cal_ds">[docs]</a><span class="k">def</span> <span class="nf">cal_ds</span><span class="p">(</span><span class="n">ilen</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">midi</span><span class="p">,</span> <span class="n">beat</span><span class="p">,</span> <span class="n">ref_len</span><span class="p">,</span> <span class="n">ref_label</span><span class="p">,</span> <span class="n">ref_midi</span><span class="p">,</span> <span class="n">ref_beat</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate frame expanding length for each label.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate frame expanding length for each label.&quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
@@ -238,7 +238,7 @@
 
 
 <div class="viewcode-block" id="cal_ds_syb"><a class="viewcode-back" href="../../../_gen/espnet2.svs.html#espnet2.svs.espnet_model.cal_ds_syb">[docs]</a><span class="k">def</span> <span class="nf">cal_ds_syb</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">phn_cnt</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate frame expanding length for each syllable.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate frame expanding length for each syllable.&quot;&quot;&quot;</span>
     <span class="n">ds_syb</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">pos</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c1"># Sum up phone frames in each syllable</span>
@@ -253,7 +253,7 @@
 
 
 <div class="viewcode-block" id="ESPnetSVSModel"><a class="viewcode-back" href="../../../_gen/espnet2.svs.html#espnet2.svs.espnet_model.ESPnetSVSModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetSVSModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ESPnet model for singing voice synthesis task.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ESPnet model for singing voice synthesis task.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -270,7 +270,7 @@
         <span class="n">energy_normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span> <span class="ow">and</span> <span class="n">InversibleInterface</span><span class="p">],</span>
         <span class="n">svs</span><span class="p">:</span> <span class="n">AbsSVS</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize ESPnetSVSModel module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize ESPnetSVSModel module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">text_extract</span> <span class="o">=</span> <span class="n">text_extract</span>
@@ -335,7 +335,7 @@
         <span class="n">flag_IsValid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Caclualte outputs and return the loss tensor.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Caclualte outputs and return the loss tensor.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -748,7 +748,7 @@
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -902,7 +902,7 @@
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">decode_config</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (T_text).</span>

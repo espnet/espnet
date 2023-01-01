@@ -262,11 +262,11 @@
 <p>Note: The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. <strong>In ESPnet2, the total batch size is not changed regardless of the number of GPUs.</strong> Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this <a class="reference external" href="https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus">doc</a> for more information.</p>
 <section id="single-node-with-4gpus-with-distributed-mode">
 <h3>Single node with 4GPUs with distributed mode<a class="headerlink" href="#single-node-with-4gpus-with-distributed-mode" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">true</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">4</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 <p>You can disable distributed mode and switch to threading based data parallel as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">false</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">4</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">false</span>
 </pre></div>
 </div>
 <p>If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with <code class="docutils literal notranslate"><span class="pre">--multiprocessing_distributed</span> <span class="pre">false</span></code> before reporting the issue.</p>
@@ -274,7 +274,7 @@
 <section id="to-enable-sharded-training">
 <h3>To enable sharded training<a class="headerlink" href="#to-enable-sharded-training" title="Permalink to this headline">¶</a></h3>
 <p>We supports sharded training provided by <a class="reference external" href="https://github.com/facebookresearch/fairscale">fairscale</a></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">true</span> --sharded_ddp <span class="nb">true</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">4</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span><span class="w"> </span>--sharded_ddp<span class="w"> </span><span class="nb">true</span>
 </pre></div>
 </div>
 <p>Note that the other features of fairscale are not supported now.</p>
@@ -282,20 +282,20 @@
 <section id="host-and-2gpus-for-each-host-with-multiprocessing-distributed-mode">
 <h3>2Host and 2GPUs for each host with multiprocessing distributed mode<a class="headerlink" href="#host-and-2gpus-for-each-host-with-multiprocessing-distributed-mode" title="Permalink to this headline">¶</a></h3>
 <p>Note that multiprocessing distributed mode assumes the same number of GPUs for each node.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
-    --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
-    --ngpu <span class="m">2</span> <span class="se">\</span>
-    --dist_rank <span class="m">0</span>  <span class="se">\</span>
-    --dist_world_size <span class="m">2</span>  <span class="se">\</span>
-    --dist_master_addr host1  <span class="se">\</span>
-    --dist_master_port &lt;any-free-port&gt;
-<span class="o">(</span>host2<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
-    --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
-    --ngpu <span class="m">2</span> <span class="se">\</span>
-    --dist_rank <span class="m">1</span>  <span class="se">\</span>
-    --dist_world_size <span class="m">2</span>  <span class="se">\</span>
-    --dist_master_addr host1  <span class="se">\</span>
-    --dist_master_port &lt;any-free-port&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span><span class="w"> </span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_rank<span class="w"> </span><span class="m">0</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_world_size<span class="w"> </span><span class="m">2</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_addr<span class="w"> </span>host1<span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
+<span class="o">(</span>host2<span class="o">)</span><span class="w"> </span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_rank<span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_world_size<span class="w"> </span><span class="m">2</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_addr<span class="w"> </span>host1<span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
 </pre></div>
 </div>
 <section id="rank-and-world-size">
@@ -311,18 +311,18 @@ They can be also specified by the environment variables <code class="docutils li
 <ul>
 <li><p>TCP initialization</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># These three are equivalent:</span>
---dist_master_addr &lt;rank0-host&gt; --dist_master_port &lt;any-free-port&gt;
---dist_init_method <span class="s2">&quot;tcp://&lt;rank0-host&gt;:&lt;any-free-port&gt;&quot;</span>
-<span class="nb">export</span> <span class="nv">MASTER_ADDR</span><span class="o">=</span>&lt;rank0-host&gt; <span class="nv">MASTER_PORT</span><span class="o">=</span>&lt;any-free-port&gt;
+--dist_master_addr<span class="w"> </span>&lt;rank0-host&gt;<span class="w"> </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
+--dist_init_method<span class="w"> </span><span class="s2">&quot;tcp://&lt;rank0-host&gt;:&lt;any-free-port&gt;&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">MASTER_ADDR</span><span class="o">=</span>&lt;rank0-host&gt;<span class="w"> </span><span class="nv">MASTER_PORT</span><span class="o">=</span>&lt;any-free-port&gt;
 </pre></div>
 </div>
 </li>
 <li><p>Shared file system initialization</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method <span class="s2">&quot;file:///nfs/some/where/filename&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method<span class="w"> </span><span class="s2">&quot;file:///nfs/some/where/filename&quot;</span>
 </pre></div>
 </div>
 <p>This initialization might be failed if the previous file is existing. I recommend you to use a random file name to avoid to reuse it. e.g.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>--dist_init_method<span class="w"> </span><span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </li>
@@ -331,36 +331,36 @@ They can be also specified by the environment variables <code class="docutils li
 </section>
 <section id="hosts-which-have-2gpus-and-1gpu-respectively">
 <h3>2Hosts which have 2GPUs and 1GPU respectively<a class="headerlink" href="#hosts-which-have-2gpus-and-1gpu-respectively" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
-    --ngpu <span class="m">1</span> <span class="se">\</span>
-    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
-    --dist_rank <span class="m">0</span>  <span class="se">\</span>
-    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
-    --dist_master_addr host1  <span class="se">\</span>
-    --dist_master_port &lt;any-free-port&gt;
-<span class="o">(</span>host1<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
-    --ngpu <span class="m">1</span> <span class="se">\</span>
-    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
-    --dist_rank <span class="m">1</span>  <span class="se">\</span>
-    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
-    --dist_master_addr host1  <span class="se">\</span>
-    --dist_master_port &lt;any-free-port&gt;
-<span class="o">(</span>host2<span class="o">)</span> % python -m espnet2.bin.asr_train <span class="se">\</span>
-    --ngpu <span class="m">1</span> <span class="se">\</span>
-    --multiprocessing_distributed <span class="nb">false</span> <span class="se">\</span>
-    --dist_rank <span class="m">2</span>  <span class="se">\</span>
-    --dist_world_size <span class="m">3</span>  <span class="se">\</span>
-    --dist_master_addr host1  <span class="se">\</span>
-    --dist_master_port &lt;any-free-port&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>host1<span class="o">)</span><span class="w"> </span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ngpu<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_rank<span class="w"> </span><span class="m">0</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_world_size<span class="w"> </span><span class="m">3</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_addr<span class="w"> </span>host1<span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
+<span class="o">(</span>host1<span class="o">)</span><span class="w"> </span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ngpu<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_rank<span class="w"> </span><span class="m">1</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_world_size<span class="w"> </span><span class="m">3</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_addr<span class="w"> </span>host1<span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
+<span class="o">(</span>host2<span class="o">)</span><span class="w"> </span>%<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ngpu<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_rank<span class="w"> </span><span class="m">2</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_world_size<span class="w"> </span><span class="m">3</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_addr<span class="w"> </span>host1<span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_master_port<span class="w"> </span>&lt;any-free-port&gt;
 </pre></div>
 </div>
 </section>
 <section id="hosts-and-2gpus-for-each-node-using-slurm-with-multiprocessing-distributed">
 <h3>2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code> with multiprocessing distributed<a class="headerlink" href="#hosts-and-2gpus-for-each-node-using-slurm-with-multiprocessing-distributed" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span> % srun -c2 -N2 --gres gpu:2 <span class="se">\</span>
-    python -m espnet2.bin.asr_train --ngpu <span class="m">2</span> --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
-    --dist_launcher slurm <span class="se">\</span>
-    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w"> </span>%<span class="w"> </span>srun<span class="w"> </span>-c2<span class="w"> </span>-N2<span class="w"> </span>--gres<span class="w"> </span>gpu:2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_launcher<span class="w"> </span>slurm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_init_method<span class="w"> </span><span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 <p>I recommend shared-file initialization in this case because the host will be determined after submitting the job, therefore we can’t tell the free port number before.</p>
@@ -368,19 +368,19 @@ They can be also specified by the environment variables <code class="docutils li
 <section id="gpus-with-3nodes-using-slurm">
 <h3>5GPUs with 3nodes using <code class="docutils literal notranslate"><span class="pre">Slurm</span></code><a class="headerlink" href="#gpus-with-3nodes-using-slurm" title="Permalink to this headline">¶</a></h3>
 <p>(Not tested)</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% srun -n5 -N3 --gpus-per-task <span class="m">1</span> <span class="se">\</span>
-    python -m espnet2.bin.asr_train --ngpu <span class="m">1</span> --multiprocessing_distributed <span class="nb">false</span>  <span class="se">\</span>
-    --dist_launcher slurm <span class="se">\</span>
-    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>srun<span class="w"> </span>-n5<span class="w"> </span>-N3<span class="w"> </span>--gpus-per-task<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">1</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">false</span><span class="w">  </span><span class="se">\</span>
+<span class="w">    </span>--dist_launcher<span class="w"> </span>slurm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_init_method<span class="w"> </span><span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>
 <section id="hosts-and-2gpus-for-each-node-using-mpi-with-multiprocessing-distributed">
 <h3>2Hosts and 2GPUs for each node using <code class="docutils literal notranslate"><span class="pre">MPI</span></code> with multiprocessing distributed<a class="headerlink" href="#hosts-and-2gpus-for-each-node-using-mpi-with-multiprocessing-distributed" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span> % mpirun -np <span class="m">2</span> -host host1,host2 <span class="se">\</span>
-    python -m espnet2.bin.asr_train --ngpu <span class="m">2</span> --multiprocessing_distributed <span class="nb">true</span> <span class="se">\</span>
-    --dist_launcher mpi <span class="se">\</span>
-    --dist_init_method <span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl rand -base64 <span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w"> </span>%<span class="w"> </span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>-host<span class="w"> </span>host1,host2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span><span class="w"> </span>--multiprocessing_distributed<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_launcher<span class="w"> </span>mpi<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--dist_init_method<span class="w"> </span><span class="s2">&quot;file://</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">/.dist_init_</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">12</span><span class="k">)</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
 </section>

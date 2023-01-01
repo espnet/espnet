@@ -187,12 +187,12 @@
 
 
 <div class="viewcode-block" id="SchedulerInterface"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface">[docs]</a><span class="k">class</span> <span class="nc">SchedulerInterface</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Scheduler interface.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scheduler interface.&quot;&quot;&quot;</span>
 
     <span class="n">alias</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alias</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -200,12 +200,12 @@
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:],</span> <span class="n">v</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SchedulerInterface.get_arg"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface.get_arg">[docs]</a>    <span class="k">def</span> <span class="nf">get_arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get argument without prefix.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get argument without prefix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SchedulerInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for CLI.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for CLI.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2"> scheduler&quot;</span><span class="p">)</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_add_arguments</span><span class="p">(</span><span class="n">_PrefixParser</span><span class="p">(</span><span class="n">parser</span><span class="o">=</span><span class="n">group</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">-&quot;</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">parser</span></div>
@@ -216,7 +216,7 @@
 
 <div class="viewcode-block" id="SchedulerInterface.build"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface.build">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            key (str): key of hyper parameter</span>
@@ -235,7 +235,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SchedulerInterface.scale"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.SchedulerInterface.scale">[docs]</a>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Scale at `n_iter`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale at `n_iter`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            n_iter (int): number of current iterations.</span>
@@ -251,13 +251,13 @@
 
 
 <div class="viewcode-block" id="register_scheduler"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.register_scheduler">[docs]</a><span class="k">def</span> <span class="nf">register_scheduler</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Register scheduler.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Register scheduler.&quot;&quot;&quot;</span>
     <span class="n">SCHEDULER_DICT</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">alias</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="k">return</span> <span class="bp">cls</span></div>
 
 
 <div class="viewcode-block" id="dynamic_import_scheduler"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.dynamic_import_scheduler">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_scheduler</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Import Scheduler class dynamically.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import Scheduler class dynamically.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        module (str): module_name:class_name or alias in `SCHEDULER_DICT`</span>
@@ -275,18 +275,18 @@
 
 <div class="viewcode-block" id="NoScheduler"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.NoScheduler">[docs]</a><span class="nd">@register_scheduler</span>
 <span class="k">class</span> <span class="nc">NoScheduler</span><span class="p">(</span><span class="n">SchedulerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Scheduler which does nothing.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scheduler which does nothing.&quot;&quot;&quot;</span>
 
     <span class="n">alias</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
 
 <div class="viewcode-block" id="NoScheduler.scale"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.NoScheduler.scale">[docs]</a>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mf">1.0</span></div></div>
 
 
 <div class="viewcode-block" id="NoamScheduler"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.NoamScheduler">[docs]</a><span class="nd">@register_scheduler</span>
 <span class="k">class</span> <span class="nc">NoamScheduler</span><span class="p">(</span><span class="n">SchedulerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Warmup + InverseSqrt decay scheduler.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Warmup + InverseSqrt decay scheduler.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        noam_warmup (int): number of warmup iterations.</span>
@@ -297,25 +297,25 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">_PrefixParser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add scheduler args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add scheduler args.&quot;&quot;&quot;</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--warmup&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of warmup iterations.&quot;</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warmup</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span><span class="o">**-</span><span class="mf">1.5</span><span class="p">)</span>
 
 <div class="viewcode-block" id="NoamScheduler.scale"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.NoamScheduler.scale">[docs]</a>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
         <span class="n">step</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># because step starts from 0</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">step</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span><span class="o">**-</span><span class="mf">1.5</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="CyclicCosineScheduler"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.CyclicCosineScheduler">[docs]</a><span class="nd">@register_scheduler</span>
 <span class="k">class</span> <span class="nc">CyclicCosineScheduler</span><span class="p">(</span><span class="n">SchedulerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Cyclic cosine annealing.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cyclic cosine annealing.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        cosine_warmup (int): number of warmup iterations.</span>
@@ -332,7 +332,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">_PrefixParser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add scheduler args.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add scheduler args.&quot;&quot;&quot;</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--warmup&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of warmup iterations.&quot;</span>
         <span class="p">)</span>
@@ -344,7 +344,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="CyclicCosineScheduler.scale"><a class="viewcode-back" href="../../../_gen/espnet.scheduler.html#espnet.scheduler.scheduler.CyclicCosineScheduler.scale">[docs]</a>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_iter</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Scale of lr.&quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">math</span>
 
         <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_iter</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">total</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div></div>

@@ -189,7 +189,7 @@
 
 
 <div class="viewcode-block" id="load_dataset"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.load_dataset">[docs]</a><span class="k">def</span> <span class="nf">load_dataset</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">label_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load and save HDF5 that contains a dataset and stats for LM</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load and save HDF5 that contains a dataset and stats for LM</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): The path of an input text dataset file</span>
@@ -229,7 +229,7 @@
 
 
 <div class="viewcode-block" id="read_tokens"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.read_tokens">[docs]</a><span class="k">def</span> <span class="nf">read_tokens</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">label_dict</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read tokens as a sequence of sentences</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read tokens as a sequence of sentences</span>
 
 <span class="sd">    :param str filename : The name of the input file</span>
 <span class="sd">    :param dict label_dict : dictionary that maps token label string to its ID number</span>
@@ -249,7 +249,7 @@
 
 
 <div class="viewcode-block" id="count_tokens"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.count_tokens">[docs]</a><span class="k">def</span> <span class="nf">count_tokens</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">unk_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Count tokens and oovs in token ID sequences.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Count tokens and oovs in token ID sequences.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data (list[np.ndarray]): list of token ID sequences</span>
@@ -270,7 +270,7 @@
 
 
 <div class="viewcode-block" id="compute_perplexity"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.compute_perplexity">[docs]</a><span class="k">def</span> <span class="nf">compute_perplexity</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes and add the perplexity to the LogReport</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes and add the perplexity to the LogReport</span>
 
 <span class="sd">    :param dict result: The current observations</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -281,7 +281,7 @@
 
 
 <div class="viewcode-block" id="ParallelSentenceIterator"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.ParallelSentenceIterator">[docs]</a><span class="k">class</span> <span class="nc">ParallelSentenceIterator</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">Iterator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Dataset iterator to create a batch of sentences.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dataset iterator to create a batch of sentences.</span>
 
 <span class="sd">    This iterator returns a pair of sentences, where one token is shifted</span>
 <span class="sd">    between the sentences like &#39;&lt;sos&gt; w1 w2 w3&#39; and &#39;w1 w2 w3 &lt;eos&gt;&#39;</span>
@@ -395,7 +395,7 @@
 
 
 <div class="viewcode-block" id="MakeSymlinkToBestModel"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.MakeSymlinkToBestModel">[docs]</a><span class="k">class</span> <span class="nc">MakeSymlinkToBestModel</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extension that makes a symbolic link to the best model</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension that makes a symbolic link to the best model</span>
 
 <span class="sd">    :param str key: Key of value</span>
 <span class="sd">    :param str prefix: Prefix of model files and link target</span>
@@ -442,7 +442,7 @@
 <span class="c1"># TODO(Hori): currently it only works with character-word level LM.</span>
 <span class="c1">#             need to consider any types of subwords-to-word mapping.</span>
 <div class="viewcode-block" id="make_lexical_tree"><a class="viewcode-back" href="../../../_gen/espnet.lm.html#espnet.lm.lm_utils.make_lexical_tree">[docs]</a><span class="k">def</span> <span class="nf">make_lexical_tree</span><span class="p">(</span><span class="n">word_dict</span><span class="p">,</span> <span class="n">subword_dict</span><span class="p">,</span> <span class="n">word_unk</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Make a lexical tree to compute word-level probabilities&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Make a lexical tree to compute word-level probabilities&quot;&quot;&quot;</span>
     <span class="c1"># node [dict(subword_id -&gt; node), word_id, word_set[start-1, end]]</span>
     <span class="n">root</span> <span class="o">=</span> <span class="p">[{},</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">w</span><span class="p">,</span> <span class="n">wid</span> <span class="ow">in</span> <span class="n">word_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>

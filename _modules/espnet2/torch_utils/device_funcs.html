@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="to_device"><a class="viewcode-back" href="../../../_gen/espnet2.torch_utils.html#espnet2.torch_utils.device_funcs.to_device">[docs]</a><span class="k">def</span> <span class="nf">to_device</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">non_blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Change the device of object recursively&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Change the device of object recursively&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="n">k</span><span class="p">:</span> <span class="n">to_device</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">non_blocking</span><span class="p">,</span> <span class="n">copy</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -204,7 +204,7 @@
 
 
 <div class="viewcode-block" id="force_gatherable"><a class="viewcode-back" href="../../../_gen/espnet2.torch_utils.html#espnet2.torch_utils.device_funcs.force_gatherable">[docs]</a><span class="k">def</span> <span class="nf">force_gatherable</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Change object to gatherable in torch.nn.DataParallel recursively</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Change object to gatherable in torch.nn.DataParallel recursively</span>
 
 <span class="sd">    The difference from to_device() is changing to torch.Tensor if float or int</span>
 <span class="sd">    value is found.</span>

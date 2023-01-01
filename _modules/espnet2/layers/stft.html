@@ -226,7 +226,7 @@
 <div class="viewcode-block" id="Stft.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.stft.Stft.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;STFT forward function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;STFT forward function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input: (Batch, Nsamples) or (Batch, Nsample, Channels)</span>
@@ -342,7 +342,7 @@
 <div class="viewcode-block" id="Stft.inverse"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.stft.Stft.inverse">[docs]</a>    <span class="k">def</span> <span class="nf">inverse</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Inverse STFT.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inverse STFT.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input: Tensor(batch, T, F, 2) or ComplexTensor(batch, T, F)</span>

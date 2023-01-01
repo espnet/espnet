@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="subsequent_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.mask.subsequent_mask">[docs]</a><span class="k">def</span> <span class="nf">subsequent_mask</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create mask for subsequent steps (size, size).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create mask for subsequent steps (size, size).</span>
 
 <span class="sd">    :param int size: size of mask</span>
 <span class="sd">    :param str device: &quot;cpu&quot; or &quot;cuda&quot; or torch.Tensor.device</span>
@@ -193,7 +193,7 @@
 
 
 <div class="viewcode-block" id="target_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.mask.target_mask">[docs]</a><span class="k">def</span> <span class="nf">target_mask</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ignore_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create mask for decoder self-attention.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create mask for decoder self-attention.</span>
 
 <span class="sd">    :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)</span>
 <span class="sd">    :param int ignore_id: index of padding</span>

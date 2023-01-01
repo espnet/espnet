@@ -206,9 +206,9 @@
 
 
 <div class="viewcode-block" id="ConformerPostEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder">[docs]</a><span class="k">class</span> <span class="nc">ConformerPostEncoder</span><span class="p">(</span><span class="n">AbsPostEncoder</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Hugging Face Transformers PostEncoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hugging Face Transformers PostEncoder.&quot;&quot;&quot;</span>
 
-    <span class="sd">&quot;&quot;&quot;Conformer encoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conformer encoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_size (int): Input dimension.</span>
@@ -395,7 +395,7 @@
 <div class="viewcode-block" id="ConformerPostEncoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.&quot;&quot;&quot;</span>
         <span class="n">xs_pad</span> <span class="o">=</span> <span class="nb">input</span>
         <span class="n">masks</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">input_lengths</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="c1"># print(mask)</span>
@@ -416,7 +416,7 @@
         <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">olens</span></div>
 
 <div class="viewcode-block" id="ConformerPostEncoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.slu.html#espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span></div></div>
 </pre></div>
 

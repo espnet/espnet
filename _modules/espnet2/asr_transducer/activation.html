@@ -187,7 +187,7 @@
     <span class="n">softplus_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
     <span class="n">swish_beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Return activation function.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return activation function.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        activation_type: Activation function type.</span>
@@ -243,7 +243,7 @@
 
 
 <div class="viewcode-block" id="FTSwish"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.FTSwish">[docs]</a><span class="k">class</span> <span class="nc">FTSwish</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Flatten-T Swish activation definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flatten-T Swish activation definition.</span>
 
 <span class="sd">    FTSwish(x) = x * sigmoid(x) + threshold</span>
 <span class="sd">                  where FTSwish(x) &lt; 0 = threshold</span>
@@ -266,7 +266,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mean_shift</span> <span class="o">=</span> <span class="n">mean_shift</span>
 
 <div class="viewcode-block" id="FTSwish.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.FTSwish.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
 
@@ -277,7 +277,7 @@
 
 
 <div class="viewcode-block" id="Mish"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Mish">[docs]</a><span class="k">class</span> <span class="nc">Mish</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Mish activation definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mish activation definition.</span>
 
 <span class="sd">    Mish(x) = x * tanh(softplus(x))</span>
 
@@ -311,12 +311,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">mish</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">softplus</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
 <div class="viewcode-block" id="Mish.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Mish.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mish</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Smish"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Smish">[docs]</a><span class="k">class</span> <span class="nc">Smish</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Smish activation definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Smish activation definition.</span>
 
 <span class="sd">    Smish(x) = (alpha * x) * tanh(log(1 + sigmoid(beta * x)))</span>
 <span class="sd">                 where alpha &gt; 0 and beta &gt; 0</span>
@@ -344,12 +344,12 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Smish.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Smish.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">smish</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Swish"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Swish">[docs]</a><span class="k">class</span> <span class="nc">Swish</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Swish activation definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Swish activation definition.</span>
 
 <span class="sd">    Swish(x) = (beta * x) * sigmoid(x)</span>
 <span class="sd">                 where beta = 1 defines standard Swish activation.</span>
@@ -379,7 +379,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">swish</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Swish.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.activation.Swish.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward computation.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">swish</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
 </pre></div>
 

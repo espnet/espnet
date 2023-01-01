@@ -244,7 +244,7 @@
 
 
 <div class="viewcode-block" id="LogMel"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.feature_transform.LogMel">[docs]</a><span class="k">class</span> <span class="nc">LogMel</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert STFT to fbank feats</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert STFT to fbank feats</span>
 
 <span class="sd">    The arguments is same as librosa.filters.mel</span>
 
@@ -301,7 +301,7 @@
 
 
 <div class="viewcode-block" id="GlobalMVN"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.feature_transform.GlobalMVN">[docs]</a><span class="k">class</span> <span class="nc">GlobalMVN</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply global mean and variance normalization</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply global mean and variance normalization</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        stats_file(str): npy file of 1-dim array or text file.</span>
@@ -385,7 +385,7 @@
     <span class="n">norm_vars</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0e-20</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Apply utterance mean and variance normalization</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply utterance mean and variance normalization</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x: (B, T, D), assumed zero padded</span>

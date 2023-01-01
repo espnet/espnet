@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="Conv2DActNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.Conv2DActNorm">[docs]</a><span class="k">class</span> <span class="nc">Conv2DActNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Basic Conv2D + activation + instance norm building block.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Basic Conv2D + activation + instance norm building block.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -209,7 +209,7 @@
 
 
 <div class="viewcode-block" id="FreqWiseBlock"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.FreqWiseBlock">[docs]</a><span class="k">class</span> <span class="nc">FreqWiseBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;FreqWiseBlock, see iNeuBe paper.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;FreqWiseBlock, see iNeuBe paper.</span>
 
 <span class="sd">    Block that applies pointwise 2D convolution over</span>
 <span class="sd">    STFT-like image tensor on frequency axis.</span>
@@ -237,7 +237,7 @@
 
 
 <div class="viewcode-block" id="DenseBlock"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.DenseBlock">[docs]</a><span class="k">class</span> <span class="nc">DenseBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;single DenseNet block as used in iNeuBe model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;single DenseNet block as used in iNeuBe model.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        in_channels: number of input channels (image axis).</span>
@@ -340,7 +340,7 @@
 
 
 <div class="viewcode-block" id="TCNResBlock"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.TCNResBlock">[docs]</a><span class="k">class</span> <span class="nc">TCNResBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;single depth-wise separable TCN block as used in iNeuBe TCN.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;single depth-wise separable TCN block as used in iNeuBe TCN.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        in_chan: number of input feature channels.</span>
@@ -382,7 +382,7 @@
 
 
 <div class="viewcode-block" id="TCNDenseUNet"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.TCNDenseUNet">[docs]</a><span class="k">class</span> <span class="nc">TCNDenseUNet</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;TCNDenseNet block from iNeuBe</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TCNDenseNet block from iNeuBe</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">    Lu, Y. J., Cornell, S., Chang, X., Zhang, W., Li, C., Ni, Z., ... &amp; Watanabe, S.</span>
@@ -587,7 +587,7 @@
         <span class="k">return</span> <span class="n">freqs</span>
 
 <div class="viewcode-block" id="TCNDenseUNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcndenseunet.TCNDenseUNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tf_rep</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            tf_rep (torch.Tensor): 4D tensor (multi-channel complex STFT of mixture)</span>

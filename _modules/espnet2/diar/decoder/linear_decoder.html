@@ -174,7 +174,7 @@
 
 
 <div class="viewcode-block" id="LinearDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.decoder.linear_decoder.LinearDecoder">[docs]</a><span class="k">class</span> <span class="nc">LinearDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Linear decoder for speaker diarization&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Linear decoder for speaker diarization&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -186,7 +186,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear_decoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LinearDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.diar.html#espnet2.diar.decoder.linear_decoder.LinearDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): hidden_space [Batch, T, F]</span>

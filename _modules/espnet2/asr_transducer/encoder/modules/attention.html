@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">RelPositionMultiHeadedAttention</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;RelPositionMultiHeadedAttention definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;RelPositionMultiHeadedAttention definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        num_heads: Number of attention heads.</span>
@@ -193,7 +193,7 @@
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">simplified_attention_score</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct an MultiHeadedAttention object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an MultiHeadedAttention object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">d_k</span> <span class="o">=</span> <span class="n">embed_size</span> <span class="o">//</span> <span class="n">num_heads</span>
@@ -228,7 +228,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention.rel_shift"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.rel_shift">[docs]</a>    <span class="k">def</span> <span class="nf">rel_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequence. (B, H, T_1, 2 * T_1 - 1)</span>
@@ -256,7 +256,7 @@
         <span class="n">pos_enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Simplified attention score computation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Simplified attention score computation.</span>
 
 <span class="sd">        Reference: https://github.com/k2-fsa/icefall/pull/458</span>
 
@@ -288,7 +288,7 @@
         <span class="n">pos_enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Attention score computation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attention score computation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query: Transformed query tensor. (B, H, T_1, d_k)</span>
@@ -316,7 +316,7 @@
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention.forward_qkv"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.forward_qkv">[docs]</a>    <span class="k">def</span> <span class="nf">forward_qkv</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Transform query, key and value.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform query, key and value.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query: Query tensor. (B, T_1, size)</span>
@@ -356,7 +356,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">chunk_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute attention context vector.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute attention context vector.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            value: Transformed value. (B, H, T_2, d_k)</span>
@@ -398,7 +398,7 @@
         <span class="n">chunk_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute scaled dot product attention with rel. positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute scaled dot product attention with rel. positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query: Query tensor. (B, T_1, size)</span>

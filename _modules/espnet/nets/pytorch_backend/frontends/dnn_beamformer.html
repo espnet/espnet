@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="DNN_Beamformer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.dnn_beamformer.DNN_Beamformer">[docs]</a><span class="k">class</span> <span class="nc">DNN_Beamformer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;DNN mask based Beamformer</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;DNN mask based Beamformer</span>
 
 <span class="sd">    Citation:</span>
 <span class="sd">        Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;</span>
@@ -223,7 +223,7 @@
 <div class="viewcode-block" id="DNN_Beamformer.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.dnn_beamformer.DNN_Beamformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;The forward function</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The forward function</span>
 
 <span class="sd">        Notation:</span>
 <span class="sd">            B: Batch</span>
@@ -312,7 +312,7 @@
 <div class="viewcode-block" id="AttentionReference.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.dnn_beamformer.AttentionReference.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">psd_in</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">scaling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;The forward function</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The forward function</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            psd_in (ComplexTensor): (B, F, C, C)</span>

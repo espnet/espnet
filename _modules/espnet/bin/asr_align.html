@@ -235,7 +235,7 @@
 
 <span class="c1"># NOTE: you need this func to generate our sphinx doc</span>
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.asr_align.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get default arguments.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get default arguments.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">configargparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Align text to audio using CTC segmentation.&quot;</span>
         <span class="s2">&quot;using a pre-trained speech recognition model.&quot;</span><span class="p">,</span>
@@ -355,7 +355,7 @@
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.asr_align.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Run the main decoding function.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run the main decoding function.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
     <span class="n">args</span><span class="p">,</span> <span class="n">extra</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="c1"># logging info</span>
@@ -399,7 +399,7 @@
 
 
 <div class="viewcode-block" id="ctc_align"><a class="viewcode-back" href="../../../_gen/espnet.bin.html#espnet.bin.asr_align.ctc_align">[docs]</a><span class="k">def</span> <span class="nf">ctc_align</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;ESPnet-specific interface for CTC segmentation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ESPnet-specific interface for CTC segmentation.</span>
 
 <span class="sd">    Parses configuration, infers the CTC posterior probabilities,</span>
 <span class="sd">    and then aligns start and end of utterances using CTC segmentation.</span>

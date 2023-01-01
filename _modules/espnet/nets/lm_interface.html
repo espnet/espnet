@@ -178,16 +178,16 @@
 
 
 <div class="viewcode-block" id="LMInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.lm_interface.LMInterface">[docs]</a><span class="k">class</span> <span class="nc">LMInterface</span><span class="p">(</span><span class="n">ScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;LM Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;LM Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LMInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.lm_interface.LMInterface.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments to command line argument parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments to command line argument parser.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="LMInterface.build"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.lm_interface.LMInterface.build">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n_vocab</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): The number of vocabulary.</span>
@@ -208,7 +208,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">n_vocab</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LMInterface.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.lm_interface.LMInterface.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute LM loss value from buffer sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute LM loss value from buffer sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input ids. (batch, len)</span>
@@ -239,7 +239,7 @@
 
 
 <div class="viewcode-block" id="dynamic_import_lm"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.lm_interface.dynamic_import_lm">[docs]</a><span class="k">def</span> <span class="nf">dynamic_import_lm</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">backend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Import LM class dynamically.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Import LM class dynamically.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        module (str): module_name:class_name or alias in `predefined_lms`</span>

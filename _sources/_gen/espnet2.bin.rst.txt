@@ -103,6 +103,17 @@ espnet2.bin.diar_train
     :show-inheritance:
 
 
+.. _espnet2.bin.enh_tse_inference:
+
+espnet2.bin.enh_tse_inference
+-----------------------------
+
+.. automodule:: espnet2.bin.enh_tse_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.asr_transducer_inference:
 
 espnet2.bin.asr_transducer_inference
@@ -263,6 +274,17 @@ espnet2.bin.svs_inference
 -------------------------
 
 .. automodule:: espnet2.bin.svs_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.enh_tse_train:
+
+espnet2.bin.enh_tse_train
+-------------------------
+
+.. automodule:: espnet2.bin.enh_tse_train
     :members:
     :undoc-members:
     :show-inheritance:

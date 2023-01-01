@@ -188,10 +188,10 @@
 
 
 <div class="viewcode-block" id="NaiveRNNLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss">[docs]</a><span class="k">class</span> <span class="nc">NaiveRNNLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for Tacotron2.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for Tacotron2.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tactoron2 loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tactoron2 loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            use_masking (bool): Whether to apply masking</span>
@@ -213,7 +213,7 @@
         <span class="c1"># self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)</span>
 
 <div class="viewcode-block" id="NaiveRNNLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.naive_rnn.naive_rnn.NaiveRNNLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).</span>
@@ -252,7 +252,7 @@
 
 
 <div class="viewcode-block" id="NaiveRNN"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN">[docs]</a><span class="k">class</span> <span class="nc">NaiveRNN</span><span class="p">(</span><span class="n">AbsSVS</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;NaiveRNN-SVS module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;NaiveRNN-SVS module.</span>
 
 <span class="sd">    This is an implementation of naive RNN for singing voice synthesis</span>
 <span class="sd">    The features are processed directly over time-domain from music score and</span>
@@ -295,7 +295,7 @@
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;L1&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize NaiveRNN module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize NaiveRNN module.</span>
 
 <span class="sd">        Args: TODO(Yuning)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -476,7 +476,7 @@
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">flag_IsValid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded character ids (B, Tmax).</span>
@@ -630,7 +630,7 @@
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded character ids (Tmax).</span>
@@ -697,7 +697,7 @@
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).</span>

@@ -201,7 +201,7 @@
 
 
 <div class="viewcode-block" id="GuidedMultiHeadAttentionLoss"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.GuidedMultiHeadAttentionLoss">[docs]</a><span class="k">class</span> <span class="nc">GuidedMultiHeadAttentionLoss</span><span class="p">(</span><span class="n">GuidedAttentionLoss</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Guided attention loss function module for multi head attention.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Guided attention loss function module for multi head attention.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        sigma (float, optional): Standard deviation to control</span>
@@ -212,7 +212,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="GuidedMultiHeadAttentionLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.GuidedMultiHeadAttentionLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            att_ws (Tensor):</span>
@@ -247,12 +247,12 @@
 <span class="k">else</span><span class="p">:</span>
 
 <div class="viewcode-block" id="TTSPlot"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.TTSPlot">[docs]</a>    <span class="k">class</span> <span class="nc">TTSPlot</span><span class="p">(</span><span class="n">PlotAttentionReport</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Attention plot module for TTS-Transformer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attention plot module for TTS-Transformer.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TTSPlot.plotfn"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.TTSPlot.plotfn">[docs]</a>        <span class="k">def</span> <span class="nf">plotfn</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">uttid_list</span><span class="p">,</span> <span class="n">attn_dict</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;png&quot;</span><span class="p">,</span> <span class="n">savefn</span><span class="o">=</span><span class="kc">None</span>
         <span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot multi head attentions.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot multi head attentions.</span>
 
 <span class="sd">            Args:</span>
 <span class="sd">                data_dict (dict): Utts info from json file.</span>
@@ -286,7 +286,7 @@
 
 
 <div class="viewcode-block" id="Transformer"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.Transformer">[docs]</a><span class="k">class</span> <span class="nc">Transformer</span><span class="p">(</span><span class="n">TTSInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Text-to-Speech Transformer module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Text-to-Speech Transformer module.</span>
 
 <span class="sd">    This is a module of text-to-speech Transformer described</span>
 <span class="sd">    in `Neural Speech Synthesis with Transformer Network`_,</span>
@@ -300,7 +300,7 @@
 
 <div class="viewcode-block" id="Transformer.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.Transformer.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;transformer model setting&quot;</span><span class="p">)</span>
         <span class="c1"># network structure related</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -609,11 +609,11 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return plot class for attention weight plot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return plot class for attention weight plot.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">TTSPlot</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize TTS-Transformer module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize TTS-Transformer module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -863,7 +863,7 @@
         <span class="k">return</span> <span class="n">ys_in</span>
 
 <div class="viewcode-block" id="Transformer.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.Transformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -1017,7 +1017,7 @@
         <span class="k">return</span> <span class="n">loss</span></div>
 
 <div class="viewcode-block" id="Transformer.inference"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.Transformer.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">inference_args</span><span class="p">,</span> <span class="n">spemb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input sequence of characters (T,).</span>
@@ -1129,7 +1129,7 @@
         <span class="o">*</span><span class="n">args</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -1229,7 +1229,7 @@
         <span class="k">return</span> <span class="n">att_ws_dict</span></div>
 
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).</span>
@@ -1253,7 +1253,7 @@
         <span class="k">return</span> <span class="n">hs</span>
 
     <span class="k">def</span> <span class="nf">_source_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ilens (LongTensor or List): Batch of lengths (B,).</span>
@@ -1274,7 +1274,7 @@
         <span class="k">return</span> <span class="n">x_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_target_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make masks for masked self-attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make masks for masked self-attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            olens (LongTensor or List): Batch of lengths (B,).</span>
@@ -1305,7 +1305,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_plot_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
 
 <span class="sd">        keys should match what `chainer.reporter` reports.</span>
 <span class="sd">        If you add the key `loss`, the reporter will report `main/loss`</span>

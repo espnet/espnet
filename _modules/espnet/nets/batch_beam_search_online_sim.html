@@ -183,7 +183,7 @@
 
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim">[docs]</a><span class="k">class</span> <span class="nc">BatchBeamSearchOnlineSim</span><span class="p">(</span><span class="n">BatchBeamSearch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Online beam search implementation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Online beam search implementation.</span>
 
 <span class="sd">    This simulates streaming decoding.</span>
 <span class="sd">    It requires encoded features of entire utterance and</span>
@@ -195,7 +195,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.set_streaming_config"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_streaming_config">[docs]</a>    <span class="k">def</span> <span class="nf">set_streaming_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asr_config</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set config file for streaming decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set config file for streaming decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            asr_config (str): The config file for asr training</span>
@@ -239,7 +239,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">look_ahead</span> <span class="o">=</span> <span class="n">enc_args</span><span class="p">[</span><span class="s2">&quot;look_ahead&quot;</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.set_block_size"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_block_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_block_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set block size for streaming decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set block size for streaming decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            block_size (int): The block size of encoder</span>
@@ -247,7 +247,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">block_size</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.set_hop_size"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_hop_size">[docs]</a>    <span class="k">def</span> <span class="nf">set_hop_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hop_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set hop size for streaming decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set hop size for streaming decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hop_size (int): The hop size of encoder</span>
@@ -255,7 +255,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">hop_size</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.set_look_ahead"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.set_look_ahead">[docs]</a>    <span class="k">def</span> <span class="nf">set_look_ahead</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">look_ahead</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set look ahead size for streaming decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set look ahead size for streaming decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            look_ahead (int): The look ahead size of encoder</span>
@@ -265,7 +265,7 @@
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
@@ -408,10 +408,10 @@
         <span class="n">best</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">best</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total number of ended hypotheses: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -432,7 +432,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnlineSim.extend"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">Hypothesis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Extend probabilities and states with more encoded chunks.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend probabilities and states with more encoded chunks.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The extended encoder output feature</span>

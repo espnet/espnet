@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="GaussianUpsampling"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.length_regulator.GaussianUpsampling">[docs]</a><span class="k">class</span> <span class="nc">GaussianUpsampling</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Gaussian upsampling with fixed temperature as in:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Gaussian upsampling with fixed temperature as in:</span>
 
 <span class="sd">    https://arxiv.org/abs/2010.04301</span>
 
@@ -188,7 +188,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="n">delta</span>
 
 <div class="viewcode-block" id="GaussianUpsampling.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.length_regulator.GaussianUpsampling.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">h_masks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">d_masks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Upsample hidden states according to durations.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Upsample hidden states according to durations.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batched hidden state to be expanded (B, T_text, adim).</span>

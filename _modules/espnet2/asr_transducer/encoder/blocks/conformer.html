@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="Conformer"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer">[docs]</a><span class="k">class</span> <span class="nc">Conformer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conformer module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conformer module definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        block_size: Input/output size.</span>
@@ -201,7 +201,7 @@
         <span class="n">norm_args</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{},</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a Conformer object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Conformer object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">self_att</span> <span class="o">=</span> <span class="n">self_att</span>
@@ -225,7 +225,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Conformer.reset_streaming_cache"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.blocks.conformer.Conformer.reset_streaming_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_streaming_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize/Reset self-attention and convolution modules cache for streaming.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize/Reset self-attention and convolution modules cache for streaming.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            left_context: Number of left frames during chunk-by-chunk inference.</span>
@@ -254,7 +254,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">chunk_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Conformer input sequences. (B, T, D_block)</span>
@@ -313,7 +313,7 @@
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Encode chunk of input sequence.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode chunk of input sequence.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Conformer input sequences. (B, T, D_block)</span>

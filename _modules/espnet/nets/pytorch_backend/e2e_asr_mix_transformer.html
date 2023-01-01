@@ -209,7 +209,7 @@
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">E2EASR</span><span class="p">,</span> <span class="n">ASRInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E module.</span>
 
 <span class="sd">    :param int idim: dimension of inputs</span>
 <span class="sd">    :param int odim: dimension of outputs</span>
@@ -218,13 +218,13 @@
 
 <div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments.&quot;&quot;&quot;</span>
         <span class="n">E2EASR</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">E2EASRMIX</span><span class="o">.</span><span class="n">encoder_mix_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an E2E object.</span>
 
 <span class="sd">        :param int idim: dimension of inputs</span>
 <span class="sd">        :param int odim: dimension of outputs</span>
@@ -258,7 +258,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pit</span> <span class="o">=</span> <span class="n">PIT</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spkrs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E forward.</span>
 
 <span class="sd">        :param torch.Tensor xs_pad: batch of padded source sequences (B, Tmax, idim)</span>
 <span class="sd">        :param torch.Tensor ilens: batch of lengths of source sequences (B)</span>
@@ -378,7 +378,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
 
 <div class="viewcode-block" id="E2E.decoder_and_attention"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.decoder_and_attention">[docs]</a>    <span class="k">def</span> <span class="nf">decoder_and_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward decoder and attention loss.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder and attention loss.&quot;&quot;&quot;</span>
         <span class="c1"># forward decoder</span>
         <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
         <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">target_mask</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
@@ -392,7 +392,7 @@
         <span class="k">return</span> <span class="n">pred_pad</span><span class="p">,</span> <span class="n">pred_mask</span><span class="p">,</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc</span></div>
 
 <div class="viewcode-block" id="E2E.encode"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode acoustic features.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode acoustic features.</span>
 
 <span class="sd">        :param ndarray x: source acoustic feature (T, D)</span>
 <span class="sd">        :return: encoder outputs</span>
@@ -404,7 +404,7 @@
         <span class="k">return</span> <span class="n">enc_output</span></div>
 
 <div class="viewcode-block" id="E2E.recog"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.recog">[docs]</a>    <span class="k">def</span> <span class="nf">recog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_output</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_jit</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Recognize input speech of each speaker.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize input speech of each speaker.</span>
 
 <span class="sd">        :param ndnarray enc_output: encoder outputs (B, T, D) or (T, D)</span>
 <span class="sd">        :param Namespace recog_args: argment Namespace contraining options</span>
@@ -609,7 +609,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_jit</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Recognize input speech of each speaker.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize input speech of each speaker.</span>
 
 <span class="sd">        :param ndnarray x: input acoustic feature (B, T, D) or (T, D)</span>
 <span class="sd">        :param Namespace recog_args: argment Namespace contraining options</span>

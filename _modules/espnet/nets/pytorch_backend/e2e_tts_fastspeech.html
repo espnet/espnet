@@ -202,10 +202,10 @@
 
 
 <div class="viewcode-block" id="FeedForwardTransformerLoss"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformerLoss">[docs]</a><span class="k">class</span> <span class="nc">FeedForwardTransformerLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for feed-forward Transformer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss function module for feed-forward Transformer.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            use_masking (bool):</span>
@@ -225,7 +225,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span> <span class="o">=</span> <span class="n">DurationPredictorLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FeedForwardTransformerLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformerLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).</span>
@@ -280,7 +280,7 @@
 
 
 <div class="viewcode-block" id="FeedForwardTransformer"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformer">[docs]</a><span class="k">class</span> <span class="nc">FeedForwardTransformer</span><span class="p">(</span><span class="n">TTSInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Feed Forward Transformer for TTS a.k.a. FastSpeech.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Feed Forward Transformer for TTS a.k.a. FastSpeech.</span>
 
 <span class="sd">    This is a module of FastSpeech,</span>
 <span class="sd">    feed-forward Transformer with duration predictor described in</span>
@@ -296,7 +296,7 @@
 
 <div class="viewcode-block" id="FeedForwardTransformer.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformer.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;feed-forward transformer model setting&quot;</span><span class="p">)</span>
         <span class="c1"># network structure related</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -545,7 +545,7 @@
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -795,7 +795,7 @@
             <span class="k">return</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">d_outs</span>
 
 <div class="viewcode-block" id="FeedForwardTransformer.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -856,7 +856,7 @@
 <div class="viewcode-block" id="FeedForwardTransformer.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformer.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded character ids (B, Tmax).</span>
@@ -909,7 +909,7 @@
         <span class="k">return</span> <span class="n">att_ws_dict</span></div>
 
 <div class="viewcode-block" id="FeedForwardTransformer.inference"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_fastspeech.FeedForwardTransformer.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">inference_args</span><span class="p">,</span> <span class="n">spemb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input sequence of characters (T,).</span>
@@ -945,7 +945,7 @@
         <span class="k">return</span> <span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
 
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).</span>
@@ -969,7 +969,7 @@
         <span class="k">return</span> <span class="n">hs</span>
 
     <span class="k">def</span> <span class="nf">_source_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make masks for self-attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ilens (LongTensor or List): Batch of lengths (B,).</span>
@@ -1042,7 +1042,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return plot class for attention weight plot.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return plot class for attention weight plot.&quot;&quot;&quot;</span>
         <span class="c1"># Lazy import to avoid chainer dependency</span>
         <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_transformer</span> <span class="kn">import</span> <span class="n">TTSPlot</span>
 
@@ -1050,7 +1050,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_plot_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
 
 <span class="sd">        keys should match what `chainer.reporter` reports.</span>
 <span class="sd">        If you add the key `loss`,</span>

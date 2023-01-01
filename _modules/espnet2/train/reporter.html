@@ -281,7 +281,7 @@
 
 
 <div class="viewcode-block" id="SubReporter"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.SubReporter">[docs]</a><span class="k">class</span> <span class="nc">SubReporter</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;This class is used in Reporter.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;This class is used in Reporter.</span>
 
 <span class="sd">    See the docstring of Reporter for the usage.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -298,14 +298,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_seen_keys_in_the_step</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
 <div class="viewcode-block" id="SubReporter.get_total_count"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.SubReporter.get_total_count">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Returns the number of iterations over all epochs.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of iterations over all epochs.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_count</span></div>
 
 <div class="viewcode-block" id="SubReporter.get_epoch"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.SubReporter.get_epoch">[docs]</a>    <span class="k">def</span> <span class="nf">get_epoch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span></div>
 
 <div class="viewcode-block" id="SubReporter.next"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.SubReporter.next">[docs]</a>    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Close up this step and reset state for the next step&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close up this step and reset state for the next step&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">stats_list</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seen_keys_in_the_step</span><span class="p">:</span>
                 <span class="c1"># Fill nan value if the key is not registered in this step</span>
@@ -370,7 +370,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">start</span> <span class="o">==</span> <span class="n">end</span><span class="p">:</span>
             <span class="k">return</span> <span class="s2">&quot;&quot;</span>
 
-        <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">epoch:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2">:&quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">start</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">batch: &quot;</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="si">}</span><span class="s2">epoch:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2">:&quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">start</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">batch: &quot;</span>
 
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">key2</span><span class="p">,</span> <span class="n">stats_list</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">stats_list</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">stats_list</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span><span class="p">)</span>
@@ -443,7 +443,7 @@
 
 
 <div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.Reporter">[docs]</a><span class="k">class</span> <span class="nc">Reporter</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Reporter class.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reporter class.</span>
 
 <span class="sd">    Examples:</span>
 
@@ -490,7 +490,7 @@
             <span class="c1"># maybe due to bug, this case also indicates 0-count.</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The stats of the previous epoch=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">-</span> <span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;The stats of the previous epoch=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;doesn&#39;t exist.&quot;</span>
                 <span class="p">)</span>
             <span class="n">total_count</span> <span class="o">=</span> <span class="mi">0</span>
@@ -534,7 +534,7 @@
 <div class="viewcode-block" id="Reporter.sort_epochs_and_values"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.Reporter.sort_epochs_and_values">[docs]</a>    <span class="k">def</span> <span class="nf">sort_epochs_and_values</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Return the epoch which resulted the best value.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the epoch which resulted the best value.</span>
 
 <span class="sd">        Example:</span>
 <span class="sd">            &gt;&gt;&gt; val = reporter.sort_epochs_and_values(&#39;eval&#39;, &#39;loss&#39;, &#39;min&#39;)</span>
@@ -582,7 +582,7 @@
         <span class="k">if</span> <span class="n">epoch</span> <span class="o">-</span> <span class="n">best_epoch</span> <span class="o">&gt;</span> <span class="n">patience</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;[Early stopping] </span><span class="si">{</span><span class="n">key1</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key2</span><span class="si">}</span><span class="s2"> has not been &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;improved </span><span class="si">{</span><span class="n">epoch</span> <span class="o">-</span> <span class="n">best_epoch</span><span class="si">}</span><span class="s2"> epochs continuously. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;improved </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">best_epoch</span><span class="si">}</span><span class="s2"> epochs continuously. &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;The training was stopped at </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">epoch&quot;</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="kc">True</span>
@@ -637,13 +637,13 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="n">epoch</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="n">key2</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Reporter.get_keys"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.Reporter.get_keys">[docs]</a>    <span class="k">def</span> <span class="nf">get_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Returns keys1 e.g. train,eval.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns keys1 e.g. train,eval.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span>
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="n">epoch</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="Reporter.get_keys2"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.Reporter.get_keys2">[docs]</a>    <span class="k">def</span> <span class="nf">get_keys2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Returns keys2 e.g. loss,acc.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns keys2 e.g. loss,acc.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">epoch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_epoch</span><span class="p">()</span>
         <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="n">epoch</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
@@ -660,7 +660,7 @@
         <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">all_keys</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Reporter.matplotlib_plot"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.reporter.Reporter.matplotlib_plot">[docs]</a>    <span class="k">def</span> <span class="nf">matplotlib_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]):</span>
-        <span class="sd">&quot;&quot;&quot;Plot stats using Matplotlib and save images.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot stats using Matplotlib and save images.&quot;&quot;&quot;</span>
         <span class="n">keys2</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_keys2</span><span class="p">(</span><span class="n">k</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_keys</span><span class="p">()])</span>
         <span class="k">for</span> <span class="n">key2</span> <span class="ow">in</span> <span class="n">keys2</span><span class="p">:</span>
             <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key2</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_keys2</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>

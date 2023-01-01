@@ -222,7 +222,7 @@
 
 
 <div class="viewcode-block" id="DNN_Beamformer"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer">[docs]</a><span class="k">class</span> <span class="nc">DNN_Beamformer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;DNN mask based Beamformer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;DNN mask based Beamformer.</span>
 
 <span class="sd">    Citation:</span>
 <span class="sd">        Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;</span>
@@ -339,7 +339,7 @@
         <span class="n">powers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">oracle_masks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;DNN_Beamformer forward function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DNN_Beamformer forward function.</span>
 
 <span class="sd">        Notation:</span>
 <span class="sd">            B: Batch</span>
@@ -538,7 +538,7 @@
         <span class="n">rtf_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">spk</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Beamforming with the provided statistics.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Beamforming with the provided statistics.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            data (torch.complex64/ComplexTensor): (B, F, C, T)</span>
@@ -723,7 +723,7 @@
 <div class="viewcode-block" id="DNN_Beamformer.predict_mask"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.predict_mask">[docs]</a>    <span class="k">def</span> <span class="nf">predict_mask</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Predict masks for beamforming.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict masks for beamforming.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision</span>
@@ -751,7 +751,7 @@
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
         <span class="n">scaling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Attention-based reference forward function.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attention-based reference forward function.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            psd_in (torch.complex64/ComplexTensor): (B, F, C, C)</span>

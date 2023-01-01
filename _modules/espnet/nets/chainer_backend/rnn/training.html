@@ -190,7 +190,7 @@
 
 <span class="c1"># copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py</span>
 <div class="viewcode-block" id="sum_sqnorm"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.sum_sqnorm">[docs]</a><span class="k">def</span> <span class="nf">sum_sqnorm</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the norm of the array.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the norm of the array.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        arr (numpy.ndarray)</span>
@@ -210,7 +210,7 @@
 
 
 <div class="viewcode-block" id="CustomUpdater"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.CustomUpdater">[docs]</a><span class="k">class</span> <span class="nc">CustomUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom updater for chainer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom updater for chainer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        train_iter (iterator | dict[str, iterator]): Dataset iterator for the</span>
@@ -246,7 +246,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomUpdater.update_core"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.CustomUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Main update routine for Custom Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Main update routine for Custom Updater.&quot;&quot;&quot;</span>
         <span class="n">train_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iterator</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
 
@@ -285,7 +285,7 @@
 
 
 <div class="viewcode-block" id="CustomParallelUpdater"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.CustomParallelUpdater">[docs]</a><span class="k">class</span> <span class="nc">CustomParallelUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">updaters</span><span class="o">.</span><span class="n">MultiprocessParallelUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom Parallel Updater for chainer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom Parallel Updater for chainer.</span>
 
 <span class="sd">    Defines the main update routine.</span>
 
@@ -323,7 +323,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomParallelUpdater.update_core"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.CustomParallelUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Main Update routine of the custom parallel updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Main Update routine of the custom parallel updater.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup_workers</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_send_message</span><span class="p">((</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
@@ -385,7 +385,7 @@
 
 
 <div class="viewcode-block" id="CustomConverter"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.training.CustomConverter">[docs]</a><span class="k">class</span> <span class="nc">CustomConverter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom Converter.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom Converter.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        subsampling_factor (int): The subsampling factor.</span>
@@ -396,7 +396,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">subsampling_factor</span> <span class="o">=</span> <span class="n">subsampling_factor</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Perform sabsampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform sabsampling.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch (list): Batch that will be sabsampled.</span>

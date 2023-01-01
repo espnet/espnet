@@ -213,7 +213,7 @@
 
 
 <div class="viewcode-block" id="compute_perplexity"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.compute_perplexity">[docs]</a><span class="k">def</span> <span class="nf">compute_perplexity</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute and add the perplexity to the LogReport.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute and add the perplexity to the LogReport.</span>
 
 <span class="sd">    :param dict result: The current observations</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -226,15 +226,15 @@
 
 
 <div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.Reporter">[docs]</a><span class="k">class</span> <span class="nc">Reporter</span><span class="p">(</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Dummy module to use chainer&#39;s trainer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dummy module to use chainer&#39;s trainer.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Reporter.report"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.Reporter.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Report nothing.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Report nothing.&quot;&quot;&quot;</span>
         <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="concat_examples"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.concat_examples">[docs]</a><span class="k">def</span> <span class="nf">concat_examples</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Concat examples in minibatch.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Concat examples in minibatch.</span>
 
 <span class="sd">    :param np.ndarray batch: The batch to concatenate</span>
 <span class="sd">    :param int device: The device to send to</span>
@@ -252,7 +252,7 @@
 
 
 <div class="viewcode-block" id="BPTTUpdater"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.BPTTUpdater">[docs]</a><span class="k">class</span> <span class="nc">BPTTUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;An updater for a pytorch LM.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An updater for a pytorch LM.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -265,7 +265,7 @@
         <span class="n">use_apex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            train_iter (chainer.dataset.Iterator): The train iterator</span>
@@ -289,7 +289,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="BPTTUpdater.update_core"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.BPTTUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the model.&quot;&quot;&quot;</span>
         <span class="c1"># When we pass one iterator and optimizer to StandardUpdater.__init__,</span>
         <span class="c1"># they are automatically named &#39;main&#39;.</span>
         <span class="n">train_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iterator</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
@@ -332,10 +332,10 @@
 
 
 <div class="viewcode-block" id="LMEvaluator"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.LMEvaluator">[docs]</a><span class="k">class</span> <span class="nc">LMEvaluator</span><span class="p">(</span><span class="n">BaseEvaluator</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A custom evaluator for a pytorch LM.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A custom evaluator for a pytorch LM.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_iter</span><span class="p">,</span> <span class="n">eval_model</span><span class="p">,</span> <span class="n">reporter</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.</span>
 
 <span class="sd">        :param chainer.dataset.Iterator val_iter : The validation iterator</span>
 <span class="sd">        :param LMInterface eval_model : The model to evaluate</span>
@@ -348,7 +348,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
 
 <div class="viewcode-block" id="LMEvaluator.evaluate"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.LMEvaluator.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Evaluate the model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the model.&quot;&quot;&quot;</span>
         <span class="n">val_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iterator</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">nll</span> <span class="o">=</span> <span class="mi">0</span>
@@ -376,7 +376,7 @@
 
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../../../_gen/espnet.lm.html#espnet.lm.pytorch_backend.lm.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train with the given args.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train with the given args.</span>
 
 <span class="sd">    :param Namespace args: The program arguments</span>
 <span class="sd">    :param type model_class: LMInterface class for training</span>
@@ -421,7 +421,7 @@
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">accum_grad</span> <span class="o">&gt;</span> <span class="n">args</span><span class="o">.</span><span class="n">batchsize</span><span class="p">:</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;batch size is automatically increased &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">batchsize</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">accum_grad</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">batchsize</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">batch_size</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">args</span><span class="o">.</span><span class="n">accum_grad</span><span class="si">}</span><span class="s2">)&quot;</span>
         <span class="p">)</span>
     <span class="n">train_iter</span> <span class="o">=</span> <span class="n">ParallelSentenceIterator</span><span class="p">(</span>
         <span class="n">train</span><span class="p">,</span>

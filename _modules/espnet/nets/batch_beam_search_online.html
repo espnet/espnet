@@ -185,7 +185,7 @@
 
 
 <div class="viewcode-block" id="BatchBeamSearchOnline"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline">[docs]</a><span class="k">class</span> <span class="nc">BatchBeamSearchOnline</span><span class="p">(</span><span class="n">BatchBeamSearch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Online beam search implementation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Online beam search implementation.</span>
 
 <span class="sd">    This simulates streaming decoding.</span>
 <span class="sd">    It requires encoded features of entire utterance and</span>
@@ -207,7 +207,7 @@
         <span class="n">decoder_text_length_limit</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize beam search.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize beam search.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">block_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">=</span> <span class="n">hop_size</span>
@@ -219,7 +219,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.reset"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset parameters.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prev_hyps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -231,7 +231,7 @@
 <div class="viewcode-block" id="BatchBeamSearchOnline.score_full"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.score_full">[docs]</a>    <span class="k">def</span> <span class="nf">score_full</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyp (Hypothesis): Hypothesis with prefix tokens to score</span>
@@ -272,7 +272,7 @@
         <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">is_final</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
@@ -347,7 +347,7 @@
             <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.process_one_block"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.process_one_block">[docs]</a>    <span class="k">def</span> <span class="nf">process_one_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Recognize one block.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize one block.&quot;&quot;&quot;</span>
         <span class="c1"># extend states for ctc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="p">)</span>
         <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_idx</span> <span class="o">&lt;</span> <span class="n">maxlen</span><span class="p">:</span>
@@ -434,7 +434,7 @@
             <span class="k">return</span> <span class="n">rets</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.assemble_hyps"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.assemble_hyps">[docs]</a>    <span class="k">def</span> <span class="nf">assemble_hyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ended_hyps</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Assemble the hypotheses.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Assemble the hypotheses.&quot;&quot;&quot;</span>
         <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ended_hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="c1"># check the number of hypotheses reaching to eos</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -448,10 +448,10 @@
         <span class="n">best</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">best</span><span class="o">.</span><span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">v</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;normalized log probability: </span><span class="si">{</span><span class="n">best</span><span class="o">.</span><span class="n">score</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;total number of ended hypotheses: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -462,7 +462,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.extend"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">Hypothesis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Extend probabilities and states with more encoded chunks.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend probabilities and states with more encoded chunks.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The extended encoder output feature</span>

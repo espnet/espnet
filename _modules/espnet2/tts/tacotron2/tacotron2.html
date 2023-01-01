@@ -194,7 +194,7 @@
 
 
 <div class="viewcode-block" id="Tacotron2"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.tacotron2.tacotron2.Tacotron2">[docs]</a><span class="k">class</span> <span class="nc">Tacotron2</span><span class="p">(</span><span class="n">AbsTTS</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Tacotron2 module for end-to-end text-to-speech.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Tacotron2 module for end-to-end text-to-speech.</span>
 
 <span class="sd">    This is a module of Spectrogram prediction network in Tacotron2 described</span>
 <span class="sd">    in `Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`_,</span>
@@ -258,7 +258,7 @@
         <span class="n">guided_attn_loss_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.4</span><span class="p">,</span>
         <span class="n">guided_attn_loss_lambda</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -454,7 +454,7 @@
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">joint_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded character ids (B, T_text).</span>
@@ -593,7 +593,7 @@
         <span class="n">forward_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Input sequence of characters (T_text,).</span>
@@ -672,7 +672,7 @@
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, eunits).</span>

@@ -186,7 +186,7 @@
 <div class="viewcode-block" id="design_prototype_filter"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.design_prototype_filter">[docs]</a><span class="k">def</span> <span class="nf">design_prototype_filter</span><span class="p">(</span>
     <span class="n">taps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">62</span><span class="p">,</span> <span class="n">cutoff_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.142</span><span class="p">,</span> <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">9.0</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Design prototype filter for PQMF.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Design prototype filter for PQMF.</span>
 
 <span class="sd">    This method is based on `A Kaiser window approach for the design of prototype</span>
 <span class="sd">    filters of cosine modulated filterbanks`_.</span>
@@ -223,7 +223,7 @@
 
 
 <div class="viewcode-block" id="PQMF"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.PQMF">[docs]</a><span class="k">class</span> <span class="nc">PQMF</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;PQMF module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;PQMF module.</span>
 
 <span class="sd">    This module is based on `Near-perfect-reconstruction pseudo-QMF banks`_.</span>
 
@@ -239,7 +239,7 @@
         <span class="n">cutoff_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.142</span><span class="p">,</span>
         <span class="n">beta</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">9.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize PQMF module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize PQMF module.</span>
 
 <span class="sd">        The cutoff_ratio and beta parameters are optimized for #subbands = 4.</span>
 <span class="sd">        See dicussion in https://github.com/kan-bayashi/ParallelWaveGAN/issues/195.</span>
@@ -298,7 +298,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_fn</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ConstantPad1d</span><span class="p">(</span><span class="n">taps</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PQMF.analysis"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.PQMF.analysis">[docs]</a>    <span class="k">def</span> <span class="nf">analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Analysis with PQMF.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analysis with PQMF.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, 1, T).</span>
@@ -311,7 +311,7 @@
         <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">conv1d</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">updown_filter</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subbands</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PQMF.synthesis"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.melgan.pqmf.PQMF.synthesis">[docs]</a>    <span class="k">def</span> <span class="nf">synthesis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Synthesis with PQMF.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synthesis with PQMF.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, subbands, T // subbands).</span>

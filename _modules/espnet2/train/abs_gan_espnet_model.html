@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="AbsGANESPnetModel"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel">[docs]</a><span class="k">class</span> <span class="nc">AbsGANESPnetModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The common abstract class among each GAN-based task.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The common abstract class among each GAN-based task.</span>
 
 <span class="sd">    &quot;ESPnetModel&quot; is referred to a class which inherits torch.nn.Module,</span>
 <span class="sd">    and makes the dnn-models &quot;forward&quot; as its member field, a.k.a delegate</span>
@@ -214,7 +214,7 @@
         <span class="n">forward_generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">batch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Return the generator loss or the discrimiantor loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the generator loss or the discrimiantor loss.</span>
 
 <span class="sd">        This method must have an argument &quot;forward_generator&quot; to switch the generator</span>
 <span class="sd">        loss calculation and the discrimiantor loss calculation. If forward_generator</span>

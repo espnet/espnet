@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="yaml_no_alias_safe_dump"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.yaml_no_alias_safe_dump.yaml_no_alias_safe_dump">[docs]</a><span class="k">def</span> <span class="nf">yaml_no_alias_safe_dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Safe-dump in yaml with no anchor/alias&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Safe-dump in yaml with no anchor/alias&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span>
         <span class="n">data</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">allow_unicode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">NoAliasSafeDumper</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span></div>

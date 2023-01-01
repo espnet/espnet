@@ -182,7 +182,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsampling"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.subsampling.Conv2dSubsampling">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/4 length).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling (to 1/4 length).</span>
 
 <span class="sd">    :param int idim: input dim</span>
 <span class="sd">    :param int odim: output dim</span>
@@ -193,7 +193,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="kc">None</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Conv2dSubsampling.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Conv2dSubsampling.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
@@ -230,7 +230,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Conv2dSubsampling.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.subsampling.Conv2dSubsampling.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        :param chainer.Variable x: input tensor</span>
 <span class="sd">        :return: subsampled x and mask</span>
@@ -249,7 +249,7 @@
 
 
 <div class="viewcode-block" id="LinearSampling"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.subsampling.LinearSampling">[docs]</a><span class="k">class</span> <span class="nc">LinearSampling</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Linear 1D subsampling.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Linear 1D subsampling.</span>
 
 <span class="sd">    :param int idim: input dim</span>
 <span class="sd">    :param int odim: output dim</span>
@@ -258,7 +258,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">initialW</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize LinearSampling.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize LinearSampling.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LinearSampling</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">stvd</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">dropout</span>
@@ -272,7 +272,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">dropout</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LinearSampling.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.subsampling.LinearSampling.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        :param chainer.Variable x: input tensor</span>
 <span class="sd">        :return: subsampled x and mask</span>

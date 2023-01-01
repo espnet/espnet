@@ -232,7 +232,7 @@
 
 
 <div class="viewcode-block" id="JointText2Wav"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav">[docs]</a><span class="k">class</span> <span class="nc">JointText2Wav</span><span class="p">(</span><span class="n">AbsGANTTS</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;General class to jointly train text2mel and vocoder parts.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;General class to jointly train text2mel and vocoder parts.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -412,7 +412,7 @@
         <span class="n">lambda_mel</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">45.0</span><span class="p">,</span>
         <span class="n">cache_generator_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize JointText2Wav module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize JointText2Wav module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Input vocabrary size.</span>
@@ -511,12 +511,12 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">require_raw_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return whether or not speech is required.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether or not speech is required.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">True</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">require_vocoder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return whether or not vocoder is required.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return whether or not vocoder is required.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="JointText2Wav.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
@@ -530,7 +530,7 @@
         <span class="n">forward_generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -580,7 +580,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -689,7 +689,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform discriminator forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform discriminator forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
@@ -779,7 +779,7 @@
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Run inference.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run inference.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Input text index tensor (T_text,).</span>

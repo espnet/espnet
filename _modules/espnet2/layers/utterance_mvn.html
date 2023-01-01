@@ -196,7 +196,7 @@
 <div class="viewcode-block" id="UtteranceMVN.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.utterance_mvn.UtteranceMVN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward function</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward function</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: (B, L, ...)</span>
@@ -219,7 +219,7 @@
     <span class="n">norm_vars</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0e-20</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Apply utterance mean and variance normalization</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply utterance mean and variance normalization</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x: (B, T, D), assumed zero padded</span>

@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="RelPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">RelPositionalEncoding</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Relative positional encoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Relative positional encoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        size: Module size.</span>
@@ -190,7 +190,7 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a RelativePositionalEncoding object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a RelativePositionalEncoding object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span>
@@ -202,7 +202,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="n">_pre_hook</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RelPositionalEncoding.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Reset positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequences. (B, T, ?)</span>
@@ -239,7 +239,7 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="RelPositionalEncoding.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.positional_encoding.RelPositionalEncoding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Input sequences. (B, T, ?)</span>

@@ -214,13 +214,13 @@
 
 <div class="viewcode-block" id="GANTrainerOptions"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.gan_tts.GANTrainerOptions">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">GANTrainerOptions</span><span class="p">(</span><span class="n">TrainerOptions</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Trainer option dataclass for GANTrainer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trainer option dataclass for GANTrainer.&quot;&quot;&quot;</span>
 
     <span class="n">generator_first</span><span class="p">:</span> <span class="nb">bool</span></div>
 
 
 <div class="viewcode-block" id="GANTrainer"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.gan_tts.GANTrainer">[docs]</a><span class="k">class</span> <span class="nc">GANTrainer</span><span class="p">(</span><span class="n">Trainer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Trainer for GAN-based training.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trainer for GAN-based training.</span>
 
 <span class="sd">    If you&#39;d like to use this trainer, the model must inherit</span>
 <span class="sd">    espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.</span>
@@ -229,13 +229,13 @@
 
 <div class="viewcode-block" id="GANTrainer.build_options"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.gan_tts.GANTrainer.build_options">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_options</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TrainerOptions</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Build options consumed by train(), eval(), and plot_attention().&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build options consumed by train(), eval(), and plot_attention().&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">build_dataclass</span><span class="p">(</span><span class="n">GANTrainerOptions</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GANTrainer.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.gan_tts.GANTrainer.add_arguments">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add additional arguments for GAN-trainer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add additional arguments for GAN-trainer.&quot;&quot;&quot;</span>
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--generator_first&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
@@ -256,7 +256,7 @@
         <span class="n">options</span><span class="p">:</span> <span class="n">GANTrainerOptions</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Train one epoch.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Train one epoch.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">grad_noise</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">grad_noise</span>
@@ -485,7 +485,7 @@
         <span class="n">options</span><span class="p">:</span> <span class="n">GANTrainerOptions</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Validate one epoch.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate one epoch.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
         <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>

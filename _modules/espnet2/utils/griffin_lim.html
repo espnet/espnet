@@ -196,7 +196,7 @@
     <span class="n">fmin</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">fmax</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Convert log Mel filterbank to linear spectrogram.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert log Mel filterbank to linear spectrogram.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        lmspc: Log Mel filterbank (T, n_mels).</span>
@@ -229,7 +229,7 @@
     <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
     <span class="n">n_iter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Convert linear spectrogram into waveform using Griffin-Lim.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert linear spectrogram into waveform using Griffin-Lim.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        spc: Linear spectrogram (T, n_fft // 2 + 1).</span>
@@ -279,7 +279,7 @@
 
 <span class="c1"># TODO(kan-bayashi): write as torch.nn.Module</span>
 <div class="viewcode-block" id="Spectrogram2Waveform"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.griffin_lim.Spectrogram2Waveform">[docs]</a><span class="k">class</span> <span class="nc">Spectrogram2Waveform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Spectrogram to waveform conversion module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Spectrogram to waveform conversion module.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -293,7 +293,7 @@
         <span class="n">fmax</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">griffin_lim_iters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            fs: Sampling frequency.</span>
@@ -342,7 +342,7 @@
         <span class="k">return</span> <span class="n">retval</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Convert spectrogram to waveform.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert spectrogram to waveform.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            spc: Log Mel filterbank (T_feats, n_mels)</span>

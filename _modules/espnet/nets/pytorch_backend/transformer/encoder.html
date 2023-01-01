@@ -218,7 +218,7 @@
 
 
 <div class="viewcode-block" id="Encoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder.Encoder">[docs]</a><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transformer encoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transformer encoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -282,7 +282,7 @@
         <span class="n">ctc_softmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">conditioning_layer_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Encoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="n">_pre_hook</span><span class="p">)</span>
 
@@ -448,7 +448,7 @@
         <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
         <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Define positionwise layer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Define positionwise layer.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">positionwise_layer_type</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
             <span class="n">positionwise_layer</span> <span class="o">=</span> <span class="n">PositionwiseFeedForward</span>
             <span class="n">positionwise_layer_args</span> <span class="o">=</span> <span class="p">(</span><span class="n">attention_dim</span><span class="p">,</span> <span class="n">linear_units</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
@@ -473,7 +473,7 @@
         <span class="k">return</span> <span class="n">positionwise_layer</span><span class="p">,</span> <span class="n">positionwise_layer_args</span></div>
 
 <div class="viewcode-block" id="Encoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder.Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (torch.Tensor): Input tensor (#batch, time, idim).</span>
@@ -521,7 +521,7 @@
         <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span></div>
 
 <div class="viewcode-block" id="Encoder.forward_one_step"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder.Encoder.forward_one_step">[docs]</a>    <span class="k">def</span> <span class="nf">forward_one_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode input frame.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input frame.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (torch.Tensor): Input tensor.</span>

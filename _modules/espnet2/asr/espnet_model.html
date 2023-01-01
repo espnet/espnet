@@ -205,7 +205,7 @@
 
 
 <div class="viewcode-block" id="ESPnetASRModel"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetASRModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CTC-attention hybrid Encoder-Decoder model&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CTC-attention hybrid Encoder-Decoder model&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -344,7 +344,7 @@
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -489,7 +489,7 @@
 <div class="viewcode-block" id="ESPnetASRModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
@@ -572,7 +572,7 @@
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
 
 <span class="sd">        Normally, this function is called in batchify_nll.</span>
 
@@ -611,7 +611,7 @@
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute negative log likelihood(nll) from transformer-decoder</span>
 
 <span class="sd">        To avoid OOM, this fuction seperate the input into batches.</span>
 <span class="sd">        Then call nll for each batch and combine and return results.</span>
@@ -715,7 +715,7 @@
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute Transducer loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Transducer loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            encoder_out: Encoder output sequences. (B, T, D_enc)</span>

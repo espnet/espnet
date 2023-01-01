@@ -179,7 +179,7 @@
 
 
 <div class="viewcode-block" id="Conv2dSubsamplingWOPosEnc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling_without_posenc.Conv2dSubsamplingWOPosEnc">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsamplingWOPosEnc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convolutional 2D subsampling.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -191,7 +191,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">kernels</span><span class="p">,</span> <span class="n">strides</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsamplingWOPosEnc object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsamplingWOPosEnc object.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kernels</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">strides</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">conv</span> <span class="o">=</span> <span class="p">[]</span>
@@ -208,7 +208,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">kernels</span> <span class="o">=</span> <span class="n">kernels</span>
 
 <div class="viewcode-block" id="Conv2dSubsamplingWOPosEnc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling_without_posenc.Conv2dSubsamplingWOPosEnc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Subsample x.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>

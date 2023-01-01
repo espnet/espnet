@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="MultiLayeredConv1d"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.multi_layer_conv.MultiLayeredConv1d">[docs]</a><span class="k">class</span> <span class="nc">MultiLayeredConv1d</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi-layered conv1d for Transformer block.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-layered conv1d for Transformer block.</span>
 
 <span class="sd">    This is a module of multi-leyered conv1d designed</span>
 <span class="sd">    to replace positionwise feed-forward network</span>
@@ -193,7 +193,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_chans</span><span class="p">,</span> <span class="n">hidden_chans</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize MultiLayeredConv1d module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize MultiLayeredConv1d module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_chans (int): Number of input channels.</span>
@@ -220,7 +220,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiLayeredConv1d.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.multi_layer_conv.MultiLayeredConv1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Batch of input tensors (B, T, in_chans).</span>
@@ -234,14 +234,14 @@
 
 
 <div class="viewcode-block" id="Conv1dLinear"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.multi_layer_conv.Conv1dLinear">[docs]</a><span class="k">class</span> <span class="nc">Conv1dLinear</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conv1D + Linear for Transformer block.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conv1D + Linear for Transformer block.</span>
 
 <span class="sd">    A variant of MultiLayeredConv1d, which replaces second conv-layer to linear.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_chans</span><span class="p">,</span> <span class="n">hidden_chans</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Conv1dLinear module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Conv1dLinear module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_chans (int): Number of input channels.</span>
@@ -262,7 +262,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Conv1dLinear.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.multi_layer_conv.Conv1dLinear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Batch of input tensors (B, T, in_chans).</span>

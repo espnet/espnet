@@ -179,7 +179,7 @@
 
 
 <div class="viewcode-block" id="AlignmentModule"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.alignments.AlignmentModule">[docs]</a><span class="k">class</span> <span class="nc">AlignmentModule</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Alignment Learning Framework proposed for parallel TTS models in:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Alignment Learning Framework proposed for parallel TTS models in:</span>
 
 <span class="sd">    https://arxiv.org/abs/2108.10447</span>
 
@@ -195,7 +195,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">f_conv3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">adim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AlignmentModule.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.alignments.AlignmentModule.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="n">x_masks</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate alignment loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate alignment loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Batched text embedding (B, T_text, adim).</span>
@@ -263,7 +263,7 @@
 
 
 <div class="viewcode-block" id="viterbi_decode"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.alignments.viterbi_decode">[docs]</a><span class="k">def</span> <span class="nf">viterbi_decode</span><span class="p">(</span><span class="n">log_p_attn</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extract duration from an attention probability matrix</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract duration from an attention probability matrix</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        log_p_attn (Tensor): Batched log probability of attention</span>
@@ -315,7 +315,7 @@
 
 
 <div class="viewcode-block" id="average_by_duration"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.alignments.average_by_duration">[docs]</a><span class="k">def</span> <span class="nf">average_by_duration</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Average frame-level features into token-level according to durations</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Average frame-level features into token-level according to durations</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        ds (Tensor): Batched token duration (B, T_text).</span>

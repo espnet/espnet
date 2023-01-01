@@ -181,7 +181,7 @@
 
 
 <div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;CER and WER computation for Transducer model.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CER and WER computation for Transducer model.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        decoder: Decoder module.</span>
@@ -204,7 +204,7 @@
         <span class="n">report_cer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object for Transducer model.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object for Transducer model.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearchTransducer</span><span class="p">(</span>
@@ -226,7 +226,7 @@
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER/WER score for hypotheses sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level CER/WER score for hypotheses sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_out: Encoder output sequences. (B, T, D_enc)</span>
@@ -263,7 +263,7 @@
 <div class="viewcode-block" id="ErrorCalculator.convert_to_char"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.convert_to_char">[docs]</a>    <span class="k">def</span> <span class="nf">convert_to_char</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Convert label ID sequences to character.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert label ID sequences to character.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses sequences. (B, L)</span>
@@ -290,7 +290,7 @@
         <span class="k">return</span> <span class="n">char_hyps</span><span class="p">,</span> <span class="n">char_refs</span></div>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_cer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_cer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses sequences. (B, L)</span>
@@ -314,7 +314,7 @@
         <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">distances</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ErrorCalculator.calculate_wer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_wer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_wer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyps: Hypotheses sequences. (B, L)</span>

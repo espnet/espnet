@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="LightweightSincConvs"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.LightweightSincConvs">[docs]</a><span class="k">class</span> <span class="nc">LightweightSincConvs</span><span class="p">(</span><span class="n">AbsPreEncoder</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Lightweight Sinc Convolutions.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lightweight Sinc Convolutions.</span>
 
 <span class="sd">    Instead of using precomputed features, end-to-end speech recognition</span>
 <span class="sd">    can also be done directly from raw audio using sinc convolutions, as</span>
@@ -218,7 +218,7 @@
         <span class="n">windowing_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hamming&quot;</span><span class="p">,</span>
         <span class="n">scale_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mel&quot;</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize the module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            fs: Sample rate.</span>
@@ -336,7 +336,7 @@
         <span class="n">dropout_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>
         <span class="n">avgpool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate a convolutional block for Lightweight Sinc convolutions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a convolutional block for Lightweight Sinc convolutions.</span>
 
 <span class="sd">        Each block consists of either a depthwise or a depthwise-separable</span>
 <span class="sd">        convolutions together with dropout, (batch-)normalization layer, and</span>
@@ -380,7 +380,7 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">block</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LightweightSincConvs.espnet_initialization_fn"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.LightweightSincConvs.espnet_initialization_fn">[docs]</a>    <span class="k">def</span> <span class="nf">espnet_initialization_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize sinc filters with filterbank values.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize sinc filters with filterbank values.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filters</span><span class="o">.</span><span class="n">init_filters</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">block</span><span class="p">:</span>
@@ -391,7 +391,7 @@
 <div class="viewcode-block" id="LightweightSincConvs.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.LightweightSincConvs.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Apply Lightweight Sinc Convolutions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply Lightweight Sinc Convolutions.</span>
 
 <span class="sd">        The input shall be formatted as (B, T, C_in, D_in)</span>
 <span class="sd">        with B as batch size, T as time dimension, C_in as channels,</span>
@@ -416,12 +416,12 @@
         <span class="k">return</span> <span class="n">output_frames</span><span class="p">,</span> <span class="n">input_lengths</span>  <span class="c1"># no state in this layer</span></div>
 
 <div class="viewcode-block" id="LightweightSincConvs.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.LightweightSincConvs.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the output size.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span></div></div>
 
 
 <div class="viewcode-block" id="SpatialDropout"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.SpatialDropout">[docs]</a><span class="k">class</span> <span class="nc">SpatialDropout</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Spatial dropout module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Spatial dropout module.</span>
 
 <span class="sd">    Apply dropout to full channels on tensors of input (B, C, D)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -431,7 +431,7 @@
         <span class="n">dropout_probability</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>
         <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            dropout_probability: Dropout probability.</span>
@@ -445,7 +445,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,)</span>
 
 <div class="viewcode-block" id="SpatialDropout.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.SpatialDropout.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward of spatial dropout module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward of spatial dropout module.&quot;&quot;&quot;</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">y</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div></div>

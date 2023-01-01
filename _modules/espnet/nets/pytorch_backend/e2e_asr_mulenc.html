@@ -204,10 +204,10 @@
 
 
 <div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.Reporter">[docs]</a><span class="k">class</span> <span class="nc">Reporter</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Define a chainer reporter wrapper.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Define a chainer reporter wrapper.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Reporter.report"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.Reporter.report">[docs]</a>    <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss_ctc_list</span><span class="p">,</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">cer_ctc_list</span><span class="p">,</span> <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span><span class="p">,</span> <span class="n">mtl_loss</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Define a chainer reporter function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Define a chainer reporter function.&quot;&quot;&quot;</span>
         <span class="c1"># loss_ctc_list = [weighted CTC, CTC1, CTC2, ... CTCN]</span>
         <span class="c1"># cer_ctc_list = [weighted cer_ctc, cer_ctc_1, cer_ctc_2, ... cer_ctc_N]</span>
         <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">loss_ctc_list</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -226,7 +226,7 @@
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">ASRInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;E2E module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;E2E module.</span>
 
 <span class="sd">    :param List idims: List of dimensions of inputs</span>
 <span class="sd">    :param int odim: dimension of outputs</span>
@@ -236,7 +236,7 @@
 
 <div class="viewcode-block" id="E2E.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for multi-encoder setting.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for multi-encoder setting.&quot;&quot;&quot;</span>
         <span class="n">E2E</span><span class="o">.</span><span class="n">encoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">E2E</span><span class="o">.</span><span class="n">attention_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
         <span class="n">E2E</span><span class="o">.</span><span class="n">decoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
@@ -245,7 +245,7 @@
 
 <div class="viewcode-block" id="E2E.encoder_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.encoder_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">encoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for encoders in multi-encoder setting.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for encoders in multi-encoder setting.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;E2E encoder setting&quot;</span><span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--etype&quot;</span><span class="p">,</span>
@@ -300,7 +300,7 @@
 
 <div class="viewcode-block" id="E2E.attention_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.attention_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">attention_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for attentions in multi-encoder setting.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for attentions in multi-encoder setting.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;E2E attention setting&quot;</span><span class="p">)</span>
         <span class="c1"># attention</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -418,7 +418,7 @@
 
 <div class="viewcode-block" id="E2E.decoder_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.decoder_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">decoder_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for decoder in multi-encoder setting.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for decoder in multi-encoder setting.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;E2E decoder setting&quot;</span><span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--dtype&quot;</span><span class="p">,</span>
@@ -458,7 +458,7 @@
 
 <div class="viewcode-block" id="E2E.ctc_add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.ctc_add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">ctc_add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add arguments for ctc in multi-encoder setting.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add arguments for ctc in multi-encoder setting.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;E2E multi-ctc setting&quot;</span><span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--share-ctc&quot;</span><span class="p">,</span>
@@ -482,7 +482,7 @@
         <span class="k">return</span> <span class="n">parser</span></div>
 
 <div class="viewcode-block" id="E2E.get_total_subsampling_factor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.get_total_subsampling_factor">[docs]</a>    <span class="k">def</span> <span class="nf">get_total_subsampling_factor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get total subsampling factor.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">,</span> <span class="n">Encoder</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">conv_subsampling_factor</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span>
                 <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subsample_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -493,7 +493,7 @@
             <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize this class with python-level args.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idims (list): list of the number of an input feature dim.</span>
@@ -606,7 +606,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="E2E.init_like_chainer"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.init_like_chainer">[docs]</a>    <span class="k">def</span> <span class="nf">init_like_chainer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize weight like chainer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize weight like chainer.</span>
 
 <span class="sd">        chainer basically uses LeCun way: W ~ Normal(0, fan_in ** -0.5), b = 0</span>
 <span class="sd">        pytorch basically uses W, b ~ Uniform(-fan_in**-0.5, fan_in**-0.5)</span>
@@ -652,7 +652,7 @@
             <span class="n">set_forget_bias_to_one</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">bias_ih</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="E2E.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad_list</span><span class="p">,</span> <span class="n">ilens_list</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E forward.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E forward.</span>
 
 <span class="sd">        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences</span>
 <span class="sd">                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]</span>
@@ -843,7 +843,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span></div>
 
 <div class="viewcode-block" id="E2E.scorers"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.scorers">[docs]</a>    <span class="k">def</span> <span class="nf">scorers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get scorers for `beam_search` (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get scorers for `beam_search` (optional).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            dict[str, ScorerInterface]: dict of `ScorerInterface` objects</span>
@@ -852,7 +852,7 @@
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">ctc</span><span class="o">=</span><span class="n">CTCPrefixScorer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="E2E.encode"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_list</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode feature.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode feature.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x_list (list): input feature [(T1, D), (T2, D), ... ]</span>
@@ -887,7 +887,7 @@
         <span class="k">return</span> <span class="n">hs_list</span></div>
 
 <div class="viewcode-block" id="E2E.recognize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.recognize">[docs]</a>    <span class="k">def</span> <span class="nf">recognize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_list</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E beam search.</span>
 
 <span class="sd">        :param list of ndarray x: list of input acoustic feature [(T1, D), (T2,D),...]</span>
 <span class="sd">        :param Namespace recog_args: argument Namespace containing options</span>
@@ -918,7 +918,7 @@
         <span class="k">return</span> <span class="n">y</span></div>
 
 <div class="viewcode-block" id="E2E.recognize_batch"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.recognize_batch">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_list</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E beam search.</span>
 
 <span class="sd">        :param list xs_list: list of list of input acoustic feature arrays</span>
 <span class="sd">                [[(T1_1, D), (T1_2, D), ...],[(T2_1, D), (T2_2, D), ...], ...]</span>
@@ -991,7 +991,7 @@
         <span class="k">return</span> <span class="n">y</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad_list</span><span class="p">,</span> <span class="n">ilens_list</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E attention calculation.</span>
 
 <span class="sd">        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences</span>
 <span class="sd">                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]</span>
@@ -1029,7 +1029,7 @@
         <span class="k">return</span> <span class="n">att_ws</span></div>
 
 <div class="viewcode-block" id="E2E.calculate_all_ctc_probs"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mulenc.E2E.calculate_all_ctc_probs">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad_list</span><span class="p">,</span> <span class="n">ilens_list</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;E2E CTC probability calculation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;E2E CTC probability calculation.</span>
 
 <span class="sd">        :param List xs_pad_list: list of batch (torch.Tensor) of padded input sequences</span>
 <span class="sd">                                [(B, Tmax_1, idim), (B, Tmax_2, idim),..]</span>

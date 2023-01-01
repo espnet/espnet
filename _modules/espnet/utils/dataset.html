@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="Transform"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.Transform">[docs]</a><span class="k">class</span> <span class="nc">Transform</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Transform function container.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transform function container.</span>
 
 <span class="sd">    lambda can&#39;t work well when using DDP because</span>
 <span class="sd">    lambda is not pickable in the case of multi process.</span>
@@ -192,17 +192,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">load</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span> <span class="o">=</span> <span class="n">converter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_load</span> <span class="o">=</span> <span class="n">load</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Apply a given converter and a given loader.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply a given converter and a given loader.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_converter</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_load</span><span class="p">(</span><span class="n">data</span><span class="p">)])</span></div>
 
 
 <div class="viewcode-block" id="TransformDataset"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.TransformDataset">[docs]</a><span class="k">class</span> <span class="nc">TransformDataset</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Transform Dataset for pytorch backend.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transform Dataset for pytorch backend.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data: list object from make_batchset</span>
@@ -211,22 +211,22 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Init function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init function.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">TransformDataset</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Len function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Len function.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;[] operator.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;[] operator.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="ChainerDataLoader"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader">[docs]</a><span class="k">class</span> <span class="nc">ChainerDataLoader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Pytorch dataloader in chainer style.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pytorch dataloader in chainer style.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        all args for torch.utils.data.dataloader.Dataloader</span>
@@ -235,11 +235,11 @@
 
 <div class="viewcode-block" id="ChainerDataLoader.get_first_element"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.get_first_element">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_first_element</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get first element of a given array-like object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get first element of a given array-like object.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Init function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init function.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dataloader</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">,</span> <span class="s2">&quot;__len__&quot;</span><span class="p">):</span>
             <span class="c1"># To support DistribtedSampler.</span>
@@ -256,7 +256,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
 
 <div class="viewcode-block" id="ChainerDataLoader.next"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.next">[docs]</a>    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Implement next function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implement next function.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -271,29 +271,29 @@
         <span class="k">return</span> <span class="n">ret</span></div>
 
     <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Implement iter function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implement iter function.&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="p">:</span>
             <span class="k">yield</span> <span class="n">batch</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">epoch_detail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Epoch_detail required by chainer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Epoch_detail required by chainer.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_position</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">len</span>
 
 <div class="viewcode-block" id="ChainerDataLoader.serialize"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Serialize and deserialize function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize and deserialize function.&quot;&quot;&quot;</span>
         <span class="n">epoch</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
         <span class="n">current_position</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s2">&quot;current_position&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_position</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">epoch</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">current_position</span> <span class="o">=</span> <span class="n">current_position</span></div>
 
 <div class="viewcode-block" id="ChainerDataLoader.start_shuffle"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.start_shuffle">[docs]</a>    <span class="k">def</span> <span class="nf">start_shuffle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Shuffle function for sortagrad.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shuffle function for sortagrad.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;shuffle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dataloader</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ChainerDataLoader.finalize"><a class="viewcode-back" href="../../../_gen/espnet.utils.html#espnet.utils.dataset.ChainerDataLoader.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Implement finalize function.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implement finalize function.&quot;&quot;&quot;</span>
         <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span></div></div>
 </pre></div>
 

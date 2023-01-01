@@ -178,7 +178,7 @@
 
 
 <div class="viewcode-block" id="LabelSmoothingLoss"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.label_smoothing_loss.LabelSmoothingLoss">[docs]</a><span class="k">class</span> <span class="nc">LabelSmoothingLoss</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Label Smoothing Loss.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Label Smoothing Loss.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        smoothing (float): smoothing rate (0.0 means the conventional CE).</span>
@@ -188,7 +188,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smoothing</span><span class="p">,</span> <span class="n">n_target_vocab</span><span class="p">,</span> <span class="n">normalize_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ignore_id</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Loss.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Loss.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LabelSmoothingLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_label_smoothing</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">smoothing</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -202,7 +202,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">acc</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="LabelSmoothingLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.label_smoothing_loss.LabelSmoothingLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_block</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward Loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys_block (chainer.Variable): Predicted labels.</span>

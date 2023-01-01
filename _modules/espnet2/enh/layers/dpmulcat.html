@@ -173,7 +173,7 @@
 
 
 <div class="viewcode-block" id="MulCatBlock"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dpmulcat.MulCatBlock">[docs]</a><span class="k">class</span> <span class="nc">MulCatBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The MulCat block.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The MulCat block.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_size: int, dimension of the input feature.</span>
@@ -217,7 +217,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">block_projection</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">input_size</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MulCatBlock.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dpmulcat.MulCatBlock.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute output after MulCatBlock.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute output after MulCatBlock.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): The input feature.</span>
@@ -256,7 +256,7 @@
 
 
 <div class="viewcode-block" id="DPMulCat"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dpmulcat.DPMulCat">[docs]</a><span class="k">class</span> <span class="nc">DPMulCat</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Dual-path RNN module with MulCat blocks.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dual-path RNN module with MulCat blocks.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_size: int, dimension of the input feature.</span>
@@ -314,7 +314,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="DPMulCat.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dpmulcat.DPMulCat.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute output after DPMulCat module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute output after DPMulCat module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): The input feature.</span>

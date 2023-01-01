@@ -196,7 +196,7 @@
 
 
 <div class="viewcode-block" id="BaseTransformerDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder">[docs]</a><span class="k">class</span> <span class="nc">BaseTransformerDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class of Transfomer decoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class of Transfomer decoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        vocab_size: output dim</span>
@@ -266,7 +266,7 @@
         <span class="n">ys_in_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_in_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward decoder.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs_pad: encoded memory, float32  (batch, maxlen_in, feat)</span>
@@ -321,7 +321,7 @@
         <span class="n">memory</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">cache</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward one step.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward one step.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            tgt: input token ids, int64 (batch, maxlen_out)</span>
@@ -354,7 +354,7 @@
         <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">new_cache</span></div>
 
 <div class="viewcode-block" id="BaseTransformerDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
         <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">logp</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
             <span class="n">ys</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">cache</span><span class="o">=</span><span class="n">state</span>
@@ -364,7 +364,7 @@
 <div class="viewcode-block" id="BaseTransformerDecoder.batch_score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>

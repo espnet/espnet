@@ -172,14 +172,14 @@
 
 
 <div class="viewcode-block" id="TensorboardLogger"><a class="viewcode-back" href="../../../../_gen/espnet.utils.html#espnet.utils.training.tensorboard_logger.TensorboardLogger">[docs]</a><span class="k">class</span> <span class="nc">TensorboardLogger</span><span class="p">(</span><span class="n">Extension</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A tensorboard logger extension&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A tensorboard logger extension&quot;&quot;&quot;</span>
 
     <span class="n">default_name</span> <span class="o">=</span> <span class="s2">&quot;espnet_tensorboard_logger&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">att_reporter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ctc_reporter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">entries</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">0</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Init the extension</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Init the extension</span>
 
 <span class="sd">        :param SummaryWriter logger: The logger to use</span>
 <span class="sd">        :param PlotAttentionReporter att_reporter: The (optional) PlotAttentionReporter</span>
@@ -193,7 +193,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_epoch</span> <span class="o">=</span> <span class="n">epoch</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Updates the events file with the new values</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Updates the events file with the new values</span>
 
 <span class="sd">        :param trainer: The trainer</span>
 <span class="sd">        &quot;&quot;&quot;</span>

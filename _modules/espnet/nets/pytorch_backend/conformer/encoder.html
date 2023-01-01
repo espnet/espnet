@@ -206,7 +206,7 @@
 
 
 <div class="viewcode-block" id="Encoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.encoder.Encoder">[docs]</a><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conformer encoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conformer encoder module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>
@@ -269,7 +269,7 @@
         <span class="n">ctc_softmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">conditioning_layer_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Encoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="n">activation</span> <span class="o">=</span> <span class="n">get_activation</span><span class="p">(</span><span class="n">activation_type</span><span class="p">)</span>
@@ -411,7 +411,7 @@
             <span class="p">)</span>
 
 <div class="viewcode-block" id="Encoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.encoder.Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (torch.Tensor): Input tensor (#batch, time, idim).</span>

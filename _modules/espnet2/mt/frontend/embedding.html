@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="Embedding"><a class="viewcode-back" href="../../../../_gen/espnet2.mt.html#espnet2.mt.frontend.embedding.Embedding">[docs]</a><span class="k">class</span> <span class="nc">Embedding</span><span class="p">(</span><span class="n">AbsFrontend</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Embedding Frontend for text based inputs.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Embedding Frontend for text based inputs.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -193,7 +193,7 @@
         <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">PositionalEncoding</span><span class="p">,</span>
         <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input_size: Number of input tokens.</span>
@@ -213,7 +213,7 @@
 <div class="viewcode-block" id="Embedding.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.mt.html#espnet2.mt.frontend.embedding.Embedding.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Apply a sliding window on the input.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply a sliding window on the input.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input: Input (B, T) or (B, T,D), with D.</span>
@@ -228,7 +228,7 @@
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">input_lengths</span></div>
 
 <div class="viewcode-block" id="Embedding.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.mt.html#espnet2.mt.frontend.embedding.Embedding.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return output length of feature dimension D, i.e. the embedding dim.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return output length of feature dimension D, i.e. the embedding dim.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span></div></div>
 </pre></div>
 

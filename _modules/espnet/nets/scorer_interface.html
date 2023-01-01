@@ -177,7 +177,7 @@
 
 
 <div class="viewcode-block" id="ScorerInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.ScorerInterface">[docs]</a><span class="k">class</span> <span class="nc">ScorerInterface</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Scorer interface for beam search.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Scorer interface for beam search.</span>
 
 <span class="sd">    The scorer performs scoring of the all tokens in vocabulary.</span>
 
@@ -195,7 +195,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ScorerInterface.init_state"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.ScorerInterface.init_state">[docs]</a>    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get an initial state for decoding (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial state for decoding (optional).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The encoded feature tensor</span>
@@ -206,7 +206,7 @@
         <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="ScorerInterface.select_state"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.ScorerInterface.select_state">[docs]</a>    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">new_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Select state with relative ids in the main beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select state with relative ids in the main beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            state: Decoder state for prefix tokens</span>
@@ -222,7 +222,7 @@
 <div class="viewcode-block" id="ScorerInterface.score"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.ScorerInterface.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token (required).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token (required).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D torch.int64 prefix tokens.</span>
@@ -238,7 +238,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
 <div class="viewcode-block" id="ScorerInterface.final_score"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.ScorerInterface.final_score">[docs]</a>    <span class="k">def</span> <span class="nf">final_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Score eos (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score eos (optional).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            state: Scorer state for prefix tokens</span>
@@ -251,10 +251,10 @@
 
 
 <div class="viewcode-block" id="BatchScorerInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface">[docs]</a><span class="k">class</span> <span class="nc">BatchScorerInterface</span><span class="p">(</span><span class="n">ScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Batch scorer interface.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Batch scorer interface.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BatchScorerInterface.batch_init_state"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface.batch_init_state">[docs]</a>    <span class="k">def</span> <span class="nf">batch_init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get an initial state for decoding (optional).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial state for decoding (optional).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The encoded feature tensor</span>
@@ -267,7 +267,7 @@
 <div class="viewcode-block" id="BatchScorerInterface.batch_score"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token batch (required).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch (required).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>
@@ -297,7 +297,7 @@
 
 
 <div class="viewcode-block" id="PartialScorerInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.PartialScorerInterface">[docs]</a><span class="k">class</span> <span class="nc">PartialScorerInterface</span><span class="p">(</span><span class="n">ScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Partial scorer interface for beam search.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Partial scorer interface for beam search.</span>
 
 <span class="sd">    The partial scorer performs scoring when non-partial scorer finished scoring,</span>
 <span class="sd">    and receives pre-pruned next tokens to score because it is too heavy to score</span>
@@ -312,7 +312,7 @@
 <div class="viewcode-block" id="PartialScorerInterface.score_partial"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.PartialScorerInterface.score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">score_partial</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">next_tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token (required).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token (required).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D prefix token</span>
@@ -330,7 +330,7 @@
 
 
 <div class="viewcode-block" id="BatchPartialScorerInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchPartialScorerInterface">[docs]</a><span class="k">class</span> <span class="nc">BatchPartialScorerInterface</span><span class="p">(</span><span class="n">BatchScorerInterface</span><span class="p">,</span> <span class="n">PartialScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Batch partial scorer interface for beam search.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Batch partial scorer interface for beam search.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BatchPartialScorerInterface.batch_score_partial"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.scorer_interface.BatchPartialScorerInterface.batch_score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score_partial</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -339,7 +339,7 @@
         <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
         <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token (required).</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token (required).</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>

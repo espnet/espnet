@@ -203,7 +203,7 @@
 
 
 <span class="k">class</span> <span class="nc">CtcSegmentationParameters</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Default values for CTC segmentation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default values for CTC segmentation.</span>
 
 <span class="sd">    May need adjustment according to localization or ASR settings.</span>
 <span class="sd">    The character set is taken from the model dict, i.e., usually are generated</span>
@@ -236,7 +236,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">index_duration_in_seconds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Derive index duration from frame duration and subsampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Derive index duration from frame duration and subsampling.</span>
 
 <span class="sd">        This value can be fixed by setting ctc_index_duration, which causes</span>
 <span class="sd">        frame_duration_ms and subsampling_factor to be ignored.</span>
@@ -252,13 +252,13 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">flags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get configuration flags to pass to the table_fill operation.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get configuration flags to pass to the table_fill operation.&quot;&quot;&quot;</span>
         <span class="n">flags</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_transition_cost_zero</span><span class="p">)</span>
         <span class="n">flags</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">preamble_transition_cost_zero</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">flags</span>
 
     <span class="k">def</span> <span class="nf">update_excluded_characters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Remove known tokens from the list of excluded characters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove known tokens from the list of excluded characters.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">excluded_characters</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">char</span>
@@ -269,11 +269,11 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Excluded characters: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_characters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set all parameters as attribute at init.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set all parameters as attribute at init.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update CtcSegmentationParameters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update CtcSegmentationParameters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            **kwargs: Key-value dict that contains all properties</span>
@@ -288,7 +288,7 @@
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Print all attribute as dictionary.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print all attribute as dictionary.&quot;&quot;&quot;</span>
         <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;CtcSegmentationParameters( &quot;</span>
         <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span>
@@ -298,7 +298,7 @@
 
 
 <span class="k">def</span> <span class="nf">ctc_segmentation</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">ground_truth</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extract character-level utterance alignments.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract character-level utterance alignments.</span>
 
 <span class="sd">    :param config: an instance of CtcSegmentationParameters</span>
 <span class="sd">    :param lpz: probabilities obtained from CTC output</span>
@@ -338,7 +338,7 @@
             <span class="n">t</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Max. joint probability to align text to audio: &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table</span><span class="p">[:,</span> <span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2"> at time index </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table</span><span class="p">[:,</span><span class="w"> </span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2"> at time index </span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
         <span class="c1"># Backtracking</span>
         <span class="n">timings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">ground_truth</span><span class="p">)])</span>
@@ -407,7 +407,7 @@
 
 
 <span class="k">def</span> <span class="nf">prepare_text</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">char_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Prepare the given text for CTC segmentation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare the given text for CTC segmentation.</span>
 
 <span class="sd">    Creates a matrix of character symbols to represent the given text,</span>
 <span class="sd">    then creates list of char indices depending on the models char list.</span>
@@ -460,7 +460,7 @@
 
 
 <span class="k">def</span> <span class="nf">prepare_tokenized_text</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Prepare the given tokenized text for CTC segmentation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare the given tokenized text for CTC segmentation.</span>
 
 <span class="sd">    :param config: an instance of CtcSegmentationParameters</span>
 <span class="sd">    :param text: string with tokens separated by spaces</span>
@@ -500,7 +500,7 @@
 
 
 <span class="k">def</span> <span class="nf">prepare_token_list</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Prepare the given token list for CTC segmentation.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare the given token list for CTC segmentation.</span>
 
 <span class="sd">    This function expects the text input in form of a list</span>
 <span class="sd">    of numpy arrays: [np.array([2, 5]), np.array([7, 9])]</span>
@@ -532,7 +532,7 @@
 
 
 <span class="k">def</span> <span class="nf">determine_utterance_segments</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">utt_begin_indices</span><span class="p">,</span> <span class="n">char_probs</span><span class="p">,</span> <span class="n">timings</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Utterance-wise alignments from char-wise alignments.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utterance-wise alignments from char-wise alignments.</span>
 
 <span class="sd">    :param config: an instance of CtcSegmentationParameters</span>
 <span class="sd">    :param utt_begin_indices: list of time indices of utterance start</span>
@@ -543,7 +543,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">compute_time</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">align_type</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute start and end time of utterance.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute start and end time of utterance.</span>
 
 <span class="sd">        :param index:  frame index value</span>
 <span class="sd">        :param align_type:  one of [&quot;begin&quot;, &quot;end&quot;]</span>

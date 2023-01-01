@@ -193,7 +193,7 @@
 
 <span class="c1"># * -------------------- chainer extension related -------------------- *</span>
 <div class="viewcode-block" id="PlotAttentionReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport">[docs]</a><span class="k">class</span> <span class="nc">PlotAttentionReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        att_vis_fn (espnet.nets.*_backend.e2e_asr.calculate_all_attentions):</span>
@@ -208,7 +208,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_vis_fn</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize PlotAttentionReport.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize PlotAttentionReport.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">att_vis_fn</span> <span class="o">=</span> <span class="n">att_vis_fn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">outdir</span> <span class="o">=</span> <span class="n">outdir</span>
@@ -219,7 +219,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Plot and save imaged matrix of att_ws.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot and save imaged matrix of att_ws.&quot;&quot;&quot;</span>
         <span class="n">att_ws_sd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">ns</span><span class="p">,</span> <span class="n">att_ws</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws_sd</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
@@ -232,7 +232,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
 
 <div class="viewcode-block" id="PlotAttentionReport.log_attentions"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.log_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">log_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add image files of attention matrix to tensorboard.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add image files of attention matrix to tensorboard.&quot;&quot;&quot;</span>
         <span class="n">att_ws_sd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">ns</span><span class="p">,</span> <span class="n">att_ws</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws_sd</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">att_ws</span><span class="p">):</span>
@@ -242,7 +242,7 @@
                 <span class="n">plot</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.get_attention_weights"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.get_attention_weights">[docs]</a>    <span class="k">def</span> <span class="nf">get_attention_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return attention weights.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            arr_ws_sd (numpy.ndarray): attention weights. It&#39;s shape would be</span>
@@ -257,7 +257,7 @@
         <span class="k">return</span> <span class="n">att_ws_sd</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.get_attention_weight"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.get_attention_weight">[docs]</a>    <span class="k">def</span> <span class="nf">get_attention_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">spkr_idx</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Transform attention weight in regard to self.reverse.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform attention weight in regard to self.reverse.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
             <span class="n">dec_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;input&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">][</span><span class="n">spkr_idx</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -271,7 +271,7 @@
         <span class="k">return</span> <span class="n">att_w</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.draw_attention_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.PlotAttentionReport.draw_attention_plot">[docs]</a>    <span class="k">def</span> <span class="nf">draw_attention_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Visualize attention weights matrix.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Visualize attention weights matrix.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            att_w(Tensor): Attention weight matrix.</span>
@@ -305,7 +305,7 @@
 
 
 <div class="viewcode-block" id="add_results_to_json"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_mix_utils.add_results_to_json">[docs]</a><span class="k">def</span> <span class="nf">add_results_to_json</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">nbest_hyps_sd</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        js (dict[str, Any]): Groundtruth utterance dict.</span>

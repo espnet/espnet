@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="freeze_modules"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.freeze_modules">[docs]</a><span class="k">def</span> <span class="nf">freeze_modules</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Freeze model parameters according to modules list.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Freeze model parameters according to modules list.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (torch.nn.Module): Main model.</span>
@@ -208,7 +208,7 @@
 
 
 <div class="viewcode-block" id="transfer_verification"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.transfer_verification">[docs]</a><span class="k">def</span> <span class="nf">transfer_verification</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">partial_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Verify tuples (key, shape) for input model modules match specified modules.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Verify tuples (key, shape) for input model modules match specified modules.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_state_dict (Dict) : Main model state dict.</span>
@@ -239,15 +239,15 @@
             <span class="s2">&quot;Some specified modules from the pre-trained model &quot;</span>
             <span class="s2">&quot;don&#39;t match with the new model modules:&quot;</span>
         <span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pre-trained: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New model: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pre-trained: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New model: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">module_match</span></div>
 
 
 <div class="viewcode-block" id="get_partial_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_partial_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_partial_state_dict</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create state dict with specified modules matching input model modules.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create state dict with specified modules matching input model modules.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_state_dict (Dict): Pre-trained model state dict.</span>
@@ -267,7 +267,7 @@
 
 
 <div class="viewcode-block" id="get_lm_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_lm_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_lm_state_dict</span><span class="p">(</span><span class="n">lm_state_dict</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create compatible ASR decoder state dict from LM state dict.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create compatible ASR decoder state dict from LM state dict.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        lm_state_dict (Dict): Pre-trained LM state dict.</span>
@@ -291,7 +291,7 @@
 
 
 <div class="viewcode-block" id="filter_modules"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.filter_modules">[docs]</a><span class="k">def</span> <span class="nf">filter_modules</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Filter non-matched modules in model state dict.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Filter non-matched modules in model state dict.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_state_dict (Dict): Pre-trained model state dict.</span>
@@ -326,7 +326,7 @@
 <div class="viewcode-block" id="create_transducer_compatible_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.create_transducer_compatible_state_dict">[docs]</a><span class="k">def</span> <span class="nf">create_transducer_compatible_state_dict</span><span class="p">(</span>
     <span class="n">model_state_dict</span><span class="p">,</span> <span class="n">encoder_type</span><span class="p">,</span> <span class="n">encoder_units</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a compatible transducer model state dict for transfer learning.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a compatible transducer model state dict for transfer learning.</span>
 
 <span class="sd">    If RNN encoder modules from a non-Transducer model are found in</span>
 <span class="sd">    the pre-trained model state dict, the corresponding modules keys are</span>
@@ -367,7 +367,7 @@
 
 
 <div class="viewcode-block" id="load_trained_model"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.load_trained_model">[docs]</a><span class="k">def</span> <span class="nf">load_trained_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load the trained model for recognition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load the trained model for recognition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_path (str): Path to model.***.best</span>
@@ -406,7 +406,7 @@
 
 
 <div class="viewcode-block" id="get_trained_model_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_trained_model_state_dict</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">new_is_transducer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extract the trained model state dict for pre-initialization.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract the trained model state dict for pre-initialization.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_path (str): Path to trained model.</span>
@@ -451,7 +451,7 @@
 
 
 <div class="viewcode-block" id="load_trained_modules"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.load_trained_modules">[docs]</a><span class="k">def</span> <span class="nf">load_trained_modules</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="n">ASRInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load ASR/MT/TTS model with pre-trained weights for specified modules.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load ASR/MT/TTS model with pre-trained weights for specified modules.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim (int): Input dimension.</span>

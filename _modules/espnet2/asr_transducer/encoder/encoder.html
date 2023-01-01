@@ -191,7 +191,7 @@
 
 
 <div class="viewcode-block" id="Encoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder">[docs]</a><span class="k">class</span> <span class="nc">Encoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encoder module definition.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encoder module definition.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        input_size: Input size.</span>
@@ -208,7 +208,7 @@
         <span class="n">input_conf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
         <span class="n">main_conf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -230,7 +230,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">left_chunk_size</span> <span class="o">=</span> <span class="n">main_params</span><span class="p">[</span><span class="s2">&quot;left_chunk_size&quot;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="Encoder.get_encoder_input_raw_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.get_encoder_input_raw_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_encoder_input_raw_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hop_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Return the corresponding number of sample for a given chunk size, in frames.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the corresponding number of sample for a given chunk size, in frames.</span>
 
 <span class="sd">        Where size is the number of features frames after applying subsampling.</span>
 
@@ -245,7 +245,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="o">.</span><span class="n">get_size_before_subsampling</span><span class="p">(</span><span class="n">size</span><span class="p">)</span> <span class="o">*</span> <span class="n">hop_length</span></div>
 
 <div class="viewcode-block" id="Encoder.reset_streaming_cache"><a class="viewcode-back" href="../../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.encoder.Encoder.reset_streaming_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_streaming_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Initialize/Reset encoder streaming cache.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize/Reset encoder streaming cache.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            left_context: Number of frames in left context.</span>
@@ -259,7 +259,7 @@
         <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">x_len</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Encoder input features. (B, T_in, F)</span>
@@ -322,7 +322,7 @@
         <span class="n">left_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequences as chunks.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Encode input sequences as chunks.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x: Encoder input features. (1, T_in, F)</span>

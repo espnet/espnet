@@ -190,7 +190,7 @@
 
 <span class="c1"># copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py</span>
 <div class="viewcode-block" id="sum_sqnorm"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.sum_sqnorm">[docs]</a><span class="k">def</span> <span class="nf">sum_sqnorm</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the norm of the array.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the norm of the array.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        arr (numpy.ndarray)</span>
@@ -210,7 +210,7 @@
 
 
 <div class="viewcode-block" id="CustomUpdater"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomUpdater">[docs]</a><span class="k">class</span> <span class="nc">CustomUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">StandardUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom updater for chainer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom updater for chainer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        train_iter (iterator | dict[str, iterator]): Dataset iterator for the</span>
@@ -235,7 +235,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_iter</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Custom Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Custom Updater.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CustomUpdater</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">train_iter</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="o">=</span><span class="n">converter</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span>
@@ -247,7 +247,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomUpdater.update_core"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Process main update routine for Custom Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process main update routine for Custom Updater.&quot;&quot;&quot;</span>
         <span class="n">train_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iterator</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
 
@@ -278,14 +278,14 @@
         <span class="n">optimizer</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">cleargrads</span><span class="p">()</span>  <span class="c1"># Clear the parameter gradients</span></div>
 
 <div class="viewcode-block" id="CustomUpdater.update"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomUpdater.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update step for Custom Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update step for Custom Updater.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span></div></div>
 
 
 <div class="viewcode-block" id="CustomParallelUpdater"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomParallelUpdater">[docs]</a><span class="k">class</span> <span class="nc">CustomParallelUpdater</span><span class="p">(</span><span class="n">training</span><span class="o">.</span><span class="n">updaters</span><span class="o">.</span><span class="n">MultiprocessParallelUpdater</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom Parallel Updater for chainer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom Parallel Updater for chainer.</span>
 
 <span class="sd">    Defines the main update routine.</span>
 
@@ -311,7 +311,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_iters</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">converter</span><span class="p">,</span> <span class="n">devices</span><span class="p">,</span> <span class="n">accum_grad</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize custom parallel updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize custom parallel updater.&quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">cupy.cuda</span> <span class="kn">import</span> <span class="n">nccl</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">CustomParallelUpdater</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -324,7 +324,7 @@
 
     <span class="c1"># The core part of the update routine can be customized by overriding.</span>
 <div class="viewcode-block" id="CustomParallelUpdater.update_core"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomParallelUpdater.update_core">[docs]</a>    <span class="k">def</span> <span class="nf">update_core</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Process main update routine for Custom Parallel Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process main update routine for Custom Parallel Updater.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup_workers</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_send_message</span><span class="p">((</span><span class="s2">&quot;update&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
@@ -378,14 +378,14 @@
                 <span class="p">)</span></div>
 
 <div class="viewcode-block" id="CustomParallelUpdater.update"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomParallelUpdater.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update step for Custom Parallel Updater.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update step for Custom Parallel Updater.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">update_core</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span></div></div>
 
 
 <div class="viewcode-block" id="VaswaniRule"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.VaswaniRule">[docs]</a><span class="k">class</span> <span class="nc">VaswaniRule</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Trainer extension to shift an optimizer attribute magically by Vaswani.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trainer extension to shift an optimizer attribute magically by Vaswani.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        attr (str): Name of the attribute to shift.</span>
@@ -412,7 +412,7 @@
         <span class="n">optimizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Vaswani rule extension.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Vaswani rule extension.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_attr</span> <span class="o">=</span> <span class="n">attr</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_d_inv05</span> <span class="o">=</span> <span class="n">d</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_warmup_steps_inv15</span> <span class="o">=</span> <span class="n">warmup_steps</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.5</span><span class="p">)</span>
@@ -423,7 +423,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="VaswaniRule.initialize"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.VaswaniRule.initialize">[docs]</a>    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Optimizer values.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Optimizer values.&quot;&quot;&quot;</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
         <span class="c1"># ensure that _init is set</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -434,7 +434,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_update_value</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward extension.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward extension.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_t</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_optimizer</span><span class="p">(</span><span class="n">trainer</span><span class="p">)</span>
         <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_inv05</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span>
@@ -443,22 +443,22 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_value</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VaswaniRule.serialize"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.VaswaniRule.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">serializer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Serialize extension.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize extension.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_t</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s2">&quot;_t&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span> <span class="o">=</span> <span class="n">serializer</span><span class="p">(</span><span class="s2">&quot;_last_value&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Obtain optimizer from trainer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Obtain optimizer from trainer.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="ow">or</span> <span class="n">trainer</span><span class="o">.</span><span class="n">updater</span><span class="o">.</span><span class="n">get_optimizer</span><span class="p">(</span><span class="s2">&quot;main&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_update_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update requested variable values.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update requested variable values.&quot;&quot;&quot;</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attr</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_value</span> <span class="o">=</span> <span class="n">value</span></div>
 
 
 <div class="viewcode-block" id="CustomConverter"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.training.CustomConverter">[docs]</a><span class="k">class</span> <span class="nc">CustomConverter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Custom Converter.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom Converter.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        subsampling_factor (int): The subsampling factor.</span>
@@ -466,11 +466,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize subsampling.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize subsampling.&quot;&quot;&quot;</span>
         <span class="k">pass</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Perform subsampling.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform subsampling.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            batch (list): Batch that will be sabsampled.</span>

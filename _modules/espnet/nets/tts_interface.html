@@ -184,28 +184,28 @@
 <span class="k">else</span><span class="p">:</span>
 
 <div class="viewcode-block" id="Reporter"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.Reporter">[docs]</a>    <span class="k">class</span> <span class="nc">Reporter</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reporter module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reporter module.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Reporter.report"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.Reporter.report">[docs]</a>        <span class="k">def</span> <span class="nf">report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dicts</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Report values from a given dict.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Report values from a given dict.&quot;&quot;&quot;</span>
             <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dicts</span><span class="p">:</span>
                 <span class="n">chainer</span><span class="o">.</span><span class="n">reporter</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TTSInterface"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface">[docs]</a><span class="k">class</span> <span class="nc">TTSInterface</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;TTS Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TTS Interface for ESPnet model implementation.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TTSInterface.add_arguments"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add model specific argments to parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model specific argments to parser.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize TTS module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize TTS module.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
 
 <div class="viewcode-block" id="TTSInterface.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate TTS forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate TTS forward propagation.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Loss value.</span>
@@ -214,7 +214,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;forward method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TTSInterface.inference"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: The sequence of generated features (L, odim).</span>
@@ -225,7 +225,7 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;inference method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TTSInterface.calculate_all_attentions"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate TTS attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate TTS attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            Tensor: Batch of attention weights (B, Lmax, Tmax).</span>
@@ -234,19 +234,19 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;calculate_all_attentions method is not implemented&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TTSInterface.load_pretrained_model"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.tts_interface.TTSInterface.load_pretrained_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_pretrained_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_path</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Load pretrained model parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load pretrained model parameters.&quot;&quot;&quot;</span>
         <span class="n">torch_load</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">attention_plot_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Plot attention weights.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot attention weights.&quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
 
         <span class="k">return</span> <span class="n">PlotAttentionReport</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_plot_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
 
 <span class="sd">        The keys should match what `chainer.reporter` reports.</span>
 <span class="sd">        if you add the key `loss`,</span>

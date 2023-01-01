@@ -193,7 +193,7 @@
 
 <div class="viewcode-block" id="CacheItem"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.CacheItem">[docs]</a><span class="nd">@dataclass</span>
 <span class="k">class</span> <span class="nc">CacheItem</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;For caching attentional decoder and LM states.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For caching attentional decoder and LM states.&quot;&quot;&quot;</span>
 
     <span class="n">state</span><span class="p">:</span> <span class="n">Any</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">Any</span>
@@ -201,7 +201,7 @@
 
 
 <div class="viewcode-block" id="BeamSearchTimeSync"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchTimeSync</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Time synchronous beam search algorithm.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time synchronous beam search algorithm.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -215,7 +215,7 @@
         <span class="n">force_lid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">temp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            beam_size: num hyps</span>
@@ -249,7 +249,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="n">token_list</span>
 
 <div class="viewcode-block" id="BeamSearchTimeSync.reset"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_output</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Reset object for a new utterance.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset object for a new utterance.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attn_cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lm_cache</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_output</span> <span class="o">=</span> <span class="n">enc_output</span>
@@ -275,7 +275,7 @@
             <span class="p">)</span></div>
 
 <div class="viewcode-block" id="BeamSearchTimeSync.cached_score"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync.cached_score">[docs]</a>    <span class="k">def</span> <span class="nf">cached_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">scorer</span><span class="p">:</span> <span class="n">ScorerInterface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Retrieve decoder/LM scores which may be cached.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve decoder/LM scores which may be cached.&quot;&quot;&quot;</span>
         <span class="n">root</span> <span class="o">=</span> <span class="n">h</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># prefix</span>
         <span class="k">if</span> <span class="n">root</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
             <span class="n">root_scores</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">root</span><span class="p">]</span><span class="o">.</span><span class="n">scores</span>
@@ -301,7 +301,7 @@
         <span class="k">return</span> <span class="n">score</span></div>
 
 <div class="viewcode-block" id="BeamSearchTimeSync.joint_score"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync.joint_score">[docs]</a>    <span class="k">def</span> <span class="nf">joint_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ctc_score_dp</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate joint score for hyps.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate joint score for hyps.&quot;&quot;&quot;</span>
         <span class="n">scores</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">:</span>
             <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">logaddexp</span><span class="p">(</span><span class="o">*</span><span class="n">ctc_score_dp</span><span class="p">[</span><span class="n">h</span><span class="p">])</span>  <span class="c1"># ctc score</span>
@@ -319,7 +319,7 @@
         <span class="k">return</span> <span class="n">scores</span></div>
 
 <div class="viewcode-block" id="BeamSearchTimeSync.time_step"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync.time_step">[docs]</a>    <span class="k">def</span> <span class="nf">time_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p_ctc</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ctc_score_dp</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Execute a single time step.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a single time step.&quot;&quot;&quot;</span>
         <span class="n">pre_beam_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">p_ctc</span><span class="p">)[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">pre_beam_size</span><span class="p">]</span>
         <span class="n">cands</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">p_ctc</span> <span class="o">&gt;=</span> <span class="n">pre_beam_threshold</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cands</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -369,7 +369,7 @@
 <div class="viewcode-block" id="BeamSearchTimeSync.forward"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_timesync.BeamSearchTimeSync.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Perform beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            enc_output (torch.Tensor)</span>

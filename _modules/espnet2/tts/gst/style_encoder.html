@@ -184,7 +184,7 @@
 
 
 <div class="viewcode-block" id="StyleEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.StyleEncoder">[docs]</a><span class="k">class</span> <span class="nc">StyleEncoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Style encoder.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Style encoder.</span>
 
 <span class="sd">    This module is style encoder introduced in `Style Tokens: Unsupervised Style</span>
 <span class="sd">    Modeling, Control and Transfer in End-to-End Speech Synthesis`.</span>
@@ -225,7 +225,7 @@
         <span class="n">gru_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">gru_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize global style encoder module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize global style encoder module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">StyleEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -246,7 +246,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="StyleEncoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.StyleEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech (Tensor): Batch of padded target features (B, Lmax, odim).</span>
@@ -262,7 +262,7 @@
 
 
 <div class="viewcode-block" id="ReferenceEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.ReferenceEncoder">[docs]</a><span class="k">class</span> <span class="nc">ReferenceEncoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Reference encoder module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reference encoder module.</span>
 
 <span class="sd">    This module is reference encoder introduced in `Style Tokens: Unsupervised Style</span>
 <span class="sd">    Modeling, Control and Transfer in End-to-End Speech Synthesis`.</span>
@@ -294,7 +294,7 @@
         <span class="n">gru_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">gru_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize reference encoder module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize reference encoder module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ReferenceEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -339,7 +339,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gru</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRU</span><span class="p">(</span><span class="n">gru_in_units</span><span class="p">,</span> <span class="n">gru_units</span><span class="p">,</span> <span class="n">gru_layers</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ReferenceEncoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.ReferenceEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech (Tensor): Batch of padded target features (B, Lmax, idim).</span>
@@ -362,7 +362,7 @@
 
 
 <div class="viewcode-block" id="StyleTokenLayer"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.StyleTokenLayer">[docs]</a><span class="k">class</span> <span class="nc">StyleTokenLayer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Style token layer module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Style token layer module.</span>
 
 <span class="sd">    This module is style token layer introduced in `Style Tokens: Unsupervised Style</span>
 <span class="sd">    Modeling, Control and Transfer in End-to-End Speech Synthesis`.</span>
@@ -387,7 +387,7 @@
         <span class="n">gst_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize style token layer module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize style token layer module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">StyleTokenLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -403,7 +403,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="StyleTokenLayer.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.StyleTokenLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_embs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref_embs (Tensor): Reference embeddings (B, ref_embed_dim).</span>
@@ -423,10 +423,10 @@
 
 
 <div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.gst.style_encoder.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">BaseMultiHeadedAttention</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi head attention module with different input dimension.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi head attention module with different input dimension.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q_dim</span><span class="p">,</span> <span class="n">k_dim</span><span class="p">,</span> <span class="n">v_dim</span><span class="p">,</span> <span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize multi head attention module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize multi head attention module.&quot;&quot;&quot;</span>
         <span class="c1"># NOTE(kan-bayashi): Do not use super().__init__() here since we want to</span>
         <span class="c1">#   overwrite BaseMultiHeadedAttention.__init__() method.</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>

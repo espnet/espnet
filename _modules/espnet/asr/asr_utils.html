@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="CompareValueTrigger"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.CompareValueTrigger">[docs]</a><span class="k">class</span> <span class="nc">CompareValueTrigger</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Trigger invoked when key value getting bigger or lower than before.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trigger invoked when key value getting bigger or lower than before.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        key (str) : Key of value.</span>
@@ -205,7 +205,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_compare_fn</span> <span class="o">=</span> <span class="n">compare_fn</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get value related to the key and compare with current value.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get value related to the key and compare with current value.&quot;&quot;&quot;</span>
         <span class="n">observation</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">observation</span>
         <span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary</span>
         <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span>
@@ -242,7 +242,7 @@
 <span class="k">else</span><span class="p">:</span>
 
 <div class="viewcode-block" id="PlotAttentionReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport">[docs]</a>    <span class="k">class</span> <span class="nc">PlotAttentionReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot attention reporter.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            att_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_attentions):</span>
@@ -298,7 +298,7 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot and save image file of att_ws matrix.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot and save image file of att_ws matrix.&quot;&quot;&quot;</span>
             <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
                 <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -348,7 +348,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_attention</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
 
 <div class="viewcode-block" id="PlotAttentionReport.log_attentions"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.log_attentions">[docs]</a>        <span class="k">def</span> <span class="nf">log_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Add image files of att_ws matrix to the tensorboard.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Add image files of att_ws matrix to the tensorboard.&quot;&quot;&quot;</span>
             <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attention_weights</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
                 <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -378,7 +378,7 @@
                     <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span> <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="n">step</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.get_attention_weights"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.get_attention_weights">[docs]</a>        <span class="k">def</span> <span class="nf">get_attention_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Return attention weights.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Return attention weights.</span>
 
 <span class="sd">            Returns:</span>
 <span class="sd">                numpy.ndarray: attention weights. float. Its shape would be</span>
@@ -397,7 +397,7 @@
             <span class="k">return</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">uttid_list</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.trim_attention_weight"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.trim_attention_weight">[docs]</a>        <span class="k">def</span> <span class="nf">trim_attention_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uttid</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Transform attention matrix with regard to self.reverse.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Transform attention matrix with regard to self.reverse.&quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
                 <span class="n">enc_key</span><span class="p">,</span> <span class="n">enc_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">okey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">oaxis</span>
                 <span class="n">dec_key</span><span class="p">,</span> <span class="n">dec_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ikey</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span>
@@ -415,7 +415,7 @@
             <span class="k">return</span> <span class="n">att_w</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.draw_attention_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.draw_attention_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_attention_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot the att_w matrix.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot the att_w matrix.</span>
 
 <span class="sd">            Returns:</span>
 <span class="sd">                matplotlib.pyplot: pyplot object with attention matrix image.</span>
@@ -442,7 +442,7 @@
             <span class="k">return</span> <span class="n">plt</span></div>
 
 <div class="viewcode-block" id="PlotAttentionReport.draw_han_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotAttentionReport.draw_han_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_han_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot the att_w matrix for hierarchical attention.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot the att_w matrix for hierarchical attention.</span>
 
 <span class="sd">            Returns:</span>
 <span class="sd">                matplotlib.pyplot: pyplot object with attention matrix image.</span>
@@ -497,7 +497,7 @@
 <span class="k">else</span><span class="p">:</span>
 
 <div class="viewcode-block" id="PlotCTCReport"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport">[docs]</a>    <span class="k">class</span> <span class="nc">PlotCTCReport</span><span class="p">(</span><span class="n">extension</span><span class="o">.</span><span class="n">Extension</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Plot CTC reporter.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot CTC reporter.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ctc_vis_fn (espnet.nets.*_backend.e2e_asr.E2E.calculate_all_ctc_probs):</span>
@@ -553,7 +553,7 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outdir</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot and save image file of ctc prob.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot and save image file of ctc prob.&quot;&quot;&quot;</span>
             <span class="n">ctc_probs</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ctc_probs</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
                 <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -587,7 +587,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_plot_and_save_ctc</span><span class="p">(</span><span class="n">ctc_prob</span><span class="p">,</span> <span class="n">filename</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trainer</span><span class="p">))</span>
 
 <div class="viewcode-block" id="PlotCTCReport.log_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.log_ctc_probs">[docs]</a>        <span class="k">def</span> <span class="nf">log_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Add image files of ctc probs to the tensorboard.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Add image files of ctc probs to the tensorboard.&quot;&quot;&quot;</span>
             <span class="n">ctc_probs</span><span class="p">,</span> <span class="n">uttid_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ctc_probs</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># multi-encoder case</span>
                 <span class="n">num_encs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ctc_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
@@ -607,7 +607,7 @@
                     <span class="n">logger</span><span class="o">.</span><span class="n">add_figure</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uttid_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]),</span> <span class="n">plot</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="n">step</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PlotCTCReport.get_ctc_probs"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.get_ctc_probs">[docs]</a>        <span class="k">def</span> <span class="nf">get_ctc_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Return CTC probs.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Return CTC probs.</span>
 
 <span class="sd">            Returns:</span>
 <span class="sd">                numpy.ndarray: CTC probs. float. Its shape would be</span>
@@ -623,7 +623,7 @@
             <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">uttid_list</span></div>
 
 <div class="viewcode-block" id="PlotCTCReport.trim_ctc_prob"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.trim_ctc_prob">[docs]</a>        <span class="k">def</span> <span class="nf">trim_ctc_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uttid</span><span class="p">,</span> <span class="n">prob</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Trim CTC posteriors accoding to input lengths.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Trim CTC posteriors accoding to input lengths.&quot;&quot;&quot;</span>
             <span class="n">enc_len</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dict</span><span class="p">[</span><span class="n">uttid</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">ikey</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">iaxis</span><span class="p">][</span><span class="s2">&quot;shape&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">enc_len</span> <span class="o">//=</span> <span class="bp">self</span><span class="o">.</span><span class="n">factor</span>
@@ -631,7 +631,7 @@
             <span class="k">return</span> <span class="n">prob</span></div>
 
 <div class="viewcode-block" id="PlotCTCReport.draw_ctc_plot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport.draw_ctc_plot">[docs]</a>        <span class="k">def</span> <span class="nf">draw_ctc_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctc_prob</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Plot the ctc_prob matrix.</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Plot the ctc_prob matrix.</span>
 
 <span class="sd">            Returns:</span>
 <span class="sd">                matplotlib.pyplot: pyplot object with CTC prob matrix image.</span>
@@ -673,7 +673,7 @@
 
 
 <div class="viewcode-block" id="restore_snapshot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.restore_snapshot">[docs]</a><span class="k">def</span> <span class="nf">restore_snapshot</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">snapshot</span><span class="p">,</span> <span class="n">load_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extension to restore snapshot.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension to restore snapshot.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        An extension function.</span>
@@ -703,7 +703,7 @@
 
 
 <div class="viewcode-block" id="adadelta_eps_decay"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.adadelta_eps_decay">[docs]</a><span class="k">def</span> <span class="nf">adadelta_eps_decay</span><span class="p">(</span><span class="n">eps_decay</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extension to perform adadelta eps decay.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension to perform adadelta eps decay.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eps_decay (float): Decay rate of eps.</span>
@@ -736,7 +736,7 @@
 
 
 <div class="viewcode-block" id="adam_lr_decay"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.adam_lr_decay">[docs]</a><span class="k">def</span> <span class="nf">adam_lr_decay</span><span class="p">(</span><span class="n">eps_decay</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extension to perform adam lr decay.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension to perform adam lr decay.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eps_decay (float): Decay rate of lr.</span>
@@ -769,7 +769,7 @@
 
 
 <div class="viewcode-block" id="torch_snapshot"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_snapshot">[docs]</a><span class="k">def</span> <span class="nf">torch_snapshot</span><span class="p">(</span><span class="n">savefun</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;snapshot.ep.{.updater.epoch}&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extension to take snapshot of the trainer for pytorch.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extension to take snapshot of the trainer for pytorch.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        An extension function.</span>
@@ -821,7 +821,7 @@
 
 
 <div class="viewcode-block" id="add_gradient_noise"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.add_gradient_noise">[docs]</a><span class="k">def</span> <span class="nf">add_gradient_noise</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">duration</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mf">0.55</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Adds noise from a standard normal distribution to the gradients.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adds noise from a standard normal distribution to the gradients.</span>
 
 <span class="sd">    The standard deviation (`sigma`) is controlled by the three hyper-parameters below.</span>
 <span class="sd">    `sigma` goes to zero (no noise) with more iterations.</span>
@@ -845,7 +845,7 @@
 
 <span class="c1"># * -------------------- general -------------------- *</span>
 <div class="viewcode-block" id="get_model_conf"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.get_model_conf">[docs]</a><span class="k">def</span> <span class="nf">get_model_conf</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">conf_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Get model config information by reading a model config file (model.json).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get model config information by reading a model config file (model.json).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_path (str): Model path.</span>
@@ -873,7 +873,7 @@
 
 
 <div class="viewcode-block" id="chainer_load"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.chainer_load">[docs]</a><span class="k">def</span> <span class="nf">chainer_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load chainer model parameters.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load chainer model parameters.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Model path or snapshot file path to be loaded.</span>
@@ -889,7 +889,7 @@
 
 
 <div class="viewcode-block" id="torch_save"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_save">[docs]</a><span class="k">def</span> <span class="nf">torch_save</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Save torch model states.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save torch model states.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Model path to be saved.</span>
@@ -903,7 +903,7 @@
 
 
 <div class="viewcode-block" id="snapshot_object"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.snapshot_object">[docs]</a><span class="k">def</span> <span class="nf">snapshot_object</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a trainer extension to take snapshots of a given object.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a trainer extension to take snapshots of a given object.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        target (model): Object to serialize.</span>
@@ -927,7 +927,7 @@
 
 
 <div class="viewcode-block" id="torch_load"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_load">[docs]</a><span class="k">def</span> <span class="nf">torch_load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load torch model states.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load torch model states.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (str): Model path or snapshot file path to be loaded.</span>
@@ -950,7 +950,7 @@
 
 
 <div class="viewcode-block" id="torch_resume"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.torch_resume">[docs]</a><span class="k">def</span> <span class="nf">torch_resume</span><span class="p">(</span><span class="n">snapshot_path</span><span class="p">,</span> <span class="n">trainer</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Resume from snapshot for pytorch.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resume from snapshot for pytorch.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        snapshot_path (str): Snapshot file path.</span>
@@ -989,7 +989,7 @@
 
 <span class="c1"># * ------------------ recognition related ------------------ *</span>
 <div class="viewcode-block" id="parse_hypothesis"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.parse_hypothesis">[docs]</a><span class="k">def</span> <span class="nf">parse_hypothesis</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parse hypothesis.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse hypothesis.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        hyp (list[dict[str, Any]]): Recognition hypothesis.</span>
@@ -1013,7 +1013,7 @@
 
 
 <div class="viewcode-block" id="add_results_to_json"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.add_results_to_json">[docs]</a><span class="k">def</span> <span class="nf">add_results_to_json</span><span class="p">(</span><span class="n">js</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">,</span> <span class="n">char_list</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add N-best results to json.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        js (dict[str, Any]): Groundtruth utterance dict.</span>
@@ -1078,7 +1078,7 @@
     <span class="n">labeltop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;inferno&quot;</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Plot spectrogram using matplotlib.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot spectrogram using matplotlib.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        plt (matplotlib.pyplot): pyplot object.</span>
@@ -1143,7 +1143,7 @@
 
 <span class="c1"># * ------------------ recognition related ------------------ *</span>
 <div class="viewcode-block" id="format_mulenc_args"><a class="viewcode-back" href="../../../_gen/espnet.asr.html#espnet.asr.asr_utils.format_mulenc_args">[docs]</a><span class="k">def</span> <span class="nf">format_mulenc_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Format args for multi-encoder setup.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format args for multi-encoder setup.</span>
 
 <span class="sd">    It deals with following situations:  (when args.num_encs=2):</span>
 <span class="sd">    1. args.elayers = None -&gt; args.elayers = [4, 4];</span>

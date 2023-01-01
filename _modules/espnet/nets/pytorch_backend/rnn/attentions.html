@@ -182,7 +182,7 @@
 <span class="k">def</span> <span class="nf">_apply_attention_constraint</span><span class="p">(</span>
     <span class="n">e</span><span class="p">,</span> <span class="n">last_attended_idx</span><span class="p">,</span> <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply monotonic attention constraint.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply monotonic attention constraint.</span>
 
 <span class="sd">    This function apply the monotonic attention constraint</span>
 <span class="sd">    introduced in `Deep Voice 3: Scaling</span>
@@ -213,7 +213,7 @@
 
 
 <div class="viewcode-block" id="NoAtt"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.NoAtt">[docs]</a><span class="k">class</span> <span class="nc">NoAtt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;No attention&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;No attention&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">NoAtt</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -223,14 +223,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="NoAtt.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.NoAtt.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="NoAtt.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.NoAtt.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;NoAtt forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;NoAtt forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, T_max, D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -261,7 +261,7 @@
 
 
 <div class="viewcode-block" id="AttDot"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttDot">[docs]</a><span class="k">class</span> <span class="nc">AttDot</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Dot product attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dot product attention</span>
 
 <span class="sd">    :param int eprojs: # projection-units of encoder</span>
 <span class="sd">    :param int dunits: # units of decoder</span>
@@ -285,14 +285,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttDot.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttDot.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttDot.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttDot.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttDot forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttDot forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -338,7 +338,7 @@
 
 
 <div class="viewcode-block" id="AttAdd"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttAdd">[docs]</a><span class="k">class</span> <span class="nc">AttAdd</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Additive attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Additive attention</span>
 
 <span class="sd">    :param int eprojs: # projection-units of encoder</span>
 <span class="sd">    :param int dunits: # units of decoder</span>
@@ -362,14 +362,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttAdd.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttAdd.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttAdd.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttAdd.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttAdd forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttAdd forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -417,7 +417,7 @@
 
 
 <div class="viewcode-block" id="AttLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLoc">[docs]</a><span class="k">class</span> <span class="nc">AttLoc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;location-aware attention module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;location-aware attention module.</span>
 
 <span class="sd">    Reference: Attention-Based Models for Speech Recognition</span>
 <span class="sd">        (https://arxiv.org/pdf/1506.07503.pdf)</span>
@@ -457,7 +457,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
@@ -474,7 +474,7 @@
         <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate AttLoc forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate AttLoc forward propagation.</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -550,7 +550,7 @@
 
 
 <div class="viewcode-block" id="AttCov"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCov">[docs]</a><span class="k">class</span> <span class="nc">AttCov</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Coverage mechanism attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coverage mechanism attention</span>
 
 <span class="sd">    Reference: Get To The Point: Summarization with Pointer-Generator Network</span>
 <span class="sd">       (https://arxiv.org/abs/1704.04368)</span>
@@ -579,14 +579,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttCov.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCov.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttCov.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCov.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev_list</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttCov forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttCov forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -652,7 +652,7 @@
 
 
 <div class="viewcode-block" id="AttLoc2D"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLoc2D">[docs]</a><span class="k">class</span> <span class="nc">AttLoc2D</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;2D location-aware attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;2D location-aware attention</span>
 
 <span class="sd">    This attention is an extended version of location aware attention.</span>
 <span class="sd">    It take not only one frame before attention weights,</span>
@@ -696,14 +696,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttLoc2D.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLoc2D.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttLoc2D.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLoc2D.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttLoc2D forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttLoc2D forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -773,7 +773,7 @@
 
 
 <div class="viewcode-block" id="AttLocRec"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLocRec">[docs]</a><span class="k">class</span> <span class="nc">AttLocRec</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;location-aware recurrent attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;location-aware recurrent attention</span>
 
 <span class="sd">    This attention is an extended version of location aware attention.</span>
 <span class="sd">    With the use of RNN,</span>
@@ -814,14 +814,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttLocRec.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLocRec.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttLocRec.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttLocRec.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev_states</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttLocRec forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttLocRec forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -896,7 +896,7 @@
 
 
 <div class="viewcode-block" id="AttCovLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCovLoc">[docs]</a><span class="k">class</span> <span class="nc">AttCovLoc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Coverage mechanism location aware attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Coverage mechanism location aware attention</span>
 
 <span class="sd">    This attention is a combination of coverage and location-aware attentions.</span>
 
@@ -936,14 +936,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttCovLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCovLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttCovLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttCovLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev_list</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttCovLoc forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttCovLoc forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1012,7 +1012,7 @@
 
 
 <div class="viewcode-block" id="AttMultiHeadDot"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot">[docs]</a><span class="k">class</span> <span class="nc">AttMultiHeadDot</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi head dot product attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi head dot product attention</span>
 
 <span class="sd">    Reference: Attention is all you need</span>
 <span class="sd">        (https://arxiv.org/abs/1706.03762)</span>
@@ -1050,7 +1050,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttMultiHeadDot.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_k</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1058,7 +1058,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttMultiHeadDot.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttMultiHeadDot forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadDot forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1125,7 +1125,7 @@
 
 
 <div class="viewcode-block" id="AttMultiHeadAdd"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd">[docs]</a><span class="k">class</span> <span class="nc">AttMultiHeadAdd</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi head additive attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi head additive attention</span>
 
 <span class="sd">    Reference: Attention is all you need</span>
 <span class="sd">        (https://arxiv.org/abs/1706.03762)</span>
@@ -1167,7 +1167,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttMultiHeadAdd.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_k</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1175,7 +1175,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttMultiHeadAdd.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttMultiHeadAdd forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadAdd forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1242,7 +1242,7 @@
 
 
 <div class="viewcode-block" id="AttMultiHeadLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc">[docs]</a><span class="k">class</span> <span class="nc">AttMultiHeadLoc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi head location based attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi head location based attention</span>
 
 <span class="sd">    Reference: Attention is all you need</span>
 <span class="sd">        (https://arxiv.org/abs/1706.03762)</span>
@@ -1308,7 +1308,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttMultiHeadLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_k</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1316,7 +1316,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttMultiHeadLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttMultiHeadLoc forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadLoc forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1399,7 +1399,7 @@
 
 
 <div class="viewcode-block" id="AttMultiHeadMultiResLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc">[docs]</a><span class="k">class</span> <span class="nc">AttMultiHeadMultiResLoc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi head multi resolution location based attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi head multi resolution location based attention</span>
 
 <span class="sd">    Reference: Attention is all you need</span>
 <span class="sd">        (https://arxiv.org/abs/1706.03762)</span>
@@ -1465,7 +1465,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
 
 <div class="viewcode-block" id="AttMultiHeadMultiResLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_k</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1473,7 +1473,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="AttMultiHeadMultiResLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;AttMultiHeadMultiResLoc forward</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadMultiResLoc forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1555,7 +1555,7 @@
 
 
 <div class="viewcode-block" id="AttForward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttForward">[docs]</a><span class="k">class</span> <span class="nc">AttForward</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Forward attention module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Forward attention module.</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">    Forward attention in sequence-to-sequence acoustic modeling for speech synthesis</span>
@@ -1590,7 +1590,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="AttForward.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttForward.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1607,7 +1607,7 @@
         <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate AttForward forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate AttForward forward propagation.</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1685,7 +1685,7 @@
 
 
 <div class="viewcode-block" id="AttForwardTA"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttForwardTA">[docs]</a><span class="k">class</span> <span class="nc">AttForwardTA</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Forward attention with transition agent module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Forward attention with transition agent module.</span>
 
 <span class="sd">    Reference:</span>
 <span class="sd">    Forward attention in sequence-to-sequence acoustic modeling for speech synthesis</span>
@@ -1741,7 +1741,7 @@
         <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate AttForwardTA forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate AttForwardTA forward propagation.</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B, Tmax, eunits)</span>
 <span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
@@ -1828,7 +1828,7 @@
 
 
 <div class="viewcode-block" id="att_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.att_for">[docs]</a><span class="k">def</span> <span class="nf">att_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">num_att</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">han_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Instantiates an attention module given the program arguments</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instantiates an attention module given the program arguments</span>
 
 <span class="sd">    :param Namespace args: The arguments</span>
 <span class="sd">    :param int num_att: number of attention modules</span>
@@ -1895,7 +1895,7 @@
 <div class="viewcode-block" id="initial_att"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.initial_att">[docs]</a><span class="k">def</span> <span class="nf">initial_att</span><span class="p">(</span>
     <span class="n">atype</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="n">aheads</span><span class="p">,</span> <span class="n">adim</span><span class="p">,</span> <span class="n">awin</span><span class="p">,</span> <span class="n">aconv_chans</span><span class="p">,</span> <span class="n">aconv_filts</span><span class="p">,</span> <span class="n">han_mode</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Instantiates a single attention module</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Instantiates a single attention module</span>
 
 <span class="sd">    :param str atype: attention type</span>
 <span class="sd">    :param int eprojs: # projection-units of encoder</span>
@@ -1941,7 +1941,7 @@
 
 
 <div class="viewcode-block" id="att_to_numpy"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.att_to_numpy">[docs]</a><span class="k">def</span> <span class="nf">att_to_numpy</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">att</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Converts attention weights to a numpy array given the attention</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts attention weights to a numpy array given the attention</span>
 
 <span class="sd">    :param list att_ws: The attention weights</span>
 <span class="sd">    :param torch.nn.Module att: The attention</span>

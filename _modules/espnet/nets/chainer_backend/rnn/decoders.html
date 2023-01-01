@@ -187,7 +187,7 @@
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.decoders.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decoder layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        eprojs (int): Dimension of input variables from encoder.</span>
@@ -284,7 +284,7 @@
         <span class="k">return</span> <span class="n">z_list</span><span class="p">,</span> <span class="n">c_list</span></div>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Core function of Decoder layer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Core function of Decoder layer.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (list of chainer.Variable | N-dimension array):</span>
@@ -387,7 +387,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">acc</span>
 
 <div class="viewcode-block" id="Decoder.recognize_beam"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.decoders.Decoder.recognize_beam">[docs]</a>    <span class="k">def</span> <span class="nf">recognize_beam</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">lpz</span><span class="p">,</span> <span class="n">recog_args</span><span class="p">,</span> <span class="n">char_list</span><span class="p">,</span> <span class="n">rnnlm</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Beam search implementation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Beam search implementation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            h (chainer.Variable): One of the output from the encoder.</span>
@@ -610,7 +610,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span></div>
 
 <div class="viewcode-block" id="Decoder.calculate_all_attentions"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.decoders.Decoder.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of attentions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of attentions.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hs (list of chainer.Variable | N-dimensional array):</span>
@@ -664,7 +664,7 @@
 
 
 <div class="viewcode-block" id="decoder_for"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.decoders.decoder_for">[docs]</a><span class="k">def</span> <span class="nf">decoder_for</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">sos</span><span class="p">,</span> <span class="n">eos</span><span class="p">,</span> <span class="n">att</span><span class="p">,</span> <span class="n">labeldist</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the decoding layer corresponding to the args.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the decoding layer corresponding to the args.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        args (Namespace): The program arguments.</span>

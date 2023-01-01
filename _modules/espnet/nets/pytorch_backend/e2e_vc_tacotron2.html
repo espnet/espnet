@@ -193,7 +193,7 @@
 
 
 <div class="viewcode-block" id="Tacotron2"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2">[docs]</a><span class="k">class</span> <span class="nc">Tacotron2</span><span class="p">(</span><span class="n">TTSInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;VC Tacotron2 module for VC.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;VC Tacotron2 module for VC.</span>
 
 <span class="sd">    This is a module of Tacotron2-based VC model,</span>
 <span class="sd">    which convert the sequence of acoustic features</span>
@@ -202,7 +202,7 @@
 
 <div class="viewcode-block" id="Tacotron2.add_arguments"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2.add_arguments">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add model-specific arguments to the parser.&quot;&quot;&quot;</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;tacotron 2 model setting&quot;</span><span class="p">)</span>
         <span class="c1"># encoder</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -442,7 +442,7 @@
         <span class="k">return</span> <span class="n">parser</span></div>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Tacotron2 module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Dimension of the inputs.</span>
@@ -657,7 +657,7 @@
 <div class="viewcode-block" id="Tacotron2.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">spcs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).</span>
@@ -827,7 +827,7 @@
         <span class="k">return</span> <span class="n">loss</span></div>
 
 <div class="viewcode-block" id="Tacotron2.inference"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">inference_args</span><span class="p">,</span> <span class="n">spemb</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input sequence of acoustic features (T, idim).</span>
@@ -875,7 +875,7 @@
             <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
 
 <div class="viewcode-block" id="Tacotron2.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).</span>
@@ -921,7 +921,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">base_plot_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return base key names to plot during training.</span>
 
 <span class="sd">        keys should match what `chainer.reporter` reports.</span>
 <span class="sd">        If you add the key `loss`, the reporter will report `main/loss`</span>

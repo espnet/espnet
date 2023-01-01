@@ -179,7 +179,7 @@
 
 
 <div class="viewcode-block" id="LightweightConvolution"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.lightconv.LightweightConvolution">[docs]</a><span class="k">class</span> <span class="nc">LightweightConvolution</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Lightweight Convolution layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lightweight Convolution layer.</span>
 
 <span class="sd">    This implementation is based on</span>
 <span class="sd">    https://github.com/pytorch/fairseq/tree/master/fairseq</span>
@@ -203,7 +203,7 @@
         <span class="n">use_kernel_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct Lightweight Convolution layer.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct Lightweight Convolution layer.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">LightweightConvolution</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="n">n_feat</span> <span class="o">%</span> <span class="n">wshare</span> <span class="o">==</span> <span class="mi">0</span>
@@ -232,7 +232,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">kernel_mask1</span><span class="p">,</span> <span class="n">kernel_mask0</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LightweightConvolution.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.lightconv.LightweightConvolution.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward of &#39;Lightweight Convolution&#39;.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward of &#39;Lightweight Convolution&#39;.</span>
 
 <span class="sd">        This function takes query, key and value but uses only query.</span>
 <span class="sd">        This is just for compatibility with self-attention layer (attention.py)</span>

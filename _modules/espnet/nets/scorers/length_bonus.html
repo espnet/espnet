@@ -177,10 +177,10 @@
 
 
 <div class="viewcode-block" id="LengthBonus"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.length_bonus.LengthBonus">[docs]</a><span class="k">class</span> <span class="nc">LengthBonus</span><span class="p">(</span><span class="n">BatchScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Length bonus in beam search.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Length bonus in beam search.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_vocab</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            n_vocab (int): The number of tokens in vocabulary for beam search</span>
@@ -189,7 +189,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n_vocab</span>
 
 <div class="viewcode-block" id="LengthBonus.score"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.length_bonus.LengthBonus.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Score new token.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D torch.int64 prefix tokens.</span>
@@ -207,7 +207,7 @@
 <div class="viewcode-block" id="LengthBonus.batch_score"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.length_bonus.LengthBonus.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Score new token batch.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>

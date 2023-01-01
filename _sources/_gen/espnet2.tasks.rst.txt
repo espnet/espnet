@@ -26,6 +26,17 @@ espnet2.tasks.st
     :show-inheritance:
 
 
+.. _espnet2.tasks.enh_tse:
+
+espnet2.tasks.enh_tse
+---------------------
+
+.. automodule:: espnet2.tasks.enh_tse
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.enh:
 
 espnet2.tasks.enh

@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="ResidualAffineCouplingBlock"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock">[docs]</a><span class="k">class</span> <span class="nc">ResidualAffineCouplingBlock</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Residual affine coupling block module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Residual affine coupling block module.</span>
 
 <span class="sd">    This is a module of residual affine coupling block, which used as &quot;Flow&quot; in</span>
 <span class="sd">    `Conditional Variational Autoencoder with Adversarial Learning for End-to-End</span>
@@ -211,7 +211,7 @@
         <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">use_only_mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initilize ResidualAffineCouplingBlock module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initilize ResidualAffineCouplingBlock module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_channels (int): Number of input channels.</span>
@@ -256,7 +256,7 @@
         <span class="n">g</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">inverse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, in_channels, T).</span>
@@ -278,7 +278,7 @@
 
 
 <div class="viewcode-block" id="ResidualAffineCouplingLayer"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer">[docs]</a><span class="k">class</span> <span class="nc">ResidualAffineCouplingLayer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Residual affine coupling layer.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Residual affine coupling layer.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -294,7 +294,7 @@
         <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">use_only_mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialzie ResidualAffineCouplingLayer module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialzie ResidualAffineCouplingLayer module.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            in_channels (int): Number of input channels.</span>
@@ -363,7 +363,7 @@
         <span class="n">g</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">inverse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor (B, in_channels, T).</span>

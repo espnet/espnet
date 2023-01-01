@@ -204,7 +204,7 @@
 
 
 <div class="viewcode-block" id="Speech2Text"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text">[docs]</a><span class="k">class</span> <span class="nc">Speech2Text</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Speech2Text class for Transducer models.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Speech2Text class for Transducer models.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        asr_train_config: ASR model training config path.</span>
@@ -253,7 +253,7 @@
         <span class="n">right_context</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">display_partial_hypotheses</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a Speech2Text object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Speech2Text object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -367,7 +367,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_inference_cache</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Speech2Text.reset_inference_cache"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.reset_inference_cache">[docs]</a>    <span class="k">def</span> <span class="nf">reset_inference_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Reset Speech2Text parameters.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset Speech2Text parameters.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_cache</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">reset_streaming_cache</span><span class="p">(</span>
@@ -380,7 +380,7 @@
 <div class="viewcode-block" id="Speech2Text.apply_frontend"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.apply_frontend">[docs]</a>    <span class="k">def</span> <span class="nf">apply_frontend</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">is_final</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward frontend.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward frontend.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: Speech data. (S)</span>
@@ -492,7 +492,7 @@
         <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
         <span class="n">is_final</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Speech2Text streaming call.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Speech2Text streaming call.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: Chunk of speech data. (S)</span>
@@ -526,7 +526,7 @@
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Speech2Text call.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Speech2Text call.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: Speech data. (S)</span>
@@ -548,7 +548,7 @@
         <span class="k">return</span> <span class="n">nbest_hyps</span>
 
 <div class="viewcode-block" id="Speech2Text.hypotheses_to_results"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.Speech2Text.hypotheses_to_results">[docs]</a>    <span class="k">def</span> <span class="nf">hypotheses_to_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbest_hyps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Build partial or final results from the hypotheses.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build partial or final results from the hypotheses.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            nbest_hyps: N-best hypothesis.</span>
@@ -579,7 +579,7 @@
         <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Speech2Text</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Build Speech2Text instance from the pretrained model.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build Speech2Text instance from the pretrained model.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model_tag: Model tag of the pretrained models.</span>
@@ -635,7 +635,7 @@
     <span class="n">right_context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">display_partial_hypotheses</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Transducer model inference.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transducer model inference.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        output_dir: Output directory path.</span>
@@ -783,7 +783,7 @@
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Get Transducer model inference parser.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get Transducer model inference parser.&quot;&quot;&quot;</span>
 
     <span class="n">parser</span> <span class="o">=</span> <span class="n">config_argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ASR Transducer Decoding&quot;</span><span class="p">,</span>

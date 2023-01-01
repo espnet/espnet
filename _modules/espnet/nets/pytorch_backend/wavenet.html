@@ -186,7 +186,7 @@
 
 
 <div class="viewcode-block" id="encode_mu_law"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.encode_mu_law">[docs]</a><span class="k">def</span> <span class="nf">encode_mu_law</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform mu-law encoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform mu-law encoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x (ndarray): Audio signal with the range from -1 to 1.</span>
@@ -202,7 +202,7 @@
 
 
 <div class="viewcode-block" id="decode_mu_law"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.decode_mu_law">[docs]</a><span class="k">def</span> <span class="nf">decode_mu_law</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mi">256</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform mu-law decoding.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform mu-law decoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x (ndarray): Quantized audio signal with the range from 0 to mu - 1.</span>
@@ -219,7 +219,7 @@
 
 
 <div class="viewcode-block" id="initialize"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.initialize">[docs]</a><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Initilize conv layers with xavier.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initilize conv layers with xavier.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        m (torch.nn.Module): Torch module.</span>
@@ -235,7 +235,7 @@
 
 
 <div class="viewcode-block" id="OneHot"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.OneHot">[docs]</a><span class="k">class</span> <span class="nc">OneHot</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Convert to one-hot vector.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert to one-hot vector.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        depth (int): Dimension of one-hot vector.</span>
@@ -247,7 +247,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">depth</span> <span class="o">=</span> <span class="n">depth</span>
 
 <div class="viewcode-block" id="OneHot.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.OneHot.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (LongTensor): long tensor variable with the shape  (B, T)</span>
@@ -264,7 +264,7 @@
 
 
 <div class="viewcode-block" id="CausalConv1d"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.CausalConv1d">[docs]</a><span class="k">class</span> <span class="nc">CausalConv1d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;1D dilated causal convolution.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;1D dilated causal convolution.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CausalConv1d</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -283,7 +283,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="CausalConv1d.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.CausalConv1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor with the shape (B, in_channels, T).</span>
@@ -299,7 +299,7 @@
 
 
 <div class="viewcode-block" id="UpSampling"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.UpSampling">[docs]</a><span class="k">class</span> <span class="nc">UpSampling</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Upsampling layer with deconvolution.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Upsampling layer with deconvolution.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        upsampling_factor (int): Upsampling factor.</span>
@@ -319,7 +319,7 @@
         <span class="p">)</span>
 
 <div class="viewcode-block" id="UpSampling.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.UpSampling.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): Input tensor with the shape  (B, C, T)</span>
@@ -334,7 +334,7 @@
 
 
 <div class="viewcode-block" id="WaveNet"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.WaveNet">[docs]</a><span class="k">class</span> <span class="nc">WaveNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Conditional wavenet.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Conditional wavenet.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        n_quantize (int): Number of quantization.</span>
@@ -405,7 +405,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">conv_post_2</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_skipch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_quantize</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="WaveNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.WaveNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (LongTensor): Quantized input waveform tensor with the shape  (B, T).</span>
@@ -442,7 +442,7 @@
         <span class="k">return</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="WaveNet.generate"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.WaveNet.generate">[docs]</a>    <span class="k">def</span> <span class="nf">generate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">n_samples</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;sampling&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Generate a waveform with fast genration algorithm.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a waveform with fast genration algorithm.</span>
 
 <span class="sd">        This generation based on `Fast WaveNet Generation Algorithm`_.</span>
 

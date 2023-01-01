@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="Conv1d"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d">[docs]</a><span class="k">class</span> <span class="nc">Conv1d</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;1D convolution module for custom encoder.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;1D convolution module for custom encoder.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim: Input dimension.</span>
@@ -205,7 +205,7 @@
         <span class="n">relu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct a Conv1d module object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Conv1d module object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
@@ -239,7 +239,7 @@
         <span class="n">sequence</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward ConvEncoderLayer module object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward ConvEncoderLayer module object.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            sequence: Input sequences.</span>
@@ -282,7 +282,7 @@
         <span class="k">return</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">mask</span></div>
 
 <div class="viewcode-block" id="Conv1d.create_new_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d.create_new_mask">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create new mask.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create new mask.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            mask: Mask of input sequences. (B, 1, T)</span>
@@ -302,7 +302,7 @@
         <span class="k">return</span> <span class="n">mask</span></div>
 
 <div class="viewcode-block" id="Conv1d.create_new_pos_embed"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.Conv1d.create_new_pos_embed">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_pos_embed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos_embed</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create new positional embedding vector.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create new positional embedding vector.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            pos_embed: Input sequences positional embedding.</span>
@@ -329,7 +329,7 @@
 
 
 <div class="viewcode-block" id="CausalConv1d"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.conv1d_nets.CausalConv1d">[docs]</a><span class="k">class</span> <span class="nc">CausalConv1d</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;1D causal convolution module for custom decoder.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;1D causal convolution module for custom decoder.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        idim: Input dimension.</span>
@@ -358,7 +358,7 @@
         <span class="n">relu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct a CausalConv1d object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a CausalConv1d object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dilation</span>
@@ -391,7 +391,7 @@
         <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward CausalConv1d for custom decoder.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward CausalConv1d for custom decoder.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            sequence: CausalConv1d input sequences. (B, U, D_in)</span>

@@ -180,7 +180,7 @@
 
 
 <div class="viewcode-block" id="to_device"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.to_device">[docs]</a><span class="k">def</span> <span class="nf">to_device</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Send tensor into the device of the module.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Send tensor into the device of the module.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        m (torch.nn.Module): Torch module.</span>
@@ -202,7 +202,7 @@
 
 
 <div class="viewcode-block" id="pad_list"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.pad_list">[docs]</a><span class="k">def</span> <span class="nf">pad_list</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">pad_value</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform padding for the list of tensors.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Perform padding for the list of tensors.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        xs (List): List of Tensors [(T_1, `*`), (T_2, `*`), ..., (T_B, `*`)].</span>
@@ -232,7 +232,7 @@
 
 
 <div class="viewcode-block" id="make_pad_mask"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.make_pad_mask">[docs]</a><span class="k">def</span> <span class="nf">make_pad_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">length_dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Make mask tensor containing indices of padded part.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Make mask tensor containing indices of padded part.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        lengths (LongTensor or List): Batch of lengths (B,).</span>
@@ -352,7 +352,7 @@
 
 
 <div class="viewcode-block" id="make_non_pad_mask"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.make_non_pad_mask">[docs]</a><span class="k">def</span> <span class="nf">make_non_pad_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">length_dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Make mask tensor containing indices of non-padded part.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Make mask tensor containing indices of non-padded part.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        lengths (LongTensor or List): Batch of lengths (B,).</span>
@@ -441,7 +441,7 @@
 
 
 <div class="viewcode-block" id="mask_by_length"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.mask_by_length">[docs]</a><span class="k">def</span> <span class="nf">mask_by_length</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Mask tensor according to length.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mask tensor according to length.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        xs (Tensor): Batch of input tensor (B, `*`).</span>
@@ -472,7 +472,7 @@
 
 
 <div class="viewcode-block" id="th_accuracy"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.th_accuracy">[docs]</a><span class="k">def</span> <span class="nf">th_accuracy</span><span class="p">(</span><span class="n">pad_outputs</span><span class="p">,</span> <span class="n">pad_targets</span><span class="p">,</span> <span class="n">ignore_label</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate accuracy.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate accuracy.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        pad_outputs (Tensor): Prediction tensors (B * Lmax, D).</span>
@@ -495,7 +495,7 @@
 
 
 <div class="viewcode-block" id="to_torch_tensor"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.to_torch_tensor">[docs]</a><span class="k">def</span> <span class="nf">to_torch_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Change to torch.Tensor or ComplexTensor from numpy.ndarray.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Change to torch.Tensor or ComplexTensor from numpy.ndarray.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        x: Inputs. It should be one of numpy.ndarray, Tensor, ComplexTensor, and dict.</span>
@@ -563,7 +563,7 @@
 
 
 <div class="viewcode-block" id="get_subsample"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.get_subsample">[docs]</a><span class="k">def</span> <span class="nf">get_subsample</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">arch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parse the subsampling factors from the args for the specified `mode` and `arch`.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the subsampling factors from the args for the specified `mode` and `arch`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        train_args: argument Namespace containing options.</span>
@@ -646,7 +646,7 @@
 <div class="viewcode-block" id="rename_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.rename_state_dict">[docs]</a><span class="k">def</span> <span class="nf">rename_state_dict</span><span class="p">(</span>
     <span class="n">old_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Replace keys of old prefix with new prefix in state dict.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Replace keys of old prefix with new prefix in state dict.&quot;&quot;&quot;</span>
     <span class="c1"># need this list not to break the dict iterator</span>
     <span class="n">old_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span> <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">old_prefix</span><span class="p">)]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_keys</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -658,7 +658,7 @@
 
 
 <div class="viewcode-block" id="get_activation"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.get_activation">[docs]</a><span class="k">def</span> <span class="nf">get_activation</span><span class="p">(</span><span class="n">act</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return activation function.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return activation function.&quot;&quot;&quot;</span>
     <span class="c1"># Lazy load to avoid unused import</span>
     <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.swish</span> <span class="kn">import</span> <span class="n">Swish</span>
 

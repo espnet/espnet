@@ -210,8 +210,8 @@
 <h2>Execute in docker<a class="headerlink" href="#execute-in-docker" title="Permalink to this headline">¶</a></h2>
 <p>To work inside a docker container, execute <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> located inside the docker directory.
 It will download the requested image and build a container to execute the main program specified by the following GPU, ASR example, and outside directory information, as follows:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-folders /export/corpora4/CHiME4/CHiME3 --dlayers <span class="m">1</span> --ngpu <span class="m">1</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span><span class="m">0</span><span class="w"> </span>--docker-egs<span class="w"> </span>chime4/asr1<span class="w"> </span>--docker-folders<span class="w"> </span>/export/corpora4/CHiME4/CHiME3<span class="w"> </span>--dlayers<span class="w"> </span><span class="m">1</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">1</span>
 </pre></div>
 </div>
 <p>Optionally, you can set the CUDA version with the arguments <code class="docutils literal notranslate"><span class="pre">--docker-cuda</span></code> respectively (default version set at CUDA=9.1). The docker container can be built based on the CUDA installed in your computer if you empty this arguments.
@@ -222,8 +222,8 @@ All docker containers are executed using the same user as your login account. If
 <section id="espnet-2-recipes">
 <h2>ESPnet 2 Recipes<a class="headerlink" href="#espnet-2-recipes" title="Permalink to this headline">¶</a></h2>
 <p>To work with recipes of ESPnet 2, you will need to add the flag <code class="docutils literal notranslate"><span class="pre">--is-egs2</span></code> to the command line:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu <span class="m">0</span> --is-egs2 --docker-egs an4/asr1 --ngpu1
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span><span class="m">0</span><span class="w"> </span>--is-egs2<span class="w"> </span>--docker-egs<span class="w"> </span>an4/asr1<span class="w"> </span>--ngpu1
 </pre></div>
 </div>
 <p>Remember to add the flag before the arguments you want to pass to the recipe <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> file.</p>
@@ -231,20 +231,20 @@ $ ./run.sh --docker-gpu <span class="m">0</span> --is-egs2 --docker-egs an4/asr1
 <section id="using-gpu-based-containers">
 <h2>Using GPU-based containers<a class="headerlink" href="#using-gpu-based-containers" title="Permalink to this headline">¶</a></h2>
 <p>You can run any bash script implemented in the egs folder using <code class="docutils literal notranslate"><span class="pre">--docker-cmd</span></code>:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-cmd foo.sh --arg_1 &lt;arg_1&gt; --arg_2 &lt;arg_2&gt;
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span><span class="m">0</span><span class="w"> </span>--docker-egs<span class="w"> </span>chime4/asr1<span class="w"> </span>--docker-cmd<span class="w"> </span>foo.sh<span class="w"> </span>--arg_1<span class="w"> </span>&lt;arg_1&gt;<span class="w"> </span>--arg_2<span class="w"> </span>&lt;arg_2&gt;
 </pre></div>
 </div>
 <p>The arguments for the desired script should follow the docker arguments. <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> is the default script to be executed.</p>
 <p>Multiple GPUs should be specified with the following options:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu <span class="m">0</span>,1,2 --docker-egs chime5/asr1 --docker-folders /export/corpora4/CHiME5 --ngpu <span class="m">3</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span><span class="m">0</span>,1,2<span class="w"> </span>--docker-egs<span class="w"> </span>chime5/asr1<span class="w"> </span>--docker-folders<span class="w"> </span>/export/corpora4/CHiME5<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">3</span>
 </pre></div>
 </div>
 <p>Note that all experimental files and results are created under the normal example directories (<code class="docutils literal notranslate"><span class="pre">egs/&lt;example&gt;/</span></code>).</p>
 <p>Multiple folders and environment variables should be specified with commas and without spaces:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --docker-folders /export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B --docker-env <span class="s2">&quot;CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B&quot;</span> --ngpu <span class="m">1</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span><span class="m">0</span><span class="w"> </span>--docker-egs<span class="w"> </span>chime4/asr1<span class="w"> </span>--docker-folders<span class="w"> </span>/export/corpus/CHiME4,/export/corpus/LDC/LDC93S6B,/export/corpus/LDC/LDC94S13B<span class="w"> </span>--docker-env<span class="w"> </span><span class="s2">&quot;CHIME4_CORPUS=/export/corpus/CHiME4/CHiME3,WSJ0_CORPUS=/export/corpus/LDC/LDC93S6B,WSJ1_CORPUS=/export/corpus/LDC/LDC94S13B&quot;</span><span class="w"> </span>--ngpu<span class="w"> </span><span class="m">1</span>
 </pre></div>
 </div>
 <p>Remember that for some recipes, you first need to download the Corpus before running the experiments, such as CHiME, WSJ, and LDC corporas. You will need to set the directories where these were downloaded and replace them in the recipe (e.g.: <code class="docutils literal notranslate"><span class="pre">CHIME4_CORPUS=/&lt;dir_where_chime4_was_downloaded&gt;/CHiME4/CHiME3</span></code>)</p>
@@ -252,8 +252,8 @@ $ ./run.sh --docker-gpu <span class="m">0</span> --docker-egs chime4/asr1 --dock
 <section id="using-cpu-based-container">
 <h2>Using CPU-based container<a class="headerlink" href="#using-cpu-based-container" title="Permalink to this headline">¶</a></h2>
 <p>You can train a model in CPU using the following command:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> docker
-$ ./run.sh --docker-gpu -1 --docker-egs an4/asr1 --ngpu <span class="m">0</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docker
+$<span class="w"> </span>./run.sh<span class="w"> </span>--docker-gpu<span class="w"> </span>-1<span class="w"> </span>--docker-egs<span class="w"> </span>an4/asr1<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">0</span>
 </pre></div>
 </div>
 <p>The script will build a docker if your are using a <code class="docutils literal notranslate"><span class="pre">user</span></code> different from <code class="docutils literal notranslate"><span class="pre">root</span></code> user. To use containers with <code class="docutils literal notranslate"><span class="pre">root</span></code> access

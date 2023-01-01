@@ -176,7 +176,7 @@
 
 
 <div class="viewcode-block" id="TooShortUttError"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.TooShortUttError">[docs]</a><span class="k">class</span> <span class="nc">TooShortUttError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Raised when the utt is too short for subsampling.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when the utt is too short for subsampling.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        message: Error message to display.</span>
@@ -186,7 +186,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">actual_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Construct a TooShortUttError module.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a TooShortUttError module.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">actual_size</span> <span class="o">=</span> <span class="n">actual_size</span>
@@ -194,7 +194,7 @@
 
 
 <div class="viewcode-block" id="check_short_utt"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.check_short_utt">[docs]</a><span class="k">def</span> <span class="nf">check_short_utt</span><span class="p">(</span><span class="n">sub_factor</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Check if the input is too short for subsampling.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the input is too short for subsampling.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        sub_factor: Subsampling factor for Conv2DSubsampling.</span>
@@ -216,7 +216,7 @@
 
 
 <div class="viewcode-block" id="sub_factor_to_params"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.sub_factor_to_params">[docs]</a><span class="k">def</span> <span class="nf">sub_factor_to_params</span><span class="p">(</span><span class="n">sub_factor</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Get conv2D second layer parameters for given subsampling factor.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get conv2D second layer parameters for given subsampling factor.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        sub_factor: Subsampling factor (1/X).</span>
@@ -246,7 +246,7 @@
     <span class="n">left_chunk_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Create chunk mask for the subsequent steps (size, size).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create chunk mask for the subsequent steps (size, size).</span>
 
 <span class="sd">    Reference: https://github.com/k2-fsa/icefall/blob/master/icefall/utils.py</span>
 
@@ -275,7 +275,7 @@
 
 
 <div class="viewcode-block" id="make_source_mask"><a class="viewcode-back" href="../../../_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.utils.make_source_mask">[docs]</a><span class="k">def</span> <span class="nf">make_source_mask</span><span class="p">(</span><span class="n">lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Create source mask for given lengths.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create source mask for given lengths.</span>
 
 <span class="sd">    Reference: https://github.com/k2-fsa/icefall/blob/master/icefall/utils.py</span>
 
@@ -300,7 +300,7 @@
     <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">blank_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Get Transducer loss I/O.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get Transducer loss I/O.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        labels: Label ID sequences. (B, L)</span>
@@ -317,7 +317,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">pad_list</span><span class="p">(</span><span class="n">labels</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">padding_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create padded batch of labels from a list of labels sequences.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create padded batch of labels from a list of labels sequences.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            labels: Labels sequences. [B x (?)]</span>

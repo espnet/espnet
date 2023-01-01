@@ -185,7 +185,7 @@
 
 
 <span class="k">def</span> <span class="nf">_create_mask_label</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">,</span> <span class="n">noise_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IAM&quot;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create mask label.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create mask label.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        mix_spec: ComplexTensor(B, T, [C,] F)</span>
@@ -264,7 +264,7 @@
 
 
 <div class="viewcode-block" id="FrequencyDomainLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainLoss</span><span class="p">(</span><span class="n">AbsEnhLoss</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Base class for all frequence-domain Enhancement loss modules.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for all frequence-domain Enhancement loss modules.&quot;&quot;&quot;</span>
 
     <span class="c1"># The loss will be computed on mask or on spectrum</span>
     <span class="nd">@property</span>
@@ -354,7 +354,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
 
 <div class="viewcode-block" id="FrequencyDomainMSE.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;time-frequency MSE loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;time-frequency MSE loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
@@ -415,7 +415,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
 
 <div class="viewcode-block" id="FrequencyDomainL1.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;time-frequency L1 loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;time-frequency L1 loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
@@ -475,7 +475,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
 
 <div class="viewcode-block" id="FrequencyDomainDPCL.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;time-frequency Deep Clustering loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;time-frequency Deep Clustering loss.</span>
 
 <span class="sd">        References:</span>
 <span class="sd">            [1] Deep clustering: Discriminative embeddings for segmentation and</span>
@@ -580,7 +580,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
 
 <div class="viewcode-block" id="FrequencyDomainAbsCoherence.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;time-frequency absolute coherence loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;time-frequency absolute coherence loss.</span>
 
 <span class="sd">        Reference:</span>
 <span class="sd">            Independent Vector Analysis with Deep Neural Network Source Priors;</span>
@@ -653,7 +653,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
 
 <div class="viewcode-block" id="FrequencyDomainCrossEntropy.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;time-frequency cross-entropy loss.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;time-frequency cross-entropy loss.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref: (Batch, T) or (Batch, T, C)</span>

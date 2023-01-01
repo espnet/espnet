@@ -178,10 +178,10 @@
 
 
 <div class="viewcode-block" id="CTCPrefixScorer"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer">[docs]</a><span class="k">class</span> <span class="nc">CTCPrefixScorer</span><span class="p">(</span><span class="n">BatchPartialScorerInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decoder interface wrapper for CTCPrefixScore.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decoder interface wrapper for CTCPrefixScore.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">eos</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize class.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize class.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ctc (torch.nn.Module): The CTC implementation.</span>
@@ -194,7 +194,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">impl</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="CTCPrefixScorer.init_state"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.init_state">[docs]</a>    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get an initial state for decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial state for decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The encoded feature tensor</span>
@@ -208,7 +208,7 @@
         <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">impl</span><span class="o">.</span><span class="n">initial_state</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.select_state"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.select_state">[docs]</a>    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">new_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Select state with relative ids in the main beam search.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select state with relative ids in the main beam search.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            state: Decoder state for prefix tokens</span>
@@ -233,7 +233,7 @@
         <span class="k">return</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.score_partial"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">score_partial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Score new token.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D prefix token</span>
@@ -255,7 +255,7 @@
         <span class="k">return</span> <span class="n">tscore</span><span class="p">,</span> <span class="p">(</span><span class="n">presub_score</span><span class="p">,</span> <span class="n">new_st</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.batch_init_state"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.batch_init_state">[docs]</a>    <span class="k">def</span> <span class="nf">batch_init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get an initial state for decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get an initial state for decoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): The encoded feature tensor</span>
@@ -269,7 +269,7 @@
         <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.batch_score_partial"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.batch_score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score_partial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Score new token.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            y (torch.Tensor): 1D prefix token</span>
@@ -296,7 +296,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">impl</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">batch_state</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.extend_prob"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.extend_prob">[docs]</a>    <span class="k">def</span> <span class="nf">extend_prob</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Extend probs for decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend probs for decoding.</span>
 
 <span class="sd">        This extension is for streaming decoding</span>
 <span class="sd">        as in Eq (14) in https://arxiv.org/abs/2006.14941</span>
@@ -309,7 +309,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">impl</span><span class="o">.</span><span class="n">extend_prob</span><span class="p">(</span><span class="n">logp</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CTCPrefixScorer.extend_state"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.scorers.ctc.CTCPrefixScorer.extend_state">[docs]</a>    <span class="k">def</span> <span class="nf">extend_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Extend state for decoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extend state for decoding.</span>
 
 <span class="sd">        This extension is for streaming decoding</span>
 <span class="sd">        as in Eq (14) in https://arxiv.org/abs/2006.14941</span>

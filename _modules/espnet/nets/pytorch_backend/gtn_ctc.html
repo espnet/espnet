@@ -178,14 +178,14 @@
 
 
 <div class="viewcode-block" id="GTNCTCLossFunction"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction">[docs]</a><span class="k">class</span> <span class="nc">GTNCTCLossFunction</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;GTN CTC module.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;GTN CTC module.&quot;&quot;&quot;</span>
 
     <span class="c1"># Copied from FB&#39;s GTN example implementation:</span>
     <span class="c1"># https://github.com/facebookresearch/gtn_applications/blob/master/utils.py#L251</span>
 
 <div class="viewcode-block" id="GTNCTCLossFunction.create_ctc_graph"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.create_ctc_graph">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">create_ctc_graph</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">blank_idx</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Build gtn graph.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build gtn graph.</span>
 
 <span class="sd">        :param list target: single target sequence</span>
 <span class="sd">        :param int blank_idx: index of blank token</span>
@@ -209,7 +209,7 @@
 
 <div class="viewcode-block" id="GTNCTCLossFunction.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.forward">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">blank_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward computation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward computation.</span>
 
 <span class="sd">        :param torch.tensor log_probs: batched log softmax probabilities (B, Tmax, oDim)</span>
 <span class="sd">        :param list targets: batched target sequences, list of lists</span>
@@ -256,7 +256,7 @@
 
 <div class="viewcode-block" id="GTNCTCLossFunction.backward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.backward">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Backward computation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Backward computation.</span>
 
 <span class="sd">        :param torch.tensor grad_output: backward passed gradient value</span>
 <span class="sd">        :return: cumulative gradient output</span>

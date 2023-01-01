@@ -175,7 +175,7 @@
 
 
 <div class="viewcode-block" id="build_dataclass"><a class="viewcode-back" href="../../../_gen/espnet2.utils.html#espnet2.utils.build_dataclass.build_dataclass">[docs]</a><span class="k">def</span> <span class="nf">build_dataclass</span><span class="p">(</span><span class="n">dataclass</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Helper function to build dataclass from &#39;args&#39;.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Helper function to build dataclass from &#39;args&#39;.&quot;&quot;&quot;</span>
     <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="n">dataclass</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>

@@ -183,7 +183,7 @@
 
 
 <div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi-Head Attention layer.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-Head Attention layer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        n_head (int): The number of heads.</span>
@@ -193,7 +193,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an MultiHeadedAttention object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an MultiHeadedAttention object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">assert</span> <span class="n">n_feat</span> <span class="o">%</span> <span class="n">n_head</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="c1"># We assume d_v always equals d_k</span>
@@ -207,7 +207,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiHeadedAttention.forward_qkv"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_qkv">[docs]</a>    <span class="k">def</span> <span class="nf">forward_qkv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Transform query, key and value.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Transform query, key and value.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (torch.Tensor): Query tensor (#batch, time1, size).</span>
@@ -231,7 +231,7 @@
         <span class="k">return</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.forward_attention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward_attention">[docs]</a>    <span class="k">def</span> <span class="nf">forward_attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute attention context vector.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute attention context vector.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            value (torch.Tensor): Transformed value (#batch, n_head, time2, d_k).</span>
@@ -263,7 +263,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_out</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># (batch, time1, d_model)</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute scaled dot product attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute scaled dot product attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (torch.Tensor): Query tensor (#batch, time1, size).</span>
@@ -282,7 +282,7 @@
 
 
 <div class="viewcode-block" id="LegacyRelPositionMultiHeadedAttention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.LegacyRelPositionMultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">LegacyRelPositionMultiHeadedAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi-Head Attention layer with relative position encoding (old version).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-Head Attention layer with relative position encoding (old version).</span>
 
 <span class="sd">    Details can be found in https://github.com/espnet/espnet/pull/2816.</span>
 
@@ -297,7 +297,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">zero_triu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an RelPositionMultiHeadedAttention object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an RelPositionMultiHeadedAttention object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_triu</span> <span class="o">=</span> <span class="n">zero_triu</span>
         <span class="c1"># linear transformation for positional encoding</span>
@@ -310,7 +310,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_bias_v</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LegacyRelPositionMultiHeadedAttention.rel_shift"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.LegacyRelPositionMultiHeadedAttention.rel_shift">[docs]</a>    <span class="k">def</span> <span class="nf">rel_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, head, time1, time2).</span>
@@ -332,7 +332,7 @@
         <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="LegacyRelPositionMultiHeadedAttention.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.LegacyRelPositionMultiHeadedAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute &#39;Scaled Dot Product Attention&#39; with rel. positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute &#39;Scaled Dot Product Attention&#39; with rel. positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (torch.Tensor): Query tensor (#batch, time1, size).</span>
@@ -377,7 +377,7 @@
 
 
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">RelPositionMultiHeadedAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Multi-Head Attention layer with relative position encoding (new implementation).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Multi-Head Attention layer with relative position encoding (new implementation).</span>
 
 <span class="sd">    Details can be found in https://github.com/espnet/espnet/pull/2816.</span>
 
@@ -392,7 +392,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">zero_triu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Construct an RelPositionMultiHeadedAttention object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an RelPositionMultiHeadedAttention object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">n_head</span><span class="p">,</span> <span class="n">n_feat</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_triu</span> <span class="o">=</span> <span class="n">zero_triu</span>
         <span class="c1"># linear transformation for positional encoding</span>
@@ -405,7 +405,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pos_bias_v</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention.rel_shift"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention.rel_shift">[docs]</a>    <span class="k">def</span> <span class="nf">rel_shift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute relative positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Input tensor (batch, head, time1, 2*time1-1).</span>
@@ -430,7 +430,7 @@
         <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="RelPositionMultiHeadedAttention.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.attention.RelPositionMultiHeadedAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute &#39;Scaled Dot Product Attention&#39; with rel. positional encoding.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute &#39;Scaled Dot Product Attention&#39; with rel. positional encoding.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            query (torch.Tensor): Query tensor (#batch, time1, size).</span>

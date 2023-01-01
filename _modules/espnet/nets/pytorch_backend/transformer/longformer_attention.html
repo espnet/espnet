@@ -181,10 +181,10 @@
 
 
 <div class="viewcode-block" id="LongformerAttention"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.longformer_attention.LongformerAttention">[docs]</a><span class="k">class</span> <span class="nc">LongformerAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Longformer based Local Attention Definition.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Longformer based Local Attention Definition.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">LongformerConfig</span><span class="p">,</span> <span class="n">layer_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute Longformer based Self-Attention.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Longformer based Self-Attention.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            config : Longformer attention configuration</span>
@@ -196,7 +196,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="LongformerAttention.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.longformer_attention.LongformerAttention.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Compute Longformer Self-Attention with masking.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Longformer Self-Attention with masking.</span>
 
 <span class="sd">        Expects `len(hidden_states)` to be multiple of `attention_window`.</span>
 <span class="sd">        Padding to `attention_window` happens in :meth:`encoder.forward`</span>
