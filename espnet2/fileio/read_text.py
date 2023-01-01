@@ -1,5 +1,8 @@
 import logging
+import collections.abc
 from pathlib import Path
+from mmap import mmap
+from random import randint
 from typing import Dict, List, Union
 
 from typeguard import check_argument_types
@@ -104,3 +107,81 @@ def read_label(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
             )
         retval[key] = temp_info
     return retval
+
+
+class RandomTextReader(collections.abc.Mapping):
+    """Reader class for random access to text.
+
+     Examples:
+         text
+             text1line
+             text2line
+             text3line
+         scp
+             11                    (number of digits per int value)
+             00000000000000000010  (text start at bytes 0 and end at bytes 10 (including "\n"))
+             00000000110000000020  (text start at bytes 11 and end at bytes 20 (including "\n"))
+             00000000210000000030  (text start at bytes 21 and end at bytes 30 (including "\n"))
+
+     Simple text reader for non-pair text data (for unsupervised ASR)
+     """
+
+    def __init__(
+        self, text_and_scp: str,
+    ):
+        assert check_argument_types()
+        super().__init__()
+
+        text, text_scp = text_and_scp.split("-")
+
+        text_f = Path(text).open("r+b")
+        scp_f = Path(text_scp).open("r+b")
+
+        self.text_mm = mmap(text_f.fileno(), 0)
+        self.scp_mm = mmap(scp_f.fileno(), 0)
+
+        max_num_digits_line = self.scp_mm.readline()
+        max_num_digits = int(max_num_digits_line)
+        assert max_num_digits > 0
+
+        self.first_line_offset = len(max_num_digits_line)
+        self.max_num_digits = max_num_digits
+        self.stride = 2 * max_num_digits + 1
+
+        num_text_bites = len(self.scp_mm) - len(max_num_digits_line)
+        assert num_text_bites % self.stride == 0
+        num_lines = num_text_bites // self.stride
+        self.num_lines = num_lines
+
+    def __getitem__(self, key):
+        # choose random line from scp
+        # the first line defines the max number of digits
+        random_line_number = randint(0, self.num_lines - 1)
+
+        # get the number of bytes of corresponding line in text
+        scp_start_bytes = self.first_line_offset
+        scp_start_bytes += random_line_number * self.stride
+        scp_end_bytes = scp_start_bytes + self.stride - 1
+
+        text_start_bytes = int(
+            self.scp_mm[scp_start_bytes : scp_start_bytes + self.max_num_digits]
+        )
+        text_end_bytes = int(
+            self.scp_mm[scp_start_bytes + self.max_num_digits : scp_end_bytes]
+        )
+
+        # retrieve text line
+        text = self.text_mm[text_start_bytes:text_end_bytes].decode("utf-8")
+        return text
+
+    def __contains__(self, item):
+        return True
+
+    def __len__(self):
+        return self.num_lines
+
+    def __iter__(self):
+        return None
+
+    def keys(self):
+        return None
