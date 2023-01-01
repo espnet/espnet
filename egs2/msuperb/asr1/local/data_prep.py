@@ -88,64 +88,76 @@ if __name__ == "__main__":
     for dataset in DATA:
         langs = os.listdir(os.path.join(args.source, dataset))
         for lang in langs:
+            reserve_flag = False
             if lang in RESERVE_LANG:
-                continue  # skip reserve lange for zero-shot
+                reserve_flag = True  # skip reserve lange for zero-shot
             if lang not in langs_info:
                 langs_info[lang] = []
             langs_info[lang].append(dataset)
 
-            # process train
-            train_transcript = open(
-                os.path.join(
-                    args.source,
-                    dataset,
-                    lang,
-                    "transcript_{}_train.txt".format(args.duration),
-                ),
-                "r",
-                encoding="utf-8",
-            )
-            for line in train_transcript.readlines():
-                line = line.strip().split(maxsplit=2)
-                utt_id, _, text = line
-                train_wavscp.write(
-                    "{} {}\n".format(
-                        utt_id,
-                        os.path.join(
-                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
-                        ),
-                    )
+            if not reserve_flag:
+                # process train
+                train_transcript = open(
+                    os.path.join(
+                        args.source,
+                        dataset,
+                        lang,
+                        "transcript_{}_train.txt".format(args.duration),
+                    ),
+                    "r",
+                    encoding="utf-8",
                 )
-                if args.lid:
-                    train_text.write("{} [{}] {}\n".format(utt_id, lang, text))
-                else:
-                    train_text.write("{} {}\n".format(utt_id, text))
-                train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
-            train_transcript.close()
+                for line in train_transcript.readlines():
+                    line = line.strip().split(maxsplit=2)
+                    utt_id, _, text = line
+                    train_wavscp.write(
+                        "{} {}\n".format(
+                            utt_id,
+                            os.path.join(
+                                args.source,
+                                dataset,
+                                lang,
+                                "wav",
+                                "{}.wav".format(utt_id),
+                            ),
+                        )
+                    )
+                    if args.lid:
+                        train_text.write("{} [{}] {}\n".format(utt_id, lang, text))
+                    else:
+                        train_text.write("{} {}\n".format(utt_id, text))
+                    train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
+                train_transcript.close()
 
-            # process dev
-            dev_transcript = open(
-                os.path.join(args.source, dataset, lang, "transcript_10min_dev.txt"),
-                "r",
-                encoding="utf-8",
-            )
-            for line in dev_transcript.readlines():
-                line = line.strip().split(maxsplit=2)
-                utt_id, _, text = line
-                dev_wavscp.write(
-                    "{} {}\n".format(
-                        utt_id,
-                        os.path.join(
-                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
-                        ),
-                    )
+                # process dev
+                dev_transcript = open(
+                    os.path.join(
+                        args.source, dataset, lang, "transcript_10min_dev.txt"
+                    ),
+                    "r",
+                    encoding="utf-8",
                 )
-                if args.lid:
-                    dev_text.write("{} [{}] {}\n".format(utt_id, lang, text))
-                else:
-                    dev_text.write("{} {}\n".format(utt_id, text))
-                dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
-            dev_transcript.close()
+                for line in dev_transcript.readlines():
+                    line = line.strip().split(maxsplit=2)
+                    utt_id, _, text = line
+                    dev_wavscp.write(
+                        "{} {}\n".format(
+                            utt_id,
+                            os.path.join(
+                                args.source,
+                                dataset,
+                                lang,
+                                "wav",
+                                "{}.wav".format(utt_id),
+                            ),
+                        )
+                    )
+                    if args.lid:
+                        dev_text.write("{} [{}] {}\n".format(utt_id, lang, text))
+                    else:
+                        dev_text.write("{} {}\n".format(utt_id, text))
+                    dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
+                dev_transcript.close()
 
             # process test
             test_transcript = open(

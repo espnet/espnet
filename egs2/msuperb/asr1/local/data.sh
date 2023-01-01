@@ -75,7 +75,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         python local/single_lang_data_prep.py \
             --duration ${duration} \
             --source ${MSUPERB} \
-            --lid ${lid} \
             --lang ${single_lang}
 
         for x in "train" "dev" "test"; do
@@ -89,13 +88,15 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage3: Create non-linguistic symbols for language ID"
+    mkdir -p "$(dirname ${nlsyms_txt})"
     if "${multilingual}"; then
         train_set=data/train_${duration}
+        cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
+        log "save non-linguistic symbols in ${nlsyms_txt}"
     else
-        train_set=data/train_${duration}_${single_lang}
+        touch ${nlsyms_txt}
+        log "no non-linguistic symbols needed for single language cases"
     fi
-    cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
-    log "save non-linguistic symbols in ${nlsyms_txt}"
 fi
 
 

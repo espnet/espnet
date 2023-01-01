@@ -1,5 +1,6 @@
 import argparse
 import os
+import string
 
 from espnet2.utils.types import str2bool
 
@@ -17,9 +18,15 @@ DATA = [
     "swc",
     "voxforge",
     "mexico-el",
-]  # missing voxpopuli
+    "voxpopuli",
+]
 
 SINGLE_LANG = ["eng", "deu", "rus", "pol", "swe", "jpn", "cmn", "sat", "nob", "xty"]
+
+
+def process_text(text):
+    return text.translate(str.maketrans("", "", string.punctuation)).upper()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -86,6 +93,8 @@ if __name__ == "__main__":
     for dataset in DATA:
         langs = [args.lang]
         for lang in langs:
+            if not os.path.exists(os.path.join(args.source, dataset, lang)):
+                continue
             if lang not in langs_info:
                 langs_info[lang] = []
             langs_info[lang].append(dataset)
@@ -112,10 +121,7 @@ if __name__ == "__main__":
                         ),
                     )
                 )
-                if args.lid:
-                    train_text.write("{} [{}] {}\n".format(utt_id, lang, text))
-                else:
-                    train_text.write("{} {}\n".format(utt_id, text))
+                train_text.write("{} {}\n".format(utt_id, process_text(text)))
                 train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             train_transcript.close()
 
@@ -136,10 +142,7 @@ if __name__ == "__main__":
                         ),
                     )
                 )
-                if args.lid:
-                    dev_text.write("{} [{}] {}\n".format(utt_id, lang, text))
-                else:
-                    dev_text.write("{} {}\n".format(utt_id, text))
+                dev_text.write("{} {}\n".format(utt_id, process_text(text)))
                 dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             dev_transcript.close()
 
@@ -160,10 +163,7 @@ if __name__ == "__main__":
                         ),
                     )
                 )
-                if args.lid:
-                    test_text.write("{} [{}] {}\n".format(utt_id, lang, text))
-                else:
-                    test_text.write("{} {}\n".format(utt_id, text))
+                test_text.write("{} {}\n".format(utt_id, process_text(text)))
                 test_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             test_transcript.close()
 
