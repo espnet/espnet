@@ -176,7 +176,7 @@ to build a joint-task object for training the joint-model based on a configurati
 The `inference` function in `asr_inference.py`, `diar_inference.py`, and `st_inference.py` builds and call a 
 
 		class Speech2Text
-    		class DiarizeSpeech
+    	class DiarizeSpeech
 		
 object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object `ESPnetEnhS2TModel` with pre-trained joint-task models and configurations. 
 
