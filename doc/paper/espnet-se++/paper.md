@@ -101,6 +101,7 @@ An example of an enhancement task for the CHiME-4 `enh1`  recipe is configured a
 
 #### Joint-Task Training Configuration
 An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe, configured as [`conf/tuning/train_enh_asr_convtasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml). This joint-task includes a front-end enhancmenet model and a back-end ASR model: 
+
 ![](https://i.imgur.com/kTapPT5.png)
 ![](https://i.imgur.com/uVWW7ft.png)
 
@@ -208,6 +209,7 @@ which processes speech and only returns losses for [Trainer](https://github.com/
 
 ## Building a New Recipe from Scratch
 Since ESPnet2 provides common scripts such as `enh.sh` and `enh_asr.sh` for each task, users only need to create `local/data.sh`  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure:
+
 ![](https://i.imgur.com/aSW6a2M.png)
 
 The detailed instructions for data preparation and building new recipes in espnet2 are described in the following link:
