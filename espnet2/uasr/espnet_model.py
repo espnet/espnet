@@ -96,9 +96,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         self.max_epoch = max_epoch
         # for loss registration
         self.losses = torch.nn.ModuleDict(losses)
-        self.ll_increasing_type = "constant"
-        if ll_increasing_type is not None:
-            self.ll_increasing_type = ll_increasing_type
 
         # for validation
         self.vocab_size = vocab_size
@@ -118,15 +115,6 @@ class ESPnetUASRModel(AbsESPnetModel):
     def number_updates(self, iiter: int):
         assert check_argument_types() and iiter >= 0
         self._number_updates = iiter
-
-    @property
-    def number_epochs(self):
-        return self._number_epochs
-
-    @number_epochs.setter
-    def number_epochs(self, iepoch: int):
-        assert check_argument_types() and iepoch >= 1
-        self._number_epochs = iepoch
 
     def forward(
         self,
