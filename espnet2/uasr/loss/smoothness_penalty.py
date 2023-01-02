@@ -35,7 +35,7 @@ class UASRSmoothnessPenalty(AbsUASRLoss):
             dense_logits: output logits of generator
             dense_padding_mask: padding mask of logits
             sample_size: batch size
-            is_discriminative_step: Whether optimizing discriminator
+            is_discriminative_step: Whether is training discriminator
         """
         if self.weight > 0 and not is_discriminative_step:
             smoothness_penalty = F.mse_loss(
