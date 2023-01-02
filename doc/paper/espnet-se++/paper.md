@@ -118,40 +118,40 @@ An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe
 #### bin/enh_train.py
  As the main interface for the SSE training stage of `enh.sh`, `enh_train.py` takes the training parameters and model configurations from the arguments and calls
  
-	EnhancementTask.main(...) 
+		EnhancementTask.main(...) 
 
 to build an SSE object `ESPnetEnhancementModel` for training the SSE model according to the model configuration.
 
 #### bin/enh_inference.py
 The `inference` function in `enh_inference.py` creates a
 
-	class SeparateSpeech
+		class SeparateSpeech
     
 object with the data-iterator for testing and validation. During its initialization, the class builds an SSE object `ESPnetEnhancementModel` based on a pair of configuration and a pre-trained SSE model.
 
 #### bin/enh_scoring.py
-	def scoring(..., ref_scp, inf_scp, ...)
+		def scoring(..., ref_scp, inf_scp, ...)
 The SSE scoring functions calculates several popular objective scores such as SI-SDR [@le:2019], STOI [@Taal:2011], SDR and PESQ [@Rix:2001], based on the reference signal and processed speech pairs.
 
 ### SSE Control Class `tasks/enh.py`
 
-	class EnhancementTask(AbsTask)
+		class EnhancementTask(AbsTask)
 `EnhancementTask` is a control class which is designed for SSE task, containing class methods for building and training an SSE model. Class method  `build_model` creates and returns an SSE object `ESPnetEnhancementModel`.
 
 ### SSE Modules `enh/espnet_model.py`
 
-	class ESPnetEnhancementModel(AbsESPnetModel)
-    
+		class ESPnetEnhancementModel(AbsESPnetModel)
+		
 `ESPnetEnhancementModel` is the base class for any ESPnet-SE++ SSE model. Since it inherits the same abstract base class `AbsESPnetModel`, it is well-aligned with other tasks such as ASR, TTS, ST, and SLU, bringing the benefits of cross-tasks combination. 
 
-	 def  forward(self, speech_mix, speech_ref, ...)
+		def  forward(self, speech_mix, speech_ref, ...)
 
 
 The `forward` function of `ESPnetEnhancementModel`  follows the general design in the ESPnet single-task modules, which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
 
 
-	 def  forward_enhance(self, speech_mix, ...)
-	 def  forward_loss(self, speech_pre, speech_ref, ...)
+	 	def  forward_enhance(self, speech_mix, ...)
+	 	def  forward_loss(self, speech_pre, speech_ref, ...)
 
 For more flexible combinations, the `forward_enhance` function returns the enhanced speech, and the `forward_loss` function returns the loss. The joint-training methods take the enhanced speech as the input for the downstream task and the SSE loss as a part of the joint-training loss.
 
@@ -166,7 +166,7 @@ For more flexible combinations, the `forward_enhance` function returns the enhan
 #### bin/enh_s2t_train.py
 Similarly to the interface of SSE training code `enh_train.py`, `enh_s2t_train.py` takes the training and modular parameters from the scripts, and calls  
 
-	tasks.enh_s2t.EnhS2TTask.main(...) 
+		tasks.enh_s2t.EnhS2TTask.main(...) 
 
 to build a joint-task object for training the joint-model based on a configuration with both SSE and s2t models setting with or without pre-trained checkpoints.
 
@@ -175,32 +175,28 @@ to build a joint-task object for training the joint-model based on a configurati
 
 The `inference` function in `asr_inference.py`, `diar_inference.py`, and `st_inference.py` builds and call a 
 
-	class Speech2Text
-    class DiarizeSpeech
+		class Speech2Text
+    		class DiarizeSpeech
 object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object `ESPnetEnhS2TModel` with pre-trained joint-task models and configurations. 
 
 ### Joint-task Control Class `tasks/enh_s2t.py`
 
-	class EnhS2TTask(AbsTask)
+		class EnhS2TTask(AbsTask)
     
 `class EnhS2TTask` is designed for joint-task model. The subtask models are created and sent into the `ESPnetEnhS2TModel` to create a joint-task object. 
 
 
 ### Joint-Task Modules `enh/espnet_enh_s2t_model.py`
-	class ESPnetEnhS2TModel(AbsESPnetModel)
+
+		class ESPnetEnhS2TModel(AbsESPnetModel)
 
 The `ESPnetEnhS2TModel` takes a front-end `enh_model`, and a back-end `s2t_model` (such as ASR, SLU, ST, and SD models) as inputs to build a joint-model.
 
-	def __init__(
-	    self,
-	    enh_model: ESPnetEnhancementModel,
-	    s2t_model: Union[ESPnetASRModel, ESPnetSTModel, ESPnetDiarizationModel],
-	    ...
-	):
+![](https://i.imgur.com/1QaZ68u.png)
 	
 The `forward` function of the class follows the general design in ESPnet2:
 	 
-	 def  forward(self, speech_mix, speech_ref, ...)
+	 	def  forward(self, speech_mix, speech_ref, ...)
 
 which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
 
@@ -212,9 +208,7 @@ Since ESPnet2 provides common scripts such as `enh.sh` and `enh_asr.sh` for each
 
 ![](https://i.imgur.com/aSW6a2M.png)
 
-The detailed instructions for data preparation and building new recipes in espnet2 are described in the following link:
-
-https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE
+The detailed instructions for data preparation and building new recipes in espnet2 are described in the [link](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE).
 
 
 ##  Inference with Pre-trained Models
@@ -224,8 +218,7 @@ Pretrained models from ESPnet are provided on HuggingFace and Zenodo. Users can 
 ### Inference API
 The inference functions are from the `enh_inference` and `enh_asr_inference` in the executable code `bin/`
 
-    from espnet2.bin.enh_inference import SeparateSpeech
-    from espnet2.bin.enh_asr_inference import Speech2Text
+![](https://i.imgur.com/hAjO6Pj.png)
 
 Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results. 
 
@@ -237,7 +230,7 @@ Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the s
 
 ![](https://i.imgur.com/6P3jZpJ.png)
 
-The details for downloading models and inference are described in the following link: https://github.com/espnet/espnet_model_zoo
+The details for downloading models and inference are described in the [link](https://github.com/espnet/espnet_model_zoo).
 
 
 # Demonstrations
