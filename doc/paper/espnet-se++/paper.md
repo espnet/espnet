@@ -230,12 +230,12 @@ The inference functions are from the `enh_inference` and `enh_asr_inference` in 
 Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results. 
 
 #### SSE 
-![](https://i.imgur.com/Z6hBLH7.png)
-![](https://i.imgur.com/8Qtxn6w.png)
+
+![](https://i.imgur.com/cBHjCSV.png)
 
 #### Joint-Task
-![](https://i.imgur.com/HEoRBqj.png)
-![](https://i.imgur.com/1HqG0Xr.png)
+
+![](https://i.imgur.com/6P3jZpJ.png)
 
 The details for downloading models and inference are described in the following link: https://github.com/espnet/espnet_model_zoo
 
