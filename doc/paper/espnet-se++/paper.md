@@ -145,7 +145,9 @@ The SSE scoring functions calculates several popular objective scores such as SI
 
 	 def  forward(self, speech_mix, speech_ref, ...)
 
-The `forward` function of `ESPnetEnhancementModel`  follows the general design in the ESPnet single-task modules, which processes speech and only returns losses for the trainer to update the model. 
+
+The `forward` function of `ESPnetEnhancementModel`  follows the general design in the ESPnet single-task modules, which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
+
 
 	 def  forward_enhance(self, speech_mix, ...)
 	 def  forward_loss(self, speech_pre, speech_ref, ...)
@@ -199,7 +201,7 @@ The `forward` function of the class follows the general design in ESPnet2:
 	 
 	 def  forward(self, speech_mix, speech_ref, ...)
 
-which processes speech and only returns losses for `Trainer` to update the model. 
+which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
 
 
 # ESPnet-SE++ User Interface
@@ -226,9 +228,12 @@ The inference functions are from the `enh_inference` and `enh_asr_inference` in 
 Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results. 
 
 #### SSE 
-![](https://i.imgur.com/skZ8uDP.png)
+![](https://i.imgur.com/Z6hBLH7.png)
+![](https://i.imgur.com/8Qtxn6w.png)
+
 #### Joint-Task
-![](https://i.imgur.com/hrj0hJq.png)
+![](https://i.imgur.com/HEoRBqj.png)
+![](https://i.imgur.com/1HqG0Xr.png)
 
 The details for downloading models and inference are described in the following link: https://github.com/espnet/espnet_model_zoo
 
