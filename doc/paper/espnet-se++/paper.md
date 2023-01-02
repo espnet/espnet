@@ -177,6 +177,7 @@ The `inference` function in `asr_inference.py`, `diar_inference.py`, and `st_inf
 
 		class Speech2Text
     		class DiarizeSpeech
+		
 object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object `ESPnetEnhS2TModel` with pre-trained joint-task models and configurations. 
 
 ### Joint-task Control Class `tasks/enh_s2t.py`
