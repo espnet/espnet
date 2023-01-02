@@ -98,7 +98,7 @@ class S3prlFrontend(AbsFrontend):
         if self.layer != -1:
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]
-            return feats, fests_lens
+            return feats, feats_lens
 
         if self.multilayer_feature:
             feats, feats_lens = self.featurizer(feats, feats_lens)
