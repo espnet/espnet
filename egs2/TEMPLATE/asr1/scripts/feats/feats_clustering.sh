@@ -11,14 +11,14 @@ set -e
 set -u 
 set -o pipefail
 
-cmd=
+cmd=""
 nj=1
 dim=512
-num_cluster=128
+num_clusters=128
 train_set="train"
 valid_set="valid"
-test_set="test"
-all_sets="${train_set} ${valid_set} ${test_set}"
+#test_set="test"
+all_sets="${train_set} ${valid_set}"
 reduce=false
 
 # End configuration section.
@@ -61,22 +61,22 @@ for n in $(seq ${nj}); do
 done
 utils/split_scp.pl "${feats_scp}" ${valid_split_feats_scp}
 
-feats_scp="${uasr_stats_dir}/${test_set}/collect_feats/feats.scp"
-split_dir="${uasr_stats_dir}/${test_set}/collect_feats/split${nj}"
-mkdir -p "${split_dir}"
-test_split_feats_scp=""
-for n in $(seq ${nj}); do
-    mkdir -p "${split_dir}/${n}"
-    test_split_feats_scp="${test_split_feats_scp} ${split_dir}/${n}/feats.scp"        
-done
-utils/split_scp.pl "${feats_scp}" ${test_split_feats_scp}
+#feats_scp="${uasr_stats_dir}/${test_set}/collect_feats/feats.scp"
+#split_dir="${uasr_stats_dir}/${test_set}/collect_feats/split${nj}"
+#mkdir -p "${split_dir}"
+#test_split_feats_scp=""
+#for n in $(seq ${nj}); do
+#    mkdir -p "${split_dir}/${n}"
+#    test_split_feats_scp="${test_split_feats_scp} ${split_dir}/${n}/feats.scp"        
+#done
+#utils/split_scp.pl "${feats_scp}" ${test_split_feats_scp}
 
-echo "Generating ${num_cluster} clusters"
+echo "Generating ${num_clusters} clusters"
 ${cmd} ${logdir}/generate_feats_cluster.log \
     python pyscripts/feats/feats_cluster_faiss.py \
         "${train_feats_scp}" \
         --save-dir "${output_feats_dir}" \
-        -f "CLUS${num_cluster}" \
+        -f "CLUS${num_clusters}" \
         --sample-pct 1.0
 
 for split in ${all_sets}; do
@@ -85,9 +85,9 @@ for split in ${all_sets}; do
           python pyscripts/feats/feats_apply_cluster_faiss.py \
               "${uasr_stats_dir}/${split}/collect_feats/split${nj}/JOB/feats.scp" \
               --split "${split}" \
-              --model_path ${output_feats_dir}/CLUS${num_cluster} \
-              --output_path ${output_feats_dir}/CLUS${num_cluster}/JOB/ \
-              -f "CLUS${num_cluster}"
+              --model_path ${output_feats_dir}/CLUS${num_clusters} \
+              --output_path ${output_feats_dir}/CLUS${num_clusters}/JOB/ \
+              -f "CLUS${num_clusters}"
 done
 
 echo "Computing PCA"
@@ -111,28 +111,37 @@ for split in ${all_sets}; do
     ${cmd} JOB=1:${nj} ${logdir}/merge_clusters_${split}.JOB.log \
         python pyscripts/feats/merge_clusters.py \
           ${output_feats_dir}/precompute_pca$dim/JOB \
-          --cluster-dir ${output_feats_dir}/CLUS${num_cluster}/JOB \
+          --cluster-dir ${output_feats_dir}/CLUS${num_clusters}/JOB \
           --split ${split} \
-          --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean/JOB \
+          --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/JOB \
           --pooling mean
 
     root="$(pwd)/"
     for n in $(seq ${nj}); do
         cut -d ' ' -f1 "${uasr_stats_dir}/${split}/collect_feats/split${nj}/${n}/feats.scp" | \
-            paste -d ' ' - ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean/${n}/${split}.lengths_pure > \
-            ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean/${n}/${split}.lengths
+            paste -d ' ' - ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/${n}/${split}.lengths_pure > \
+            ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/${n}/${split}.lengths
     done
 
     [ -f "${uasr_stats_dir}/${split}/speech_shape" ] && rm "${uasr_stats_dir}/${split}/speech_shape"
     for n in $(seq ${nj}); do
-        cat ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean/${n}/${split}.lengths >> "${uasr_stats_dir}/${split}/speech_shape"
+        cat ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/${n}/${split}.lengths >> "${uasr_stats_dir}/${split}/speech_shape"
     done
     
     echo "Averaging ${split}"
     ${cmd} JOB=1:${nj} ${logdir}/merge_pca_${split}.JOB.log \
         python pyscripts/feats/mean_pool_scp.py \
-            ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean/JOB/ \
-            --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_cluster}_mean_pooled/JOB \
+            ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/JOB/ \
+            --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/JOB \
             --split ${split} \
             --root ${root}
+
+    mkdir -p ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/${split}
+    [ -f ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/${split}/feats.scp ] && \
+        rm ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/${split}/feats.scp
+    for n in $(seq ${nj}); do
+        cat ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/${n}/${split}/feats.scp >> \
+            ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/${split}/feats.scp
+    done
+    
 done

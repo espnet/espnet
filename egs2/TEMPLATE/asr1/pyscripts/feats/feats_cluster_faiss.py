@@ -77,7 +77,7 @@ def main():
     print("Faiss Specs:", faiss_specs)
 
     feats_list = []
-    with open(args.feats_scp, 'r') as f_scp:
+    with open(args.feats_scp, "r") as f_scp:
         for line in f_scp.readlines():
             _, feat_file = line.split()
             feat = np.load(feat_file)
