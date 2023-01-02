@@ -34,6 +34,8 @@ class UASRDiscriminatorLoss(AbsUASRLoss):
         """Forward.
 
         Args:
+            dense_y: predicted logits of generated samples
+            token_y: predicted logits of real samples
         """
         if self.weight > 0:
             fake_smooth = self.smoothing

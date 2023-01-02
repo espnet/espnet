@@ -67,7 +67,7 @@ class ConvGenerator(AbsGenerator):
             self.pad = cfg.generator_pad
             self.bias = cfg.generator_bias
             self.dropout = torch.nn.Dropout(cfg.generator_dropout)
-            # TODO: fix batch_norm
+            # TODO(Dongji): batch_norm is not in cfg
             self.batch_norm = False
             self.batch_norm_weight = cfg.generator_batch_norm
             self.residual = cfg.generator_residual
