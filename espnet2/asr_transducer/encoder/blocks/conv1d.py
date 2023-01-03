@@ -142,7 +142,6 @@ class Conv1d(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         left_context: int = 0,
-        right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode chunk of input sequence.
 
@@ -151,7 +150,6 @@ class Conv1d(torch.nn.Module):
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_in)
             mask: Source mask. (B, T)
             left_context: Number of frames in left context.
-            right_context: Number of frames in right context.
 
         Returns:
             x: Conv1d output sequences. (B, T, D_out)
@@ -159,11 +157,7 @@ class Conv1d(torch.nn.Module):
 
         """
         x = torch.cat([self.cache, x.transpose(1, 2)], dim=2)
-
-        if right_context > 0:
-            self.cache = x[:, :, -(self.lorder + right_context) : -right_context]
-        else:
-            self.cache = x[:, :, -self.lorder :]
+        self.cache = x[:, :, -self.lorder :]
 
         x = self.conv(x)
 

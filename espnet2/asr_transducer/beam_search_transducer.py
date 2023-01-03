@@ -405,6 +405,7 @@ class BeamSearchTransducer:
 
             B_ = []
             B_enc_out = []
+
             for hyp in B:
                 u = len(hyp.yseq) - 1
                 t = i - u

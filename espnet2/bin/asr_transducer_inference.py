@@ -138,12 +138,11 @@ class Speech2Text:
 
         if token_type is None:
             token_type = asr_train_args.token_type
+
         if bpemodel is None:
             bpemodel = asr_train_args.bpemodel
 
-        if token_type is None:
-            tokenizer = None
-        elif token_type == "bpe":
+        if token_type == "bpe":
             if bpemodel is not None:
                 tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
@@ -151,7 +150,6 @@ class Speech2Text:
         else:
             tokenizer = build_tokenizer(token_type=token_type)
         converter = TokenIDConverter(token_list=token_list)
-        logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
         self.asr_train_args = asr_train_args
