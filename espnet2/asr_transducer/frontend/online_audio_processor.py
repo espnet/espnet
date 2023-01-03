@@ -13,7 +13,7 @@ class OnlineAudioProcessor:
         feature_extractor: Feature extractor module.
         normalization_module: Normalization module.
         decoding_window: Size of the decoding window (in ms).
-        encoder_subsampling_factor: Encoder subsampling factor.
+        encoder_sub_factor: Encoder subsampling factor.
         frontend_conf: Frontend configuration.
         device: Device to pin module tensors on.
         audio_sampling_rate: Input sampling rate.
@@ -25,7 +25,7 @@ class OnlineAudioProcessor:
         feature_extractor: torch.nn.Module,
         normalization_module: torch.nn.Module,
         decoding_window: int,
-        encoder_subsampling_factor: int,
+        encoder_sub_factor: int,
         frontend_conf: Dict,
         device: torch.device,
         audio_sampling_rate: int = 16000,
@@ -40,10 +40,7 @@ class OnlineAudioProcessor:
         self.trim_val = math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2)
 
         self.decoding_window = int(decoding_window * audio_sampling_rate / 1000)
-
-        self.offset = (
-            lambda x: 2 * encoder_subsampling_factor + x % encoder_subsampling_factor
-        )
+        self.offset = lambda x: 2 * encoder_sub_factor + x % encoder_sub_factor
 
         self.feature_extractor = feature_extractor
         self.normalization_module = normalization_module
@@ -56,6 +53,9 @@ class OnlineAudioProcessor:
         """Reset cache parameters.
 
         Args:
+            None
+
+        Returns:
             None
 
         """
@@ -115,12 +115,13 @@ class OnlineAudioProcessor:
         return samples, lengths
 
     def get_current_feats(
-        self, feats: torch.Tensor, is_final: bool
+        self, feats: torch.Tensor, feats_length: torch.Tensor, is_final: bool
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get features for current decoding window.
 
         Args:
             feats: Computed features sequence. (1, F, D_feats)
+            feats_length: Computed features sequence length. (1,)
             is_final: Whether feats corresponds to the final chunk of data.
 
         Returns:
@@ -150,7 +151,7 @@ class OnlineAudioProcessor:
 
         self.feats = feats[:, -self.offset(feats.size(1)) :, :]
 
-        feats_length = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
+        feats_length.fill_(feats.size(1))
 
         return feats, feats_length
 
@@ -171,8 +172,8 @@ class OnlineAudioProcessor:
         feats, feats_length = self.feature_extractor(samples, samples_length)
 
         if self.normalization_module is not None:
-            feats, _ = self.normalization_module(feats, feats_length)
+            feats, feats_length = self.normalization_module(feats, feats_length)
 
-        feats, feats_length = self.get_current_feats(feats, is_final)
+        feats, feats_length = self.get_current_feats(feats, feats_length, is_final)
 
         return feats, feats_length

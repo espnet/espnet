@@ -52,9 +52,8 @@ class Speech2Text:
         quantize_dtype: Dynamic quantization data type.
         nbest: Number of final hypothesis.
         streaming: Whether to perform chunk-by-chunk inference.
-        decoding_window: Size of the decoding window (in ms).
+        decoding_window: Size of the decoding window (in milliseconds).
         left_context: Number of frames in left context AFTER subsampling.
-        display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
 
@@ -78,7 +77,6 @@ class Speech2Text:
         streaming: bool = False,
         decoding_window: int = 640,
         left_context: int = 32,
-        display_partial_hypotheses: bool = False,
     ) -> None:
         """Construct a Speech2Text object."""
         super().__init__()
@@ -376,7 +374,7 @@ def inference(
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
         streaming: Whether to perform chunk-by-chunk inference.
-        decoding_window: Audio length (in ms) to process during decoding.
+        decoding_window: Audio length (in milliseconds) to process during decoding.
         left_context: Number of frames in left context AFTER subsampling.
         display_partial_hypotheses: Whether to display partial hypotheses.
 
@@ -459,6 +457,7 @@ def inference(
                 if speech2text.streaming:
                     speech = batch["speech"]
 
+                    decoding_window_ms = decoding_window
                     decoding_window = speech2text.audio_processor.decoding_window
                     decoding_steps = len(speech) // decoding_window
 
@@ -470,12 +469,20 @@ def inference(
                                 speech[i * decoding_window : len(speech)], is_final=True
                             )
                         else:
-                            speech2text.streaming_decode(
+                            part_hyps = speech2text.streaming_decode(
                                 speech[
-                                    (i * decoding_window) : _start + decoding_window - 1
+                                    (i * decoding_window) : _start + decoding_window
                                 ],
                                 is_final=False,
                             )
+
+                            if display_partial_hypotheses:
+                                _result = speech2text.hypotheses_to_results(part_hyps)
+                                _length = (i + 1) * decoding_window_ms
+
+                                logging.info(
+                                    f"Curr. hypothesis (0-{_length}ms): {_result[0][0]}"
+                                )
                 else:
                     final_hyps = speech2text(**batch)
 
@@ -641,7 +648,7 @@ def get_parser():
         "--decoding_window",
         type=int,
         default=640,
-        help="Audio length (in ms) to process during decoding.",
+        help="Audio length (in milliseconds) to process during decoding.",
     )
     parser.add_argument(
         "--left_context",
