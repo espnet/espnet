@@ -359,9 +359,6 @@ fi
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
-
-    lm_token_list="${wordtoken_list}"
-    lm_token_type=word
 else
     lm_token_list="${token_list}"
     lm_token_type="${token_type}"
@@ -1413,7 +1410,7 @@ if ! "${skip_eval}"; then
                 _opts="--token_type ${_tok_type} "
                 if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
                     _type="${_tok_type:0:1}er"
-                    _opts+="--non_linguistic_symbols \"${nlsyms_txt}\" "
+                    _opts+="--non_linguistic_symbols ${nlsyms_txt} "
                     _opts+="--remove_non_linguistic_symbols true "
 
                 elif [ "${_tok_type}" = "bpe" ]; then
