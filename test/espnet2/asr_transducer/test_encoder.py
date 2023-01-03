@@ -239,10 +239,11 @@ def test_wrong_block_arguments(body_conf):
 @pytest.mark.parametrize(
     "input_conf, inputs",
     [
-        ({"block_type": "conv2d", "subsampling_factor": 2}, [2, 2]),
-        ({"block_type": "conv2d", "subsampling_factor": 4}, [6, 6]),
-        ({"block_type": "conv2d", "subsampling_factor": 6}, [10, 5]),
+        ({"subsampling_factor": 2}, [2, 2]),
+        ({"subsampling_factor": 4}, [6, 6]),
+        ({"subsampling_factor": 6}, [10, 5]),
         ({"vgg_like": True}, [6, 6]),
+        ({"vgg_like": True, "subsampling_factor": 6}, [10, 5]),
     ],
 )
 def test_too_short_utterance(input_conf, inputs):
@@ -267,29 +268,29 @@ def test_too_short_utterance(input_conf, inputs):
 
 
 @pytest.mark.parametrize(
-    "body_conf",
+    "input_conf, body_conf",
     [
-        [
-            {
+        (
+            {"subsampling_factor": 8},
+            [{
                 "block_type": "branchformer",
                 "hidden_size": 4,
                 "linear_size": 2,
                 "conv_mod_kernel_size": 1,
-            }
-        ],
-        [
-            {
+            }]
+        ),
+        (
+            {"vgg_like": True, "subsampling_factor": 8},
+            [{
                 "block_type": "conformer",
                 "hidden_size": 4,
                 "linear_size": 2,
                 "conv_mod_kernel_size": 1,
-            }
-        ],
+            }]
+        ),
     ],
 )
-def test_wrong_subsampling_factor(body_conf):
-    input_conf = {"block_type": "conv2d", "subsampling_factor": 8}
-
+def test_wrong_subsampling_factor(input_conf, body_conf):
     with pytest.raises(ValueError):
         _ = Encoder(8, body_conf, input_conf=input_conf)
 
