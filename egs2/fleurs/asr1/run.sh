@@ -34,7 +34,7 @@ if [[ "all" == *"${lang}"* ]]; then
       --lang "${lang}" \
       --auxiliary_data_tags "lid_utt " \
       --local_data_opts "--stage 0 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
-      --post_process_local_data_opts "--stage 3 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
+      --post_process_local_data_opts "--stage 2 --lang ${lang} --nlsyms_txt ${nlsyms_txt}" \
       --audio_format "wav" \
       --use_lm false \
       --feats_normalize utt_mvn \
