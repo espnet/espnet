@@ -4,25 +4,26 @@
 
 """GAN-based Singing-voice-synthesis ESPnet model."""
 
+import logging
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-import logging
 from typing import Any, Dict, Optional
 
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
+from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
-from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-
-from espnet2.svs.feats_extract.score_feats_extract import FrameScoreFeats
-from espnet2.svs.feats_extract.score_feats_extract import SyllableScoreFeats
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.svs.espnet_model import cal_ds, cal_ds_syb
+from espnet2.svs.feats_extract.score_feats_extract import (
+    FrameScoreFeats,
+    SyllableScoreFeats,
+)
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast

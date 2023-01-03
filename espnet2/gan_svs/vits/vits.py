@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
+from espnet2.gan_svs.vits.generator import VITSGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -26,7 +27,6 @@ from espnet2.gan_tts.hifigan.loss import (
     MelSpectrogramLoss,
 )
 from espnet2.gan_tts.utils import get_segments
-from espnet2.gan_svs.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 

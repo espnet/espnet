@@ -9,24 +9,24 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 
+from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
+from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
+from espnet2.gan_svs.vits.length_regulator import LengthRegulator
+from espnet2.gan_svs.vits.modules import Projection, sequence_mask
+from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
+from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
+from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
-from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
-from espnet2.gan_svs.vits.text_encoder import TextEncoder
-from espnet2.gan_svs.vits.length_regulator import LengthRegulator
-from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
-from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.gan_svs.vits.modules import Projection, sequence_mask
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,

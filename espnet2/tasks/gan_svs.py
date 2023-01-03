@@ -17,6 +17,10 @@ from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.svs.feats_extract.score_feats_extract import (
+    FrameScoreFeats,
+    SyllableScoreFeats,
+)
 from espnet2.tasks.abs_task import optim_classes
 from espnet2.tasks.svs import SVSTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -24,8 +28,6 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.gan_trainer import GANTrainer
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
-from espnet2.svs.feats_extract.score_feats_extract import FrameScoreFeats
-from espnet2.svs.feats_extract.score_feats_extract import SyllableScoreFeats
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
