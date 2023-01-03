@@ -213,5 +213,5 @@ if __name__ == "__main__":
 
     tempos = load_midi(args)
 
-    for name in ["train", "eval"]:
+    for name in ["train", "test"]:
         process_subset(args, name, tempos)

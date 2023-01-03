@@ -968,7 +968,7 @@ class SVSPreprocessor(AbsPreprocessor):
         label_name: str = "label",
         midi_name: str = "score",
         fs: np.int32 = 0,
-        time_shift: np.int32 = 0.0125,
+        hop_length: np.int32 = 256,
         align: list = [
             "singing",
             "label_lab",
@@ -990,10 +990,11 @@ class SVSPreprocessor(AbsPreprocessor):
         self.label_name = label_name
         self.midi_name = midi_name
         self.fs = fs
-        self.time_shift = time_shift
+        self.hop_length = hop_length
         self.singing_volume_normalize = singing_volume_normalize
         self.align = align
         self.phn_seg = phn_seg
+        self.time_shift = hop_length / fs
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
