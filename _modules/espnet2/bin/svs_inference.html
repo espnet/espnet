@@ -109,6 +109,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
@@ -186,6 +187,7 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.fileio.npy_scp</span> <span class="kn">import</span> <span class="n">NpyScpWriter</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_svs.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.svs</span> <span class="kn">import</span> <span class="n">SVSTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
@@ -209,14 +211,19 @@
         <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
         <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.667</span><span class="p">,</span>
+        <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
         <span class="n">vocoder_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">vocoder_checkpoint</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">777</span><span class="p">,</span>
+        <span class="n">always_fix_seed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">prefer_normalized_feats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="c1"># setup model</span>
         <span class="n">model</span><span class="p">,</span> <span class="n">train_args</span> <span class="o">=</span> <span class="n">SVSTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
@@ -231,8 +238,10 @@
         <span class="c1"># self.duration_calculator = DurationCalculator() # TODO(Yuning)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_fn</span> <span class="o">=</span> <span class="n">SVSTask</span><span class="o">.</span><span class="n">build_preprocess_fn</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_teacher_forcing</span> <span class="o">=</span> <span class="n">use_teacher_forcing</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">always_fix_seed</span> <span class="o">=</span> <span class="n">always_fix_seed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefer_normalized_feats</span> <span class="o">=</span> <span class="n">prefer_normalized_feats</span>
         <span class="k">if</span> <span class="n">vocoder_checkpoint</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">vocoder</span> <span class="o">=</span> <span class="n">SVSTask</span><span class="o">.</span><span class="n">build_vocoder_from_file</span><span class="p">(</span>
                 <span class="n">vocoder_config</span><span class="p">,</span> <span class="n">vocoder_checkpoint</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">device</span>
@@ -244,11 +253,18 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extractor:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalizer:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SVS:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">svs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vocoder:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="n">decode_config</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">:</span> <span class="n">use_teacher_forcing</span><span class="p">})</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span> <span class="o">=</span> <span class="n">decode_config</span>
+        <span class="c1"># setup decoding config</span>
+        <span class="n">decode_conf</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">decode_conf</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">:</span> <span class="n">use_teacher_forcing</span><span class="p">})</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">svs</span><span class="p">,</span> <span class="n">VITS</span><span class="p">):</span>
+            <span class="n">decode_conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">noise_scale</span><span class="o">=</span><span class="n">noise_scale</span><span class="p">,</span>
+                <span class="n">noise_scale_dur</span><span class="o">=</span><span class="n">noise_scale_dur</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decode_conf</span> <span class="o">=</span> <span class="n">decode_conf</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
@@ -300,6 +316,7 @@
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">beat_ruled_phn</span><span class="o">=</span><span class="n">beat_ruled_phn</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">beat_syb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">beat_syb</span><span class="o">=</span><span class="n">beat_syb</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">label_lab</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">label_lab</span><span class="o">=</span><span class="n">label_lab</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">label_score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -332,31 +349,31 @@
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">)</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_conf</span>
         <span class="k">if</span> <span class="n">decode_conf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_conf</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">cfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">decode_conf</span><span class="p">)</span>
+        <span class="n">output_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
 
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">outs</span><span class="p">,</span> <span class="n">outs_denorm</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">att_ws</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_calculator</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_ws&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">focus_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+            <span class="c1"># duration, focus_rate = self.duration_calculator(att_ws)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">focus_rate</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
-        <span class="k">assert</span> <span class="n">outs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
-        <span class="n">outs</span> <span class="o">=</span> <span class="n">outs</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">outs_denorm</span> <span class="o">=</span> <span class="n">outs_denorm</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># apply vocoder (mel-to-wav)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
-                <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="p">(</span><span class="n">outs_denorm</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefer_normalized_feats</span>
+                <span class="ow">or</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">wav</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span>
+            <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="p">(</span><span class="n">input_feat</span><span class="p">)</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wav</span><span class="o">=</span><span class="n">wav</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">wav</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">outs_denorm</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span>
+        <span class="k">return</span> <span class="n">output_dict</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
@@ -402,6 +419,8 @@
     <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">vocoder_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">vocoder_checkpoint</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -430,6 +449,8 @@
         <span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span>
         <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="o">=</span><span class="n">use_teacher_forcing</span><span class="p">,</span>
+        <span class="n">noise_scale</span><span class="o">=</span><span class="n">noise_scale</span><span class="p">,</span>
+        <span class="n">noise_scale_dur</span><span class="o">=</span><span class="n">noise_scale_dur</span><span class="p">,</span>
         <span class="n">vocoder_config</span><span class="o">=</span><span class="n">vocoder_config</span><span class="p">,</span>
         <span class="n">vocoder_checkpoint</span><span class="o">=</span><span class="n">vocoder_checkpoint</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
@@ -493,57 +514,70 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;keys: </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
             <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-            <span class="p">(</span>
-                <span class="n">wav</span><span class="p">,</span>
-                <span class="n">outs</span><span class="p">,</span>
-                <span class="n">outs_denorm</span><span class="p">,</span>
-                <span class="n">probs</span><span class="p">,</span>
-                <span class="n">att_ws</span><span class="p">,</span>
-                <span class="n">duration</span><span class="p">,</span>
-                <span class="n">focus_rate</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">=</span> <span class="n">singingGenerate</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+            <span class="n">output_dict</span> <span class="o">=</span> <span class="n">singingGenerate</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
 
             <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">insize</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;inference speed = </span><span class="si">{:.1f}</span><span class="s2"> frames / sec.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="nb">int</span><span class="p">(</span><span class="n">outs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># standard text2mel model case</span>
+                <span class="n">feat_gen</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;inference speed = </span><span class="si">{:.1f}</span><span class="s2"> frames / sec.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">feat_gen</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
-            <span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> (size:</span><span class="si">{</span><span class="n">insize</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">outs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> (size:</span><span class="si">{</span><span class="n">insize</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">feat_gen</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 
-            <span class="n">norm_writer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">outs</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-            <span class="n">shape_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> &quot;</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">outs</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">norm_writer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">shape_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> &quot;</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">denorm_writer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># end-to-end text2wav model case</span>
+                <span class="n">wav</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;wav&quot;</span><span class="p">]</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;inference speed = </span><span class="si">{:.1f}</span><span class="s2"> points / sec.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">wav</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> (size:</span><span class="si">{</span><span class="n">insize</span><span class="si">}</span><span class="s2">-&gt;</span><span class="si">{</span><span class="n">wav</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 
-            <span class="n">denorm_writer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">outs_denorm</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-
-            <span class="k">if</span> <span class="n">duration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;duration&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Save duration and fucus rates</span>
                 <span class="n">duration_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> &quot;</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">duration</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()))</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
-                <span class="n">focus_rate_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">focus_rate</span><span class="p">)</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;focus_rate&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">focus_rate_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">float</span><span class="p">(</span><span class="n">output_dict</span><span class="p">[</span><span class="s1">&#39;focus_rate&#39;</span><span class="p">])</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_w&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Plot attention weight</span>
-                <span class="n">att_ws</span> <span class="o">=</span> <span class="n">att_ws</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;att_w&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-                <span class="k">if</span> <span class="n">att_ws</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                    <span class="n">att_ws</span> <span class="o">=</span> <span class="n">att_ws</span><span class="p">[</span><span class="kc">None</span><span class="p">][</span><span class="kc">None</span><span class="p">]</span>
-                <span class="k">elif</span> <span class="n">att_ws</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must be 2 or 4 dimension: </span><span class="si">{</span><span class="n">att_ws</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">att_w</span> <span class="o">=</span> <span class="n">att_w</span><span class="p">[</span><span class="kc">None</span><span class="p">][</span><span class="kc">None</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must be 2 or 4 dimension: </span><span class="si">{</span><span class="n">att_w</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-                <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
                 <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span>
                     <span class="n">figsize</span><span class="o">=</span><span class="p">(</span>
-                        <span class="n">w</span> <span class="o">*</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">2.5</span><span class="p">),</span>
-                        <span class="n">h</span> <span class="o">*</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">2.5</span><span class="p">),</span>
+                        <span class="n">w</span> <span class="o">*</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">2.5</span><span class="p">),</span>
+                        <span class="n">h</span> <span class="o">*</span> <span class="mf">1.3</span> <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mf">2.5</span><span class="p">),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">att_ws</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_ws</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">att_w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="n">axes</span> <span class="o">=</span> <span class="p">[[</span><span class="n">axes</span><span class="p">]]</span>
-                <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">att_w</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
                     <span class="k">for</span> <span class="n">ax_</span><span class="p">,</span> <span class="n">att_w_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">att_w</span><span class="p">):</span>
                         <span class="n">ax_</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">att_w_</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">aspect</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">)</span>
                         <span class="n">ax_</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Input&quot;</span><span class="p">)</span>
@@ -555,13 +589,13 @@
                 <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;att_ws/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
                 <span class="n">fig</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
 
-            <span class="k">if</span> <span class="n">probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prob&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="c1"># Plot stop token prediction</span>
-                <span class="n">probs</span> <span class="o">=</span> <span class="n">probs</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="n">prob</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;prob&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
                 <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">()</span>
                 <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Output&quot;</span><span class="p">)</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Stop probability&quot;</span><span class="p">)</span>
@@ -572,21 +606,29 @@
                 <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;probs/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
                 <span class="n">fig</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
             <span class="c1"># TODO(kamo): Write scp</span>
-            <span class="k">if</span> <span class="n">wav</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;wav&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">sf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/wav/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.wav&quot;</span><span class="p">,</span>
-                    <span class="n">wav</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+                    <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;wav&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
                     <span class="n">singingGenerate</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
                     <span class="s2">&quot;PCM_16&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
 
-    <span class="c1"># remove duration related files if attention is not provided</span>
-    <span class="k">if</span> <span class="n">att_ws</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># remove files if those are not included in output dict</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;norm&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;denorm&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_w&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;att_ws&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;duration&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;durations&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;focus_rate&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;focus_rates&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">probs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;probs&quot;</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;prob&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;probs&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;wav&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;wav&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.svs_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
@@ -679,6 +721,18 @@
         <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to use teacher forcing&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noise_scale&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.667</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Noise scale parameter for the flow in vits&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noise_scale_dur&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Noise scale parameter for the stochastic duration predictor in vits&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Vocoder related&quot;</span><span class="p">)</span>
