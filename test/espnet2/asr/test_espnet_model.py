@@ -29,7 +29,7 @@ def test_espnet_model(encoder_arch, aux_ctc):
         decoder=decoder,
         ctc=ctc,
         joint_network=None,
-        aux_ctc=aux_ctc
+        aux_ctc=aux_ctc,
     )
 
     inputs = dict(
