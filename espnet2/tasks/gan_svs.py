@@ -1,63 +1,50 @@
-"""Singing-voice-synthesis task."""
+# Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""GAN-based Singing-voice-synthesis task."""
 
 import argparse
 import logging
-from pathlib import Path
-from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import List
 
-import numpy as np
 import torch
-import yaml
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
+from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
-from espnet2.svs.abs_svs import AbsSVS
-from espnet2.svs.espnet_model import ESPnetSVSModel
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
 )
-from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
-from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
-from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
-
-# TODO(Yuning): Models to be added
-# from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
-# from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
-# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
-from espnet2.tasks.abs_task import AbsTask
+from espnet2.tasks.abs_task import optim_classes
+from espnet2.tasks.svs import SVSTask
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import SVSPreprocessor
-from espnet2.train.trainer import Trainer
+from espnet2.train.gan_trainer import GANTrainer
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
-# from espnet2.svs.bytesing.bytesing import ByteSing
-from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-
-# TODO(Yuning): Add singing augmentation
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(
         fbank=LogMelFbank,
-        spectrogram=LogSpectrogram,
+        log_spectrogram=LogSpectrogram,
         linear_spectrogram=LinearSpectrogram,
     ),
     type_check=AbsFeatsExtract,
-    default="fbank",
+    default="linear_spectrogram",
 )
 
 score_feats_extractor_choices = ClassChoices(
@@ -85,21 +72,30 @@ energy_extractor_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
-    default="global_mvn",
+    default=None,
     optional=True,
 )
 pitch_normalize_choices = ClassChoices(
     "pitch_normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
 )
 energy_normalize_choices = ClassChoices(
     "energy_normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
@@ -107,23 +103,18 @@ energy_normalize_choices = ClassChoices(
 svs_choices = ClassChoices(
     "svs",
     classes=dict(
-        # transformer=Transformer,
-        # glu_transformer=GLU_Transformer,
-        # bytesing=ByteSing,
-        naive_rnn=NaiveRNN,
-        naive_rnn_dp=NaiveRNNDP,
-        xiaoice=XiaoiceSing,
-        # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
-        # mlp=MLPSinger,
     ),
-    type_check=AbsSVS,
-    default="naive_rnn",
+    type_check=AbsGANSVS,
+    default="vits",
 )
 
 
-class SVSTask(AbsTask):
-    num_optimizers: int = 1
+class GANSVSTask(SVSTask):
+    """GAN-based Singing-voice-synthesis task."""
+
+    # GAN requires two optimizers
+    num_optimizers: int = 2
 
     # Add variable objects configurations
     class_choices_list = [
@@ -145,8 +136,8 @@ class SVSTask(AbsTask):
         energy_normalize_choices,
     ]
 
-    # If you need to modify train() or eval() procedures, change Trainer class here
-    trainer = Trainer
+    # Use GANTrainer instead of Trainer
+    trainer = GANTrainer
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -174,7 +165,7 @@ class SVSTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetSVSModel),
+            default=get_default_kwargs(ESPnetGANSVSModel),
             help="The keyword arguments for model class.",
         )
 
@@ -206,26 +197,14 @@ class SVSTask(AbsTask):
         parser.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
             default=None,
             help="Apply text cleaning",
         )
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[
-                None,
-                "g2p_en",
-                "g2p_en_no_space",
-                "pyopenjtalk",
-                "pyopenjtalk_kana",
-                "pyopenjtalk_accent",
-                "pyopenjtalk_accent_with_pause",
-                "pypinyin_g2p",
-                "pypinyin_g2p_phone",
-                "pypinyin_g2p_phone_without_prosody",
-                "espeak_ng_arabic",
-            ],
+            choices=g2p_choices,
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
@@ -243,67 +222,7 @@ class SVSTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
-        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
-        Tuple[List[str], Dict[str, torch.Tensor]],
-    ]:
-        assert check_argument_types()
-        return CommonCollateFn(
-            float_pad_value=0.0,
-            int_pad_value=0,
-            not_sequence=["spembs", "sids", "lids"],
-        )
-
-    @classmethod
-    def build_preprocess_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
-        assert check_argument_types()
-        if args.use_preprocessor:
-            retval = SVSPreprocessor(
-                train=train,
-                token_type=args.token_type,
-                token_list=args.token_list,
-                bpemodel=args.bpemodel,
-                non_linguistic_symbols=args.non_linguistic_symbols,
-                text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
-                fs=args.fs,
-                hop_length=args.feats_extract_conf["hop_length"],
-            )
-        else:
-            retval = None
-        # FIXME (jiatong): sometimes checking is not working here
-        # assert check_return_type(retval)
-        return retval
-
-    # TODO(Yuning): check new names
-    @classmethod
-    def required_data_names(
-        cls, train: bool = True, inference: bool = False
-    ) -> Tuple[str, ...]:
-        if not inference:
-            retval = ("text", "singing", "score", "label")
-        else:
-            # Inference mode
-            retval = ("text", "score", "label")
-        return retval
-
-    @classmethod
-    def optional_data_names(
-        cls, train: bool = True, inference: bool = False
-    ) -> Tuple[str, ...]:
-        if not inference:
-            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
-        else:
-            # Inference mode
-            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
-        return retval
-
-    @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSVSModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -359,42 +278,37 @@ class SVSTask(AbsTask):
                 **args.score_feats_extract_conf
             )
         if getattr(args, "pitch_extract", None) is not None:
-            pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract)
-            if args.pitch_extract_conf.get("reduction_factor", None) is not None:
-                assert args.pitch_extract_conf.get(
-                    "reduction_factor", None
-                ) == args.svs_conf.get("reduction_factor", 1)
-            else:
-                args.pitch_extract_conf["reduction_factor"] = args.svs_conf.get(
-                    "reduction_factor", 1
-                )
-            pitch_extract = pitch_extract_class(**args.pitch_extract_conf)
-        if getattr(args, "energy_extract", None) is not None:
-            if args.energy_extract_conf.get("reduction_factor", None) is not None:
-                assert args.energy_extract_conf.get(
-                    "reduction_factor", None
-                ) == args.svs_conf.get("reduction_factor", 1)
-            else:
-                args.energy_extract_conf["reduction_factor"] = args.svs_conf.get(
-                    "reduction_factor", 1
-                )
-            energy_extract_class = energy_extractor_choices.get_class(
-                args.energy_extract
+            pitch_extract_class = pitch_extractor_choices.get_class(
+                args.pitch_extract,
             )
-            energy_extract = energy_extract_class(**args.energy_extract_conf)
+
+            pitch_extract = pitch_extract_class(
+                **args.pitch_extract_conf,
+            )
+        if getattr(args, "energy_extract", None) is not None:
+            energy_extract_class = energy_extractor_choices.get_class(
+                args.energy_extract,
+            )
+            energy_extract = energy_extract_class(
+                **args.energy_extract_conf,
+            )
         if getattr(args, "pitch_normalize", None) is not None:
             pitch_normalize_class = pitch_normalize_choices.get_class(
-                args.pitch_normalize
+                args.pitch_normalize,
             )
-            pitch_normalize = pitch_normalize_class(**args.pitch_normalize_conf)
+            pitch_normalize = pitch_normalize_class(
+                **args.pitch_normalize_conf,
+            )
         if getattr(args, "energy_normalize", None) is not None:
             energy_normalize_class = energy_normalize_choices.get_class(
-                args.energy_normalize
+                args.energy_normalize,
             )
-            energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+            energy_normalize = energy_normalize_class(
+                **args.energy_normalize_conf,
+            )
 
         # 5. Build model
-        model = ESPnetSVSModel(
+        model = ESPnetGANSVSModel(
             text_extract=score_feats_extract,
             feats_extract=feats_extract,
             score_feats_extract=score_feats_extract,
@@ -413,43 +327,55 @@ class SVSTask(AbsTask):
         return model
 
     @classmethod
-    def build_vocoder_from_file(
+    def build_optimizers(
         cls,
-        vocoder_config_file: Union[Path, str] = None,
-        vocoder_file: Union[Path, str] = None,
-        model: Optional[ESPnetSVSModel] = None,
-        device: str = "cpu",
-    ):
+        args: argparse.Namespace,
+        model: ESPnetGANSVSModel,
+    ) -> List[torch.optim.Optimizer]:
+        # check
+        assert hasattr(model.svs, "generator")
+        assert hasattr(model.svs, "discriminator")
 
-        logging.info(f"vocoder_config_file: {vocoder_config_file}")
-        logging.info(f"vocoder_file: {vocoder_file}")
-
-        # Build vocoder
-        if vocoder_file is None:
-            # If vocoder file is not provided, use griffin-lim as a vocoder
-            vocoder_conf = {}
-            if vocoder_config_file is not None:
-                vocoder_config_file = Path(vocoder_config_file)
-                with vocoder_config_file.open("r", encoding="utf-8") as f:
-                    vocoder_conf = yaml.safe_load(f)
-            if model.feats_extract is not None:
-                vocoder_conf.update(model.feats_extract.get_parameters())
-            if (
-                "n_fft" in vocoder_conf
-                and "n_shift" in vocoder_conf
-                and "fs" in vocoder_conf
-            ):
-                return Spectrogram2Waveform(**vocoder_conf)
-            else:
-                logging.warning("Vocoder is not available. Skipped its building.")
-                return None
-
-        elif str(vocoder_file).endswith(".pkl"):
-            # If the extension is ".pkl", the model is trained with parallel_wavegan
-            vocoder = ParallelWaveGANPretrainedVocoder(
-                vocoder_file, vocoder_config_file
+        # define generator optimizer
+        optim_g_class = optim_classes.get(args.optim)
+        if optim_g_class is None:
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
+        if args.sharded_ddp:
+            try:
+                import fairscale
+            except ImportError:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            optim_g = fairscale.optim.oss.OSS(
+                params=model.svs.generator.parameters(),
+                optim=optim_g_class,
+                **args.optim_conf,
             )
-            return vocoder.to(device)
-
         else:
-            raise ValueError(f"{vocoder_file} is not supported format.")
+            optim_g = optim_g_class(
+                model.svs.generator.parameters(),
+                **args.optim_conf,
+            )
+        optimizers = [optim_g]
+
+        # define discriminator optimizer
+        optim_d_class = optim_classes.get(args.optim2)
+        if optim_d_class is None:
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim2}")
+        if args.sharded_ddp:
+            try:
+                import fairscale
+            except ImportError:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            optim_d = fairscale.optim.oss.OSS(
+                params=model.svs.discriminator.parameters(),
+                optim=optim_d_class,
+                **args.optim2_conf,
+            )
+        else:
+            optim_d = optim_d_class(
+                model.svs.discriminator.parameters(),
+                **args.optim2_conf,
+            )
+        optimizers += [optim_d]
+
+        return optimizers
