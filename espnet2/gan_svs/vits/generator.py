@@ -8,7 +8,6 @@ This code is based on https://github.com/jaywalnut310/vits.
 
 """
 
-import math
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -26,11 +25,7 @@ from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,
-    ScaledPositionalEncoding,
-)
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 class VITSGenerator(torch.nn.Module):

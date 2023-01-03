@@ -4,9 +4,7 @@
 
 """GAN-based Singing-voice-synthesis ESPnet model."""
 
-import logging
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
@@ -194,7 +192,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             # score : 128 midi pitch
             # tempo : bpm
             # duration :
-            #   input-> phone-id seqence | output -> frame level(take mode from window) or syllable level
+            #   input-> phone-id seqence
+            #   output -> frame level(take mode from window) or syllable level
             ds = None
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -222,7 +221,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
                 # calculate durations, new text & text_length
                 # Syllable Level duration info needs phone
-                # NOTE(Shuai) Duplicate adjacent phones will appear in text files sometimes
+                # NOTE(Shuai) Duplicate adjacent phones appear in text files sometimes
                 # e.g. oniku_0000000000000000hato_0002
                 # 10.951 11.107 sh
                 # 11.107 11.336 i
@@ -755,7 +754,9 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             and tempo_score_lengths == beat_score_phn_lengths
         )
 
-        # unsqueeze of singing must be here, or it'll cause error in the return dim of STFT
+        # unsqueeze of singing must be here
+        # or it'll cause error in the return dim of STFT
+
         # for data-parallel
         text = text.unsqueeze(0)
 
@@ -781,7 +782,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         # score : 128 midi pitch
         # tempo : bpm
         # duration :
-        #   input-> phone-id seqence | output -> frame level(取众数 from window) or syllable level
+        #   input-> phone-id seqence
+        #   output -> frame level(取众数 from window) or syllable level
         ds = None
         batch_size = text.size(0)
         assert batch_size == 1

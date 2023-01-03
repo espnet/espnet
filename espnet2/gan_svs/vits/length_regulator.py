@@ -19,6 +19,7 @@ class LengthRegulator(torch.nn.Module):
 
     def __init__(self, pad_value=0.0):
         """Initilize length regulator module.
+
         Args:
             pad_value (float, optional): Value used for padding.
         """
@@ -31,7 +32,6 @@ class LengthRegulator(torch.nn.Module):
     def LR(self, xs, notepitch, ds):
         output = list()
         frame_pitch = list()
-        mel_len = list()
         xs = torch.transpose(xs, 1, -1)
         frame_lengths = list()
 
