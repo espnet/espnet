@@ -711,8 +711,6 @@ if ! "${skip_train}"; then
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${svs_stats_dir}/train/singing_shape "
-                # _opts+="--train_shape_file ${svs_stats_dir}/train/durations_shape "
-                # _opts+="--train_shape_file ${svs_stats_dir}/train/score_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
@@ -720,8 +718,6 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score.scp,score,score "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
-            # _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
-            # _opts+="--valid_shape_file ${svs_stats_dir}/valid/score_shape "
         else
             log "CASE 2: Non-AR model training"
             #####################################
