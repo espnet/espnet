@@ -58,7 +58,8 @@ class Conformer(torch.nn.Module):
         """Initialize/Reset self-attention and convolution modules cache for streaming.
 
         Args:
-            left_context: Number of left frames during chunk-by-chunk inference.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
             device: Device to use for cache tensor.
 
         """
@@ -147,7 +148,8 @@ class Conformer(torch.nn.Module):
             x: Conformer input sequences. (B, T, D_block)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
             mask: Source mask. (B, T_2)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)

@@ -33,7 +33,8 @@ class MultiBlocks(torch.nn.Module):
         """Initialize/Reset encoder streaming cache.
 
         Args:
-            left_context: Number of left frames during chunk-by-chunk inference.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk (used by Conformer and Branchformer block).
             device: Device to use for cache tensor.
 
         """
@@ -79,7 +80,8 @@ class MultiBlocks(torch.nn.Module):
             x: MultiBlocks input sequences. (B, T, D_block_1)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
             mask: Source mask. (B, T_2)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk (used by Conformer and Branchformer block).
 
         Returns:
             x: MultiBlocks output sequences. (B, T, D_block_N)

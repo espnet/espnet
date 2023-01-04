@@ -88,7 +88,7 @@ def get_convinput_module_parameters(
 def make_chunk_mask(
     size: int,
     chunk_size: int,
-    left_chunk_size: int = 0,
+    num_left_chunks: int = 0,
     device: torch.device = None,
 ) -> torch.Tensor:
     """Create chunk mask for the subsequent steps (size, size).
@@ -98,7 +98,8 @@ def make_chunk_mask(
     Args:
         size: Size of the source mask.
         chunk_size: Number of frames in chunk.
-        left_chunk_size: Size of the left context in chunks (0 means full context).
+        num_left_chunks: Number of left chunks the attention module can see.
+                           (null or negative value means full context)
         device: Device for the mask tensor.
 
     Returns:
@@ -108,10 +109,10 @@ def make_chunk_mask(
     mask = torch.zeros(size, size, device=device, dtype=torch.bool)
 
     for i in range(size):
-        if left_chunk_size <= 0:
+        if num_left_chunks <= 0:
             start = 0
         else:
-            start = max((i // chunk_size - left_chunk_size) * chunk_size, 0)
+            start = max((i // chunk_size - num_left_chunks) * chunk_size, 0)
 
         end = min((i // chunk_size + 1) * chunk_size, size)
         mask[i, start:end] = True

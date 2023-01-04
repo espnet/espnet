@@ -633,28 +633,23 @@ For a complete explanation on the different procedure and parameters, we refer t
 
 #### Training
 
-To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`. From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`).
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in `main_conf` (See section [Encoder](https://github.com/espnet/espnet/blob/master/doc/espnet2_tutorial.md#encoder). From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`num_left_chunks`).
 
 All these parameters can be configured through `main_conf`, introduced in the Encoder section:
 
     dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
     short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
     short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
-    left_chunk_size: Number of frames in left context. (int, default = 0)
+    num_left_chunks: The number of left chunks the attention module can see during training, where the actual size is defined by `short_chunk_threshold` and `short_chunk_size`. (int, default = 0, i.e. full context)
 
 #### Decoding
 
-To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration(otherwise, offline decoding will be performed). Three parameters are available to control the decoding process:
+To perform chunk-by-chunk inference, the parameter `streaming` should be set to True in the decoding configuration (otherwise, offline decoding will be performed). Two parameters are available to control the decoding process:
 
-    chunk_size: Number of frames in chunk. (int, default = 16)
-    left_context: Number of frames in the left context. (int, default = 32)
-    right_context: Number of frames in the right context. (int, default = 0)
+    decoding_window: The input audio length, in milliseconds, to process during decoding. (int, default = 640)
+    left_context: Number of previous frames (AFTER subsampling) the attention module can see in current chunk. (int, default = 32)
 
-For each parameter, the number of frames is defined AFTER subsampling, meaning the input chunk will be bigger than the one provided. The input size is determined by the frontend and the input block's subsampling, given `chunk_size + right_context` defining the decoding window.
-
-***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
-
-***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
+***Note:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
 
 ### FAQ
 

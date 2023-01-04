@@ -57,13 +57,14 @@ class Encoder(torch.nn.Module):
         self.dynamic_chunk_training = main_params["dynamic_chunk_training"]
         self.short_chunk_threshold = main_params["short_chunk_threshold"]
         self.short_chunk_size = main_params["short_chunk_size"]
-        self.left_chunk_size = main_params["left_chunk_size"]
+        self.num_left_chunks = main_params["num_left_chunks"]
 
     def reset_cache(self, left_context: int, device: torch.device) -> None:
         """Initialize/Reset encoder cache for streaming.
 
         Args:
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames (AFTER subsampling) the attention
+                          module can see in current chunk.
             device: Device ID.
 
         """
@@ -114,7 +115,7 @@ class Encoder(torch.nn.Module):
             chunk_mask = make_chunk_mask(
                 x.size(1),
                 chunk_size,
-                left_chunk_size=self.left_chunk_size,
+                num_left_chunks=self.num_left_chunks,
                 device=x.device,
             )
         else:
@@ -142,7 +143,8 @@ class Encoder(torch.nn.Module):
             x: Encoder input features. (1, T_in, F)
             x_len: Encoder input features lengths. (1,)
             processed_frames: Number of frames already seen.
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames (AFTER subsampling) the attention
+                          module can see in current chunk.
 
         Returns:
            x: Encoder outputs. (B, T_out, D_enc)

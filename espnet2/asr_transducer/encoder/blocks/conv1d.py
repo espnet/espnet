@@ -84,7 +84,8 @@ class Conv1d(torch.nn.Module):
         """Initialize/Reset Conv1d cache for streaming.
 
         Args:
-            left_context: Number of left frames during chunk-by-chunk inference.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk (not used here).
             device: Device to use for cache tensor.
 
         """
@@ -149,7 +150,8 @@ class Conv1d(torch.nn.Module):
             x: Conv1d input sequences. (B, T, D_in)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_in)
             mask: Source mask. (B, T)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk (not used here).
 
         Returns:
             x: Conv1d output sequences. (B, T, D_out)

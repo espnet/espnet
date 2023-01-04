@@ -37,7 +37,7 @@ def build_main_parameters(
     dynamic_chunk_training: bool = False,
     short_chunk_threshold: float = 0.75,
     short_chunk_size: int = 25,
-    left_chunk_size: int = 0,
+    num_left_chunks: int = 0,
     **activation_parameters,
 ) -> Dict[str, Any]:
     """Build encoder main parameters.
@@ -55,7 +55,8 @@ def build_main_parameters(
         dynamic_chunk_training: Whether to use dynamic chunk training.
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
-        left_chunk_size: Number of frames in left context.
+        num_left_chunks: Number of left chunks the attention module can see.
+                           (null or negative value means full context)
         **activations_parameters: Parameters of the activation functions.
                                     (See espnet2/asr_transducer/activation.py)
 
@@ -89,7 +90,7 @@ def build_main_parameters(
     main_params["dynamic_chunk_training"] = dynamic_chunk_training
     main_params["short_chunk_threshold"] = max(0, short_chunk_threshold)
     main_params["short_chunk_size"] = max(0, short_chunk_size)
-    main_params["left_chunk_size"] = max(0, left_chunk_size)
+    main_params["num_left_chunks"] = max(0, num_left_chunks)
 
     return main_params
 
