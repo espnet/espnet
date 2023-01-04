@@ -1,6 +1,5 @@
 """Online processor for Transducer models chunk-by-chunk streaming decoding."""
 
-import math
 from typing import Dict, Tuple
 
 import torch
@@ -37,7 +36,7 @@ class OnlineAudioProcessor:
         self.win_sz = frontend_conf.get("win_sz", self.n_fft)
 
         self.win_hop_sz = self.win_sz - self.hop_sz
-        self.trim_val = math.ceil(math.ceil(self.win_sz / self.hop_sz) / 2)
+        self.trim_val = (self.win_sz // -self.hop_sz) // -2
 
         self.decoding_window = int(decoding_window * audio_sampling_rate / 1000)
         self.offset = lambda x: 2 * encoder_sub_factor + x % encoder_sub_factor
