@@ -53,7 +53,8 @@ class Speech2Text:
         nbest: Number of final hypothesis.
         streaming: Whether to perform chunk-by-chunk inference.
         decoding_window: Size of the decoding window (in milliseconds).
-        left_context: Number of frames in left context AFTER subsampling.
+        left_context: Number of previous frames the attention module can see
+                      in current chunk (used by Conformer and Branchformer block).
 
     """
 
@@ -373,7 +374,8 @@ def inference(
         quantize_dtype: Dynamic quantization data type.
         streaming: Whether to perform chunk-by-chunk inference.
         decoding_window: Audio length (in milliseconds) to process during decoding.
-        left_context: Number of frames in left context AFTER subsampling.
+        left_context: Number of previous frames the attention module can see
+                      in current chunk (used by Conformer and Branchformer block).
         display_partial_hypotheses: Whether to display partial hypotheses.
 
     """
@@ -652,8 +654,8 @@ def get_parser():
         "--left_context",
         type=int,
         default=32,
-        help="""Number of previous frames seen by the encoder during decoding.
-        The given number is after applying subsampling.""",
+        help="""Number of previous frames (AFTER subsamplingà the attention module
+        can see in current chunk (used by Conformer and Branchformer block).""",
     )
     parser.add_argument(
         "--display_partial_hypotheses",
