@@ -1,89 +1,39 @@
-# Copyright 2020 Nagoya University (Tomoki Hayashi)
-# Copyright 2021 Carnegie Mellon University (Jiatong Shi)
-# Copyright 2022 Renmin University of China (Yuning Wu)
+# Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Singing-voice-synthesis ESPnet model."""
+"""GAN-based Singing-voice-synthesis ESPnet model."""
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
+from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
-from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.espnet_model import cal_ds, cal_ds_syb
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
 )
-from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
-    # Nothing to do if torch<1.6.0
+    # Nothing to do if torch < 1.6.0
     @contextmanager
     def autocast(enabled=True):  # NOQA
         yield
 
 
-def cal_ds(ilen, label, midi, beat, ref_len, ref_label, ref_midi, ref_beat):
-    """Calculate frame expanding length for each label."""
-    ds = []
-    i = 0
-    j = 0
-    while i < ilen:
-        _label = label[i]
-        _midi = midi[i]
-        _beat = beat[i]
-        same = 1
-        i += 1
-        # If adjacent notes are the same, frame counts should be averaged.
-        while i < ilen and label[i] == _label and midi[i] == _midi and beat[i] == _beat:
-            same += 1
-            i += 1
-        # Count for the length
-        cnt = 0
-        while (
-            j < ref_len
-            and ref_label[j] == _label
-            and ref_midi[j] == _midi
-            and ref_beat[j] == _beat
-        ):
-            cnt += 1
-            j += 1
-        # Calculate Average length for same notes
-        ave = int(cnt / same)
-        for k in range(same - 1):
-            ds.append(ave)
-            cnt -= ave
-        ds.append(cnt)
-    assert j == ref_len
-    return ds
-
-
-def cal_ds_syb(ds, phn_cnt):
-    """Calculate frame expanding length for each syllable."""
-    ds_syb = []
-    pos = 0
-    # Sum up phone frames in each syllable
-    for cnt in phn_cnt:
-        d = 0
-        for k in range(pos, pos + cnt):
-            d += ds[k]
-        pos += cnt
-        for k in range(cnt):
-            ds_syb.append(d)
-    return ds_syb
-
-
-class ESPnetSVSModel(AbsESPnetModel):
-    """ESPnet model for singing voice synthesis task."""
+class ESPnetGANSVSModel(AbsGANESPnetModel):
+    """ESPnet model for GAN-based text-to-speech task."""
 
     def __init__(
         self,
@@ -98,9 +48,9 @@ class ESPnetSVSModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
-        svs: AbsSVS,
+        svs: AbsGANSVS,
     ):
-        """Initialize ESPnetSVSModel module."""
+        """Initialize ESPnetGANSVSModel module."""
         assert check_argument_types()
         super().__init__()
         self.text_extract = text_extract
@@ -115,6 +65,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
         self.svs = svs
+        assert hasattr(
+            svs, "generator"
+        ), "generator module must be registered as svs.generator"
+        assert hasattr(
+            svs, "discriminator"
+        ), "discriminator module must be registered as svs.discriminator"
 
     def forward(
         self,
@@ -162,10 +118,10 @@ class ESPnetSVSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
-        flag_IsValid=False,
+        forward_generator: bool = True,
         **kwargs,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Caclualte outputs and return the loss tensor.
+    ) -> Dict[str, Any]:
+        """Return generator or discriminator loss with dict format.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
@@ -213,23 +169,25 @@ class ESPnetSVSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            forward_generator (bool): Whether to forward generator.
             kwargs: "utt_id" is among the input.
 
         Returns:
-            Tensor: Loss scalar tensor.
-            Dict[str, float]: Statistics to be monitored.
-            Tensor: Weight tensor to summarize losses.
+            Dict[str, Any]:
+                - loss (Tensor): Loss scalar tensor.
+                - stats (Dict[str, float]): Statistics to be monitored.
+                - weight (Tensor): Weight tensor to summarize losses.
+                - optim_idx (int): Optimizer index (0 for G and 1 for D).
+
         """
         with autocast(False):
             # Extract features
+            feats = None
             if self.feats_extract is not None:
                 feats, feats_lengths = self.feats_extract(
-                    singing, singing_lengths
-                )  # singing to spec feature (frame level)
-            else:
-                # Use precalculated feats (feats_type != raw case)
-                feats, feats_lengths = singing, singing_lengths
-
+                    singing,
+                    singing_lengths,
+                )
             # Extract auxiliary features
             # score : 128 midi pitch
             # tempo : bpm
@@ -419,7 +377,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                     durations=label_lab,
                     durations_lengths=label_lab_lengths,
                 )
-
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
                     singing,
@@ -441,16 +398,17 @@ class ESPnetSVSModel(AbsESPnetModel):
         batch = dict(
             text=text,
             text_lengths=text_lengths,
-            feats=feats,
-            feats_lengths=feats_lengths,
-            flag_IsValid=flag_IsValid,
+            forward_generator=forward_generator,
         )
+
+        # Update batch for additional auxiliary inputs
 
         # label
         # NOTE(Yuning): Label can be word, syllable or phoneme,
         # which is determined by annotation file.
         label = dict()
         label_lengths = dict()
+
         if label_lab_after is not None:
             label_lab = label_lab_after.to(dtype=torch.long)
             label.update(lab=label_lab)
@@ -522,6 +480,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
+        if feats is not None:
+            batch.update(feats=feats, feats_lengths=feats_lengths)
         if self.pitch_extract is not None and pitch is not None:
             batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if self.energy_extract is not None and energy is not None:
@@ -630,12 +590,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         Returns:
             Dict[str, Tensor]: Dict of features.
         """
+        feats = None
         if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(singing, singing_lengths)
-        else:
-            # Use precalculated feats (feats_type != raw case)
-            feats, feats_lengths = singing, singing_lengths
-
+            feats, feats_lengths = self.feats_extract(
+                singing,
+                singing_lengths,
+            )
         if self.score_feats_extract is not None:
             (
                 label_lab_after,
@@ -694,7 +654,9 @@ class ESPnetSVSModel(AbsESPnetModel):
             )
 
         # store in dict
-        feats_dict = dict(feats=feats, feats_lengths=feats_lengths)
+        feats_dict = {}
+        if feats is not None:
+            feats_dict.update(feats=feats, feats_lengths=feats_lengths)
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
@@ -792,7 +754,9 @@ class ESPnetSVSModel(AbsESPnetModel):
             and tempo_score_lengths == beat_score_phn_lengths
         )
 
-        # unsqueeze of singing needed otherwise causing error in STFT dimension
+        # unsqueeze of singing must be here
+        # or it'll cause error in the return dim of STFT
+
         # for data-parallel
         text = text.unsqueeze(0)
 
@@ -819,7 +783,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         # tempo : bpm
         # duration :
         #   input-> phone-id seqence
-        #   output -> frame level or syllable level
+        #   output -> frame level(取众数 from window) or syllable level
         ds = None
         batch_size = text.size(0)
         assert batch_size == 1
@@ -1049,13 +1013,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         if lids is not None:
             input_dict.update(lids=lids)
 
-        output_dict = self.svs.inference(**input_dict, **decode_config)
+        outs, probs, att_ws = self.svs.inference(**input_dict)
 
-        if self.normalize is not None and output_dict.get("feat_gen") is not None:
+        if self.normalize is not None:
             # NOTE: normalize.inverse is in-place operation
-            feat_gen_denorm = self.normalize.inverse(
-                output_dict["feat_gen"].clone()[None]
-            )[0][0]
-            output_dict.update(feat_gen_denorm=feat_gen_denorm)
+            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
+        else:
+            outs_denorm = outs
 
-        return output_dict
+        return outs, outs_denorm, probs, att_ws
