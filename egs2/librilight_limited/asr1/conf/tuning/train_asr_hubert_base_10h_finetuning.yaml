@@ -1,7 +1,7 @@
 batch_type: numel
 batch_bins: 3200000
 accum_grad: 1
-max_epoch: 100
+max_epoch: 60
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -11,24 +11,21 @@ best_model_criterion:
     - min
 keep_nbest_models: 10
 
-freeze_param: [
-    "encoder.encoders.mask_emb", "encoder.encoders.feature_extractor",
-    "encoder.encoders.post_extract_proj", "encoder.encoders.encoder.pos_conv",
+init_param: [
+    "../../librispeech/ssl1/exp/hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/valid.loss.best.pth:encoder:encoder"
 ]
 
 input_size: 1
-encoder: hubert
+encoder: torchaudiohubert
 encoder_conf:
-    output_size: 256
-    normalize_before: false
-    freeze_finetune_updates: 10000
-    # if use espent-trained model
-    hubert_url: espnet
-    hubert_dir_path: ../../librispeech/ssl1/exp/pretrain_train_asr_hubert_base_960h_pretrain_it1_raw_iter1/valid.acc.best.pth
-    # if use downloaded model:
-    #hubert_url: https://dl.fbaipublicfiles.com/hubert/hubert_base_ls960.pt
-    #hubert_dir_path: ./downloads/hubert_pretrained_models/hubert_base_ls960.pt
-
+    encoder_projection_dropout: 0.0
+    encoder_attention_dropout: 0.0
+    encoder_ff_interm_dropout: 0.1
+    encoder_dropout: 0.0
+    encoder_layer_drop: 0.0
+    num_classes: 500
+    finetuning: true
+    freeze_encoder_updates: 4000
 
 model_conf:
     ctc_weight: 1.0
@@ -37,11 +34,10 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.00002
-    
+    lr: 0.00005
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 8000
+    warmup_steps: 6000
 
 unused_parameters: true
 
