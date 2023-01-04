@@ -90,7 +90,7 @@ def asr_stream_config_file(request, tmp_path: Path, token_list):
         "{'block_type': 'conv1d', 'kernel_size': 2, 'output_size': 2, "
         "'batch_norm': True, 'relu': True}], "
         "'main_conf': {'dynamic_chunk_training': True',"
-        "'short_chunk_size': 1, 'left_chunk_size': 1}}"
+        "'short_chunk_size': 1, 'num_left_chunks': 1}}"
     ) % (main_type)
 
     if request.param.startswith("vgg"):

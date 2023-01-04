@@ -156,7 +156,7 @@ def get_specaug():
             {
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 1,
+                "num_left_chunks": 1,
             },
             {"embed_size": 4},
             {"joint_space_size": 4},
@@ -189,7 +189,7 @@ def get_specaug():
             {
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 1,
+                "num_left_chunks": 1,
             },
             {"embed_size": 4},
             {"joint_space_size": 4},

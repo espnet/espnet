@@ -141,7 +141,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
                 "norm_type": "scale_norm",
                 "short_chunk_size": 30,
                 "short_chunk_threshold": 0.01,
-                "left_chunk_size": 2,
+                "num_left_chunks": 2,
             },
         ),
         (
@@ -164,7 +164,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
                 "conv_mod_norm_type": "basic_norm",
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 0,
+                "num_left_chunks": 0,
             },
         ),
         (
@@ -272,21 +272,25 @@ def test_too_short_utterance(input_conf, inputs):
     [
         (
             {"subsampling_factor": 8},
-            [{
-                "block_type": "branchformer",
-                "hidden_size": 4,
-                "linear_size": 2,
-                "conv_mod_kernel_size": 1,
-            }]
+            [
+                {
+                    "block_type": "branchformer",
+                    "hidden_size": 4,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                }
+            ],
         ),
         (
             {"vgg_like": True, "subsampling_factor": 8},
-            [{
-                "block_type": "conformer",
-                "hidden_size": 4,
-                "linear_size": 2,
-                "conv_mod_kernel_size": 1,
-            }]
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                }
+            ],
         ),
     ],
 )
