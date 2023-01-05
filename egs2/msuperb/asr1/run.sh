@@ -12,8 +12,6 @@ lid=false
 single_lang=eng
 stage=1
 
- . utils/parse_options.sh || exit 1;
-
 if "${multilingual}"; then
     if "${lid}"; then
         suffix="_lid"
@@ -48,8 +46,6 @@ inference_config=conf/decode_asr.yaml
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
-    --gpu_inference true \
-    --inference_nj 4 \
     --asr_stats_dir "exp/asr_stats_${duration}_fbank_${single_lang}" \
     --asr_tag "${duration}_fbank_${single_lang}" \
     --inference_config "${inference_config}" \

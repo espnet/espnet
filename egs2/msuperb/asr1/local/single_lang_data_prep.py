@@ -25,9 +25,7 @@ SINGLE_LANG = ["eng", "deu", "rus", "pol", "swe", "jpn", "cmn", "sat", "nob", "x
 
 
 def process_text(text):
-    # return text.translate(str.maketrans("", "", string.punctuation)).upper()
-    # return  text.translate(str.maketrans("", "", string.punctuation))
-    return text
+    return text.translate(str.maketrans("", "", string.punctuation)).upper()
 
 
 if __name__ == "__main__":
