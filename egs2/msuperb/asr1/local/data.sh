@@ -49,23 +49,28 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage2: Preparing data for multilingual SUPERB"
 
     if "${multilingual}"; then
-        mkdir -p data/train_${duration}
-        mkdir -p data/dev_${duration}
-        mkdir -p data/test_${duration}
+        if "${lid}"; then
+            suffix="_lid"
+        else
+            suffix=""
+        fi
+        mkdir -p data/train_${duration}${suffix}
+        mkdir -p data/dev_${duration}${suffix}
+        mkdir -p data/test_${duration}${suffix}
  
         python local/data_prep.py \
-            --train_set train_${duration} \
-            --train_dev dev_${duration} \
-            --test_set test_${duration} \
+            --train_set train_${duration}${suffix} \
+            --train_dev dev_${duration}${suffix} \
+            --test_set test_${duration}${suffix} \
             --duration ${duration} \
             --source ${MSUPERB} \
             --lid ${lid}
 
         for x in "train" "dev" "test"; do
             utils/utt2spk_to_spk2utt.pl \
-                data/${x}_${duration}/utt2spk \
-                > data/${x}_${duration}/spk2utt
-            utils/fix_data_dir.sh data/${x}_${duration}
+                data/${x}_${duration}${suffix}/utt2spk \
+                > data/${x}_${duration}${suffix}/spk2utt
+            utils/fix_data_dir.sh data/${x}_${duration}${suffix}
         done
     else
         for x in "train" "dev" "test"; do
@@ -90,8 +95,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage3: Create non-linguistic symbols for language ID"
     mkdir -p "$(dirname ${nlsyms_txt})"
     if "${multilingual}"; then
-        train_set=data/train_${duration}
-        cut -f 2- data/${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
+        train_set=data/train_${duration}${suffix}
+        cut -f 2- ${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
         log "save non-linguistic symbols in ${nlsyms_txt}"
     else
         touch ${nlsyms_txt}

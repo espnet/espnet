@@ -21,7 +21,7 @@ DATA = [
 ]
 
 RESERVE_LANG = [
-    "swa",
+    "dan",
     "lit",
     "tur",
     "srp",
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                     line = line.strip().split(maxsplit=2)
                     utt_id, _, text = line
                     train_wavscp.write(
-                        "{} {}\n".format(
+                        "{} sox {} -c 1 -t wavpcm -|\n".format(
                             utt_id,
                             os.path.join(
                                 args.source,
@@ -141,7 +141,7 @@ if __name__ == "__main__":
                     line = line.strip().split(maxsplit=2)
                     utt_id, _, text = line
                     dev_wavscp.write(
-                        "{} {}\n".format(
+                        "{} sox {} -c 1 -t wavpcm -|\n".format(
                             utt_id,
                             os.path.join(
                                 args.source,
@@ -169,7 +169,7 @@ if __name__ == "__main__":
                 line = line.strip().split(maxsplit=2)
                 utt_id, _, text = line
                 test_wavscp.write(
-                    "{} {}\n".format(
+                    "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
                             args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
