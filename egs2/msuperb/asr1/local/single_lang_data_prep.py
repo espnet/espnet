@@ -25,7 +25,9 @@ SINGLE_LANG = ["eng", "deu", "rus", "pol", "swe", "jpn", "cmn", "sat", "nob", "x
 
 
 def process_text(text):
-    return text.translate(str.maketrans("", "", string.punctuation)).upper()
+    # return text.translate(str.maketrans("", "", string.punctuation)).upper()
+    # return  text.translate(str.maketrans("", "", string.punctuation))
+    return text
 
 
 if __name__ == "__main__":
@@ -114,7 +116,7 @@ if __name__ == "__main__":
                 line = line.strip().split(maxsplit=2)
                 utt_id, _, text = line
                 train_wavscp.write(
-                    "{} {}\n".format(
+                    "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
                             args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
@@ -135,7 +137,7 @@ if __name__ == "__main__":
                 line = line.strip().split(maxsplit=2)
                 utt_id, _, text = line
                 dev_wavscp.write(
-                    "{} {}\n".format(
+                    "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
                             args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
@@ -156,7 +158,7 @@ if __name__ == "__main__":
                 line = line.strip().split(maxsplit=2)
                 utt_id, _, text = line
                 test_wavscp.write(
-                    "{} {}\n".format(
+                    "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
                             args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
