@@ -46,8 +46,6 @@ inference_config=conf/decode_asr.yaml
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
-    --asr_stats_dir "exp/asr_stats_${duration}_fbank_${single_lang}" \
-    --asr_tag "${duration}_fbank_${single_lang}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
