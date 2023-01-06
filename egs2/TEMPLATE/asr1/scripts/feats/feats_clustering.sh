@@ -11,14 +11,14 @@ set -e
 set -u 
 set -o pipefail
 
-cmd=""
+cmd="run.pl"
 nj=1
 dim=512
 num_clusters=128
 train_set="train"
 valid_set="valid"
-#test_set="test"
-all_sets="${train_set} ${valid_set}"
+test_sets="test"
+all_sets="${train_set} ${valid_set} ${test_sets}"
 reduce=false
 
 # End configuration section.
