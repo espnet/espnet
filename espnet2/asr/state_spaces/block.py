@@ -22,9 +22,7 @@ from espnet2.asr.state_spaces.components import (
     StochasticDepth,
 )
 from espnet2.asr.state_spaces.pool import registry as pool_registry
-from espnet2.asr.state_spaces.residual import (
-    registry as residual_registry,
-)
+from espnet2.asr.state_spaces.residual import registry as residual_registry
 
 
 class SequenceResidualBlock(SequenceModule):
