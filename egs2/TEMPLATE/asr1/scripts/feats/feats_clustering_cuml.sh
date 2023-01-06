@@ -75,26 +75,25 @@ done
 
 echo "Generating ${num_clusters} clusters"
 ${cmd} ${logdir}/generate_feats_cluster.log \
-    python pyscripts/feats/feats_cluster_faiss.py \
+    python pyscripts/feats/feats_cluster_cuml.py \
         "${train_feats_scp}" \
         --save-dir "${output_feats_dir}" \
-        -f "CLUS${num_clusters}" \
-        --sample-pct 1.0
+        --num-clusters ${num_clusters}
 
 for split in ${all_sets}; do
     echo "Applying cluster on ${split}"
     ${cmd} JOB=1:${nj} ${logdir}/apply_cluster_${split}.JOB.log \
-          python pyscripts/feats/feats_apply_cluster_faiss.py \
+          python pyscripts/feats/feats_apply_cluster_cuml.py \
               "${uasr_stats_dir}/${split}/collect_feats/split${nj}/JOB/feats.scp" \
               --split "${split}" \
               --model_path ${output_feats_dir}/CLUS${num_clusters} \
               --output_path ${output_feats_dir}/CLUS${num_clusters}/JOB/ \
-              -f "CLUS${num_clusters}"
+              --num-clusters ${num_clusters}
 done
 
 echo "Computing PCA"
 ${cmd} ${logdir}/compute_pca.log \
-    python pyscripts/feats/pca.py \
+    python pyscripts/feats/pca_cuml.py \
         "${train_feats_scp}" \
         --output "${output_feats_dir}/pca" \
         --dim $dim
@@ -102,12 +101,13 @@ ${cmd} ${logdir}/compute_pca.log \
 for split in ${all_sets}; do
     echo "Applying PCA on ${split}"
     ${cmd} JOB=1:${nj} ${logdir}/apply_pca_${split}.JOB.log \
-        python pyscripts/feats/apply_pca.py \
+        python pyscripts/feats/apply_pca_cuml.py \
         "${uasr_stats_dir}/${split}/collect_feats/split${nj}/JOB/feats.scp" \
         --split ${split} \
         --save-dir ${output_feats_dir}/precompute_pca$dim/JOB/ \
         --pca-path ${output_feats_dir}/pca/${dim}_pca \
-        --batch-size 1048000
+        --batch-size 1048000 \
+        --dim ${dim}
 
 
     echo "Merging clusters on ${split}"
