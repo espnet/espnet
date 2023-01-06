@@ -8,7 +8,6 @@ This is a template of TTS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Data preparation](#1-data-preparation)
-    * [1\. (Optional) MFA Aligments generation](#1-optiona-mfa-alignments-generation)
     * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Removal of long / short data](#3-removal-of-long--short-data)
     * [4\. Token list generation](#4-token-list-generation)
@@ -58,26 +57,36 @@ TTS recipe consists of 9 stages.
 ### 1. Data preparation
 
 Data preparation stage.
+You have two methods to generate the data:
+
+#### ESPnet format:
+
 It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
 
-### 1. (Optional) MFA Aligments generation
+#### (New) MFA Aligments generation
 
 You can generate aligments using the [Montreal-Forced-Aligner tool](https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner)
-To generates the mfa aligments, first generate the corresponding data with `--stage 1 --stop-stage 1`
+Use the script `scripts/mfa.sh` to generate the required mfa aligments and train a model that employs these alignments.
 
-Then, execute `mfa_aligment.sh` located at the `scripts` directory.
+Because the script `scripts/mfa.sh` prepares the data, it is not required to execute `local/data.sh` previously. However, you will
+need to set some additional flags, such as `--split_sets`, `--samplerate`, or `--acoustic_model`:
 
 ```bash
-./scripts/mfa_aligments.sh --datasets "train_set dev_set test_set" --stage 1 --stop-stage 2 --train true --nj 36
+./scripts/mfa.sh --split_sets "train_set dev_set test_set" \
+    --stage 1 \
+    --stop-stage 2 \
+    --train true --nj 36 --g2p_model espeak_ng_english_vits
 ```
 
-The script will generate the aligments using a given `g2p` and store it in the `<dataset>_phn` directory.
-This script trains the mfa g2p and acoustic model, for then generate the aligments.
+You can find a reference at `egs2/ljspeech/tts1/local/run_mfa.sh`.
 
-Then, you can continue the training with the command:
+The script `scripts/mfa.sh` will generate the aligments using a given `g2p_model` & `acoustic_model` and store it in the `<split_sets>_phn` directory.
+This script download a pretrained model (if `--train false`) or trains the mfa g2p and acoustic model (if `--train true`), for then generate the aligments.
+
+Then, you can continue the training on the main script:
 
 ```bash
 ./run.sh --train-set train_set_phn \
@@ -86,7 +95,7 @@ Then, you can continue the training with the command:
          --stage 2 \
          --g2p none \
          --cleaner none \
-         --teacher_dumpdir "data"  
+         --teacher_dumpdir "data"
 ```
 
 ### 2. Wav dump / Embedding preparation

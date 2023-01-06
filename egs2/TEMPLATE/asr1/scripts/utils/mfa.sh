@@ -20,25 +20,25 @@ log() {
 SECONDS=0
 
 # General configuration
-stage=0
-stop_stage=100
-nj=12
-workdir=data/local/mfa
-clean_temp=false
-split_sets="tr_no_dev dev eval1"
+stage=0                             # Processes starts from the specified stage.
+stop_stage=100                      # Processes is stopped at the specified stage.
+nj=12                               # The number of parallel jobs.
+workdir=data/local/mfa              # Directory to save temporal files of MFA processing.
+clean_temp=false                    # Whether to remove the temporal files at the end of the processing.
+split_sets="tr_no_dev dev eval1"    # Name of the splits of the data that will be used during the whole processing.
 
 # Data prep related
-local_data_opts="" # Options to be passed to local/data.sh.
-hop_size=256  # TTS hop size 
-samplerate=22050  # TTS samplerate
+local_data_opts=""  # Options to be passed to local/data.sh.
+hop_size=256        # The number of shift points.
+samplerate=22050    # Sampling rate.
 
 # MFA/Tokenization related
-language=""
-acoustic_model="english_mfa"
-dictionary="english_us_mfa"
-g2p_model="english_us_mfa"
-cleaner=tacotron
-train=false
+language=""                     # The language type of corpus.
+acoustic_model="english_mfa"    # MFA Acoustic model.
+dictionary="english_us_mfa"     # MFA Dictionary.
+g2p_model="english_us_mfa"      # MFA Grapheme-to-phoneme model.
+cleaner=tacotron                # Text Cleaner.
+train=false                     # Whether to train the MFA models (acoustic and g2p) or not.
 # max_phonemes_word=7  # split the phonemes durations for word durations. (Ref. PortaSpeech)
 
 help_message=$(cat << EOF
@@ -49,21 +49,22 @@ Options:
     --stage                # Processes starts from the specified stage (default="${stage}").
     --stop_stage           # Processes is stopped at the specified stage (default="${stop_stage}").
     --nj                   # The number of parallel jobs (default="${nj}").
-    --workdir
-    --clean_temp
-    --datasets
+    --workdir              # Directory to save temporal files of MFA processing (default="${workdir}").
+    --clean_temp           # Whether to remove the temporal files at the end of the processing (default="${clean_temp}").
+    --split_sets           # Name of the splits of the data that will be used during the whole processing (default="${split_sets}").
 
     # Data prep related
     --local_data_opts      # Options to be passed to local/data.sh (default="${local_data_opts}").
-    --samplerate
-    --hop_size
+    --hop_size             # The number of shift points (default="${hop_size}").
+    --samplerate           # Sampling rate (default="${samplerate}").
 
-    # Tokenization related
-    --language
-    --g2p
-    --train
-    --max_phonemes_word
-
+    # MFA/Tokenization related
+    --language             # The language type of corpus (default="${language}").
+    --acoustic_model       # MFA Acoustic model (default="${acoustic_model}").
+    --dictionary           # MFA Dictionary (default="${dictionary}").
+    --g2p_model            # MFA Grapheme-to-phoneme model (default="${g2p_model}").
+    --cleaner              # Text Cleaner (default="${cleaner}").
+    --train                # Whether to train the MFA models (acoustic and g2p) or not (default="${train}").
 EOF
 )
 
@@ -149,7 +150,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                                     --text_cleaner "${cleaner}" \
                                     --g2p_model "${g2p_model}" \
                                     --corpus_dir "${corpus_dir}"
-
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

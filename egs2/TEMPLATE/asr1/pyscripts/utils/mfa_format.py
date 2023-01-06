@@ -85,35 +85,36 @@ def get_parser():
     )
     parser.add_argument(
         "--data_sets",
-        help="",
+        help="""List of the data sets (train, dev, eval)
+        employed for generating the wavs/labs.""",
     )
     parser.add_argument(
         "--corpus_dir",
         type=str,
-        help="",
+        help="Path to save the corpus in wav/lab format",
     )
     parser.add_argument(
         "--samplerate",
         type=int,
         default=22050,
-        help="",
+        help="Sampling rate of the audio files",
     )
     parser.add_argument(
         "--g2p_model",
         type=str,
-        help="",
+        help="Name of the grapheme-to-phoneme model from ESPnet.",
     )
     parser.add_argument(
         "--text_cleaner",
         type=str,
         default="tacotron",
-        help="",
+        help="Name of the text cleaner from ESPnet.",
     )
     parser.add_argument(
         "--hop_size",
         type=int,
         default=256,
-        help="",
+        help="The number of shift points.",
     )
     parser.add_argument(
         "--textgrid_dir",
@@ -298,6 +299,7 @@ def make_durations(args):
 
 
 def make_dictionary(args):
+    """Generate the dictionary of a given corpus using ESPnet text frontend."""
     corpus_dir = Path(args.corpus_dir)
     filelist = sorted(corpus_dir.glob("**/*.lab"))
     words = list()
