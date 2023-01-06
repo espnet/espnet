@@ -49,6 +49,7 @@ from espnet2.s2st.espnet_model import ESPnetS2STModel
 from espnet2.s2st.losses.attention_loss import S2STAttentionLoss
 from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
 from espnet2.s2st.losses.synthesizer_loss import S2STTacotron2Loss
+from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -150,7 +151,7 @@ st_decoder_choices = ClassChoices(
 synthesizer_choices = ClassChoices(
     "synthesizer",
     classes=dict(
-        translatotron=,
+        translatotron=Translatotron,
     ),
     type_check=AbsSynthesizer,
     default="translatotron",
@@ -158,14 +159,13 @@ synthesizer_choices = ClassChoices(
 loss_choices = ClassChoices(
     name="loss",
     classes=dict(
-        tacotron_loss=S2STTacotron2Loss,
-        attention_loss=S2STAttentionLoss,
-        ctc_loss=S2STCTCLoss,
+        tacotron=S2STTacotron2Loss,
+        attention=S2STAttentionLoss,
+        ctc=S2STCTCLoss,
     ),
     type_check=torch.nn.Module,
-    default="tacotron_loss",
+    default="tacotron",
 )
-
 
 
 class S2STTask(STTask):
@@ -205,7 +205,7 @@ class S2STTask(STTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        
+
         group.add_argument(
             "s2st_type",
             type=str,
@@ -215,7 +215,7 @@ class S2STTask(STTask):
                 "translatotron",
                 "translatotron2",
                 "discrete_unit",
-            ]
+            ],
         )
         group.add_argument(
             "--tgt_token_list",
@@ -259,13 +259,13 @@ class S2STTask(STTask):
             "--asr_ctc",
             type=str2bool,
             default=False,
-            help="whether to conduct CTC on ASR objectives"
+            help="whether to conduct CTC on ASR objectives",
         )
         group.add_argument(
             "--st_ctc",
             type=str2bool,
             default=False,
-            help="whether to conduct CTC on ST objectives"
+            help="whether to conduct CTC on ST objectives",
         )
         group.add_argument(
             "--asr_ctc_conf",
@@ -593,7 +593,7 @@ class S2STTask(STTask):
             )
         else:
             asr_decoder = None
-        
+
         if args.st_decoder is not None:
             st_decoder_class = st_decoder_choices.get_class(args.st_decoder)
 
@@ -614,7 +614,7 @@ class S2STTask(STTask):
             )
         else:
             asr_ctc = None
-        
+
         if token_list is not None and args.st_ctc:
             st_ctc = CTC(
                 odim=tgt_vocab_size,
@@ -623,13 +623,12 @@ class S2STTask(STTask):
             )
         else:
             st_ctc = None
-        
+
         # 7. Synthesizer
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
 
         synthesizer = synthesizer_class(
-            encoder_output_size=encoder_output_size,
-            **args.synthesizer_conf
+            encoder_output_size=encoder_output_size, **args.synthesizer_conf
         )
 
         # 8. Loss definition
@@ -639,7 +638,7 @@ class S2STTask(STTask):
             # that packed by older version
             for ctr in args.losses:
                 logging.info("initialize loss: {}".format(ctr["name"]))
-                loss = loss_choices.get_class(ctr["name"])(**ctr["conf"])
+                loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
 
         # 9. Build model

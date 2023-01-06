@@ -1,12 +1,11 @@
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class S2STTacotron2Loss(AbsS2STLoss):
@@ -18,7 +17,7 @@ class S2STTacotron2Loss(AbsS2STLoss):
         loss_type: str = "L1+L2",
         use_masking: str2bool = True,
         use_weighted_masking: str2bool = False,
-        bce_pos_weight: float = 20.0
+        bce_pos_weight: float = 20.0,
     ):
         super().__init__()
         assert check_argument_types()
@@ -26,16 +25,16 @@ class S2STTacotron2Loss(AbsS2STLoss):
         self.loss = Tacotron2Loss(
             use_masking=use_masking,
             use_weighted_masking=use_weighted_masking,
-            bce_pos_weight=bce_pos_weight
+            bce_pos_weight=bce_pos_weight,
         )
 
     def forward(
         self,
-        after_outs: torch.Tensor, 
-        before_outs: torch.Tensor, 
-        logits: torch.Tensor, 
-        ys: torch.Tensor, 
-        labels: torch.Tensor, 
+        after_outs: torch.Tensor,
+        before_outs: torch.Tensor,
+        logits: torch.Tensor,
+        ys: torch.Tensor,
+        labels: torch.Tensor,
         olens: torch.Tensor,
     ):
         """Forward.
@@ -54,7 +53,9 @@ class S2STTacotron2Loss(AbsS2STLoss):
             Tensor: Binary cross entropy loss value.
         """
         if self.weight > 0:
-            l1_loss, mse_loss, bce_loss = self.loss(after_outs, before_outs, logits, ys, labels, olens)
+            l1_loss, mse_loss, bce_loss = self.loss(
+                after_outs, before_outs, logits, ys, labels, olens
+            )
             if self.loss_type == "L1+L2":
                 return l1_loss + mse_loss + bce_loss, l1_loss, mse_loss, bce_loss
             elif self.loss_type == "L1":

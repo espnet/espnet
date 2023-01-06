@@ -1,13 +1,12 @@
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
+from espnet2.s2st.losses.abs_loss import AbsS2STLoss
+from espnet2.utils.types import str2bool
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
-from espnet2.s2st.losses.abs_loss import AbsS2STLoss
-from espnet2.utils.types import str2bool
 
 
 class S2STAttentionLoss(AbsS2STLoss):
@@ -19,8 +18,8 @@ class S2STAttentionLoss(AbsS2STLoss):
         padding_idx: int,
         weight: float = 1.0,
         smoothing: float = 0.0,
-        normalize_length: str2bool: False,
-        criterion: torch.nn.Module: nn.KLDivLoss(reduction="none")
+        normalize_length: str2bool = False,
+        criterion: torch.nn.Module = nn.KLDivLoss(reduction="none"),
     ):
         super().__init__()
         assert check_argument_types()

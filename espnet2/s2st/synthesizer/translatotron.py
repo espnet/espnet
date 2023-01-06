@@ -11,8 +11,8 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
-from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
+from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
@@ -51,7 +51,7 @@ class Translatotron(AbsSynthesizer):
         dunits: int = 1024,
         prenet_layers: int = 2,
         prenet_units: int = 32,
-        postnet_layers: int= 5,
+        postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
         output_activation: str = None,
@@ -196,7 +196,6 @@ class Translatotron(AbsSynthesizer):
             zoneout_rate=zoneout_rate,
             reduction_factor=reduction_factor,
         )
-        
 
     def forward(
         self,
@@ -267,7 +266,6 @@ class Translatotron(AbsSynthesizer):
 
         return after_outs, before_outs, logits, ys, labels, olens
 
-    
     def _forward(
         self,
         hs: torch.Tensor,
