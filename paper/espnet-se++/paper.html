@@ -323,7 +323,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="k">class</span> <span class="nc">SeparateSpeech</span>
 </pre></div>
 </div>
-<p>object with the data-iterator for testing and validation. During its initialization, the class builds an SSE object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code> based on a pair of configuration and a pre-trained SSE model.</p>
+<p>object with the data-iterator for testing and validation. During its initialization, this class instantiate an SSE object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code> based on a pair of configuration and a pre-trained SSE model.</p>
 </section>
 <section id="bin-enh-scoring-py">
 <h4>bin/enh_scoring.py<a class="headerlink" href="#bin-enh-scoring-py" title="Permalink to this headline">¶</a></h4>
@@ -338,7 +338,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="k">class</span> <span class="nc">EnhancementTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">EnhancementTask</span></code> is a control class which is designed for SSE task, containing class methods for building and training an SSE model. Class method  <code class="docutils literal notranslate"><span class="pre">build_model</span></code> creates and returns an SSE object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">EnhancementTask</span></code> is a control class which is designed for SSE tasks. It contains class methods for building and training an SSE model. Class method  <code class="docutils literal notranslate"><span class="pre">build_model</span></code> creates and returns an SSE object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code>.</p>
 </section>
 <section id="sse-modules-enh-espnet-model-py">
 <h3>SSE Modules <code class="docutils literal notranslate"><span class="pre">enh/espnet_model.py</span></code><a class="headerlink" href="#sse-modules-enh-espnet-model-py" title="Permalink to this headline">¶</a></h3>
@@ -446,7 +446,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 </section>
 <section id="development-plan">
 <h1>Development plan<a class="headerlink" href="#development-plan" title="Permalink to this headline">¶</a></h1>
-<p>The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we would explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion, making the combination more flexible.</p>
+<p>The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.</p>
 </section>
 <section id="conclusions">
 <h1>Conclusions<a class="headerlink" href="#conclusions" title="Permalink to this headline">¶</a></h1>

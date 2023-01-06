@@ -127,7 +127,7 @@ The `inference` function in `enh_inference.py` creates a
 
 		class SeparateSpeech
     
-object with the data-iterator for testing and validation. During its initialization, the class builds an SSE object `ESPnetEnhancementModel` based on a pair of configuration and a pre-trained SSE model.
+object with the data-iterator for testing and validation. During its initialization, this class instantiate an SSE object `ESPnetEnhancementModel` based on a pair of configuration and a pre-trained SSE model.
 
 #### bin/enh_scoring.py
 		def scoring(..., ref_scp, inf_scp, ...)
@@ -136,7 +136,7 @@ The SSE scoring functions calculates several popular objective scores such as SI
 ### SSE Control Class `tasks/enh.py`
 
 		class EnhancementTask(AbsTask)
-`EnhancementTask` is a control class which is designed for SSE task, containing class methods for building and training an SSE model. Class method  `build_model` creates and returns an SSE object `ESPnetEnhancementModel`.
+`EnhancementTask` is a control class which is designed for SSE tasks. It contains class methods for building and training an SSE model. Class method  `build_model` creates and returns an SSE object `ESPnetEnhancementModel`.
 
 ### SSE Modules `enh/espnet_model.py`
 
@@ -242,7 +242,7 @@ The demonstrations of ESPnet-SE can be found in the following google colab links
 
 
 # Development plan
-The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we would explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion, making the combination more flexible. 
+The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion. 
 
 # Conclusions
 In this paper, we introduce the software structure and the user interface of ESPnet-SE++, including the SSE task and joint-task models. ESPnet-SE++ provides general recipes for training models on different corpus and a simple way for adding new recipes. The joint-task implementation further shows that the modularized design improves the flexibility of ESPnet.
