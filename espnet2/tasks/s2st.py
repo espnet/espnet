@@ -212,13 +212,13 @@ class S2STTask(STTask):
             default="translatotron",
             help="Types of S2ST",
             choices=[
-                "Translatotron",
-                "Translatotron2",
-                "DiscreteUnit",
+                "translatotron",
+                "translatotron2",
+                "discrete_unit",
             ]
         )
         group.add_argument(
-            "--token_list",
+            "--tgt_token_list",
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for target language)",
@@ -294,7 +294,7 @@ class S2STTask(STTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
-            "--token_type",
+            "--tgt_token_type",
             type=str,
             default="bpe",
             choices=["bpe", "char", "word", "phn"],
@@ -308,7 +308,7 @@ class S2STTask(STTask):
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
-            "--bpemodel",
+            "--tgt_bpemodel",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece (for target language)",
@@ -332,7 +332,14 @@ class S2STTask(STTask):
             help="Apply text cleaning",
         )
         group.add_argument(
-            "--g2p",
+            "--tgt_g2p",
+            type=str_or_none,
+            choices=g2p_choices,
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+        group.add_argument(
+            "--src_g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
@@ -429,12 +436,12 @@ class S2STTask(STTask):
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=[args.token_type, args.src_token_type],
-                token_list=[args.token_list, args.src_token_list],
-                bpemodel=[args.bpemodel, args.src_bpemodel],
+                token_type=[args.tgt_token_type, args.src_token_type],
+                token_list=[args.tgt_token_list, args.src_token_list],
+                bpemodel=[args.tgt_bpemodel, args.src_bpemodel],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
+                g2p_type=[args.tgt_g2p, args.src_g2p],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
                 rir_apply_prob=args.rir_apply_prob
@@ -486,21 +493,21 @@ class S2STTask(STTask):
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
         assert check_argument_types()
-        if args.token_list is not None:
-            if isinstance(args.token_list, str):
-                with open(args.token_list, encoding="utf-8") as f:
-                    token_list = [line.rstrip() for line in f]
+        if args.tgt_token_list is not None:
+            if isinstance(args.tgt_token_list, str):
+                with open(args.tgt_token_list, encoding="utf-8") as f:
+                    tgt_token_list = [line.rstrip() for line in f]
 
                 # Overwriting token_list to keep it as "portable".
-                args.token_list = list(token_list)
-            elif isinstance(args.token_list, (tuple, list)):
-                token_list = list(args.token_list)
+                args.tgt_token_list = list(tgt_token_list)
+            elif isinstance(args.tgt_token_list, (tuple, list)):
+                tgt_token_list = list(args.tgt_token_list)
             else:
                 raise RuntimeError("token_list must be str or list")
-            vocab_size = len(token_list)
-            logging.info(f"Target Vocabulary size: {vocab_size }")
+            tgt_vocab_size = len(tgt_token_list)
+            logging.info(f"Target Vocabulary size: {tgt_vocab_size }")
         else:
-            token_list, vocab_size = None, None
+            tgt_token_list, tgt_vocab_size = None, None
 
         if args.src_token_list is not None:
             if isinstance(args.src_token_list, str):
@@ -591,7 +598,7 @@ class S2STTask(STTask):
             st_decoder_class = st_decoder_choices.get_class(args.st_decoder)
 
             st_decoder = decoder_class(
-                vocab_size=src_vocab_size,
+                vocab_size=tgt_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.st_decoder_conf,
             )
@@ -610,7 +617,7 @@ class S2STTask(STTask):
         
         if token_list is not None and args.st_ctc:
             st_ctc = CTC(
-                odim=vocab_size,
+                odim=tgt_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.st_ctc_conf,
             )
@@ -650,8 +657,8 @@ class S2STTask(STTask):
             asr_ctc=asr_ctc,
             st_ctc=st_ctc,
             losses=losses,
-            vocab_size=vocab_size,
-            token_list=token_list,
+            vocab_size=tgt_vocab_size,
+            token_list=tgt_token_list,
             src_vocab_size=src_vocab_size,
             src_token_list=src_token_list,
             **args.model_conf,

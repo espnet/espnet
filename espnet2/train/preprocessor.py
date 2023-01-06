@@ -495,7 +495,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         token_list: List[Union[Path, str, Iterable[str]]] = [None],
         bpemodel: List[Union[Path, str, Iterable[str]]] = [None],
         text_cleaner: Collection[str] = None,
-        g2p_type: str = None,
+        g2p_type: Union[List[str], str] = None,
         unk_symbol: str = "<unk>",
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
@@ -540,6 +540,10 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         self.tokenizer = []
         self.token_id_converter = []
 
+        if type(g2p_type) is str:
+            # NOTE(jiatong): str will repeat for every tokenizer
+            g2p_type = [g2p_type] * len(self.num_tokenizer)
+
         for i in range(self.num_tokenizer):
             if token_type[i] is not None:
                 if token_list[i] is None:
@@ -552,7 +556,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         delimiter=delimiter,
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
-                        g2p_type=g2p_type,
+                        g2p_type=g2p_type[i],
                     )
                 )
                 self.token_id_converter.append(
