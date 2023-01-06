@@ -12,12 +12,26 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from espnet2.enh.layers.adapt_layers import make_adapt_layer
+
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 class TemporalConvNet(nn.Module):
     def __init__(
-        self, N, B, H, P, X, R, C, norm_type="gLN", causal=False, mask_nonlinear="relu"
+        self,
+        N,
+        B,
+        H,
+        P,
+        X,
+        R,
+        C,
+        Sc=None,
+        out_channel=None,
+        norm_type="gLN",
+        causal=False,
+        mask_nonlinear="relu",
     ):
         """Basic Module of tasnet.
 
@@ -29,6 +43,9 @@ class TemporalConvNet(nn.Module):
             X: Number of convolutional blocks in each repeat
             R: Number of repeats
             C: Number of speakers
+            Sc: Number of channels in skip-connection paths' 1x1-conv blocks
+            out_channel: Number of output channels
+                if it is None, `N` will be used instead.
             norm_type: BN, gLN, cLN
             causal: causal or non-causal
             mask_nonlinear: use which non-linear function to generate mask
@@ -37,6 +54,10 @@ class TemporalConvNet(nn.Module):
         # Hyper-parameter
         self.C = C
         self.mask_nonlinear = mask_nonlinear
+        self.skip_connection = Sc is not None
+        self.out_channel = N if out_channel is None else out_channel
+        if self.skip_connection:
+            assert Sc == B, (Sc, B)
         # Components
         # [M, N, K] -> [M, N, K]
         layer_norm = ChannelwiseLayerNorm(N)
@@ -53,6 +74,7 @@ class TemporalConvNet(nn.Module):
                     TemporalBlock(
                         B,
                         H,
+                        Sc,
                         P,
                         stride=1,
                         padding=padding,
@@ -64,8 +86,8 @@ class TemporalConvNet(nn.Module):
             repeats += [nn.Sequential(*blocks)]
         temporal_conv_net = nn.Sequential(*repeats)
         # [M, B, K] -> [M, C*N, K]
-        mask_conv1x1 = nn.Conv1d(B, C * N, 1, bias=False)
-        # Put together
+        mask_conv1x1 = nn.Conv1d(B, C * self.out_channel, 1, bias=False)
+        # Put together (for compatibility with older versions)
         self.network = nn.Sequential(
             layer_norm, bottleneck_conv1x1, temporal_conv_net, mask_conv1x1
         )
@@ -80,8 +102,28 @@ class TemporalConvNet(nn.Module):
             est_mask: [M, C, N, K]
         """
         M, N, K = mixture_w.size()
-        score = self.network(mixture_w)  # [M, N, K] -> [M, C*N, K]
-        score = score.view(M, self.C, N, K)  # [M, C*N, K] -> [M, C, N, K]
+        bottleneck = self.network[:2]
+        tcns = self.network[2]
+        masknet = self.network[3]
+        output = bottleneck(mixture_w)
+        skip_conn = 0.0
+        for block in tcns:
+            for layer in block:
+                tcn_out = layer(output)
+                if self.skip_connection:
+                    residual, skip = tcn_out
+                    skip_conn = skip_conn + skip
+                else:
+                    residual = tcn_out
+                output = output + residual
+        # Use residual output when no skip connection
+        if self.skip_connection:
+            score = masknet(skip_conn)
+        else:
+            score = masknet(output)
+
+        # [M, C*self.out_channel, K] -> [M, C, self.out_channel, K]
+        score = score.view(M, self.C, self.out_channel, K)
         if self.mask_nonlinear == "softmax":
             est_mask = F.softmax(score, dim=1)
         elif self.mask_nonlinear == "relu":
@@ -90,6 +132,130 @@ class TemporalConvNet(nn.Module):
             est_mask = F.sigmoid(score)
         elif self.mask_nonlinear == "tanh":
             est_mask = F.tanh(score)
+        elif self.mask_nonlinear == "linear":
+            est_mask = score
+        else:
+            raise ValueError("Unsupported mask non-linear function")
+        return est_mask
+
+
+class TemporalConvNetInformed(TemporalConvNet):
+    def __init__(
+        self,
+        N,
+        B,
+        H,
+        P,
+        X,
+        R,
+        Sc=None,
+        out_channel=None,
+        norm_type="gLN",
+        causal=False,
+        mask_nonlinear="relu",
+        i_adapt_layer: int = 7,
+        adapt_layer_type: str = "mul",
+        adapt_enroll_dim: int = 128,
+        **adapt_layer_kwargs
+    ):
+        """Basic Module of TasNet with adaptation layers.
+
+        Args:
+            N: Number of filters in autoencoder
+            B: Number of channels in bottleneck 1 * 1-conv block
+            H: Number of channels in convolutional blocks
+            P: Kernel size in convolutional blocks
+            X: Number of convolutional blocks in each repeat
+            R: Number of repeats
+            Sc: Number of channels in skip-connection paths' 1x1-conv blocks
+            out_channel: Number of output channels
+                if it is None, `N` will be used instead.
+            norm_type: BN, gLN, cLN
+            causal: causal or non-causal
+            mask_nonlinear: use which non-linear function to generate mask
+            i_adapt_layer: int, index of the adaptation layer
+            adapt_layer_type: str, type of adaptation layer
+                see espnet2.enh.layers.adapt_layers for options
+            adapt_enroll_dim: int, dimensionality of the speaker embedding
+        """
+        super().__init__(
+            N,
+            B,
+            H,
+            P,
+            X,
+            R,
+            1,
+            Sc=Sc,
+            out_channel=out_channel,
+            norm_type=norm_type,
+            causal=causal,
+            mask_nonlinear=mask_nonlinear,
+        )
+        self.i_adapt_layer = i_adapt_layer
+        self.adapt_enroll_dim = adapt_enroll_dim
+        self.adapt_layer_type = adapt_layer_type
+        self.adapt_layer = make_adapt_layer(
+            adapt_layer_type,
+            indim=B,
+            enrolldim=adapt_enroll_dim,
+            ninputs=2 if self.skip_connection else 1,
+            **adapt_layer_kwargs
+        )
+
+    def forward(self, mixture_w, enroll_emb):
+        """TasNet forward with adaptation layers.
+
+        Args:
+            mixture_w: [M, N, K], M is batch size
+            enroll_emb: [M, 2*adapt_enroll_dim] if self.skip_connection
+                        [M, adapt_enroll_dim] if not self.skip_connection
+
+        Returns:
+            est_mask: [M, N, K]
+        """
+        M, N, K = mixture_w.size()
+
+        bottleneck = self.network[:2]
+        tcns = self.network[2]
+        masknet = self.network[3]
+        output = bottleneck(mixture_w)
+        skip_conn = 0.0
+        for i, block in enumerate(tcns):
+            for j, layer in enumerate(block):
+                idx = i * len(block) + j
+                is_adapt_layer = idx == self.i_adapt_layer
+                tcn_out = layer(output)
+                if self.skip_connection:
+                    residual, skip = tcn_out
+                    if is_adapt_layer:
+                        residual, skip = self.adapt_layer(
+                            (residual, skip), torch.chunk(enroll_emb, 2, dim=1)
+                        )
+                    skip_conn = skip_conn + skip
+                else:
+                    residual = tcn_out
+                    if is_adapt_layer:
+                        residual = self.adapt_layer(residual, enroll_emb)
+                output = output + residual
+
+        # Use residual output when no skip connection
+        if self.skip_connection:
+            score = masknet(skip_conn)
+        else:
+            score = masknet(output)
+
+        # [M, self.out_channel, K]
+        if self.mask_nonlinear == "softmax":
+            est_mask = F.softmax(score, dim=1)
+        elif self.mask_nonlinear == "relu":
+            est_mask = F.relu(score)
+        elif self.mask_nonlinear == "sigmoid":
+            est_mask = F.sigmoid(score)
+        elif self.mask_nonlinear == "tanh":
+            est_mask = F.tanh(score)
+        elif self.mask_nonlinear == "linear":
+            est_mask = score
         else:
             raise ValueError("Unsupported mask non-linear function")
         return est_mask
@@ -100,6 +266,7 @@ class TemporalBlock(nn.Module):
         self,
         in_channels,
         out_channels,
+        skip_channels,
         kernel_size,
         stride,
         padding,
@@ -108,6 +275,7 @@ class TemporalBlock(nn.Module):
         causal=False,
     ):
         super().__init__()
+        self.skip_connection = skip_channels is not None
         # [M, B, K] -> [M, H, K]
         conv1x1 = nn.Conv1d(in_channels, out_channels, 1, bias=False)
         prelu = nn.PReLU()
@@ -116,6 +284,7 @@ class TemporalBlock(nn.Module):
         dsconv = DepthwiseSeparableConv(
             out_channels,
             in_channels,
+            skip_channels,
             kernel_size,
             stride,
             padding,
@@ -135,11 +304,12 @@ class TemporalBlock(nn.Module):
         Returns:
             [M, B, K]
         """
-        residual = x
-        out = self.net(x)
-        # TODO(Jing): when P = 3 here works fine, but when P = 2 maybe need to pad?
-        return out + residual  # look like w/o F.relu is better than w/ F.relu
-        # return F.relu(out + residual)
+        if self.skip_connection:
+            res_out, skip_out = self.net(x)
+            return res_out, skip_out
+        else:
+            res_out = self.net(x)
+            return res_out
 
 
 class DepthwiseSeparableConv(nn.Module):
@@ -147,6 +317,7 @@ class DepthwiseSeparableConv(nn.Module):
         self,
         in_channels,
         out_channels,
+        skip_channels,
         kernel_size,
         stride,
         padding,
@@ -179,6 +350,12 @@ class DepthwiseSeparableConv(nn.Module):
         else:
             self.net = nn.Sequential(depthwise_conv, prelu, norm, pointwise_conv)
 
+        # skip connection
+        if skip_channels is not None:
+            self.skip_conv = nn.Conv1d(in_channels, skip_channels, 1, bias=False)
+        else:
+            self.skip_conv = None
+
     def forward(self, x):
         """Forward.
 
@@ -186,9 +363,16 @@ class DepthwiseSeparableConv(nn.Module):
             x: [M, H, K]
 
         Returns:
-            result: [M, B, K]
+            res_out: [M, B, K]
+            skip_out: [M, Sc, K]
         """
-        return self.net(x)
+        shared_block = self.net[:-1]
+        shared = shared_block(x)
+        res_out = self.net[-1](shared)
+        if self.skip_conv is None:
+            return res_out
+        skip_out = self.skip_conv(shared)
+        return res_out, skip_out
 
 
 class Chomp1d(nn.Module):

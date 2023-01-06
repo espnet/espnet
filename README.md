@@ -208,14 +208,13 @@ Demonstration
   - RNN-based non-autoregressive model
   - Xiaoice
   - Sequence-to-sequence Transformer (with GLU-based encoder)
-  - MLP singer
+  - MLP singer (in progress)
   - Tacotron-singing (in progress)
-  - DiffSinger (to be published)
-  - VISinger (in progress)
+  - DiffSinger (in progress)
+  - VISinger
 - Support multi-speaker & multilingual singing synthesis
   - Speaker ID embedding
   - Language ID embedding
-  - Global sytle token (GST) embedding
 - Various language support
   - Jp / En / Kr / Zh
 - Tight integration with neural vocoders (the same as TTS)
