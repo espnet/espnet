@@ -104,15 +104,15 @@ def test_vits_generator_forward(model_dict):
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, idim, (2, 8)),
+        melody=torch.randint(0, 127, (2, 8)),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(0, idim, (2, 8)),
+        tempo=torch.randint(1, idim, (2, 8)),
         tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(0, idim, (2, 8)),
+        beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randint(0, idim, (2, 8)),
-        pitch_lengths=torch.tensor([8, 5], dtype=torch.long),
-        duration=torch.randint(0, idim, (2, 8)),
+        pitch=torch.randn(2, 16, 1),
+        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
+        duration=torch.randint(1, idim, (2, 8)),
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
@@ -137,11 +137,39 @@ def test_vits_generator_forward(model_dict):
             ),
         ),
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
-        label=torch.randint(0, idim, (5,)),
-        melody=torch.randint(0, idim, (5,)),
-        tempo=torch.randint(0, idim, (5,)),
-        beat=torch.randint(0, idim, (5,)),
-        pitch=torch.randint(0, idim, (5,)),
+        label=torch.randint(
+            0,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        melody=torch.randint(
+            0,
+            127,
+            (
+                2,
+                5,
+            ),
+        ),
+        tempo=torch.randint(
+            1,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        beat=torch.randint(
+            1,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        pitch=torch.randn(2, 16, 1),
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
@@ -166,11 +194,39 @@ def test_vits_generator_forward(model_dict):
             ),
         ),
         text_lengths=torch.tensor([5], dtype=torch.long),
-        label=torch.randint(0, idim, (5,)),
-        melody=torch.randint(0, idim, (5,)),
-        tempo=torch.randint(0, idim, (5,)),
-        beat=torch.randint(0, idim, (5,)),
-        pitch=torch.randint(0, idim, (5,)),
+        label=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        melody=torch.randint(
+            0,
+            127,
+            (
+                1,
+                5,
+            ),
+        ),
+        tempo=torch.randint(
+            1,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        beat=torch.randint(
+            1,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        pitch=torch.randn(1, 16, 1),
         feats=torch.randn(1, odim, 16),
         feats_lengths=torch.tensor([16], dtype=torch.long),
     )
@@ -235,15 +291,15 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, idim, (2, 8)),
+        melody=torch.randint(0, 127, (2, 8)),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(0, idim, (2, 8)),
+        tempo=torch.randint(1, idim, (2, 8)),
         tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(0, idim, (2, 8)),
+        beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randint(0, idim, (2, 8)),
-        pitch_lengths=torch.tensor([8, 5], dtype=torch.long),
-        duration=torch.randint(0, idim, (2, 8)),
+        pitch=torch.randn(2, 16, 1),
+        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
+        duration=torch.randint(1, idim, (2, 8)),
         sids=torch.randint(0, spks, (2,)),
     )
     if args["spk_embed_dim"] > 0:
@@ -269,11 +325,39 @@ def test_multi_speaker_vits_generator_forward(model_dict):
             ),
         ),
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
-        label=torch.randint(0, idim, (5,)),
-        melody=torch.randint(0, idim, (5,)),
-        tempo=torch.randint(0, idim, (5,)),
-        beat=torch.randint(0, idim, (5,)),
-        pitch=torch.randint(0, idim, (5,)),
+        label=torch.randint(
+            0,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        melody=torch.randint(
+            0,
+            127,
+            (
+                2,
+                5,
+            ),
+        ),
+        tempo=torch.randint(
+            1,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        beat=torch.randint(
+            1,
+            idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        pitch=torch.randn(2, 16, 1),
         sids=torch.randint(0, spks, (1,)),
     )
     if args["spk_embed_dim"] > 0:
@@ -301,11 +385,39 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         text_lengths=torch.tensor([5], dtype=torch.long),
         feats=torch.randn(1, odim, 16),
         feats_lengths=torch.tensor([16], dtype=torch.long),
-        label=torch.randint(0, idim, (5,)),
-        melody=torch.randint(0, idim, (5,)),
-        tempo=torch.randint(0, idim, (5,)),
-        beat=torch.randint(0, idim, (5,)),
-        pitch=torch.randint(0, idim, (5,)),
+        label=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        melody=torch.randint(
+            0,
+            127,
+            (
+                1,
+                5,
+            ),
+        ),
+        tempo=torch.randint(
+            1,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        beat=torch.randint(
+            1,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        pitch=torch.randn(1, 16, 1),
         sids=torch.randint(0, spks, (1,)),
     )
     if args["spk_embed_dim"] > 0:
