@@ -8,6 +8,7 @@ from torch import nn
 
 class Residual(nn.Module):
     """Residual connection with constant affine weights.
+
     Can simulate standard residual, no residual, and "constant gates".
     """
 

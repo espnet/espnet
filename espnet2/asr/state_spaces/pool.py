@@ -7,10 +7,10 @@ import torch.nn.functional as F
 from einops import rearrange, reduce, repeat
 from torch import nn
 
-from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
-from espnet.nets.pytorch_backend.state_spaces.components import LinearActivation
+from espnet2.asr.state_spaces.base import SequenceModule
+from espnet2.asr.state_spaces.components import LinearActivation
 
-""" Simple pooling functions that just downsample or repeat
+"""Simple pooling functions that just downsample or repeat
 
 stride: Subsample on the layer dimension
 expand: Repeat on the feature dimension

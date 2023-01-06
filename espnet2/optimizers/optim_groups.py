@@ -1,10 +1,3 @@
-"""Utilities for special optimizer hyperparameters.
-
-group_parameters_for_optimizer is a modification of timm's optimizer logic, which is
-currently unused add_optimizer_hooks is an improved version that uses this codebase's
-_optim dictionary
-
-"""
 # noqa: E501 This code is modified from: https://github.com/HazyResearch/state-spaces/blob/main/src/utils/optim_groups.py
 
 import torch.nn as nn
@@ -15,9 +8,13 @@ def add_optimizer_hooks(
     bias_weight_decay=False,
     normalization_weight_decay=False,
 ):
-    """Set weight_decay=0.0 for parameters in model.no_weight_decay, for parameters with
+    """Set zero weight decay for some params
+
+    Set weight_decay=0.0 for parameters in model.no_weight_decay, for parameters with
     attribute _no_weight_decay==True, for bias parameters if bias_weight_decay==False,
     for normalization parameters if normalization_weight_decay==False
+
+    See: https://discuss.pytorch.org/t/weight-decay-only-for-weights-of-nn-linear-and-nn-conv/114348 # noqa
     """
     # Separate out all parameters to those that will and won't experience regularizing
     # weight decay

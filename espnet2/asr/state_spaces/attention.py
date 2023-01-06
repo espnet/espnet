@@ -6,11 +6,14 @@ import numpy
 import torch
 from torch import nn
 
-from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
+from espnet2.asr.state_spaces.base import SequenceModule
 
 
 class MultiHeadedAttention(SequenceModule):
-    """Multi-Head Attention layer.
+    """Multi-Head Attention layer inheriting SequenceModule.
+
+    Comparing default MHA module in ESPnet, this module returns additional dummy state
+    and has step function for autoregressive inference.
 
     Args:
         n_head (int): The number of heads.
@@ -21,7 +24,7 @@ class MultiHeadedAttention(SequenceModule):
 
     def __init__(self, n_feat, n_head, dropout=0.0, transposed=False, **kwargs):
         """Construct an MultiHeadedAttention object."""
-        super(MultiHeadedAttention, self).__init__()
+        super().__init__()
         assert n_feat % n_head == 0
         # We assume d_v always equals d_k
         self.d_k = n_feat // n_head

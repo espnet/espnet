@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
-from espnet.nets.pytorch_backend.state_spaces.components import (
+from espnet2.asr.state_spaces.components import (
     Activation,
     DropoutNd,
     LinearActivation,

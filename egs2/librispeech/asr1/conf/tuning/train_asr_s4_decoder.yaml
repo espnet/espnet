@@ -25,6 +25,9 @@ decoder_conf:
   drop_path: 0.1
   prenorm: true
   n_layers: 6
+  # specify each block config here. for detail, see espnet2/asr/state_spaces 
+  # layer: stack of black box modules, _name_ must be specified
+  # residual: choose an option for residual connection
   layer:
     - _name_: s4
       postact: glu

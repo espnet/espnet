@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Implements a full residual block around a black box layer
+"""Implements a full residual block around a black box layer
 
 Configurable options include:
 normalization position: prenorm or postnorm
@@ -13,32 +13,50 @@ from functools import partial
 
 from torch import nn
 
-import espnet.nets.pytorch_backend.state_spaces.utils as utils
-from espnet.nets.pytorch_backend.state_spaces import registry
-from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
-from espnet.nets.pytorch_backend.state_spaces.components import (
+import espnet2.asr.state_spaces.utils as utils
+from espnet2.asr.state_spaces import registry
+from espnet2.asr.state_spaces.base import SequenceModule
+from espnet2.asr.state_spaces.components import (
     DropoutNd,
     Normalization,
     StochasticDepth,
 )
-from espnet.nets.pytorch_backend.state_spaces.pool import registry as pool_registry
-from espnet.nets.pytorch_backend.state_spaces.residual import (
+from espnet2.asr.state_spaces.pool import registry as pool_registry
+from espnet2.asr.state_spaces.residual import (
     registry as residual_registry,
 )
 
 
 class SequenceResidualBlock(SequenceModule):
+    """Residual block wrapper for black box layer
+
+    The SequenceResidualBlock class implements a generic
+    (batch, length, d_input) -> (batch, length, d_input) transformation
+
+    Args:
+        d_input: Input feature dimension
+        i_layer: Layer index, only needs to be passed into certain residuals like Decay
+        dropout: Dropout for black box module
+        tie_dropout: Tie dropout mask across sequence like nn.Dropout1d/nn.Dropout2d
+        transposed: Transpose inputs so each layer receives (batch, dim, length)
+        layer: Config for black box module
+        residual: Config for residual function
+        norm: Config for normalization layer
+        pool: Config for pooling layer per stage
+        drop_path: Drop ratio for stochastic depth
+    """
+
     def __init__(
         self,
         d_input,
-        i_layer=None,  # Only needs to be passed into certain residuals like Decay
+        i_layer=None,
         prenorm=True,
         dropout=0.0,
         tie_dropout=False,
         transposed=False,
-        layer=None,  # Config for black box module
-        residual=None,  # Config for residual function
-        norm=None,  # Config for normalization layer
+        layer=None,
+        residual=None,
+        norm=None,
         pool=None,
         drop_path=0.0,
     ):

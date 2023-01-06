@@ -6,8 +6,8 @@ from functools import partial
 
 from torch import nn
 
-from espnet.nets.pytorch_backend.state_spaces.base import SequenceModule
-from espnet.nets.pytorch_backend.state_spaces.components import (
+from espnet2.asr.state_spaces.base import SequenceModule
+from espnet2.asr.state_spaces.components import (
     DropoutNd,
     LinearActivation,
 )

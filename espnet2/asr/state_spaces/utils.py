@@ -70,7 +70,6 @@ def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
     *args, **kwargs: additional arguments
             to override the config to pass into the target constructor
     """
-
     # Case 1: no config
     if config is None:
         return None
@@ -108,6 +107,7 @@ def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
 
 
 def get_class(registry, _name_):
+    breakpoint()
     return hydra.utils.get_class(path=registry[_name_])
 
 

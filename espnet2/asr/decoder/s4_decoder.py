@@ -5,8 +5,8 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.state_spaces.model import SequenceModel
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.state_spaces.model import SequenceModel
 from espnet.nets.scorer_interface import BatchScorerInterface
 
 
