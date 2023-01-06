@@ -70,8 +70,9 @@ EOF
 log "$0 $*"
 
 # NOTE(iamanigeeit): If you want to train FastSpeech2 with the alignments,
-#   please check `egs2/ljspeech/tts1/local/run_mfa.sh`. For example:
-# $ ./local/run_mfa.sh --stage 2 \
+# First, execute this script as showed in `egs2/ljspeech/tts1/local/run_mfa.sh`
+# Then, execute the main routine with `egs2/ljspeech/tts1/run.sh`. For example:
+# $ ./run.sh --stage 2 \
 #     --train_config conf/tuning/train_fastspeech2.yaml \
 #     --teacher_dumpdir data \
 #     --tts_stats_dir data/stats \

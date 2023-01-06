@@ -16,6 +16,7 @@ import os
 import re
 import sys
 import traceback
+from decimal import Decimal
 from pathlib import Path
 from typing import Dict
 
@@ -220,18 +221,21 @@ def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int
 
     assert len(new_phones) + 1 == len(timings)
 
-    # Should use same frame formaluzation for both
-    total_durations = int(maxTimestamp * fs / hop_size + 0.5)
-    timing_frames = [int(timing * fs / hop_size + 0.5) for timing in timings]
+    # Should use same frame formulation for both
+    # STFT frames calculation: https://github.com/librosa/librosa/issues/1288
+    # centered stft
+
+    total_durations = int(Decimal(str(maxTimestamp)) * fs / hop_size) + 1
+    timing_frames = [int(timing * fs / hop_size) + 1 for timing in timings]
     durations = [
         timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
     ]
 
     sum_durations = sum(durations)
-    assert (
-        sum_durations == total_durations
-    ), f"{total_durations} != {sum_durations}, {maxTimestamp}"
-
+    if sum_durations < total_durations:
+        missing = total_durations - sum_durations
+        durations[-1] += missing
+    assert sum(durations) == total_durations
     return new_phones, durations
 
 
