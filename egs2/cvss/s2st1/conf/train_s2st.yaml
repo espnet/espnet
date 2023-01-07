@@ -1,0 +1,110 @@
+# =====================
+# Network Architecture
+# =====================
+
+# Frontend
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# Encoder
+encoder: transformer
+encoder_conf:
+    input_layer: "conv2d"
+    num_blocks: 8
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 256
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+# ASR Decoder
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: "embed"
+    num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+# ASR CTC
+asr_ctc: true
+
+# ST Decoder
+st_decoder: transformer
+st_decoder_conf:
+    input_layer: "embed"
+    num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+# Synthesizer
+synthesizer: translatotron
+synthesizer_conf:
+    embed_dim: 512
+    atype: forward
+    adim: 512
+    aconv_chans: 32
+    dlayers: 6
+    dunits: 1024
+    prenet_units: 32
+    reduction_factor: 1
+
+# =====================
+# Training Related
+# =====================
+
+# Loss-related
+losses:
+    - name: src_ctc
+      type: ctc
+      conf:
+        weight: 0.1
+    - name: src_attn
+      type: attention
+      conf:
+        weight: 0.1
+        smoothing: 0.1
+    - name: tgt_attn
+      type: attention
+      conf:
+        weight: 0.3
+        smoothgin: 0.1
+    - name: synthesis
+      type: tacotron
+      conf:
+        weight: 1.0
+        loss_type: "L1+L2"
+        bce_pos_weight: 10.0
+    
+# Optimization
+optim: adamw
+accum_grad: 1
+grad_clip: 1.0
+grad_noise: false
+max_epoch: 50
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-06
+
+# Batching
+batch_type: folded
+batch_size: 64
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+
+# Other Training Setting
+num_iters_per_epoch: 500
+max_epoch: 500
+num_workers: 1
+log_interval: null
+seed: 0
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+-   - train
+    - loss
+    - min
+keep_nbest_models: 5
