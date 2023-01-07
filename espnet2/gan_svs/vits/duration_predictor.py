@@ -34,17 +34,20 @@ class DurationPredictor(torch.nn.Module):
         self.proj = torch.nn.Conv1d(filter_channels, 1, 1)
 
         if global_channels > 0:
-            self.cond = torch.nn.Conv1d(global_channels, channels, 1)
+            self.conv = torch.nn.Conv1d(global_channels, channels, 1)
 
     def forward(self, x, x_mask, beat_lab, g=None):
         x = torch.detach(x)
+
+        # multi-singer
+        if g is not None:
+            g = torch.detach(g)
+            x = x + self.conv(g)
+
         beat_lab = torch.detach(beat_lab)
         beat_lab = beat_lab.unsqueeze(1)
         x = torch.cat((x, beat_lab), 1)
 
-        if g is not None:
-            g = torch.detach(g)
-            x = x + self.cond(g)
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

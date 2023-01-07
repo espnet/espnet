@@ -250,12 +250,14 @@ class VITSGenerator(torch.nn.Module):
         )
 
         self.frame_prior_net = FramePriorNet(
+            hidden_channels=hidden_channels,
             attention_dim=hidden_channels,
             blocks=4,
         )
 
         self.phoneme_predictor = PhonemePredictor(
             vocabs=vocabs,
+            hidden_channels=hidden_channels,
             attention_dim=hidden_channels,
             blocks=2,
         )
