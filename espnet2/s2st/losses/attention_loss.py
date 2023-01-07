@@ -19,7 +19,7 @@ class S2STAttentionLoss(AbsS2STLoss):
         weight: float = 1.0,
         smoothing: float = 0.0,
         normalize_length: str2bool = False,
-        criterion: torch.nn.Module = nn.KLDivLoss(reduction="none"),
+        criterion: torch.nn.Module = torch.nn.KLDivLoss(reduction="none"),
     ):
         super().__init__()
         assert check_argument_types()

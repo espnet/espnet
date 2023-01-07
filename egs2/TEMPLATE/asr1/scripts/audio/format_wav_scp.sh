@@ -32,6 +32,7 @@ cmd=utils/run.pl
 nj=30
 fs=none
 segments=
+suffix=
 
 ref_channels=
 utt2ref_channels=
@@ -104,7 +105,7 @@ if [ -n "${segments}" ]; then
             --fs ${fs} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
-            "${scp}" "${outdir}/format.JOB"
+            "${scp}" "${outdir}/format${suffix}.JOB"
 
 else
     log "[info]: without segments"
@@ -122,7 +123,7 @@ else
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
-        "${logdir}/wav.JOB.scp" "${outdir}/format.JOB"
+        "${logdir}/wav.JOB.scp" "${outdir}/format${suffix}.JOB"
 fi
 
 # Workaround for the NFS problem
@@ -130,13 +131,13 @@ ls ${outdir}/format.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat "${outdir}/format.${n}/wav.scp" || exit 1;
+    cat "${outdir}/format${suffix}.${n}/wav.scp" || exit 1;
 done > "${dir}/${out_filename}" || exit 1
 
 if "${write_utt2num_samples}"; then
     for n in $(seq ${nj}); do
-        cat "${outdir}/format.${n}/utt2num_samples" || exit 1;
-    done > "${dir}/utt2num_samples"  || exit 1
+        cat "${outdir}/format${suffix}.${n}/utt2num_samples" || exit 1;
+    done > "${dir}/utt2num_samples${suffix}"  || exit 1
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

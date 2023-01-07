@@ -48,7 +48,8 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.s2st.espnet_model import ESPnetS2STModel
 from espnet2.s2st.losses.attention_loss import S2STAttentionLoss
 from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
-from espnet2.s2st.losses.synthesizer_loss import S2STTacotron2Loss
+from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -207,7 +208,7 @@ class S2STTask(STTask):
         required = parser.get_default("required")
 
         group.add_argument(
-            "s2st_type",
+            "--s2st_type",
             type=str,
             default="translatotron",
             help="Types of S2ST",
@@ -282,7 +283,7 @@ class S2STTask(STTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetSTModel),
+            default=get_default_kwargs(ESPnetS2STModel),
             help="The keyword arguments for model class.",
         )
 
@@ -491,7 +492,7 @@ class S2STTask(STTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetS2STModel:
         assert check_argument_types()
         if args.tgt_token_list is not None:
             if isinstance(args.tgt_token_list, str):

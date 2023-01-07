@@ -13,6 +13,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -185,18 +186,18 @@ class ESPnetS2STModel(AbsESPnetModel):
             # use a shared encoder with three decoders (i.e., asr, st, s2st)
             # reference https://arxiv.org/pdf/1904.06037.pdf
 
-            # src_ctc
-            if self.src_ctc is not None and "src_ctc" in self.losses:
-                src_ctc_loss, cer_src_ctc = self._calc_ctc_loss(
+            # asr_ctc
+            if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
                     encoder_out,
                     encoder_out_lens,
                     src_text,
                     src_text_lengths,
-                    ctc_type="src",
+                    ctc_type="asr",
                 )
-                loss_record.append(src_ctc_loss * self.losses["src_ctc"].weight)
+                loss_record.append(asr_ctc_loss * self.losses["asr_ctc"].weight)
             else:
-                src_ctc_loss, cer_src_ctc = None, None
+                asr_ctc_loss, cer_asr_ctc = None, None
 
             # asr decoder
             if self.asr_decoder is not None and "src_attn" in self.losses:
@@ -261,8 +262,8 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             stats = dict(
                 loss=loss.item(),
-                src_ctc_loss=src_ctc_loss.item(),
-                cer_src_ctc=cer_src_ctc,
+                asr_ctc_loss=asr_ctc_loss.item(),
+                cer_asr_ctc=cer_asr_ctc,
                 src_attn_loss=src_attn_loss.item(),
                 acc_src_attn=acc_src_attn,
                 cer_src_attn=cer_src_attn,
@@ -280,18 +281,18 @@ class ESPnetS2STModel(AbsESPnetModel):
             # use a sinlge decoder for synthesis
             # reference https://arxiv.org/pdf/2107.08661v5.pdf
 
-            # src_ctc
-            if self.src_ctc is not None and "src_ctc" in self.losses:
-                src_ctc_loss, cer_src_ctc = self._calc_ctc_loss(
+            # asr_ctc
+            if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
                     encoder_out,
                     encoder_out_lens,
                     src_text,
                     src_text_lengths,
-                    ctc_type="src",
+                    ctc_type="asr",
                 )
-                loss_record.append(src_ctc_loss * self.losses["src_ctc"].weight)
+                loss_record.append(asr_ctc_loss * self.losses["asr_ctc"].weight)
             else:
-                src_ctc_loss, cer_src_ctc = None, None
+                asr_ctc_loss, cer_asr_ctc = None, None
 
             # st decoder
             if self.st_decoder is not None and "tgt_attn" in self.losses:
@@ -514,10 +515,10 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
         ctc_type: str,
     ):
-        if ctc_type == "src":
-            ctc = self.src_ctc
-        elif ctc_type == "tgt":
-            ctc = self.tgt_ctc
+        if ctc_type == "asr":
+            ctc = self.asr_ctc
+        elif ctc_type == "st":
+            ctc = self.st_ctc
         else:
             raise RuntimeError(
                 "Cannot recognize the ctc type (need to be either 'src' or 'tgt', but found ".format(
