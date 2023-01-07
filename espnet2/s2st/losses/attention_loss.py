@@ -15,7 +15,7 @@ class S2STAttentionLoss(AbsS2STLoss):
     def __init__(
         self,
         vocab_size: int,
-        padding_idx: int,
+        padding_idx: int = -1,
         weight: float = 1.0,
         smoothing: float = 0.0,
         normalize_length: str2bool = False,
@@ -27,7 +27,7 @@ class S2STAttentionLoss(AbsS2STLoss):
         self.loss = LabelSmoothingLoss(
             size=vocab_size,
             padding_idx=padding_idx,
-            sommothing=smoothing,
+            smoothing=smoothing,
             normalize_length=normalize_length,
             criterion=criterion,
         )

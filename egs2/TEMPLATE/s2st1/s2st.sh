@@ -727,7 +727,7 @@ if ! "${skip_train}"; then
         if [ $use_tgt_lang = true ]; then
             _opts+="--tgt_bpemodel ${tgt_bpemodel} "
             _opts+="--tgt_token_type ${tgt_token_type} "
-            _opts+="--tgt_token_list ${tgt_token_list}"
+            _opts+="--tgt_token_list ${tgt_token_list} "
             _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/text.${tgt_lang},tgt_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${tgt_lang},tgt_text,text "
         fi
@@ -735,7 +735,7 @@ if ! "${skip_train}"; then
         if [ $use_src_lang = true ]; then
             _opts+="--src_bpemodel ${src_bpemodel} "
             _opts+="--src_token_type ${src_token_type} "
-            _opts+="--src_token_list ${src_token_list}"
+            _opts+="--src_token_list ${src_token_list} "
             _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/text.${src_lang},src_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${src_lang},src_text,text "
         fi

@@ -53,8 +53,8 @@ class ESPnetS2STModel(AbsESPnetModel):
         asr_ctc: Optional[CTC],
         st_ctc: Optional[CTC],
         losses: Dict[str, torch.nn.Module],
-        vocab_size: Optional[int],
-        token_list: Optional[Union[Tuple[str, ...], List[str]]],
+        tgt_vocab_size: Optional[int],
+        tgt_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         src_vocab_size: Optional[int],
         src_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         ignore_id: int = -1,
@@ -68,14 +68,15 @@ class ESPnetS2STModel(AbsESPnetModel):
         assert check_argument_types()
 
         super().__init__()
-        self.sos = vocab_size - 1 if vocab_size else None
-        self.eos = vocab_size - 1 if vocab_size else None
+        self.sos = tgt_vocab_size - 1 if tgt_vocab_size else None
+        self.eos = tgt_vocab_size - 1 if tgt_vocab_size else None
         self.src_sos = src_vocab_size - 1 if src_vocab_size else None
         self.src_eos = src_vocab_size - 1 if src_vocab_size else None
-        self.vocab_size = vocab_size
+        self.tgt_vocab_size = tgt_vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
-        self.token_list = token_list.copy()
+        self.tgt_token_list = tgt_token_list.copy()
+        self.src_token_list = src_token_list.copy()
         self.s2st_type = s2st_type
 
         self.frontend = frontend
@@ -92,10 +93,10 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.st_ctc = st_ctc
         self.losses = losses
 
-        # MT error calculator
-        if mt_decoder and vocab_size and report_bleu:
+        # ST error calculator
+        if st_decoder and tgt_vocab_size and report_bleu:
             self.mt_error_calculator = MTErrorCalculator(
-                token_list, sym_space, sym_blank, report_bleu
+                tgt_token_list, sym_space, sym_blank, report_bleu
             )
         else:
             self.mt_error_calculator = None

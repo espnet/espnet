@@ -79,8 +79,18 @@ specaug_choices = ClassChoices(
     default=None,
     optional=True,
 )
-normalize_choices = ClassChoices(
-    "normalize",
+src_normalize_choices = ClassChoices(
+    "src_normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default="utterance_mvn",
+    optional=True,
+)
+tgt_normalize_choices = ClassChoices(
+    "tgt_normalize",
     classes=dict(
         global_mvn=GlobalMVN,
         utterance_mvn=UtteranceMVN,
@@ -180,7 +190,8 @@ class S2STTask(STTask):
         # --specaug and --specaug_conf
         specaug_choices,
         # --{src, tgt}_normalize and --{src, tgt}_normalize_conf
-        normalize_choices,
+        src_normalize_choices,
+        tgt_normalize_choices,
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
@@ -531,13 +542,13 @@ class S2STTask(STTask):
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
-            input_size = frontend.output_size()
+            raw_input_size = frontend.output_size()
         else:
             # Give features from data-loader
             args.frontend = None
             args.frontend_conf = {}
             frontend = None
-            input_size = args.input_size
+            raw_input_size = args.input_size
 
         # 2. Data augmentation for spectrogram
         if args.specaug is not None:
@@ -548,12 +559,12 @@ class S2STTask(STTask):
 
         # 3. Normalization layer
         if args.src_normalize is not None:
-            src_normalize_class = normalize_choices.get_class(args.src_normalize)
+            src_normalize_class = src_normalize_choices.get_class(args.src_normalize)
             src_normalize = src_normalize_class(**args.src_normalize_conf)
         else:
             src_normalize = None
         if args.tgt_normalize is not None:
-            tgt_normalize_class = normalize_choices.get_class(args.tgt_normalize)
+            tgt_normalize_class = tgt_normalize_choices.get_class(args.tgt_normalize)
             tgt_normalize = tgt_normalize_class(**args.tgt_normalize_conf)
         else:
             tgt_normalize = None
@@ -565,6 +576,7 @@ class S2STTask(STTask):
             preencoder = preencoder_class(**args.preencoder_conf)
             input_size = preencoder.output_size()
         else:
+            input_size = raw_input_size
             preencoder = None
 
         # 4. Encoder
@@ -587,7 +599,7 @@ class S2STTask(STTask):
         if args.asr_decoder is not None:
             asr_decoder_class = asr_decoder_choices.get_class(args.asr_decoder)
 
-            asr_decoder = decoder_class(
+            asr_decoder = asr_decoder_class(
                 vocab_size=src_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.asr_decoder_conf,
@@ -598,7 +610,7 @@ class S2STTask(STTask):
         if args.st_decoder is not None:
             st_decoder_class = st_decoder_choices.get_class(args.st_decoder)
 
-            st_decoder = decoder_class(
+            st_decoder = st_decoder_class(
                 vocab_size=tgt_vocab_size,
                 encoder_output_size=encoder_output_size,
                 **args.st_decoder_conf,
@@ -616,7 +628,7 @@ class S2STTask(STTask):
         else:
             asr_ctc = None
 
-        if token_list is not None and args.st_ctc:
+        if tgt_token_list is not None and args.st_ctc:
             st_ctc = CTC(
                 odim=tgt_vocab_size,
                 encoder_output_size=encoder_output_size,
@@ -629,7 +641,7 @@ class S2STTask(STTask):
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
 
         synthesizer = synthesizer_class(
-            encoder_output_size=encoder_output_size, **args.synthesizer_conf
+            idim=encoder_output_size, odim=raw_input_size, **args.synthesizer_conf
         )
 
         # 8. Loss definition
@@ -639,7 +651,12 @@ class S2STTask(STTask):
             # that packed by older version
             for ctr in args.losses:
                 logging.info("initialize loss: {}".format(ctr["name"]))
-                loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
+                if ctr["name"] == "src_attn":
+                    loss = loss_choices.get_class(ctr["type"])(vocab_size=src_vocab_size, **ctr["conf"])
+                elif ctr["name"] == "tgt_attn":
+                    loss = loss_choices.get_class(ctr["type"])(vocab_size=tgt_vocab_size, **ctr["conf"])
+                else:
+                    loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
 
         # 9. Build model
@@ -657,8 +674,8 @@ class S2STTask(STTask):
             asr_ctc=asr_ctc,
             st_ctc=st_ctc,
             losses=losses,
-            vocab_size=tgt_vocab_size,
-            token_list=tgt_token_list,
+            tgt_vocab_size=tgt_vocab_size,
+            tgt_token_list=tgt_token_list,
             src_vocab_size=src_vocab_size,
             src_token_list=src_token_list,
             **args.model_conf,
