@@ -4,19 +4,20 @@ from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
-try:
-    import whisper.tokenizer
-except Exception as e:
-    print("Error: whisper is not properly installed.")
-    print(
-        "Please install whisper with: cd ${MAIN_ROOT}/tools && "
-        "./installers/install_whisper.sh"
-    )
-    raise e
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
     def __init__(self, model_type: str):
         assert check_argument_types()
+
+        try:
+            import whisper.tokenizer
+        except Exception as e:
+            print("Error: whisper is not properly installed.")
+            print(
+                "Please install whisper with: cd ${MAIN_ROOT}/tools && "
+                "./installers/install_whisper.sh"
+            )
+            raise e
 
         self.model = model_type
         if model_type == 'whisper_en':

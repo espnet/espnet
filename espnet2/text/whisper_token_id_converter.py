@@ -3,16 +3,6 @@ from typing import Iterable, List, Union
 import numpy as np
 from typeguard import check_argument_types
 
-try:
-    import whisper.tokenizer
-except Exception as e:
-    print("Error: whisper is not properly installed.")
-    print(
-        "Please install whisper with: cd ${MAIN_ROOT}/tools && "
-        "./installers/install_whisper.sh"
-    )
-    raise e
-
 # <sos> and <eos> for Whisper multilingual ---
 # '<|startoftranscript|>': 50258
 # '<|endoftext|>':         50257
@@ -28,6 +18,16 @@ class OpenAIWhisperTokenIDConverter:
         model_type: str = "whisper_multilingual",
     ):
         assert check_argument_types()
+
+        try:
+            import whisper.tokenizer
+        except Exception as e:
+            print("Error: whisper is not properly installed.")
+            print(
+                "Please install whisper with: cd ${MAIN_ROOT}/tools && "
+                "./installers/install_whisper.sh"
+            )
+            raise e
 
         if model_type == 'whisper_en':
             self.tokenizer = whisper.tokenizer.get_tokenizer(
