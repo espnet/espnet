@@ -109,6 +109,11 @@ class MultiGatedConformerEncoder(AbsEncoder):
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
+        num_pre_encs: int = 3,
+        num_multi_blocks: int = 4,
+        gating: bool = False,
+        post_encoder: bool = False,
+        
     ):
         assert check_argument_types()
         super().__init__()
@@ -263,21 +268,51 @@ class MultiGatedConformerEncoder(AbsEncoder):
                 f"should be equal to num_blocks ({num_blocks})"
             )
 
-        self.encoders = repeat(
-            num_blocks,
-            lambda lnum: EncoderLayer(
-                output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args),
-                positionwise_layer(*positionwise_layer_args),
-                positionwise_layer(*positionwise_layer_args) if macaron_style else None,
-                convolution_layer(*convolution_layer_args) if use_cnn_module else None,
-                dropout_rate,
-                normalize_before,
-                concat_after,
-                stochastic_depth_rate[lnum],
-            ),
-            layer_drop_rate,
-        )
+        assert num_pre_encs > 0 or post_encoder = True, 'No Encoder added'
+        assert len(interctc_layer_idx) == 0, "interctc_layer_idx not tested with multi encoders"
+        
+        self.post_encoder = post_encoder
+        if post_encoder:       
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    output_size,
+                    encoder_selfattn_layer(*encoder_selfattn_layer_args),
+                    positionwise_layer(*positionwise_layer_args),
+                    positionwise_layer(*positionwise_layer_args) if macaron_style else None,
+                    convolution_layer(*convolution_layer_args) if use_cnn_module else None,
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                    stochastic_depth_rate[lnum],
+                ),
+                layer_drop_rate,
+            )
+        self.num_pre_encs = num_pre_encs
+        if num_pre_encs > 0:
+            self.pre_encoders = []
+            for idx in range(num_pre_encs):
+                self.pre_encoders.apend(self.encoders = repeat(
+                    num_multi_blocks,
+                    lambda lnum: EncoderLayer(
+                        output_size,
+                        encoder_selfattn_layer(*encoder_selfattn_layer_args),
+                        positionwise_layer(*positionwise_layer_args),
+                        positionwise_layer(*positionwise_layer_args) if macaron_style else None,
+                        convolution_layer(*convolution_layer_args) if use_cnn_module else None,
+                        dropout_rate,
+                        normalize_before,
+                        concat_after,
+                    ),
+                ))
+                
+        self.gating = gating
+        if self.gating:
+            self.gating_layers = []
+            for idx in range(num_pre_encs):
+                self.gating_layers.append(torch.nn.Linear(output_size, 1))
+            self.sigmoid = torch.nn.Sigmoid()
+            
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
@@ -332,7 +367,23 @@ class MultiGatedConformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            xs_pad_array, pos_embeds = [], []
+            for idx in range(num_pre_encs):
+                res = self.pre_encoders[idx](xs_pad, masks)
+                xs_pad_array.append(res[0][0])
+                pos_embeds.append(res[0][1])
+            masks = res[1]
+            if not self.gating:
+                xs_pad = (torch.sum(torch.cat(xs_pad_array, 0), 0), torch.mean(torch.cat(pos_embeds, 0), 0))   #change this
+            else:
+                scored_xs_pad = []
+                for idx in range(num_pre_encs):
+                    score = self.sigmoid(self.gating_layers[idx](xs_pad_array[idx][0]))
+                    scored_xs_pad.append(score*xs_pad_array[idx][0])
+                xs_pad = (torch.sum(torch.cat(scored_xs_pad, 0), 0), torch.mean(torch.cat(pos_embeds, 0), 0))
+            if self.post_encoder:
+                xs_pad, masks = self.encoders(xs_pad, masks)     
+                       
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
