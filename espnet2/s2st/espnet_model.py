@@ -127,6 +127,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,  # TODO(Jiatong)
         sids: Optional[torch.Tensor] = None,  # TODO(Jiatong)
         lids: Optional[torch.Tensor] = None,  # TODO(Jiatong)
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # TODO(jiatong): add comments etc.
 
@@ -171,7 +172,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         # 0. Target feature extract
         # Note(jiatong): only for spec for now
         tgt_feats, tgt_feats_lengths = self._extract_feats(
-            tgt_speech.tgt_speech_lengths
+            tgt_speech, tgt_speech_lengths
         )
         # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.tgt_normalize is not None:

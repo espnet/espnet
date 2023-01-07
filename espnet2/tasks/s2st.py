@@ -520,7 +520,7 @@ class S2STTask(STTask):
             logging.info(f"Target Vocabulary size: {tgt_vocab_size }")
         else:
             tgt_token_list, tgt_vocab_size = None, None
-
+        
         if args.src_token_list is not None:
             if isinstance(args.src_token_list, str):
                 with open(args.src_token_list, encoding="utf-8") as f:
