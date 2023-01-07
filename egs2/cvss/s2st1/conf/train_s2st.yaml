@@ -66,11 +66,13 @@ losses:
       conf:
         weight: 0.1
         smoothing: 0.1
+        padding_idx: -1
     - name: tgt_attn
       type: attention
       conf:
         weight: 0.3
-        smoothgin: 0.1
+        smoothing: 0.1
+        padding_idx: -1
     - name: synthesis
       type: tacotron
       conf:

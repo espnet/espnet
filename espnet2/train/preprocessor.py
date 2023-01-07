@@ -517,7 +517,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             token_list=token_list[0],
             bpemodel=bpemodel[0],
             text_cleaner=text_cleaner,
-            g2p_type=g2p_type,
+            g2p_type=g2p_type[0] if type(g2p_type) is not str else g2p_type,
             unk_symbol=unk_symbol,
             space_symbol=space_symbol,
             non_linguistic_symbols=non_linguistic_symbols,
@@ -542,7 +542,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
 
         if type(g2p_type) is str:
             # NOTE(jiatong): str will repeat for every tokenizer
-            g2p_type = [g2p_type] * len(self.num_tokenizer)
+            g2p_type = [g2p_type] * self.num_tokenizer
 
         for i in range(self.num_tokenizer):
             if token_type[i] is not None:

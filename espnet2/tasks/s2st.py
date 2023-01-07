@@ -671,6 +671,7 @@ class S2STTask(STTask):
             postencoder=postencoder,
             asr_decoder=asr_decoder,
             st_decoder=st_decoder,
+            synthesizer=synthesizer,
             asr_ctc=asr_ctc,
             st_ctc=st_ctc,
             losses=losses,
