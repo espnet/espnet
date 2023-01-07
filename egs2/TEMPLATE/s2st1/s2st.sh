@@ -518,11 +518,13 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+
+            # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
                     > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-		sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
+		        sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
             done
         done
     fi
@@ -771,11 +773,11 @@ if ! "${skip_train}"; then
         if [ ${use_tgt_lang} = true ]; then
             <"${s2st_stats_dir}/train/tgt_text_shape" \
                 awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${s2st_stats_dir}/train/text_shape.${tgt_token_type}"
+                >"${s2st_stats_dir}/train/tgt_text_shape.${tgt_token_type}"
 
             <"${s2st_stats_dir}/valid/tgt_text_shape" \
                 awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
-                >"${s2st_stats_dir}/valid/text_shape.${tgt_token_type}"
+                >"${s2st_stats_dir}/valid/tgt_text_shape.${tgt_token_type}"
         fi
 
         
@@ -825,8 +827,8 @@ if ! "${skip_train}"; then
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
-            _opts+="--src_normalize=global_mvn --normalize_conf stats_file=${s2st_stats_dir}/train/src_feats_stats.npz "
-            _opts+="--tgt_normalize=global_mvn --normalize_conf stats_file=${s2st_stats_dir}/train/tgt_feats_stats.npz "
+            _opts+="--src_normalize=global_mvn --src_normalize_conf stats_file=${s2st_stats_dir}/train/src_feats_stats.npz "
+            _opts+="--tgt_normalize=global_mvn --tgt_normalize_conf stats_file=${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
 
         _num_splits_opts=
@@ -884,8 +886,8 @@ if ! "${skip_train}"; then
                 _opts+="--train_shape_file ${s2st_stats_dir}/train/src_text_shape.${src_token_type} "
             fi
             if [ ${use_tgt_lang} = true ]; then
-                _opts+="--train_data_path_and_name_and_type ${s2st_stats_dir}/text.${tgt_lang},tgt_text,text "
-                _opts+="--train_shape_file ${s2st_stats_dir}/tgt_text_shape.${tgt_token_type} "
+                _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/text.${tgt_lang},tgt_text,text "
+                _opts+="--train_shape_file ${s2st_stats_dir}/train/tgt_text_shape.${tgt_token_type} "
             fi
         fi
 
@@ -910,13 +912,12 @@ if ! "${skip_train}"; then
             _opts+="--fold_length ${s2st_text_fold_length} "
         fi
         if [ ${use_src_lang} = true ]; then
-            _opts+="--src_token_type ${src_token_type}"
-            _opts_="--src_token_list ${src_token_list}"
+            _opts+="--src_token_type ${src_token_type} "
+            _opts+="--src_token_list ${src_token_list} "
             _opts+="--src_bpemodel ${src_bpemodel} "
             _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${src_lang},src_text,text " 
             _opts+="--valid_shape_file ${s2st_stats_dir}/valid/src_text_shape.${src_token_type} " 
             _opts+="--fold_length ${s2st_text_fold_length} "
-
         fi
 
         # shellcheck disable=SC2086
