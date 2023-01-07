@@ -41,6 +41,6 @@ class S2STAttentionLoss(AbsS2STLoss):
         Args:
         """
         if self.weight > 0:
-            loss_att = self.loss(dense_y, token_y)
+            return self.loss(dense_y, token_y)
         else:
             return 0

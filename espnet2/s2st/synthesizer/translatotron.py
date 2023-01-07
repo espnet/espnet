@@ -231,7 +231,7 @@ class Translatotron(AbsSynthesizer):
         enc_outputs = enc_outputs[:, : enc_outputs_lengths.max()]
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
 
-        batch_size = text.size(0)
+        batch_size = enc_outputs.size(0)
 
         ys = feats
         olens = feats_lengths
@@ -242,8 +242,8 @@ class Translatotron(AbsSynthesizer):
 
         # calculate tacotron2 outputs
         after_outs, before_outs, logits, att_ws = self._forward(
-            xs=xs,
-            ilens=ilens,
+            hs=enc_outputs,
+            hlens=ilens,
             ys=ys,
             olens=olens,
             spembs=spembs,

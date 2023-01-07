@@ -91,7 +91,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.synthesizer = synthesizer
         self.asr_ctc = asr_ctc
         self.st_ctc = st_ctc
-        self.losses = losses
+        self.losses = torch.nn.ModuleDict(losses)
 
         # ST error calculator
         if st_decoder and tgt_vocab_size and report_bleu:
@@ -176,11 +176,11 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
         # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.tgt_normalize is not None:
-            tgt_feats, tgt_feats_lengths = self.tgt_normalize(feats, feats_lengths)
+            tgt_feats, tgt_feats_lengths = self.tgt_normalize(tgt_feats, tgt_feats_lengths)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(
-            src_speech, src_speech_lengths, tgt_speech, tgt_speech_lengths
+            src_speech, src_speech_lengths
         )
 
         loss_record = []
@@ -211,7 +211,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 ) = self._calc_asr_att_loss(
                     encoder_out, encoder_out_lens, src_text, src_text_lengths
                 )
-                loss_record.append(src_attn_loss * self.losses["src_attn_loss"].weight)
+                loss_record.append(src_attn_loss * self.losses["src_attn"].weight)
             else:
                 src_attn_loss, acc_src_attn, cer_src_attn, wer_src_attn = (
                     None,
@@ -225,7 +225,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn = self._calc_st_att_loss(
                     encoder_out, encoder_out_lens, tgt_text, tgt_text_lengths
                 )
-                loss_record.append(tgt_attn_loss * self.losses["tgt_attn_loss"].weight)
+                loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
             else:
                 tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn = None, None, None
 
@@ -310,7 +310,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                     tgt_text_lengths,
                     return_hidden=True,
                 )
-                loss_record.append(tgt_attn_loss * self.losses["tgt_attn_loss"].weight)
+                loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
             else:
                 tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn, decoder_out = (
                     None,
@@ -456,9 +456,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         # 2. Compute attention loss
-        loss_att = self.criterion_st(decoder_out, ys_out_pad)
+        loss_att = self.losses["tgt_attn"](decoder_out, ys_out_pad)
         acc_att = th_accuracy(
-            decoder_out.view(-1, self.vocab_size),
+            decoder_out.view(-1, self.tgt_vocab_size),
             ys_out_pad,
             ignore_label=self.ignore_id,
         )
@@ -493,7 +493,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
 
         # 2. Compute attention loss
-        loss_att = self.criterion_asr(decoder_out, ys_out_pad)
+        loss_att = self.losses["src_attn"](decoder_out, ys_out_pad)
         acc_att = th_accuracy(
             decoder_out.view(-1, self.src_vocab_size),
             ys_out_pad,
