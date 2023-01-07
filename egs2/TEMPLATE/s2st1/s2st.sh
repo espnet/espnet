@@ -522,6 +522,7 @@ if ! "${skip_data_prep}"; then
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
                     > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
+		sort -o ${data_feats}/${dset}/${utt_extra_file} ${data_feats}/${dset}/${utt_extra_file}
             done
         done
     fi
