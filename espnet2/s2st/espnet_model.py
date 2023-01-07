@@ -13,8 +13,8 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator

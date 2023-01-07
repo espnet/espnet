@@ -473,7 +473,7 @@ class S2STTask(STTask):
                 if hasattr(args, "speech_volume_normalize")
                 else None,
                 speech_name="speech",
-                text_name=["text", "src_text"],
+                text_name=["tgt_text", "src_text"],
             )
         else:
             retval = None
@@ -652,9 +652,13 @@ class S2STTask(STTask):
             for ctr in args.losses:
                 logging.info("initialize loss: {}".format(ctr["name"]))
                 if ctr["name"] == "src_attn":
-                    loss = loss_choices.get_class(ctr["type"])(vocab_size=src_vocab_size, **ctr["conf"])
+                    loss = loss_choices.get_class(ctr["type"])(
+                        vocab_size=src_vocab_size, **ctr["conf"]
+                    )
                 elif ctr["name"] == "tgt_attn":
-                    loss = loss_choices.get_class(ctr["type"])(vocab_size=tgt_vocab_size, **ctr["conf"])
+                    loss = loss_choices.get_class(ctr["type"])(
+                        vocab_size=tgt_vocab_size, **ctr["conf"]
+                    )
                 else:
                     loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
                 losses[ctr["name"]] = loss

@@ -17,7 +17,7 @@ class S2STCTCLoss(AbsS2STLoss):
         super().__init__()
         assert check_argument_types()
         self.weight = weight
-    
+
     def forward(loss):
         # dummy forward
         return loss
