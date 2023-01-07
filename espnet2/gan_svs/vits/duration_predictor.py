@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 class DurationPredictor(torch.nn.Module):
     def __init__(
-        self, channels, filter_channels, kernel_size, dropout_rate, gin_channels=0
+        self, channels, filter_channels, kernel_size, dropout_rate, global_channels=0
     ):
         super().__init__()
 
@@ -20,7 +20,7 @@ class DurationPredictor(torch.nn.Module):
         self.filter_channels = filter_channels
         self.kernel_size = kernel_size
         self.dropout_rate = dropout_rate
-        self.gin_channels = gin_channels
+        self.global_channels = global_channels
 
         self.drop = torch.nn.Dropout(dropout_rate)
         self.conv_1 = torch.nn.Conv1d(
@@ -33,8 +33,8 @@ class DurationPredictor(torch.nn.Module):
         self.norm_2 = LayerNorm(filter_channels, dim=1)
         self.proj = torch.nn.Conv1d(filter_channels, 1, 1)
 
-        if gin_channels != 0:
-            self.cond = torch.nn.Conv1d(gin_channels, channels, 1)
+        if global_channels > 0:
+            self.cond = torch.nn.Conv1d(global_channels, channels, 1)
 
     def forward(self, x, x_mask, beat_lab, g=None):
         x = torch.detach(x)

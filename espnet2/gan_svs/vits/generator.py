@@ -239,7 +239,7 @@ class VITSGenerator(torch.nn.Module):
                 filter_channels=256,
                 kernel_size=3,
                 dropout_rate=0.5,
-                gin_channels=0,
+                global_channels=global_channels,
             )
 
         self.lr = LengthRegulator()
