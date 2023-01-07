@@ -300,14 +300,40 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         singing=torch.randn(2, 16 * upsample_factor),
         singing_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)),
-        label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
+        label={
+            "lab": torch.randint(0, idim, (2, 8)),
+            "score": torch.randint(0, idim, (2, 8)),
+        },
+        label_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        melody={
+            "lab": torch.randint(0, 127, (2, 8)),
+            "score": torch.randint(0, 127, (2, 8)),
+        },
+        melody_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        tempo={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score": torch.randint(1, idim, (2, 8)),
+        },
+        tempo_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        beat={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score_phn": torch.randint(1, idim, (2, 8)),
+            "score_syb": torch.randint(1, idim, (2, 8)),
+        },
+        beat_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score_phn": torch.tensor([8, 5], dtype=torch.long),
+            "score_syb": torch.tensor([8, 5], dtype=torch.long),
+        },
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
@@ -330,10 +356,23 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
         )
         model.inference(**inputs)
@@ -345,10 +384,23 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -519,14 +571,40 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         singing=torch.randn(2, 16 * upsample_factor),
         singing_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)),
-        label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
+        label={
+            "lab": torch.randint(0, idim, (2, 8)),
+            "score": torch.randint(0, idim, (2, 8)),
+        },
+        label_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        melody={
+            "lab": torch.randint(0, 127, (2, 8)),
+            "score": torch.randint(0, 127, (2, 8)),
+        },
+        melody_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        tempo={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score": torch.randint(1, idim, (2, 8)),
+        },
+        tempo_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        beat={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score_phn": torch.randint(1, idim, (2, 8)),
+            "score_syb": torch.randint(1, idim, (2, 8)),
+        },
+        beat_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score_phn": torch.tensor([8, 5], dtype=torch.long),
+            "score_syb": torch.tensor([8, 5], dtype=torch.long),
+        },
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
@@ -555,10 +633,23 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, idim, (5,)),
-            tempo=torch.randint(0, idim, (5,)),
-            beat=torch.randint(0, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randint(0, idim, (5,)),
         )
         if spks > 0:
@@ -576,10 +667,23 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -750,14 +854,40 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         singing=torch.randn(2, 16 * upsample_factor),
         singing_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)),
-        label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
+        label={
+            "lab": torch.randint(0, idim, (2, 8)),
+            "score": torch.randint(0, idim, (2, 8)),
+        },
+        label_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        melody={
+            "lab": torch.randint(0, 127, (2, 8)),
+            "score": torch.randint(0, 127, (2, 8)),
+        },
+        melody_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        tempo={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score": torch.randint(1, idim, (2, 8)),
+        },
+        tempo_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        beat={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score_phn": torch.randint(1, idim, (2, 8)),
+            "score_syb": torch.randint(1, idim, (2, 8)),
+        },
+        beat_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score_phn": torch.tensor([8, 5], dtype=torch.long),
+            "score_syb": torch.tensor([8, 5], dtype=torch.long),
+        },
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
@@ -783,10 +913,23 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
         )
         inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -799,10 +942,23 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -978,14 +1134,40 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         singing=torch.randn(2, 16 * upsample_factor),
         singing_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)),
-        label_lengths=torch.tensor([8, 5], dtype=torch.long),
-        melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
+        label={
+            "lab": torch.randint(0, idim, (2, 8)),
+            "score": torch.randint(0, idim, (2, 8)),
+        },
+        label_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        melody={
+            "lab": torch.randint(0, 127, (2, 8)),
+            "score": torch.randint(0, 127, (2, 8)),
+        },
+        melody_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        tempo={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score": torch.randint(1, idim, (2, 8)),
+        },
+        tempo_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score": torch.tensor([8, 5], dtype=torch.long),
+        },
+        beat={
+            "lab": torch.randint(1, idim, (2, 8)),
+            "score_phn": torch.randint(1, idim, (2, 8)),
+            "score_syb": torch.randint(1, idim, (2, 8)),
+        },
+        beat_lengths={
+            "lab": torch.tensor([8, 5], dtype=torch.long),
+            "score_phn": torch.tensor([8, 5], dtype=torch.long),
+            "score_syb": torch.tensor([8, 5], dtype=torch.long),
+        },
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
@@ -1017,10 +1199,23 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
         )
         if spks > 0:
@@ -1039,10 +1234,23 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 idim,
                 (5,),
             ),
-            label=torch.randint(0, idim, (5,)),
-            melody=torch.randint(0, 127, (5,)),
-            tempo=torch.randint(1, idim, (5,)),
-            beat=torch.randint(1, idim, (5,)),
+            label={
+                "lab": torch.randint(0, idim, (5,)),
+                "score": torch.randint(0, idim, (5,)),
+            },
+            melody={
+                "lab": torch.randint(0, 127, (5,)),
+                "score": torch.randint(0, 127, (5,)),
+            },
+            tempo={
+                "lab": torch.randint(1, idim, (5,)),
+                "score": torch.randint(1, idim, (5,)),
+            },
+            beat={
+                "lab": torch.randint(1, idim, (5,)),
+                "score_phn": torch.randint(1, idim, (5,)),
+                "score_syb": torch.randint(1, idim, (5,)),
+            },
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )

@@ -114,10 +114,6 @@ class VITS(AbsGANSVS):
             "flow_dropout_rate": 0.0,
             "use_weight_norm_in_flow": True,
             "use_only_mean_in_flow": True,
-            "stochastic_duration_predictor_kernel_size": 3,
-            "stochastic_duration_predictor_dropout_rate": 0.5,
-            "stochastic_duration_predictor_flows": 4,
-            "stochastic_duration_predictor_dds_conv_layers": 3,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -306,8 +302,8 @@ class VITS(AbsGANSVS):
         tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        pitch: torch.LongTensor = None,
+        pitch_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -337,7 +333,7 @@ class VITS(AbsGANSVS):
                 value (LongTensor): Batch of the lengths of padded tempo (B, ).
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+            beat_lengths (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
