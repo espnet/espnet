@@ -337,8 +337,12 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
-            "phn": torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
-            "syb": torch.tensor([[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64),
+            "phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
+            "syb": torch.tensor(
+                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+            ),
         },
     )
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -608,8 +612,12 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
-            "phn": torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
-            "syb": torch.tensor([[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64),
+            "phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
+            "syb": torch.tensor(
+                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+            ),
         },
     )
     if spks > 0:
@@ -891,8 +899,12 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
-            "phn": torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
-            "syb": torch.tensor([[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64),
+            "phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
+            "syb": torch.tensor(
+                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+            ),
         },
     )
     device = torch.device("cuda")
@@ -1171,8 +1183,12 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
         duration={
-            "phn": torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
-            "syb": torch.tensor([[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64),
+            "phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
+            "syb": torch.tensor(
+                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+            ),
         },
     )
     if spks > 0:
