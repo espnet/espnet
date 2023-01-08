@@ -112,6 +112,7 @@ class Translatotron(AbsSynthesizer):
         # store hyperparameters
         self.idim = idim
         self.odim = odim
+        self.atype = atype
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
 
