@@ -23,8 +23,8 @@ def get_parser():
     # fmt: off
     parser.add_argument('source', help='directory with features')
     parser.add_argument('--split', help='which split to read', required=True)
-    parser.add_argument('--save-dir', help='where to save the output', required=True)
-    parser.add_argument('--cluster-dir', help='where the clusters are')
+    parser.add_argument('--save_dir', help='where to save the output', required=True)
+    parser.add_argument('--cluster_dir', help='where the clusters are')
     parser.add_argument('--pooling', type=str, default='mean', choices=['mean', 'sample'], help='how to pool')
     # fmt: on
 

@@ -23,9 +23,9 @@ def get_parser():
     # fmt: off
     parser.add_argument('feats_scp', help='features scp file')
     parser.add_argument('--split', help='which split to read', required=True)
-    parser.add_argument('--save-dir', help='where to save the output', required=True)
-    parser.add_argument('--pca-path', type=str, help='pca location. will append _A.npy and _b.npy', required=True)
-    parser.add_argument('--batch-size', type=int, default=2048000, help='batch size')
+    parser.add_argument('--save_dir', help='where to save the output', required=True)
+    parser.add_argument('--pca_path', type=str, help='pca location. will append _A.npy and _b.npy', required=True)
+    parser.add_argument('--batch_size', type=int, default=2048000, help='batch size')
     # fmt: on
 
     return parser

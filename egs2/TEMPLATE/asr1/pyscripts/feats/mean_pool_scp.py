@@ -25,10 +25,10 @@ def get_parser():
     parser.add_argument('source', help='directory with features')
     parser.add_argument('--split', help='which split to read', required=True)
     parser.add_argument('--root', help='root of espnet', required=True)
-    parser.add_argument('--save-dir', help='where to save the output', required=True)
-    parser.add_argument('--subsample-rate', type=float, default=0.5, help='size to subsample data to')
-    parser.add_argument("--utt-id", type=str)
-    parser.add_argument('--remove-extra', action='store_true', help='if true, removes extra states that cant be pooled, otherwise pads with 0s')
+    parser.add_argument('--save_dir', help='where to save the output', required=True)
+    parser.add_argument('--subsample_rate', type=float, default=0.5, help='size to subsample data to')
+    parser.add_argument("--utt_id", type=str)
+    parser.add_argument('--remove_extra', action='store_true', help='if true, removes extra states that cant be pooled, otherwise pads with 0s')
     # fmt: on
 
     return parser

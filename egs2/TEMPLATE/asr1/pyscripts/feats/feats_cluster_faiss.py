@@ -27,9 +27,9 @@ def get_parser():
     )
     # fmt: off
     parser.add_argument('feats_scp', help='location of feature scp files')
-    parser.add_argument('--save-dir', help='where to save the output', required=True)
-    parser.add_argument('--sample-pct', '-r', type=float, help='percentage of timesteps to sample', default=0)
-    parser.add_argument('--faiss-specs', '-f', type=str,
+    parser.add_argument('--save_dir', help='where to save the output', required=True)
+    parser.add_argument('--sample_pct', '-r', type=float, help='percentage of timesteps to sample', default=0)
+    parser.add_argument('--faiss_specs', '-f', type=str,
                         help='faiss index specs; separated by space '
                              'format is: PCAx_NORM_CLUSx_SPHERICAL -> '
                                 'PCAx if exists first apply PCA '

@@ -77,9 +77,9 @@ echo "Generating ${num_clusters} clusters"
 ${cmd} ${logdir}/generate_feats_cluster.log \
     python pyscripts/feats/feats_cluster_faiss.py \
         "${train_feats_scp}" \
-        --save-dir "${output_feats_dir}" \
+        --save_dir "${output_feats_dir}" \
         -f "CLUS${num_clusters}" \
-        --sample-pct 1.0
+        --sample_pct 1.0
 
 for split in ${all_sets}; do
     echo "Applying cluster on ${split}"
@@ -105,18 +105,18 @@ for split in ${all_sets}; do
         python pyscripts/feats/apply_pca.py \
         "${uasr_stats_dir}/${split}/collect_feats/split${nj}/JOB/feats.scp" \
         --split ${split} \
-        --save-dir ${output_feats_dir}/precompute_pca$dim/JOB/ \
-        --pca-path ${output_feats_dir}/pca/${dim}_pca \
-        --batch-size 1048000
+        --save_dir ${output_feats_dir}/precompute_pca$dim/JOB/ \
+        --pca_path ${output_feats_dir}/pca/${dim}_pca \
+        --batch_size 1048000
 
 
     echo "Merging clusters on ${split}"
     ${cmd} JOB=1:${nj} ${logdir}/merge_clusters_${split}.JOB.log \
         python pyscripts/feats/merge_clusters.py \
           ${output_feats_dir}/precompute_pca$dim/JOB \
-          --cluster-dir ${output_feats_dir}/CLUS${num_clusters}/JOB \
+          --cluster_dir ${output_feats_dir}/CLUS${num_clusters}/JOB \
           --split ${split} \
-          --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/JOB \
+          --save_dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/JOB \
           --pooling mean
 
     root="$(pwd)/"
@@ -135,7 +135,7 @@ for split in ${all_sets}; do
     ${cmd} JOB=1:${nj} ${logdir}/merge_pca_${split}.JOB.log \
         python pyscripts/feats/mean_pool_scp.py \
             ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/JOB/ \
-            --save-dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/JOB \
+            --save_dir ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean_pooled/JOB \
             --split ${split} \
             --root ${root}
 

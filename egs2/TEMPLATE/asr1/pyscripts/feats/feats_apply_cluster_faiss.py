@@ -29,9 +29,9 @@ def get_parser():
     parser.add_argument('--output_path', help='output_path', required=True)
     parser.add_argument('--model_path', help="model_path", required=True)
     parser.add_argument('--layer', '-l', type=int, help='which layer to read', default=14)
-    parser.add_argument('--max-tsz', type=int, help='batch kmeans up to this much', default=14)
+    parser.add_argument('--max_tsz', type=int, help='batch kmeans up to this much', default=14)
     parser.add_argument('--delimiter', type=str, help="delimiter for output cluster list", default=" ")
-    parser.add_argument('--faiss-specs', '-f', type=str,
+    parser.add_argument('--faiss_specs', '-f', type=str,
                         help='faiss index specs; separated by space '
                              'format is: PCAx_NORM_CLUSx_SPHERICAL -> '
                                 'PCAx if exists first apply PCA '

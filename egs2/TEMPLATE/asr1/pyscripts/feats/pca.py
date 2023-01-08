@@ -21,7 +21,7 @@ def get_parser():
     parser.add_argument('data', help='features scp files')
     parser.add_argument('--output', help='where to save the pca matrix', required=True)
     parser.add_argument('--dim', type=int, help='dim for pca reduction', required=True)
-    parser.add_argument('--eigen-power', type=float, default=0, help='eigen power, -0.5 for whitening')
+    parser.add_argument('--eigen_power', type=float, default=0, help='eigen power, -0.5 for whitening')
 
     return parser
 
