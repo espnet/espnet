@@ -22,6 +22,7 @@ class S2STTacotron2Loss(AbsS2STLoss):
         super().__init__()
         assert check_argument_types()
         self.weight = weight
+        self.loss_type = loss_type
         self.loss = Tacotron2Loss(
             use_masking=use_masking,
             use_weighted_masking=use_weighted_masking,

@@ -176,12 +176,12 @@ class ESPnetS2STModel(AbsESPnetModel):
         )
         # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.tgt_normalize is not None:
-            tgt_feats, tgt_feats_lengths = self.tgt_normalize(tgt_feats, tgt_feats_lengths)
+            tgt_feats, tgt_feats_lengths = self.tgt_normalize(
+                tgt_feats, tgt_feats_lengths
+            )
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(
-            src_speech, src_speech_lengths
-        )
+        encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
 
         loss_record = []
         if self.s2st_type == "translatotron":
@@ -233,11 +233,14 @@ class ESPnetS2STModel(AbsESPnetModel):
             assert (
                 "synthesis" in self.losses
             ), "must have synthesis loss in the losses for S2ST"
+
+            # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
             (
                 after_outs,
                 before_outs,
                 logits,
                 att_ws,
+                updated_tgt_feats,
                 stop_labels,
                 updated_tgt_feats_lengths,
             ) = self.synthesizer(
@@ -254,26 +257,43 @@ class ESPnetS2STModel(AbsESPnetModel):
                 after_outs,
                 before_outs,
                 logits,
-                tgt_feats,
+                updated_tgt_feats,
                 stop_labels,
                 updated_tgt_feats_lengths,
             )
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
+            if "syn_guided_attn" in self.losses:
+                # NOTE(kan-bayashi): length of output for auto-regressive
+                # input will be changed when r > 1
+                if self.synthesizer.reduction_factor > 1:
+                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths.new([olen // self.reduction_factor for olen in updated_tgt_feats_lengths])
+                else:
+                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths
+                syn_guided_attn_loss = self.losses["syn_guided_attn"](
+                    att_ws=att_ws,
+                    ilens=encoder_out_lens,
+                    olens_in=updated_tgt_feats_lengths_in,
+                )
+                loss_record.append(syn_guided_attn_loss * self.losses["syn_guided_attn"].weight)
+            else:
+                syn_guided_attn_loss = None
+
             loss = sum(loss_record)
 
             stats = dict(
                 loss=loss.item(),
-                asr_ctc_loss=asr_ctc_loss.item(),
+                asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
                 cer_asr_ctc=cer_asr_ctc,
-                src_attn_loss=src_attn_loss.item(),
+                src_attn_loss=src_attn_loss.item() if src_attn_loss is not None else None,
                 acc_src_attn=acc_src_attn,
                 cer_src_attn=cer_src_attn,
                 wer_src_attn=wer_src_attn,
-                tgt_attn_loss=tgt_attn_loss.item(),
+                tgt_attn_loss=tgt_attn_loss.item() if tgt_attn_loss is not None else None,
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
-                syn_loss=syn_loss.item(),
+                syn_loss=syn_loss.item() if syn_loss is not None else None,
+                syn_guided_attn_loss=syn_guided_attn_loss.item() if syn_guided_attn_loss is not None else None,
                 syn_l1_loss=l1_loss.item(),
                 syn_mse_loss=mse_loss.item(),
                 syn_bce_loss=bce_loss.item(),

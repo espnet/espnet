@@ -48,6 +48,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.s2st.espnet_model import ESPnetS2STModel
 from espnet2.s2st.losses.attention_loss import S2STAttentionLoss
 from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
+from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron
@@ -171,6 +172,7 @@ loss_choices = ClassChoices(
     name="loss",
     classes=dict(
         tacotron=S2STTacotron2Loss,
+        guided_attention=S2STGuidedAttentionLoss,
         attention=S2STAttentionLoss,
         ctc=S2STCTCLoss,
     ),
@@ -520,7 +522,7 @@ class S2STTask(STTask):
             logging.info(f"Target Vocabulary size: {tgt_vocab_size }")
         else:
             tgt_token_list, tgt_vocab_size = None, None
-        
+
         if args.src_token_list is not None:
             if isinstance(args.src_token_list, str):
                 with open(args.src_token_list, encoding="utf-8") as f:

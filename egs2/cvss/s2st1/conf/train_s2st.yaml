@@ -79,6 +79,12 @@ losses:
         weight: 1.0
         loss_type: "L1+L2"
         bce_pos_weight: 10.0
+    - name: syn_guided_attn
+      type: guided_attention
+      conf:
+        weight: 1.0
+        sigma: 0.4
+        alpha: 1.0
     
 # Optimization
 optim: adamw
@@ -91,8 +97,8 @@ optim_conf:
     eps: 1.0e-06
 
 # Batching
-batch_type: folded
-batch_size: 64
+batch_type: sorted
+batch_size: 8
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 

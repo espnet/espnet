@@ -67,13 +67,6 @@ class Translatotron(AbsSynthesizer):
         # training related
         dropout_rate: float = 0.5,
         zoneout_rate: float = 0.1,
-        use_masking: bool = True,
-        use_weighted_masking: bool = False,
-        bce_pos_weight: float = 5.0,
-        loss_type: str = "L1+L2",
-        use_guided_attn_loss: bool = True,
-        guided_attn_loss_sigma: float = 0.4,
-        guided_attn_loss_lambda: float = 1.0,
     ):
         """Initialize Tacotron2 module.
 
@@ -106,15 +99,6 @@ class Translatotron(AbsSynthesizer):
             spk_embed_integration_type (str): How to integrate speaker embedding.
             dropout_rate (float): Dropout rate.
             zoneout_rate (float): Zoneout rate.
-            use_masking (bool): Whether to mask padded part in loss calculation.
-            use_weighted_masking (bool): Whether to apply weighted masking in
-                loss calculation.
-            bce_pos_weight (float): Weight of positive sample of stop token
-                (only for use_masking=True).
-            loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
-            use_guided_attn_loss (bool): Whether to use guided attention loss.
-            guided_attn_loss_sigma (float): Sigma in guided attention loss.
-            guided_attn_loss_lambda (float): Lambda in guided attention loss.
         """
         assert check_argument_types()
         super().__init__()
@@ -124,8 +108,6 @@ class Translatotron(AbsSynthesizer):
         self.odim = odim
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
-        self.use_guided_attn_loss = use_guided_attn_loss
-        self.loss_type = loss_type
 
         # define activation function for the final output
         if output_activation is None:
@@ -140,6 +122,15 @@ class Translatotron(AbsSynthesizer):
         # set padding idx
         padding_idx = 0
         self.padding_idx = padding_idx
+
+        self.spks = None
+        if spks is not None and spks > 1:
+            self.spks = spks
+            self.sid_emb = torch.nn.Embedding(spks, eunits)
+        self.langs = None
+        if langs is not None and langs > 1:
+            self.langs = langs
+            self.lid_emb = torch.nn.Embedding(langs, eunits)
 
         self.spk_embed_dim = None
         if spk_embed_dim is not None and spk_embed_dim > 0:
@@ -243,7 +234,7 @@ class Translatotron(AbsSynthesizer):
         # calculate tacotron2 outputs
         after_outs, before_outs, logits, att_ws = self._forward(
             hs=enc_outputs,
-            hlens=ilens,
+            hlens=enc_outputs_lengths,
             ys=ys,
             olens=olens,
             spembs=spembs,
@@ -264,7 +255,7 @@ class Translatotron(AbsSynthesizer):
                 labels, 1, (olens - 1).unsqueeze(1), 1.0
             )  # see #3388
 
-        return after_outs, before_outs, logits, ys, labels, olens
+        return after_outs, before_outs, logits, att_ws, ys, labels, olens
 
     def _forward(
         self,
