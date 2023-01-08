@@ -434,6 +434,8 @@ class Decoder(torch.nn.Module):
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
             else:
                 att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
+            if type(att_w) is list: # for multihead attention (used for translatotron in s2st)
+                att_w = torch.stack(att_w, dim=1)
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
