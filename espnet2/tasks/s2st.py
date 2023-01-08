@@ -701,7 +701,7 @@ class S2STTask(STTask):
         cls,
         vocoder_config_file: Union[Path, str] = None,
         vocoder_file: Union[Path, str] = None,
-        model: Optional[ESPnetTTSModel] = None,
+        model: Optional[ESPnetS2STModel] = None,
         device: str = "cpu",
     ):
         # NOTE(jiatong): this is essentially the same as TTSTask
