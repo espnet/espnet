@@ -112,7 +112,7 @@ def test_vits_generator_forward(model_dict):
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
-        duration=torch.randint(1, idim, (2, 8)),
+        duration=torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
@@ -145,6 +145,7 @@ def test_vits_generator_forward(model_dict):
                 5,
             ),
         ),
+        label_lengths=torch.tensor([5, 3], dtype=torch.long),
         melody=torch.randint(
             0,
             127,
@@ -202,6 +203,7 @@ def test_vits_generator_forward(model_dict):
                 5,
             ),
         ),
+        label_lengths=torch.tensor([5], dtype=torch.long),
         melody=torch.randint(
             0,
             127,
@@ -299,7 +301,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
-        duration=torch.randint(1, idim, (2, 8)),
+        duration=torch.tensor([[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64),
         sids=torch.randint(0, spks, (2,)),
     )
     if args["spk_embed_dim"] > 0:
@@ -333,6 +335,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 5,
             ),
         ),
+        label_lengths=torch.tensor([5, 3], dtype=torch.long),
         melody=torch.randint(
             0,
             127,
@@ -393,6 +396,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 5,
             ),
         ),
+        label_lengths=torch.tensor([5], dtype=torch.long),
         melody=torch.randint(
             0,
             127,
