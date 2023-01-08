@@ -19,7 +19,12 @@ from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     Tacotron2Loss,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
+from espnet.nets.pytorch_backend.rnn.attentions import (
+    AttForward,
+    AttForwardTA,
+    AttLoc,
+    AttMultiHeadAdd,
+)
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 
@@ -44,6 +49,7 @@ class Translatotron(AbsSynthesizer):
         embed_dim: int = 512,
         atype: str = "multihead",
         adim: int = 512,
+        aheads: int = 4,
         aconv_chans: int = 32,
         aconv_filts: int = 15,
         cumulate_att_w: bool = True,
@@ -165,7 +171,7 @@ class Translatotron(AbsSynthesizer):
                 )
                 self.cumulate_att_w = False
         elif atype == "multihead":
-            att = AttMultiHeadAdd(dec_idim, dunits, adim, adim, adim)
+            att = AttMultiHeadAdd(dec_idim, dunits, aheads, adim, adim)
             self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")

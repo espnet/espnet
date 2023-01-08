@@ -1,8 +1,8 @@
 import argparse
 import logging
+from pathlib import Path
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
-from pathlib import Path
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type

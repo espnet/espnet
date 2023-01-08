@@ -66,12 +66,33 @@ class Speech2Speech:
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
         if self.s2st.require_vocder:
-            vocoder = TTSTask.build_vocoder_from_file(
+            vocoder = S2ST.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
                 vocoder.to(dtype=getattr(torch, dtype)).eval()
             self.vocoder = vocoder
+        logging.info(f"S2ST:\n{self.model}")
+        if self.vocoder is not None:
+            logging.info(f"Vocoder:\n{self.vocoder}")
+
+        # setup decoding config
+        decode_conf = {}
+        decode_conf.update(use_teacher_forcing=use_teacher_forcing)
+        if self.s2st_type == "translatotron":
+            decode_conf.update(
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
+                use_att_constraint=use_att_constraint,
+                forward_window=forward_window,
+                backward_window=backward_window,
+            )
+        else:
+            raise NotImplementedError(
+                "Not recognized s2st type of {}".format(self.s2st_type)
+            )
+        self.decode_conf = decode_conf
 
 
 def inference(
