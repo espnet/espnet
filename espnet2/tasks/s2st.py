@@ -695,3 +695,42 @@ class S2STTask(STTask):
 
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_vocoder_from_file(
+        cls,
+        vocoder_config_file: Union[Path, str] = None,
+        vocoder_file: Union[Path, str] = None,
+        model: Optional[ESPnetTTSModel] = None,
+        device: str = "cpu",
+    ):
+        # NOTE(jiatong): this is essentially the same as TTSTask
+        # Build vocoder
+        if vocoder_file is None:
+            # If vocoder file is not provided, use griffin-lim as a vocoder
+            vocoder_conf = {}
+            if vocoder_config_file is not None:
+                vocoder_config_file = Path(vocoder_config_file)
+                with vocoder_config_file.open("r", encoding="utf-8") as f:
+                    vocoder_conf = yaml.safe_load(f)
+            if model.feats_extract is not None:
+                vocoder_conf.update(model.feats_extract.get_parameters())
+            if (
+                "n_fft" in vocoder_conf
+                and "n_shift" in vocoder_conf
+                and "fs" in vocoder_conf
+            ):
+                return Spectrogram2Waveform(**vocoder_conf)
+            else:
+                logging.warning("Vocoder is not available. Skipped its building.")
+                return None
+
+        elif str(vocoder_file).endswith(".pkl"):
+            # If the extension is ".pkl", the model is trained with parallel_wavegan
+            vocoder = ParallelWaveGANPretrainedVocoder(
+                vocoder_file, vocoder_config_file
+            )
+            return vocoder.to(device)
+
+        else:
+            raise ValueError(f"{vocoder_file} is not supported format.")

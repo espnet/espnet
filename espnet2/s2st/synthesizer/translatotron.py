@@ -165,7 +165,8 @@ class Translatotron(AbsSynthesizer):
                 )
                 self.cumulate_att_w = False
         elif atype == "multihead":
-            raise NotImplementedError("multihead attention not supported")
+            att = AttMultiHeadAdd(dec_idim, dunits, adim, adim, adim)
+            self.cumulate_att_w = False
         else:
             raise NotImplementedError("Support only location or forward")
         self.dec = Decoder(
