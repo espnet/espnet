@@ -189,6 +189,10 @@ s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	touch s3prl.done
 
+whisper.done: espnet.done
+	. ./activate_python.sh && ./installers/install_whisper.sh
+	touch whisper.done
+
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
