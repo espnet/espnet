@@ -761,7 +761,6 @@ class VITS(AbsGANSVS):
         tempo: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
-        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -785,12 +784,9 @@ class VITS(AbsGANSVS):
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
-            durations (Tensor): Ground-truth duration tensor (T_text,).
             noise_scale (float): Noise scale value for flow.
             noise_scale_dur (float): Noise scale value for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated singing.
@@ -800,12 +796,9 @@ class VITS(AbsGANSVS):
         Returns:
             Dict[str, Tensor]:
                 * wav (Tensor): Generated waveform tensor (T_wav,).
-                * att_w (Tensor): Monotonic attention weight tensor (T_feats, T_text).
-                * duration (Tensor): Predicted duration tensor (T_text,).
 
         """
         # setup
-        duration = duration["phn"]
         label = label["lab"]
         melody = melody["lab"]
         beat = beat["score_syb"]
@@ -861,11 +854,9 @@ class VITS(AbsGANSVS):
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
-                # dur=durations,
                 noise_scale=noise_scale,
                 noise_scale_dur=noise_scale_dur,
                 alpha=alpha,
                 max_len=max_len,
             )
-        # return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
         return dict(wav=wav.view(-1))
