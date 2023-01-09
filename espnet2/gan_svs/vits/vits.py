@@ -769,6 +769,7 @@ class VITS(AbsGANSVS):
         alpha: float = 1.0,
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
@@ -792,6 +793,8 @@ class VITS(AbsGANSVS):
             alpha (float): Alpha parameter to control the speed of generated singing.
             max_len (Optional[int]): Maximum length.
             use_teacher_forcing (bool): Whether to use teacher forcing.
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
 
         Returns:
             Dict[str, Tensor]:
