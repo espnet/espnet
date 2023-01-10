@@ -285,7 +285,7 @@ class DownPool(SequenceModule):
         x = self.linear(x)
         return x, None
 
-    def step(self, x, state, **kwargs):  # TODO needs fix in transpose ca, **kwargsse
+    def step(self, x, state, **kwargs):
         """Step one time step as a recurrent model.
 
         x: (..., H)

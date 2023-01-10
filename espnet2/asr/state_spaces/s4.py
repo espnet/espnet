@@ -426,7 +426,8 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
     # We require AP to be nearly skew-symmetric
     _A = AP + AP.transpose(-1, -2)
     # if not torch.allclose(_A - _A[0,0]*torch.eye(N), torch.zeros(N, N), atol=1e-5):
-    if (err := torch.sum((_A - _A[0, 0] * torch.eye(N)) ** 2) / N) > 1e-5:
+    err = torch.sum((_A - _A[0, 0] * torch.eye(N)) ** 2) / N
+    if err > 1e-5:
         print("WARNING: HiPPO matrix not skew symmetric", err)
 
     # Take advantage of identity + skew-symmetric form
@@ -462,7 +463,8 @@ def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
         V[1, -1] = 2**-0.5 * 1j
 
     _AP = V @ torch.diag_embed(w) @ V.conj().transpose(-1, -2)
-    if (err := torch.sum((2 * _AP.real - AP) ** 2) / N) > 1e-5:
+    err = torch.sum((2 * _AP.real - AP) ** 2) / N
+    if err > 1e-5:
         print(
             "Warning: Diagonalization of A matrix not numerically precise - error", err
         )
@@ -1011,7 +1013,7 @@ class SSKernelNPLR(OptimModule):
         else:
             assert state.size(-1) == 2 * self.N
             step_params = {k: _conj(v) for k, v in step_params.items()}
-            # TODO worth setting up a contract_expression in default_state
+            # Worth setting up a contract_expression in default_state
             # if we want to use this at inference time for stepping
 
             def contract_fn(p, x, y):
@@ -1642,14 +1644,14 @@ class S4(nn.Module):
             self.input_gate = LinearActivation(
                 self.d_model,
                 self.d_model * gate,
-                transposed=not self.transposed,  # TODO: confirm
+                transposed=not self.transposed,
                 activation=activation,
                 activate=True,
             )
             self.output_gate = LinearActivation(
                 self.d_model * gate,
                 self.d_model,
-                transposed=self.transposed,  # TODO: confirm
+                transposed=self.transposed,
                 activation=None,
                 activate=False,
             )
