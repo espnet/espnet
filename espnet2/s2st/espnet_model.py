@@ -16,14 +16,13 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
+from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
-    LabelSmoothingLoss,
-)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -49,11 +48,11 @@ class ESPnetS2STModel(AbsESPnetModel):
         postencoder: Optional[AbsPostEncoder],
         asr_decoder: Optional[AbsDecoder],
         st_decoder: Optional[AbsDecoder],
-        aux_attention: Optional[AbsAttention],
+        aux_attention: Optional[AbsS2STAuxAttention],
         synthesizer: Optional[AbsSynthesizer],
         asr_ctc: Optional[CTC],
         st_ctc: Optional[CTC],
-        losses: Dict[str, torch.nn.Module],
+        losses: Dict[str, AbsS2STLoss],
         tgt_vocab_size: Optional[int],
         tgt_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         src_vocab_size: Optional[int],
@@ -663,3 +662,8 @@ class ESPnetS2STModel(AbsESPnetModel):
             ys_hat = ctc.argmax(encoder_out).data
             cer_ctc = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
+    
+    @property
+    def require_vocoder(self):
+        """Return whether or not vocoder is required."""
+        return True

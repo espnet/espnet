@@ -65,8 +65,8 @@ class Speech2Speech:
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.s2st.require_vocder:
-            vocoder = S2ST.build_vocoder_from_file(
+        if self.model.require_vocoder:
+            vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
@@ -183,6 +183,52 @@ class Speech2Speech:
     def use_spembs(self) -> bool:
         """Return spemb is needed or not in the inference."""
         return self.model.synthesizer.spk_embed_dim is not None
+    
+    @staticmethod
+    def from_pretrained(
+        vocoder_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Text2Speech instance from the pretrained model.
+
+        Args:
+            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
+                Currently, the tags of parallel_wavegan are supported, which should
+                start with the prefix "parallel_wavegan/".
+
+        Returns:
+            Text2Speech: Text2Speech instance.
+
+        """
+
+        if vocoder_tag is not None:
+            if vocoder_tag.startswith("parallel_wavegan/"):
+                try:
+                    from parallel_wavegan.utils import download_pretrained_model
+
+                except ImportError:
+                    logging.error(
+                        "`parallel_wavegan` is not installed. "
+                        "Please install via `pip install -U parallel_wavegan`."
+                    )
+                    raise
+
+                from parallel_wavegan import __version__
+
+                # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+                assert V(__version__) > V("0.5.1"), (
+                    "Please install the latest parallel_wavegan "
+                    "via `pip install -U parallel_wavegan`."
+                )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
+                vocoder_file = download_pretrained_model(vocoder_tag)
+                vocoder_config = Path(vocoder_file).parent / "config.yml"
+                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+
+            else:
+                raise ValueError(f"{vocoder_tag} is unsupported format.")
+
+        return Speech2Speech(**kwargs)
 
 
 def inference(
@@ -197,7 +243,6 @@ def inference(
     key_file: Optional[str],
     train_config: Optional[str],
     model_file: Optional[str],
-    model_tag: Optional[str],
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
@@ -249,9 +294,8 @@ def inference(
         always_fix_seed=always_fix_seed,
     )
     speech2speech = Speech2Speech.from_pretrained(
-        model_tag=model_tag,
         vocoder_tag=vocoder_tag,
-        **text2speech_kwargs,
+        **speech2speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -261,8 +305,8 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2STTask.build_preprocess_fn(text2speech.train_args, False),
-        collate_fn=S2STTask.build_collate_fn(text2speech.train_args, False),
+        preprocess_fn=S2STTask.build_preprocess_fn(speech2speech.train_args, False),
+        collate_fn=S2STTask.build_collate_fn(speech2speech.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -307,7 +351,7 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
-            output_dict = text2speech(**batch)
+            output_dict = speech2speech(**batch)
 
             key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
@@ -396,7 +440,7 @@ def inference(
                 sf.write(
                     f"{output_dir}/wav/{key}.wav",
                     output_dict["wav"].cpu().numpy(),
-                    text2speech.fs,
+                    speech2speech.fs,
                     "PCM_16",
                 )
 
@@ -498,12 +542,6 @@ def get_parser():
         "--model_file",
         type=str,
         help="Model parameter file",
-    )
-    group.add_argument(
-        "--model_tag",
-        type=str,
-        help="Pretrained model tag. If specify this option, train_config and "
-        "model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Decoding related")
