@@ -468,6 +468,14 @@ if ! "${skip_data_prep}"; then
 
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
 
+                # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
+                for utt_extra_file in ${utt_extra_files}; do
+                    python pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
+                        > ${data_feats}/${dset}/${utt_extra_file}.tmp
+                    mv ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp ${data_feats}${_suf}/${dset}/${utt_extra_file}
+                    sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
+                done
+
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
 

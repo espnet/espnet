@@ -14,10 +14,10 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
+from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
@@ -265,7 +265,10 @@ class ESPnetS2STModel(AbsESPnetModel):
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
             # NOTE(jiatong): guided attention will be not used in multi-head attention
-            if "syn_guided_attn" in self.losses and self.synthesizer.atype != "multihead":
+            if (
+                "syn_guided_attn" in self.losses
+                and self.synthesizer.atype != "multihead"
+            ):
                 # NOTE(kan-bayashi): length of output for auto-regressive
                 # input will be changed when r > 1
                 if self.synthesizer.reduction_factor > 1:
@@ -353,18 +356,15 @@ class ESPnetS2STModel(AbsESPnetModel):
                     None,
                     None,
                 )
-            
-            assert self.aux_attention is not None, "must have aux attention in translatotron loss"
+
+            assert (
+                self.aux_attention is not None
+            ), "must have aux attention in translatotron loss"
             attention_out = self.aux_attention(decoder_out, encoder_out, encoder_out)
             decoder_out = torch.cat((decoder_out, attention_out), dim=-1)
 
-            
             # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
-            (
-                after_outs,
-                before_outs,
-                sum_duration,
-            ) = self.synthesizer(
+            (after_outs, before_outs, sum_duration,) = self.synthesizer(
                 decoder_out,
                 encoder_out_lens,
                 tgt_feats,
@@ -380,8 +380,6 @@ class ESPnetS2STModel(AbsESPnetModel):
                 sum_duration,
             )
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
-
-
 
             loss = sum(loss_record)
 
@@ -399,7 +397,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-    
+
     def inference(
         self,
         src_speech: torch.Tensor,
@@ -460,7 +458,6 @@ class ESPnetS2STModel(AbsESPnetModel):
                 "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
             )
         return output_dict
-            
 
     def collect_feats(
         self,
@@ -662,7 +659,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ys_hat = ctc.argmax(encoder_out).data
             cer_ctc = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
-    
+
     @property
     def require_vocoder(self):
         """Return whether or not vocoder is required."""

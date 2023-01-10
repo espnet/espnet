@@ -513,7 +513,7 @@ class S2STTask(STTask):
         if not inference:
             retval = ("src_text", "tgt_text")
         else:
-            retval = ()
+            retval = ("tgt_speech",)
         assert check_return_type(retval)
         return retval
 
@@ -651,17 +651,23 @@ class S2STTask(STTask):
             )
         else:
             st_ctc = None
-        
+
         # 7. Auxiliary Attention
         if args.aux_attention:
             aux_attention_class = aux_attention_choices.get_class(args.aux_attention)
-            aux_attention = aux_attention_class(n_feat=encoder_output_size, **args.aux_attention_conf)
+            aux_attention = aux_attention_class(
+                n_feat=encoder_output_size, **args.aux_attention_conf
+            )
         else:
             aux_attention = None
 
         # 7. Synthesizer
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
-        synthesizer_idim = encoder_output_size if aux_attention is not None else 2 * encoder_output_size
+        synthesizer_idim = (
+            encoder_output_size
+            if aux_attention is not None
+            else 2 * encoder_output_size
+        )
         synthesizer = synthesizer_class(
             idim=encoder_output_size, odim=raw_input_size, **args.synthesizer_conf
         )

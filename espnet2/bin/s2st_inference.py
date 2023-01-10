@@ -59,6 +59,7 @@ class Speech2Speech:
         self.dtype = dtype
         self.train_args = train_args
         self.model = model
+        self.s2st_type = self.model.s2st_type
         self.preprocess_fn = S2STTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
@@ -93,7 +94,7 @@ class Speech2Speech:
                 "Not recognized s2st type of {}".format(self.s2st_type)
             )
         self.decode_conf = decode_conf
-    
+
     @torch.no_grad()
     def __call__(
         self,
@@ -116,7 +117,7 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'lids'")
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
-        
+
         # prepare batch
         batch = dict(src_speech=src_speech)
         if tgt_speech is not None:
@@ -183,7 +184,7 @@ class Speech2Speech:
     def use_spembs(self) -> bool:
         """Return spemb is needed or not in the inference."""
         return self.model.synthesizer.spk_embed_dim is not None
-    
+
     @staticmethod
     def from_pretrained(
         vocoder_tag: Optional[str] = None,
@@ -336,8 +337,6 @@ def inference(
     ) as denorm_writer, open(
         output_dir / "speech_shape/speech_shape", "w"
     ) as shape_writer, open(
-        output_dir / "durations/durations", "w"
-    ) as duration_writer, open(
         output_dir / "focus_rates/focus_rates", "w"
     ) as focus_rate_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
