@@ -973,8 +973,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Decoding: training_dir=${s2st_exp}"
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: Decoding: training_dir=${s2st_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -990,8 +990,8 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
-        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
+        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1001,15 +1001,35 @@ if ! "${skip_eval}"; then
 
             _feats_type="$(<${_data}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
-                _scp=wav.scp
+                _src_scp=wav.scp.${src_lang}
+                _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
                     _type=kaldi_ark
                 else
                     _type=sound
                 fi
             else
-                _scp=feats.scp
+                _src_scp=feats.scp.${src_lang}
+                _tgt_scp=feats.scp.${tgt_lang}
                 _type=kaldi_ark
+            fi
+
+            _ex_opts=""
+
+            # Add X-vector to the inputs if needed
+            if "${use_xvector}"; then
+                _xvector_dir="${dumpdir}/xvector/${dset}"
+                _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
+            fi
+
+            # Add spekaer ID to the inputs if needed
+            if "${use_sid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
+            fi
+
+            # Add language ID to the inputs if needed
+            if "${use_lid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
 
             # 1. Split the key file
@@ -1030,19 +1050,66 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.s2st_inference \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${_src_scp},src_speech,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${_tgt_scp},tgt_speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --s2st_train_config "${s2st_exp}"/config.yaml \
                     --s2st_model_file "${s2st_exp}"/"${inference_s2st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/s2st_inference.*.log) ; exit 1; }
+                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/s2st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
-            for f in token token_int score text; do
+            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
+                mkdir -p "${_dir}"/norm
                 for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
-            done
+                     cat "${_logdir}/output.${i}/norm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
+                mkdir -p "${_dir}"/denorm
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/denorm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
+                mkdir -p "${_dir}"/wav
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                    rm -rf "${_logdir}/output.${i}"/wav
+                done
+                find "${_dir}/wav" -name "*.wav" | while read -r line; do
+                    echo "$(basename "${line}" .wav) ${line}"
+                done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
+                mkdir -p "${_dir}"/att_ws
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
+                    rm -rf "${_logdir}/output.${i}"/att_ws
+                done
+            fi
+            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/durations/durations"
+                done | LC_ALL=C sort -k1 > "${_dir}/durations"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/probs" ]; then
+                mkdir -p "${_dir}"/probs
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
+                    rm -rf "${_logdir}/output.${i}"/probs
+                done
+            fi
         done
     fi
 

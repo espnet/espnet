@@ -1006,7 +1006,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             utils/split_scp.pl "${key_file}" ${split_scps}
 
-            # 3. Submit decoding jobs
+            # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
@@ -1021,7 +1021,7 @@ if ! "${skip_eval}"; then
                     --vocoder_file "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
 
-            # 4. Concatenates the output files from each jobs
+            # 3. Concatenates the output files from each jobs
             if [ -e "${_logdir}/output.${_nj}/norm" ]; then
                 mkdir -p "${_dir}"/norm
                 for i in $(seq "${_nj}"); do
