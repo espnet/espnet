@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Implementations of different types of residual functions. """
+"""Implementations of different types of residual functions."""
 
 import torch
 from torch import nn
@@ -26,13 +26,14 @@ class Residual(nn.Module):
     def d_output(self):
         return self.d_model
 
-    def forward(self, x, y, transposed):  # TODO documentation of transposed
+    def forward(self, x, y, transposed):
         y = self.beta * y if self.beta != 1.0 else y
         return self.alpha * x + y if self.alpha else y
 
 
 class Affine(Residual):
-    """Residual connection with learnable scalar multipliers on the main branch
+    """Residual connection with learnable scalar multipliers on the main branch.
+
     scalar: Single scalar multiplier, or one per dimension
     scale, power: Initialize to scale * layer_num**(-power)
     """
@@ -47,7 +48,7 @@ class Affine(Residual):
         d = 1 if self.scalar else self.d_input
         self.affine = nn.Parameter(c * torch.ones(d))
 
-    def forward(self, x, y, transposed):  # TODO documentation of transposed
+    def forward(self, x, y, transposed):
         c = self.affine
         if transposed:
             c = c.unsqueeze(-1)
@@ -63,7 +64,7 @@ class Feedforward(Residual):
 class Highway(Residual):
     def __init__(self, *args, scaling_correction=False, elemwise=False):
         super().__init__(*args)
-        self.scaling_correction = 1.732 if scaling_correction else 1.0  # TODO
+        self.scaling_correction = 1.732 if scaling_correction else 1.0
         self.elemwise = elemwise
         self.Wx = nn.Linear(self.d_input, self.d_input)
         if self.elemwise:
@@ -71,7 +72,7 @@ class Highway(Residual):
         else:
             self.Wy = nn.Linear(self.d_input, self.d_input)
 
-    def forward(self, x, y, transposed=False):  # TODO handle this case
+    def forward(self, x, y, transposed=False):
         if self.elemwise:
             y = self.Wy * y
         else:

@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Standalone version of Structured (Sequence) State Space (S4) model. """
+"""Standalone version of Structured (Sequence) State Space (S4) model."""
 
 import logging
 import math
@@ -24,8 +24,11 @@ contract_expression = oe.contract_expression
 
 
 def rank_zero_only(fn: Callable) -> Callable:
-    """Function that can be used as a decorator
-    to enable a function/method being called only on global rank 0."""
+    """Decorator function from PyTorch Lightning.
+
+    Function that can be used as a decorator
+    to enable a function/method being called only on global rank 0.
+    """
 
     @wraps(fn)
     def wrapped_fn(*args: Any, **kwargs: Any) -> Optional[Any]:
@@ -36,7 +39,6 @@ def rank_zero_only(fn: Callable) -> Callable:
     return wrapped_fn
 
 
-# TODO: this should be part of the cluster environment
 def _get_rank() -> int:
     # SLURM_PROCID can be set even if SLURM is not managing the multiprocessing,
     # therefore LOCAL_RANK needs to be checked first
@@ -54,8 +56,7 @@ rank_zero_only.rank = getattr(rank_zero_only, "rank", _get_rank())
 
 
 def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
-    """Initializes multi-GPU-friendly python logger."""
-
+    """Initialize multi-GPU-friendly python logger."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -108,7 +109,7 @@ try:  # Try pykeops
         return tensors
 
     def cauchy_conj(v, z, w):
-        """Pykeops version"""
+        """Pykeops version."""
         expr_num = "z * ComplexReal(v) - Real2Complex(Sum(v * w))"
         expr_denom = "ComplexMult(z-w, z-Conj(w))"
 
@@ -154,7 +155,8 @@ try:  # Try pykeops
         return 2 * _r2c(r).real
 
     def log_vandermonde_transpose(u, v, x, L):
-        """
+        """Compute Vandermonde product.
+
         u: ... H L
         v: ... H N
         x: ... H N
@@ -195,7 +197,8 @@ except ImportError:
         )
 
         def cauchy_naive(v, z, w):
-            """
+            """Naive version.
+
             v, w: (..., N)
             z: (..., L)
             returns: (..., L)
@@ -212,7 +215,8 @@ except ImportError:
     )
 
     def log_vandermonde(v, x, L):
-        r"""
+        r"""Compute Vandermonde product.
+
         v: (..., N)
         x: (..., N)
         returns: (..., L) \sum v x^l
@@ -256,12 +260,11 @@ else:
 
 
 def power(L, A, v=None):
-    """Compute A^L and the scan sum_i A^i v_i
+    """Compute A^L and the scan sum_i A^i v_i.
 
     A: (..., N, N)
     v: (..., N, L)
     """
-
     E = torch.eye(A.shape[-1]).to(A)  # , dtype=A.dtype, device=A.device)
 
     powers = [A]
@@ -306,7 +309,7 @@ def power(L, A, v=None):
 
 
 def transition(measure, N):
-    """A, B transition matrices for different measures"""
+    """A, B transition matrices for different measures."""
     # Legendre (translated)
     if measure == "legt":
         Q = np.arange(N, dtype=np.float64)
@@ -372,8 +375,7 @@ def transition(measure, N):
 
 
 def rank_correction(measure, N, rank=1, dtype=torch.float):
-    """Return low-rank matrix L such that A + L is normal"""
-
+    """Return low-rank matrix L such that A + L is normal."""
     if measure == "legs":
         assert rank >= 1
         P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)  # (1 N)
@@ -405,7 +407,9 @@ def rank_correction(measure, N, rank=1, dtype=torch.float):
 
 
 def nplr(measure, N, rank=1, dtype=torch.float, diagonalize_precision=True):
-    """Return w, p, q, V, B such that
+    """Decompose as Normal Plus Low-Rank (NPLR).
+
+    Return w, p, q, V, B such that
     (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
     i.e. A = V[w - p q^*]V^*, B = V B
     """
@@ -550,13 +554,12 @@ def dplr(
 
 
 def ssm(measure, N, R, H, **ssm_args):
-    """Dispatcher to create single SSM initialization
+    """Dispatcher to create single SSM initialization.
 
     N: state size
     R: rank (for DPLR parameterization)
     H: number of independent SSM copies
     """
-
     if measure == "dplr":
         w, P, B, V = dplr(N=N, rank=R, H=H, **ssm_args)
     elif measure.startswith("diag"):
@@ -599,11 +602,10 @@ def combination(measures, N, R, S, **ssm_args):
 
 
 class OptimModule(nn.Module):
-    """Interface for Module that allows registering buffers/parameters
-    with configurable optimizer hyperparameters"""
+    """Interface for Module that allows registering buffers/parameters with configurable optimizer hyperparameters. # noqa"""
 
     def register(self, name, tensor, lr=None):
-        """Register a tensor with a configurable learning rate and 0 weight decay"""
+        """Register a tensor with a configurable learning rate and 0 weight decay."""
         if lr == 0.0:
             self.register_buffer(name, tensor)
         else:
@@ -616,18 +618,19 @@ class OptimModule(nn.Module):
 
 
 class SSKernelNPLR(OptimModule):
-    """Stores a representation of and computes the SSKernel function
+    """Stores a representation of and computes the SSKernel function.
+
     K_L(A^dt, B^dt, C) corresponding to a discretized state space,
-    where A is Normal + Low Rank (NPLR)"""
+    where A is Normal + Low Rank (NPLR)
+    """
 
     @torch.no_grad()
     def _setup_C(self, L):
-        """Construct C~ from C
+        """Construct C~ from C.
 
         Two modes are supported: go directly to length L if self.L is 1,
         or length is doubled
         """
-
         if self.L.item() == 0:
             if self.verbose:
                 log.info(f"S4: Initializing kernel to length {L}")
@@ -657,9 +660,10 @@ class SSKernelNPLR(OptimModule):
         self.L = 2 * self.L if double_length else self.L + L  # Preserve type/device
 
     def _omega(self, L, dtype, device, cache=True):
-        """Calculate (and cache) FFT nodes and
-        their "unprocessed" version with the bilinear transform
-        This should be called everytime the internal length self.L changes"""
+        """Calculate (and cache) FFT nodes and their "unprocessed" version with the bilinear transform. # noqa
+
+        This should be called everytime the internal length self.L changes
+        """
 
         # Use cached if available
         if cache and hasattr(self, "omega") and self.omega.size(-1) == L // 2 + 1:
@@ -692,7 +696,8 @@ class SSKernelNPLR(OptimModule):
         real_tolerance=1e-3,
         bandlimit=None,
     ):
-        """
+        """Initialize kernel.
+
         L: Maximum length; this module computes an SSM kernel of length L
         A is represented by diag(w) - PP^*
         w: (S, N) diagonal part
@@ -715,7 +720,6 @@ class SSKernelNPLR(OptimModule):
         Note: tensor shape N here denotes half the true state size,
             because of conjugate symmetry
         """
-
         super().__init__()
         self.verbose = verbose
         self.keops = keops
@@ -789,7 +793,8 @@ class SSKernelNPLR(OptimModule):
         return w
 
     def forward(self, state=None, rate=1.0, L=None):
-        """
+        """Forward pass.
+
         state: (B, H, N) initial state
         rate: sampling rate factor
         L: target length
@@ -798,7 +803,6 @@ class SSKernelNPLR(OptimModule):
         (C, H, L) convolution kernel (generally C=1)
         (B, H, L) output from initial state
         """
-
         # Initialize C~
         # if necessary (done in forward pass so it's on the correct device)
         if self.L.item() == 0 and self.l_max is not None and self.l_max > 0:
@@ -930,7 +934,7 @@ class SSKernelNPLR(OptimModule):
 
     @torch.no_grad()
     def _setup_linear(self):
-        """Create parameters that allow fast linear stepping of state"""
+        """Create parameters that allow fast linear stepping of state."""
         w = self._w()
         B = _r2c(self.B)  # (H N)
         P = _r2c(self.P)
@@ -971,7 +975,8 @@ class SSKernelNPLR(OptimModule):
         }
 
     def _step_state_linear(self, u=None, state=None):
-        """
+        """Step one time step as a recurrent model.
+
         Version of the step function that has time O(N) instead of O(N^2) per step,
         which takes advantage of the DPLR form and bilinear discretization.
 
@@ -1028,8 +1033,7 @@ class SSKernelNPLR(OptimModule):
         return new_state
 
     def _setup_state(self):
-        """Construct dA and dB for discretized state equation"""
-
+        """Construct dA and dB for discretized state equation."""
         # Construct dA and dB by using the stepping
         self._setup_linear()
         C = _r2c(self.C)  # Just returns a view that we use for finding dtype/device
@@ -1047,15 +1051,17 @@ class SSKernelNPLR(OptimModule):
         return dA, dB
 
     def _step_state(self, u, state):
-        """Must be called after self.default_state() is used
-        to construct an initial state!"""
+        """Step one time step as a recurrent model.
+
+        Must be called after self.default_state() is used to construct an initial state!
+        """
         next_state = self.state_contraction(self.dA, state) + self.input_contraction(
             self.dB, u
         )
         return next_state
 
     def _setup_step(self, mode="dense"):
-        """Set up dA, dB, dC discretized parameters for stepping"""
+        """Set up dA, dB, dC discretized parameters for stepping."""
         self.dA, self.dB = self._setup_state()
 
         # Calculate original C
@@ -1145,10 +1151,11 @@ class SSKernelNPLR(OptimModule):
         return state
 
     def step(self, u, state):
-        """Must have called self._setup_step()
+        """Step one time step as a recurrent model.
+
+        Must have called self._setup_step()
         and created state with self.default_state() before calling this
         """
-
         if self._step_mode == "linear":
             new_state = self._step_state_linear(u, state)
         else:
@@ -1158,7 +1165,7 @@ class SSKernelNPLR(OptimModule):
 
 
 class SSKernelDiag(OptimModule):
-    """Version using (complex) diagonal state matrix (S4D)"""
+    """Version using (complex) diagonal state matrix (S4D)."""
 
     def __init__(
         self,
@@ -1238,7 +1245,8 @@ class SSKernelDiag(OptimModule):
         return A
 
     def forward(self, L, state=None, rate=1.0, u=None):
-        """
+        """Forward pass.
+
         state: (B, H, N) initial state
         rate: sampling rate factor
         L: target length
@@ -1247,7 +1255,6 @@ class SSKernelDiag(OptimModule):
         (C, H, L) convolution kernel (generally C=1)
         (B, H, L) output from initial state
         """
-
         dt = torch.exp(self.log_dt) * rate  # (H)
         C = _r2c(self.C)  # (C H N)
         A = self._A()  # (H N)
@@ -1386,7 +1393,7 @@ class SSKernel(nn.Module):
         measure_args={},
         **kernel_args,
     ):
-        r"""State Space Kernel which computes the convolution kernel $\\bar{K}$
+        r"""State Space Kernel which computes the convolution kernel $\\bar{K}$.
 
         H: Number of independent SSM copies;
             controls the size of the model. Also called d_model in the config.
@@ -1506,7 +1513,8 @@ class SSKernel(nn.Module):
 
     @torch.no_grad()
     def forward_state(self, u, state):
-        """Forward the state through a sequence,
+        """Forward the state through a sequence.
+
         i.e. computes the state after passing chunk through SSM
 
         state: (B, H, N)
@@ -1514,7 +1522,6 @@ class SSKernel(nn.Module):
 
         Returns: (B, H, N)
         """
-
         if hasattr(self.kernel, "forward_state"):
             return self.kernel.forward_state(u, state)
 
@@ -1573,7 +1580,8 @@ class S4(nn.Module):
         # SSM Kernel arguments
         **kernel_args,
     ):
-        """
+        """Initialize S4 module.
+
         d_state: the dimension of the state, also denoted by N
         l_max: the maximum kernel length, also denoted by L.
                 Set l_max=None to always use a global kernel
@@ -1605,7 +1613,6 @@ class S4(nn.Module):
 
         Other options are all experimental and should not need to be configured
         """
-
         super().__init__()
         if verbose:
             log.info(f"Constructing S4 (H, N, L) = ({d_model}, {d_state}, {l_max})")
@@ -1683,7 +1690,8 @@ class S4(nn.Module):
         )
 
     def forward(self, u, state=None, rate=1.0, lengths=None, **kwargs):
-        """
+        """Forward pass.
+
         u: (B H L) if self.transposed else (B L H)
         state: (H N) never needed unless you know what you're doing
 
@@ -1774,6 +1782,7 @@ class S4(nn.Module):
 
     def step(self, u, state, **kwargs):
         """Step one time step as a recurrent model.
+
         Intended to be used during validation.
 
         u: (B H)

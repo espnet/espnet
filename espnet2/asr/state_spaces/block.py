@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-"""Implements a full residual block around a black box layer
+"""Implements a full residual block around a black box layer.
 
 Configurable options include:
 normalization position: prenorm or postnorm
@@ -26,7 +26,7 @@ from espnet2.asr.state_spaces.residual import registry as residual_registry
 
 
 class SequenceResidualBlock(SequenceModule):
-    """Residual block wrapper for black box layer
+    """Residual block wrapper for black box layer.
 
     The SequenceResidualBlock class implements a generic
     (batch, length, d_input) -> (batch, length, d_input) transformation

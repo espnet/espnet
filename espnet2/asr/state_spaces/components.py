@@ -1,9 +1,5 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Utility nn components,
-in particular handling activations,initializations, and normalization layers
-"""
-
 import math
 from functools import partial
 
@@ -15,7 +11,8 @@ from opt_einsum import contract
 
 
 def stochastic_depth(input: torch.tensor, p: float, mode: str, training: bool = True):
-    """
+    """Apply stochastic depth.
+
     Implements the Stochastic Depth from `"Deep Networks with Stochastic Depth"
     <https://arxiv.org/abs/1603.09382>`_ used for randomly dropping residual
     branches of residual architectures.
@@ -54,7 +51,8 @@ def stochastic_depth(input: torch.tensor, p: float, mode: str, training: bool = 
 
 
 class StochasticDepth(nn.Module):
-    """
+    """Stochastic depth module.
+
     See :func:`stochastic_depth`.
     """
 
@@ -78,7 +76,8 @@ class StochasticDepth(nn.Module):
 
 class DropoutNd(nn.Module):
     def __init__(self, p: float = 0.5, tie=True, transposed=True):
-        """
+        """Initialize dropout module.
+
         tie: tie dropout mask across sequence lengths (Dropout1d/2d/3d)
         """
         super().__init__()
@@ -92,7 +91,10 @@ class DropoutNd(nn.Module):
         self.binomial = torch.distributions.binomial.Binomial(probs=1 - self.p)
 
     def forward(self, X):
-        """X: (batch, dim, lengths...)"""
+        """Forward pass.
+
+        X: (batch, dim, lengths...)
+        """
         if self.training:
             if not self.transposed:
                 X = rearrange(X, "b d ... -> b ... d")
@@ -175,10 +177,7 @@ def LinearActivation(
     weight_norm=False,
     **kwargs,
 ):
-    """Returns a linear nn.Module with control over axes order,
-    initialization, and activation
-    """
-
+    """Return a linear module, initialization, and activation."""
     # Construct core module
     # linear_cls = partial(nn.Conv1d, kernel_size=1) if transposed else nn.Linear
     linear_cls = TransposedLinear if transposed else nn.Linear
@@ -210,7 +209,9 @@ class SquaredReLU(nn.Module):
 
 
 class TransposedLinear(nn.Module):
-    """Linear module on the second-to-last dimension
+    """Transposed linear module.
+
+    Linear module on the second-to-last dimension
     Assumes shape (B, D, L), where L can be 1 or more axis
     """
 
@@ -239,7 +240,9 @@ class TransposedLinear(nn.Module):
 
 
 class TransposedLN(nn.Module):
-    """LayerNorm module over second dimension
+    """Transposed LayerNorm module.
+
+    LayerNorm module over second dimension
     Assumes shape (B, D, L), where L can be 1 or more axis
 
     This is slow and a dedicated CUDA/Triton implementation

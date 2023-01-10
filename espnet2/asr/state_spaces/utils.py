@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Utilities for dealing with collection objects (lists, dicts) and configs """
+"""Utilities for dealing with collection objects (lists, dicts) and configs."""
 import functools
 from typing import Callable, Mapping, Sequence
 
@@ -8,8 +8,6 @@ import hydra
 from omegaconf import DictConfig, ListConfig
 
 
-# TODO this is usually used in a pattern where it's turned into a list,
-# so can just do that here
 def is_list(x):
     return isinstance(x, Sequence) and not isinstance(x, str)
 
@@ -19,7 +17,7 @@ def is_dict(x):
 
 
 def to_dict(x, recursive=True):
-    """Convert Sequence or Mapping object to dict
+    """Convert Sequence or Mapping object to dict.
 
     lists get converted to {0: x[0], 1: x[1], ...}
     """
@@ -61,7 +59,8 @@ def extract_attrs_from_obj(obj, *attrs):
 
 
 def instantiate(registry, config, *args, partial=False, wrap=None, **kwargs):
-    """
+    """Instantiate registered module.
+
     registry: Dictionary mapping names to functions or target paths
             (e.g. {'model': 'models.SequenceModel'})
     config: Dictionary with a '_name_' key indicating which element of the registry
@@ -112,9 +111,7 @@ def get_class(registry, _name_):
 
 
 def omegaconf_filter_keys(d, fn=None):
-    """Only keep keys where fn(key) is True. Support nested DictConfig.
-    # TODO can make this inplace?
-    """
+    """Only keep keys where fn(key) is True. Support nested DictConfig."""
     if fn is None:
 
         def fn(_):

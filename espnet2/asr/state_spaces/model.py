@@ -117,7 +117,7 @@ class SequenceModel(SequenceModule):
             self.norm = nn.Identity()
 
     def forward(self, inputs, *args, state=None, **kwargs):
-        """Inputs assumed to be (batch, sequence, dim)"""
+        # Inputs assumed to be (batch, sequence, dim)
         if self.transposed:
             inputs = rearrange(inputs, "b ... d -> b d ...")
         inputs = self.drop(inputs)

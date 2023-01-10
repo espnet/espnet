@@ -86,7 +86,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
         self.output = torch.nn.Linear(self.d_model, vocab_size)
 
     def init_state(self, x: torch.Tensor):
-        """Initialize state"""
+        """Initialize state."""
         return self.decoder.default_state(1, device=x.device)
 
     def forward(
@@ -114,7 +114,6 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
                 if use_output_layer is True,
             olens: (batch, )
         """
-
         memory = hs_pad
         memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
             memory.device

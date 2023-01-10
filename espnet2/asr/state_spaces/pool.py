@@ -130,7 +130,8 @@ class DownSpectralPool(SequenceModule):
         self.transposed = transposed
 
     def forward(self, x):
-        """
+        """Forward pass.
+
         x: (B, L..., D)
         """
         if not self.transposed:
@@ -222,7 +223,7 @@ class DownLinearPool(SequenceModule):
         return self.d_input * self.expand
 
 
-""" Pooling functions with trainable parameters """  # TODO make d_output expand instead
+""" Pooling functions with trainable parameters """
 
 
 class DownPool2d(SequenceModule):
@@ -243,7 +244,6 @@ class DownPool2d(SequenceModule):
             x = self.pool(x)
 
 
-# TODO DownPool/UpPool are currently used by unet/sashimi backbones
 # DownLinearPool is used by the registry (for isotropic backbone)
 # DownPool is essentially the same as DownLinearPool. These should be consolidated
 class DownPool(SequenceModule):
@@ -286,10 +286,10 @@ class DownPool(SequenceModule):
         return x, None
 
     def step(self, x, state, **kwargs):  # TODO needs fix in transpose ca, **kwargsse
-        """
+        """Step one time step as a recurrent model.
+
         x: (..., H)
         """
-
         if x is None:
             return None, state
         state.append(x)
@@ -349,10 +349,10 @@ class UpPool(SequenceModule):
         return x, None
 
     def step(self, x, state, **kwargs):
-        """
+        """Step one time step as a recurrent model.
+
         x: (..., H)
         """
-
         assert len(state) > 0
         y, state = state[0], state[1:]
         if len(state) == 0:

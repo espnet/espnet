@@ -13,7 +13,8 @@ from einops import rearrange
 def cauchy_mult_torch(
     v: torch.Tensor, z: torch.Tensor, w: torch.Tensor, symmetric=True
 ) -> torch.Tensor:
-    """
+    """Compute Cauchy kernel.
+
     v: (B, N)
     z: (L)
     w: (B, N)
@@ -57,7 +58,7 @@ def _cauchy_mult(v, z, w, symmetric=True):
 
 
 def cauchy_mult(v, z, w, symmetric=True):
-    """Wrap the cuda method to deal with shapes"""
+    """Wrap the cuda method to deal with shapes."""
     v, w = torch.broadcast_tensors(v, w)
     shape = v.shape
     # z_shape = z.shape

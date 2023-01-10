@@ -1,6 +1,6 @@
 # This code is derived from https://github.com/HazyResearch/state-spaces
 
-""" Implementation of FFN block in the style of Transformers """
+"""Implementation of FFN block in the style of Transformers."""
 
 from functools import partial
 

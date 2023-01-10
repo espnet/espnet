@@ -6,7 +6,9 @@ from torch import nn
 
 
 class SequenceModule(nn.Module):
-    """Abstract sequence model class. All models must adhere to this interface
+    """Abstract sequence model class.
+
+    All models must adhere to this interface
 
     A SequenceModule is generally a model that transforms an input of shape
     (n_batch, l_sequence, d_model) to (n_batch, l_sequence, d_output)
@@ -58,8 +60,9 @@ class SequenceModule(nn.Module):
         self._d_output = d
 
     def forward(self, x, state=None, **kwargs):
-        """Forward pass of sequence model,
-        a sequence-to-sequence transformation with an optional state.
+        """Forward pass.
+
+        A sequence-to-sequence transformation with an optional state.
 
         Generally, this should map a tensor of shape
         (batch, length, self.d_model) to (batch, length, self.d_output)
@@ -73,7 +76,7 @@ class SequenceModule(nn.Module):
 
     @property
     def state_to_tensor(self):
-        """Returns a function mapping a state to a single tensor.
+        """Return a function mapping a state to a single tensor.
 
         This method should be implemented if one wants to use
         the hidden state insteadof the output sequence for final prediction.
@@ -83,12 +86,11 @@ class SequenceModule(nn.Module):
 
     @property
     def d_state(self):
-        """Returns dimension of output of self.state_to_tensor"""
+        """Return dimension of output of self.state_to_tensor."""
         return None
 
     def default_state(self, *batch_shape, device=None):
         """Create initial state for a batch of inputs."""
-
         return None
 
     def step(self, x, state=None, **kwargs):
@@ -103,8 +105,11 @@ class SequenceModule(nn.Module):
 
 
 def TransposedModule(module):
-    """Wrap a SequenceModule class to accept transposed parameter,
-    handle state, absorb kwargs"""
+    """Transpose module.
+
+    Wrap a SequenceModule class to accept transposed parameter,
+    handle state, absorb kwargs
+    """
     # https://stackoverflow.com/a/65470430/1980685
     @functools.wraps(module, updated=())
     class TransposedModule(module):
@@ -128,10 +133,10 @@ def TransposedModule(module):
 
 @TransposedModule
 class SequenceIdentity(SequenceModule):
-    """Simple SequenceModule for testing purposes"""
+    """Simple SequenceModule for testing purposes."""
 
     def __init__(self, d_model, dropout=0.0, **kwargs):
-        """Default interface for SequenceModule
+        """Initialize SequenceModule.
 
         d_model: input dimension (sometimes denoted H for hidden dimension)
         transposed: if True, inputs have axis ordering (B, H, L) instead of (B, H, L)
@@ -141,10 +146,13 @@ class SequenceIdentity(SequenceModule):
         self.d_output = d_model
 
     def forward(self, x, state=None):
+        """Forward pass."""
         return x, state
 
     def default_state(self, *batch_shape, device=None):
+        """Create initial state for a batch of inputs."""
         return None
 
     def step(self, x, state=None, **kwargs):
+        """Step the model recurrently for one step of the input sequence."""
         return x, state
