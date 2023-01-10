@@ -1,0 +1,6 @@
+batch_size: 1 # Note that we only support batch_size=1 now
+seed: 0
+maxlenratio: 1.5
+minlenratio: 0.0
+threshold: 0.5
+

@@ -38,18 +38,15 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_"${src_lang}"
-train_dev=dev_"${src_lang}"
-test_set=test_"${src_lang}"
-
 log "data preparation started"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
     log "stage1: Download data to ${CVSS}"
     log "Prepare source data from commonvoice 4.0"
-    # local/download_and_untar.sh ${CVSS} ${data_url} ${lang}.tar.gz
-    # mv ${CVSS}/cv-corpus-4-2019-12-10 commonvoice4
-    # local/download_and_untar.sh ${CVSS} ${cvss_data_url} ${lang}.tar.gz
+    mkdir -p ${CVSS}/commonvoice4
+    local/download_and_untar.sh ${CVSS} ${cv_data_url} ${lang}.tar.gz
+    mv ${CVSS}/cv-corpus-4-2019-12-10 ${CVSS}/commonvoice4/${lang}
+    local/download_and_untar.sh ${CVSS} ${cvss_data_url} ${lang}.tar.gz
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
