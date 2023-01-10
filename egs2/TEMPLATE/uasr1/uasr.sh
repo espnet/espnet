@@ -1441,6 +1441,21 @@ if ! "${skip_eval}"; then
                     --skip-training true \
                     ${uasr_stats_dir} \
                     ${output_feats_dir} 
+            
+            elif [ "${feature_clustering_tool}" = "cuml" ]; then
+                scripts/feats/feats_clustering_cuml.sh \
+                    --cmd "${cuda_cmd}" \
+                    --nj ${nj} \
+                    --dim ${feature_pca_dim} \
+                    --num_clusters ${feature_num_clusters} \
+                    --valid-set "" \
+                    --test-sets "${test_sets}" \
+                    --skip-training true \
+                    ${uasr_stats_dir} \
+                    ${output_feats_dir} 
+
+            else
+                log "${feature_clustering_tool}" is not supported
             fi
         fi
     fi
