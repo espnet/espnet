@@ -46,7 +46,8 @@ if [ ! -e "${LIBRISPEECH}" ]; then
     exit 1
 fi
 
-cdir=$PWD
+cdir=${PWD}
+ldir=${PWD}/local
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -75,19 +76,25 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     (
     cd ./data/LibriMix
-    librimix_outdir=./libri_mix_single
+    librimix_outdir=./libri_mix_single_offset
+
+    ln -s ${ldir}/metadta_Libri2Mix_offset metadata/Libri2Mix_offset
+    patch scripts/create_librimix_from_metadata.py -i ${ldir}/create_librimix_from_metadata.patch
 
 
     python scripts/augment_train_noise.py --wham_dir ${cdir}/data/wham_noise
     # shellcheck disable=SC2043
+    # simulate 2mix data with a random overlap offset about 1-1.5s
+    # only support 2mix data currently
     for n_src in 2;
     do
-        metadata_dir=metadata/Libri$n_src"Mix"
-        python scripts/create_librimix_from_metadata.py --librispeech_dir $LIBRISPEECH/LibriSpeech \
+        metadata_dir=metadata/Libri${n_src}"Mix"_offset
+        python scripts/create_librimix_from_metadata.py \
+            --librispeech_dir ${LIBRISPEECH}/LibriSpeech \
             --wham_dir ${cdir}/data/wham_noise \
-            --metadata_dir $metadata_dir \
-            --librimix_outdir $librimix_outdir \
-            --n_src $n_src \
+            --metadata_dir ${metadata_dir} \
+            --librimix_outdir ${librimix_outdir} \
+            --n_src ${n_src} \
             --freqs ${sample_rate} \
             --modes ${min_or_max} \
             --types mix_clean mix_both mix_single
@@ -109,7 +116,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/test
     mkdir -p data/train
 
-    metadata_dir="data/LibriMix/libri_mix_single/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata"
+    metadata_dir="data/LibriMix/libri_mix_single_offset/Libri2Mix/wav${sample_rate}/${min_or_max}/metadata"
 
     for dset in dev test train; do
         if [ "${dset}" = "train" ]; then
@@ -118,19 +125,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             mix_f=${dset}
         fi
 
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/utt2spk
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/spk2utt
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $2}' > data/${dset}/wav.scp
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $3}' > data/${dset}/spk1.scp
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $4}' > data/${dset}/spk2.scp
-        grep -v mixture_ID  ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
+        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
             sort -u | awk -F',' '{print $1, $5}' > data/${dset}/noise1.scp
-
     done
 
 fi
@@ -181,8 +187,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 cut -d" " -f1,3- > data/${dset}/text_spk${i}
         done
 
-        paste -d " <sc>" \
-            <(<data/${dset}/text_spk1 awk '{$0=$0; print($0)}') \
+        paste -d "" \
+            <(<data/${dset}/text_spk1 awk '{$0=$0" <sc>"; print($0)}') \
             <(<data/${dset}/text_spk2 cut -d" " -f 2-) > data/${dset}/text
 
     done

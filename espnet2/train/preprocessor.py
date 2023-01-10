@@ -469,9 +469,10 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             self.text_name = text_name
 
         self.speaker_change_symbol = speaker_change_symbol
-        assert (
-            speaker_change_symbol is not None and len(self.text_name) == 1
-        ), f"SOT which supports speaker_change_symbol only works with single text input."
+        if speaker_change_symbol is not None:
+            assert (
+                len(self.text_name) == 1
+            ), f"SOT which supports speaker_change_symbol only works with single text input."
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
