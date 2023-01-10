@@ -32,7 +32,8 @@ model_conf:
     length_normalized_loss: false
     sym_sos: "<|startoftranscript|>"
     sym_eos: "<|endoftext|>"
-    # do_pad_trim: true         # should be set when doing zero-shot inference
+    extract_feats_in_collect_stats: false
+
 
 frontend: null
 input_size: 1                   # to prevent build_model() from complaining
@@ -44,7 +45,7 @@ num_workers: 4
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
-batch_bins: 12000000            # good for single GPU w/ 40G mem
+batch_bins: 10000000            # good for single GPU w/ 40G mem
 accum_grad: 4
 max_epoch: 3
 patience: none
