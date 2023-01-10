@@ -49,6 +49,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         postencoder: Optional[AbsPostEncoder],
         asr_decoder: Optional[AbsDecoder],
         st_decoder: Optional[AbsDecoder],
+        aux_attention: Optional[AbsAttention],
         synthesizer: Optional[AbsSynthesizer],
         asr_ctc: Optional[CTC],
         st_ctc: Optional[CTC],
@@ -88,6 +89,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.encoder = encoder
         self.asr_decoder = asr_decoder
         self.st_decoder = st_decoder
+        self.aux_attention = aux_attention
         self.synthesizer = synthesizer
         self.asr_ctc = asr_ctc
         self.st_ctc = st_ctc
@@ -170,7 +172,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         tgt_speech = tgt_speech[:, : tgt_speech_lengths.max()]
 
         # 0. Target feature extract
-        # Note(jiatong): only for spec for now
+        # NOTE(jiatong): only for teaching-forcing in spectrogram
         tgt_feats, tgt_feats_lengths = self._extract_feats(
             tgt_speech, tgt_speech_lengths
         )
@@ -263,7 +265,8 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
-            if "syn_guided_attn" in self.losses:
+            # NOTE(jiatong): guided attention will be not used in multi-head attention
+            if "syn_guided_attn" in self.losses and self.synthesizer.atype != "multihead":
                 # NOTE(kan-bayashi): length of output for auto-regressive
                 # input will be changed when r > 1
                 if self.synthesizer.reduction_factor > 1:
@@ -351,8 +354,58 @@ class ESPnetS2STModel(AbsESPnetModel):
                     None,
                     None,
                 )
+            
+            assert self.aux_attention is not None, "must have aux attention in translatotron loss"
+            attention_out = self.aux_attention(decoder_out, encoder_out, encoder_out)
+            decoder_out = torch.cat((decoder_out, attention_out), dim=-1)
 
-            # TODO(jiatong): to re-organize codebase
+            # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
+            (
+                after_outs,
+                before_outs,
+                sum_duration,
+            ) = self.synthesizer(
+                decoder_out,
+                encoder_out_lens,
+                tgt_feats,
+                tgt_feats_lengths,
+                spembs,
+                sids,
+                lids,
+            )
+
+            syn_loss, l1_loss, mse_loss = self.losses["synthesis"](
+                after_outs,
+                before_outs,
+                sum_duration,
+            )
+            loss_record.append(syn_loss * self.losses["synthesis"].weight)
+
+            # NOTE(jiatong): guided attention will be not used in multi-head attention
+            if "syn_guided_attn" in self.losses and self.synthesizer.atype != "multihead":
+                # NOTE(kan-bayashi): length of output for auto-regressive
+                # input will be changed when r > 1
+                if self.synthesizer.reduction_factor > 1:
+                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths.new(
+                        [
+                            olen // self.reduction_factor
+                            for olen in updated_tgt_feats_lengths
+                        ]
+                    )
+                else:
+                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths
+                syn_guided_attn_loss = self.losses["syn_guided_attn"](
+                    att_ws=att_ws,
+                    ilens=encoder_out_lens,
+                    olens_in=updated_tgt_feats_lengths_in,
+                )
+                loss_record.append(
+                    syn_guided_attn_loss * self.losses["syn_guided_attn"].weight
+                )
+            else:
+                syn_guided_attn_loss = None
+
+            loss = sum(loss_record)
 
         elif self.s2st_type == "discrete_unit":
             # discrete unit-based synthesis
@@ -368,6 +421,68 @@ class ESPnetS2STModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
+    
+    def inference(
+        self,
+        src_speech: torch.Tensor,
+        src_speech_lengths: torch.Tensor,
+        tgt_speech: Optional[torch.Tensor] = None,
+        tgt_speech_lengths: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,  # TODO(Jiatong)
+        sids: Optional[torch.Tensor] = None,  # TODO(Jiatong)
+        lids: Optional[torch.Tensor] = None,  # TODO(Jiatong)
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 10.0,
+        use_att_constraint: bool = False,
+        backward_window: int = 1,
+        forward_window: int = 3,
+        use_teacher_forcing: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+
+        assert check_argument_types()
+
+        # 0. Target feature extract
+        # NOTE(jiatong): only for teaching-forcing in spectrogram
+        if tgt_speech is not None:
+            tgt_feats, tgt_feats_lengths = self._extract_feats(
+                tgt_speech, tgt_speech_lengths
+            )
+            # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+            if self.tgt_normalize is not None:
+                tgt_feats, tgt_feats_lengths = self.tgt_normalize(
+                    tgt_feats, tgt_feats_lengths
+                )
+
+        # 1. Encoder
+        encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
+
+        # 2. Decoder
+        if self.s2st_type == "translatotron":
+            output_dict = self.synthesizer(
+                encoder_outputs,
+                tgt_feats,
+                spembs,
+                sids,
+                lids,
+                threshold,
+                minlenratio,
+                maxlenratio,
+                use_att_constraint,
+                backward_window,
+                forward_window,
+                use_teacher_forcing,
+            )
+        elif self.s2st_type == "translatotron2":
+            pass
+        elif self.s2st_type == "discrete_unit":
+            pass
+        else:
+            raise ValueError(
+                "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
+            )
+        return output_dict
+            
 
     def collect_feats(
         self,
@@ -484,7 +599,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _ = self.st_decoder(
+        decoder_out, decoder_out_lengths = self.st_decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
         )
 
@@ -504,7 +619,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         if return_hidden:
-            return loss_att, acc_att, bleu_att, decoder_out
+            return loss_att, acc_att, bleu_att, decoder_out, decoder_out_lengths
         else:
             return loss_att, acc_att, bleu_att
 

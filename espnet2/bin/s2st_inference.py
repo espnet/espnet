@@ -93,6 +93,96 @@ class Speech2Speech:
                 "Not recognized s2st type of {}".format(self.s2st_type)
             )
         self.decode_conf = decode_conf
+    
+    @torch.no_grad()
+    def __call__(
+        self,
+        src_speech: Union[torch.Tensor, np.ndarray],
+        tgt_speech: Union[torch.Tensor, np.ndarray] = None,
+        spembs: Union[torch.Tensor, np.ndarray] = None,
+        sids: Union[torch.Tensor, np.ndarray] = None,
+        lids: Union[torch.Tensor, np.ndarray] = None,
+        decode_conf: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Run speech-to-speech."""
+        assert check_argument_types()
+
+        # check inputs
+        if self.use_speech and tgt_speech is None:
+            raise RuntimeError("Missing required argument: 'tgt_speech'")
+        if self.use_sids and sids is None:
+            raise RuntimeError("Missing required argument: 'sids'")
+        if self.use_lids and lids is None:
+            raise RuntimeError("Missing required argument: 'lids'")
+        if self.use_spembs and spembs is None:
+            raise RuntimeError("Missing required argument: 'spembs'")
+        
+        # prepare batch
+        batch = dict(src_speech=src_speech)
+        if tgt_speech is not None:
+            batch.update(tgt_speech=tgt_speech)
+        if spembs is not None:
+            batch.update(spembs=spembs)
+        if sids is not None:
+            batch.update(sids=sids)
+        if lids is not None:
+            batch.update(lids=lids)
+        batch = to_device(batch, self.device)
+
+        # overwrite the decode configs if provided
+        cfg = self.decode_conf
+        if decode_conf is not None:
+            cfg = self.decode_conf.copy()
+            cfg.update(decode_conf)
+
+        # inference
+        if self.always_fix_seed:
+            set_all_random_seed(self.seed)
+        output_dict = self.model.inference(**batch, **cfg)
+
+        # apply vocoder (mel-to-wav)
+        if self.vocoder is not None:
+            if (
+                self.prefer_normalized_feats
+                or output_dict.get("feat_gen_denorm") is None
+            ):
+                input_feat = output_dict["feat_gen"]
+            else:
+                input_feat = output_dict["feat_gen_denorm"]
+            wav = self.vocoder(input_feat)
+            output_dict.update(wav=wav)
+
+        return output_dict
+
+    @property
+    def fs(self) -> Optional[int]:
+        """Return sampling rate."""
+        if hasattr(self.vocoder, "fs"):
+            return self.vocoder.fs
+        elif hasattr(self.model.synthesizer, "fs"):
+            return self.model.synthesizer.fs
+        else:
+            return None
+
+    @property
+    def use_speech(self) -> bool:
+        """Return speech is needed or not in the inference."""
+        return self.use_teacher_forcing
+
+    @property
+    def use_sids(self) -> bool:
+        """Return sid is needed or not in the inference."""
+        return self.model.synthesizer.spks is not None
+
+    @property
+    def use_lids(self) -> bool:
+        """Return sid is needed or not in the inference."""
+        return self.model.synthesizer.langs is not None
+
+    @property
+    def use_spembs(self) -> bool:
+        """Return spemb is needed or not in the inference."""
+        return self.model.synthesizer.spk_embed_dim is not None
 
 
 def inference(

@@ -46,7 +46,10 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
+from espnet2.s2st.aux_attention.multihead import MultiHeadAttention
 from espnet2.s2st.espnet_model import ESPnetS2STModel
+from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.s2st.losses.attention_loss import S2STAttentionLoss
 from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
 from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
@@ -161,6 +164,13 @@ st_decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+aux_attention_choices = ClassChoices(
+    "aux_attention",
+    classes=dict(
+        multihead=MultiHeadAttention,
+    ),
+    type_check=AbsS2STAuxAttention,
+)
 synthesizer_choices = ClassChoices(
     "synthesizer",
     classes=dict(
@@ -177,7 +187,7 @@ loss_choices = ClassChoices(
         attention=S2STAttentionLoss,
         ctc=S2STCTCLoss,
     ),
-    type_check=torch.nn.Module,
+    type_check=AbsS2STLoss,
     default="tacotron",
 )
 
@@ -639,10 +649,17 @@ class S2STTask(STTask):
             )
         else:
             st_ctc = None
+        
+        # 7. Auxiliary Attention
+        if args.aux_attention:
+            aux_attention_class = aux_attention_choices.get_class(args.aux_attention)
+            aux_attention = aux_attention_class(n_feat=encoder_output_size, **args.aux_attention_conf)
+        else:
+            aux_attention = None
 
         # 7. Synthesizer
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
-
+        synthesizer_idim = encoder_output_size if aux_attention is not None else 2 * encoder_output_size
         synthesizer = synthesizer_class(
             idim=encoder_output_size, odim=raw_input_size, **args.synthesizer_conf
         )
@@ -678,6 +695,7 @@ class S2STTask(STTask):
             postencoder=postencoder,
             asr_decoder=asr_decoder,
             st_decoder=st_decoder,
+            aux_attention=aux_attention,
             synthesizer=synthesizer,
             asr_ctc=asr_ctc,
             st_ctc=st_ctc,
