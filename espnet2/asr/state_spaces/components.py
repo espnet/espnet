@@ -334,7 +334,7 @@ class Normalization(nn.Module):
         return x
 
     def step(self, x, **kwargs):
-        assert self._name_ in ["layer", "none"]
+        assert self._name_ in ["layer", "instance", "batch", "group", "none"]
         if self.transposed:
             x = x.unsqueeze(-1)
         x = self.forward(x)

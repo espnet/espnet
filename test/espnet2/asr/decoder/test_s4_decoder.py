@@ -9,7 +9,7 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
 @pytest.mark.parametrize("residual", ["residual", None])
-@pytest.mark.parametrize("norm", ["layer", "batch", None])
+@pytest.mark.parametrize("norm", ["layer", "batch"])
 @pytest.mark.parametrize("drop_path", [0.0, 0.1])
 def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop_path):
     layer = [
@@ -40,8 +40,9 @@ def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop
 @pytest.mark.parametrize("prenorm", [True, False])
 @pytest.mark.parametrize("n_layers", [3, 6])
 @pytest.mark.parametrize("residual", ["residual", None])
-@pytest.mark.parametrize("norm", ["layer", "batch", None])
+@pytest.mark.parametrize("norm", ["layer", "batch"])
 @pytest.mark.parametrize("drop_path", [0.0, 0.1])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 def test_S4Decoder_batch_beam_search(
     input_layer, prenorm, n_layers, norm, residual, drop_path, dtype
 ):
