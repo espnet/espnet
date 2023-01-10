@@ -45,7 +45,7 @@ class DurationPredictor(torch.nn.Module):
             x = x + self.conv(g)
 
         beat_lab = torch.detach(beat_lab)
-        beat_lab = beat_lab.unsqueeze(1)
+        beat_lab = beat_lab.unsqueeze(1).float()
         x = torch.cat((x, beat_lab), 1)
 
         x = self.conv_1(x * x_mask)

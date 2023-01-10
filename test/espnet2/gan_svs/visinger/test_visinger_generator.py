@@ -108,7 +108,7 @@ def test_vits_generator_forward(model_dict):
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
         tempo=torch.randint(1, idim, (2, 8)),
         tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)).float(),
+        beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
@@ -171,7 +171,7 @@ def test_vits_generator_forward(model_dict):
                 2,
                 5,
             ),
-        ).float(),
+        ),
         pitch=torch.randn(2, 16, 1),
     )
     if args["spk_embed_dim"] > 0:
@@ -229,7 +229,7 @@ def test_vits_generator_forward(model_dict):
                 1,
                 5,
             ),
-        ).float(),
+        ),
         pitch=torch.randn(1, 16, 1),
         feats=torch.randn(1, odim, 16),
         feats_lengths=torch.tensor([16], dtype=torch.long),
@@ -293,7 +293,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
         tempo=torch.randint(1, idim, (2, 8)),
         tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)).float(),
+        beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
         pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
@@ -357,7 +357,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 2,
                 5,
             ),
-        ).float(),
+        ),
         pitch=torch.randn(2, 16, 1),
         sids=torch.randint(0, spks, (1,)),
     )
@@ -418,7 +418,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 1,
                 5,
             ),
-        ).float(),
+        ),
         pitch=torch.randn(1, 16, 1),
         sids=torch.randint(0, spks, (1,)),
     )
