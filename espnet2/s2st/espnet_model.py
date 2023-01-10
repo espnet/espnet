@@ -359,6 +359,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             attention_out = self.aux_attention(decoder_out, encoder_out, encoder_out)
             decoder_out = torch.cat((decoder_out, attention_out), dim=-1)
 
+            
             # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
             (
                 after_outs,
@@ -381,29 +382,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
-            # NOTE(jiatong): guided attention will be not used in multi-head attention
-            if "syn_guided_attn" in self.losses and self.synthesizer.atype != "multihead":
-                # NOTE(kan-bayashi): length of output for auto-regressive
-                # input will be changed when r > 1
-                if self.synthesizer.reduction_factor > 1:
-                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths.new(
-                        [
-                            olen // self.reduction_factor
-                            for olen in updated_tgt_feats_lengths
-                        ]
-                    )
-                else:
-                    updated_tgt_feats_lengths_in = updated_tgt_feats_lengths
-                syn_guided_attn_loss = self.losses["syn_guided_attn"](
-                    att_ws=att_ws,
-                    ilens=encoder_out_lens,
-                    olens_in=updated_tgt_feats_lengths_in,
-                )
-                loss_record.append(
-                    syn_guided_attn_loss * self.losses["syn_guided_attn"].weight
-                )
-            else:
-                syn_guided_attn_loss = None
+
 
             loss = sum(loss_record)
 
