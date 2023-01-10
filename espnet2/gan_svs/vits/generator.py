@@ -547,8 +547,6 @@ class VITSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Generated waveform tensor (B, T_wav).
-            Tensor: Monotonic attention weight tensor (B, T_feats, T_text).
-            Tensor: Duration tensor (B, T_text).
 
         """
         # encoder
@@ -614,6 +612,4 @@ class VITSGenerator(torch.nn.Module):
             z = self.flow(z_p, x_mask, g=g, inverse=True)
             wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
-        # return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
-        return wav.squeeze(1), None, None
-        # return wav.squeeze(1)
+        return wav.squeeze(1)
