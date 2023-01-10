@@ -1508,7 +1508,7 @@ class SSKernel(nn.Module):
                 **kernel_args,
             )
         else:
-            raise NotImplementedError(f"{mode=} is not valid")
+            raise NotImplementedError(f"mode={mode} is not valid")
 
     def forward(self, state=None, L=None, rate=None):
         return self.kernel(state=state, L=L, rate=rate)
