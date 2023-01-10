@@ -99,7 +99,9 @@ class Speech2Speech:
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
+        src_speech_lengths: Union[torch.Tensor, np.ndarray],
         tgt_speech: Union[torch.Tensor, np.ndarray] = None,
+        tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Union[torch.Tensor, np.ndarray] = None,
         lids: Union[torch.Tensor, np.ndarray] = None,
@@ -119,9 +121,10 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'spembs'")
 
         # prepare batch
-        batch = dict(src_speech=src_speech)
+        batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)
         if tgt_speech is not None:
             batch.update(tgt_speech=tgt_speech)
+            batch.update(tgt_speech_lengths=tgt_speech_lengths)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -345,9 +348,9 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert _bs == 1, _bs
 
-            # Change to single sequence and remove *_length
-            # because inference() requires 1-seq, not mini-batch.
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            # # Change to single sequence and remove *_length
+            # # because inference() requires 1-seq, not mini-batch.
+            # batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
             output_dict = speech2speech(**batch)

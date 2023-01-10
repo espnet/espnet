@@ -401,7 +401,7 @@ class ESPnetS2STModel(AbsESPnetModel):
     def inference(
         self,
         src_speech: torch.Tensor,
-        src_speech_lengths: torch.Tensor,
+        src_speech_lengths: Optional[torch.Tensor] = None,
         tgt_speech: Optional[torch.Tensor] = None,
         tgt_speech_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,  # TODO(Jiatong)
@@ -431,13 +431,14 @@ class ESPnetS2STModel(AbsESPnetModel):
                 )
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
+        encoder_out, _ = self.encode(src_speech, src_speech_lengths)
 
         # 2. Decoder
         if self.s2st_type == "translatotron":
-            output_dict = self.synthesizer(
-                encoder_outputs,
-                tgt_feats,
+            assert encoder_out.size(0) == 1
+            output_dict = self.synthesizer.inference(
+                encoder_out[0],
+                tgt_feats[0],
                 spembs,
                 sids,
                 lids,
@@ -465,10 +466,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         src_speech_lengths: torch.Tensor,
         tgt_speech: torch.Tensor,
         tgt_speech_lengths: torch.Tensor,
-        tgt_text: Optional[torch.Tensor] = None,
-        tgt_text_lengths: Optional[torch.Tensor] = None,
-        src_text: Optional[torch.Tensor] = None,
-        src_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         if self.extract_feats_in_collect_stats:
@@ -546,10 +543,11 @@ class ESPnetS2STModel(AbsESPnetModel):
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert speech_lengths.dim() == 1, speech_lengths.shape
+        if speech_lengths is not None:
+            assert speech_lengths.dim() == 1, speech_lengths.shape
 
-        # for data-parallel
-        speech = speech[:, : speech_lengths.max()]
+            # for data-parallel
+            speech = speech[:, : speech_lengths.max()]
 
         if self.frontend is not None:
             # Frontend

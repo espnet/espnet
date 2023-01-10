@@ -133,11 +133,11 @@ class Translatotron(AbsSynthesizer):
         self.spks = None
         if spks is not None and spks > 1:
             self.spks = spks
-            self.sid_emb = torch.nn.Embedding(spks, eunits)
+            self.sid_emb = torch.nn.Embedding(spks, idim)
         self.langs = None
         if langs is not None and langs > 1:
             self.langs = langs
-            self.lid_emb = torch.nn.Embedding(langs, eunits)
+            self.lid_emb = torch.nn.Embedding(langs, idim)
 
         self.spk_embed_dim = None
         if spk_embed_dim is not None and spk_embed_dim > 0:
@@ -323,7 +323,7 @@ class Translatotron(AbsSynthesizer):
                 * att_w (Tensor): Attention weights (T_feats, T).
 
         """
-        x = enc_outputs
+        h = enc_outputs
         y = feats
         spemb = spembs
 
@@ -331,13 +331,13 @@ class Translatotron(AbsSynthesizer):
         if use_teacher_forcing:
             assert feats is not None, "feats must be provided with teacher forcing."
 
-            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
+            hs, ys = h.unsqueeze(0), y.unsqueeze(0)
             spembs = None if spemb is None else spemb.unsqueeze(0)
-            ilens = x.new_tensor([xs.size(1)]).long()
+            hlens = h.new_tensor([hs.size(1)]).long()
             olens = y.new_tensor([ys.size(1)]).long()
             outs, _, _, att_ws = self._forward(
-                xs=xs,
-                ilens=ilens,
+                hs=hs,
+                hlens=hlens,
                 ys=ys,
                 olens=olens,
                 spembs=spembs,
