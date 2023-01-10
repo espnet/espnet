@@ -102,7 +102,7 @@ def test_vits_generator_forward(model_dict):
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
         feats=torch.randn(2, odim, 16),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)).float(),
+        label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)).float(),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
@@ -146,7 +146,7 @@ def test_vits_generator_forward(model_dict):
                 2,
                 5,
             ),
-        ).float(),
+        ),
         label_lengths=torch.tensor([5, 3], dtype=torch.long),
         melody=torch.randint(
             0,
@@ -204,7 +204,7 @@ def test_vits_generator_forward(model_dict):
                 1,
                 5,
             ),
-        ).float(),
+        ),
         label_lengths=torch.tensor([5], dtype=torch.long),
         melody=torch.randint(
             0,
@@ -287,7 +287,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
         feats=torch.randn(2, odim, 16),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
-        label=torch.randint(0, idim, (2, 8)).float(),
+        label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)).float(),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
@@ -332,7 +332,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 2,
                 5,
             ),
-        ).float(),
+        ),
         label_lengths=torch.tensor([5, 3], dtype=torch.long),
         melody=torch.randint(
             0,
@@ -393,7 +393,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 1,
                 5,
             ),
-        ).float(),
+        ),
         label_lengths=torch.tensor([5], dtype=torch.long),
         melody=torch.randint(
             0,
