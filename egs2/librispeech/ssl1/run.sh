@@ -34,6 +34,7 @@ train_config_iter2=conf/tuning/train_ssl_torchaudiohubert_large_960h_pretrain_it
 ./hubert.sh \
     --ngpu 8 \
     --num_nodes 1 \
+    --lang "en" \
     --train_start_iter "${train_start_iter}"\
     --train_stop_iter "${train_stop_iter}" \
     --nj 32 \

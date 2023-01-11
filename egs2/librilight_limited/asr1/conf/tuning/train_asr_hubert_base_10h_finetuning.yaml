@@ -1,7 +1,7 @@
 batch_type: numel
 batch_bins: 3200000
 accum_grad: 1
-max_epoch: 60
+max_epoch: 100
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -12,7 +12,7 @@ best_model_criterion:
 keep_nbest_models: 10
 
 init_param: [
-    "../../librispeech/ssl1/exp/hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/valid.loss.best.pth:encoder:encoder"
+    "../../librispeech/ssl1/exp/hubert_iter1_train_ssl_torchaudiohubert_base_960h_pretrain_it1_raw/valid.loss.ave.pth:encoder:encoder"
 ]
 
 input_size: 1
@@ -22,10 +22,13 @@ encoder_conf:
     encoder_attention_dropout: 0.0
     encoder_ff_interm_dropout: 0.1
     encoder_dropout: 0.0
-    encoder_layer_drop: 0.0
+    encoder_layer_drop: 0.05
+    mask_prob: 0.65
+    mask_channel_prob: 0.5
+    mask_channel_length: 64
     num_classes: 500
     finetuning: true
-    freeze_encoder_updates: 4000
+    freeze_encoder_updates: 10000
 
 model_conf:
     ctc_weight: 1.0
@@ -37,7 +40,7 @@ optim_conf:
     lr: 0.00005
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 6000
+    warmup_steps: 8000
 
 unused_parameters: true
 
