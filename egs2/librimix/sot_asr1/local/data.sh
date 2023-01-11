@@ -125,17 +125,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             mix_f=${dset}
         fi
 
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/utt2spk
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $1}' > data/${dset}/spk2utt
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $2}' > data/${dset}/wav.scp
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $3}' > data/${dset}/spk1.scp
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $4}' > data/${dset}/spk2.scp
-        cat ${metadata_dir}/mixture_${mix_f}_mix_both.csv | grep -v mixture_ID | \
+        grep -v mixture_ID ${metadata_dir}/mixture_${mix_f}_mix_both.csv | \
             sort -u | awk -F',' '{print $1, $5}' > data/${dset}/noise1.scp
     done
 
