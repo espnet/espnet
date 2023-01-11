@@ -51,6 +51,7 @@ from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.ineube_separator import iNeuBe
+from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
@@ -97,6 +98,7 @@ separator_choices = ClassChoices(
         wpe_beamformer=NeuralBeamformer,
         tcn_nomask=TCNSeparatorNomask,
         ineube=iNeuBe,
+        tfgridnet=TFGridNet,
     ),
     type_check=AbsSeparator,
     default="rnn",
