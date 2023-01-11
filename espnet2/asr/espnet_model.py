@@ -71,6 +71,8 @@ class ESPnetASRModel(AbsESPnetModel):
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__()
+        # NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,
+        #                  which doesn't use <blank> token
         if sym_blank in token_list:
             self.blank_id = token_list.index(sym_blank)
         else:

@@ -120,6 +120,8 @@ class ErrorCalculator(object):
         self.char_list = char_list
         self.space = sym_space
         self.blank = sym_blank
+        # NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,
+        #                  which doesn't use <blank> token
         if self.blank in self.char_list:
             self.idx_blank = self.char_list.index(self.blank)
         else:
