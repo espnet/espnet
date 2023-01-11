@@ -209,6 +209,10 @@ muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
 	touch muskits.done
 
+cauchy_mult.done: espnet.done
+	. ./activate_python.sh && ./installers/install_cauchy_mult.sh
+	touch cauchy_mult.done
+
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 

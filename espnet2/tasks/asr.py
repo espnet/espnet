@@ -13,6 +13,7 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H30
 )
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
@@ -173,6 +174,7 @@ decoder_choices = ClassChoices(
         transducer=TransducerDecoder,
         mlm=MLMDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
+        s4=S4Decoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
