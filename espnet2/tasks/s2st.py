@@ -217,6 +217,8 @@ class S2STTask(STTask):
         asr_decoder_choices,
         # --st_decoder and --st_decoder_conf
         st_decoder_choices,
+        # --aux_attention and --aux_attention_conf
+        aux_attention_choices,
         # --synthesizer and --synthesizer_conf
         synthesizer_choices,
         loss_choices,
