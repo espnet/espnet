@@ -1,8 +1,12 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet.nets.batch_beam_search import BatchBeamSearch
+
+# Check to have torch.linalg
+is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 
 
 @pytest.mark.parametrize("input_layer", ["embed"])
@@ -12,6 +16,9 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 @pytest.mark.parametrize("norm", ["layer", "batch"])
 @pytest.mark.parametrize("drop_path", [0.0, 0.1])
 def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop_path):
+    # Skip test for the lower pytorch versions
+    if not is_torch_1_7_plus:
+        return
     layer = [
         {"_name_": "s4", "keops": True},  # Do not use custom Cauchy kernel (CUDA)
         {"_name_": "mha", "n_head": 4},
@@ -46,6 +53,9 @@ def test_S4Decoder_backward(input_layer, prenorm, n_layers, norm, residual, drop
 def test_S4Decoder_batch_beam_search(
     input_layer, prenorm, n_layers, norm, residual, drop_path, dtype
 ):
+    # Skip test for the lower pytorch versions
+    if not is_torch_1_7_plus:
+        return
     token_list = ["<blank>", "a", "b", "c", "unk", "<eos>"]
     vocab_size = len(token_list)
     encoder_output_size = 4
