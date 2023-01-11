@@ -209,8 +209,16 @@
 <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
     <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">ReduceOp</span>
 
+<span class="n">autocast_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 <span class="k">if</span> <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">GradScaler</span><span class="p">,</span> <span class="n">autocast</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.10.0&quot;</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span>
+    <span class="p">):</span>
+        <span class="n">autocast_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="c1"># Nothing to do if torch&lt;1.6.0</span>
     <span class="nd">@contextmanager</span>
@@ -722,7 +730,10 @@
                         <span class="p">)</span>
                 <span class="k">del</span> <span class="n">_model</span>
 
-            <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span>
+                <span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">autocast_args</span><span class="p">,</span>
+            <span class="p">):</span>
                 <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;forward_time&quot;</span><span class="p">):</span>
                     <span class="n">retval</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
 

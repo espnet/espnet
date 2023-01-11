@@ -178,7 +178,7 @@
 <span class="c1">#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -187,6 +187,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.hubert_encoder</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
     <span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
+    <span class="n">TorchAudioHuBERTPretrainEncoder</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
@@ -195,18 +196,21 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.specaug</span> <span class="kn">import</span> <span class="n">SpecAug</span>
-<span class="kn">from</span> <span class="nn">espnet2.hubert.espnet_model</span> <span class="kn">import</span> <span class="n">HubertPretrainModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.hubert.espnet_model</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HubertPretrainModel</span><span class="p">,</span>
+    <span class="n">TorchAudioHubertPretrainModel</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.utterance_mvn</span> <span class="kn">import</span> <span class="n">UtteranceMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">HuBERTCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">CommonPreprocessor</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">float_or_none</span><span class="p">,</span> <span class="n">int_or_none</span><span class="p">,</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
 
@@ -246,9 +250,19 @@
     <span class="s2">&quot;encoder&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">hubert_pretrain</span><span class="o">=</span><span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
+        <span class="n">torchaudio_hubert</span><span class="o">=</span><span class="n">TorchAudioHuBERTPretrainEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;hubert_pretrain&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">model_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">fairseq</span><span class="o">=</span><span class="n">HubertPretrainModel</span><span class="p">,</span>
+        <span class="n">torchaudio</span><span class="o">=</span><span class="n">TorchAudioHubertPretrainModel</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsESPnetModel</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;fairseq&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -268,6 +282,8 @@
         <span class="n">preencoder_choices</span><span class="p">,</span>
         <span class="c1"># --encoder and --encoder_conf</span>
         <span class="n">encoder_choices</span><span class="p">,</span>
+        <span class="c1"># --model and --model_conf</span>
+        <span class="n">model_choices</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
@@ -302,6 +318,12 @@
                 <span class="kc">None</span><span class="p">,</span>
             <span class="p">],</span>
         <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--collate_fn_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for collate_fn class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--input_size&quot;</span><span class="p">,</span>
@@ -311,10 +333,10 @@
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--model_conf&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">HubertPretrainModel</span><span class="p">),</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for model class.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--num_classes&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of classes in hubert&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related&quot;</span><span class="p">)</span>
@@ -410,12 +432,6 @@
             <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;weights for additional loss terms (not first one)&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--hubert_dict&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./dict.txt&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;word-based target dictionary for Hubert pretraining stage&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">class_choices</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">class_choices_list</span><span class="p">:</span>
             <span class="c1"># Append --&lt;name&gt; and --&lt;name&gt;_conf.</span>
@@ -430,7 +446,14 @@
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">CommonCollateFn</span><span class="p">(</span><span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">int_pad_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">HuBERTCollateFn</span><span class="p">(</span>
+            <span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">int_pad_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">label_downsampling</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">collate_fn_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;label_downsampling&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">pad</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">collate_fn_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pad&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">rand_crop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">collate_fn_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rand_crop&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="n">crop_audio</span><span class="o">=</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">collect_stats</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="HubertTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.hubert.HubertTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
@@ -490,7 +513,9 @@
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="HubertTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.hubert.HubertTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HubertPretrainModel</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">HubertPretrainModel</span><span class="p">,</span> <span class="n">TorchAudioHubertPretrainModel</span><span class="p">]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -544,13 +569,16 @@
         <span class="n">encoder_class</span> <span class="o">=</span> <span class="n">encoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
         <span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder_class</span><span class="p">(</span>
             <span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span>
-            <span class="n">use_amp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_amp</span><span class="p">,</span>
-            <span class="n">hubert_dict</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">hubert_dict</span><span class="p">,</span>
+            <span class="n">num_classes</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">encoder_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># 8. Build model</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">HubertPretrainModel</span><span class="p">(</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="s2">&quot;fairseq&quot;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">frontend</span><span class="o">=</span><span class="n">frontend</span><span class="p">,</span>
             <span class="n">specaug</span><span class="o">=</span><span class="n">specaug</span><span class="p">,</span>

@@ -288,6 +288,51 @@ registered hooks while the latter silently ignores them.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.hubert.espnet_model.</code><code class="sig-name descname">TorchAudioHubertPretrainModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, ignore_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<p>TorchAudio Hubert Pretrain model</p>
+<dl class="method">
+<dt id="espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.encode">
+<code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">y_pad: torch.Tensor</em>, <em class="sig-param">y_pad_length: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frontend + Encoder. Note that this method is used by asr_inference.py</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
+<li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
+<li><p><strong>y_pad</strong> – (Batch, Length, …)</p></li>
+<li><p><strong>y_pad_length</strong> – (Batch, )</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frontend + Encoder + Calc loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
+<li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
+<li><p><strong>text</strong> – (Batch, Length)</p></li>
+<li><p><strong>text_lengths</strong> – (Batch,)</p></li>
+<li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="espnet2-hubert-init">
 <span id="id3"></span><h2>espnet2.hubert.__init__<a class="headerlink" href="#espnet2-hubert-init" title="Permalink to this headline">¶</a></h2>

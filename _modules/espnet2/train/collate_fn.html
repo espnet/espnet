@@ -169,7 +169,8 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.train.collate_fn</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -207,6 +208,124 @@
             <span class="n">int_pad_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">int_pad_value</span><span class="p">,</span>
             <span class="n">not_sequence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">not_sequence</span><span class="p">,</span>
         <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="HuBERTCollateFn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.HuBERTCollateFn">[docs]</a><span class="k">class</span> <span class="nc">HuBERTCollateFn</span><span class="p">(</span><span class="n">CommonCollateFn</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Functor class of common_collate_fn()&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">float_pad_value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">int_pad_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">32768</span><span class="p">,</span>
+        <span class="n">label_downsampling</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">pad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">rand_crop</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">crop_audio</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">not_sequence</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">float_pad_value</span><span class="o">=</span><span class="n">float_pad_value</span><span class="p">,</span>
+            <span class="n">int_pad_value</span><span class="o">=</span><span class="n">int_pad_value</span><span class="p">,</span>
+            <span class="n">not_sequence</span><span class="o">=</span><span class="n">not_sequence</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">float_pad_value</span> <span class="o">=</span> <span class="n">float_pad_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">int_pad_value</span> <span class="o">=</span> <span class="n">int_pad_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_downsampling</span> <span class="o">=</span> <span class="n">label_downsampling</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="n">pad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span> <span class="o">=</span> <span class="n">rand_crop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">crop_audio</span> <span class="o">=</span> <span class="n">crop_audio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">not_sequence</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">not_sequence</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s2">(float_pad_value=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">float_pad_value</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;int_pad_value=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">float_pad_value</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;label_downsampling=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label_downsampling</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;pad_value=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="si">}</span><span class="s2">, rand_crop=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span><span class="si">}</span><span class="s2">) &quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="k">assert</span> <span class="s2">&quot;speech&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="s2">&quot;text&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">:</span>
+            <span class="n">num_frames</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">data</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_frames</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">sample</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">data</span><span class="p">])</span>
+
+        <span class="n">new_data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">],</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">waveform</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span>
+            <span class="c1"># The MFCC feature is 10ms per frame, while the HuBERT&#39;s transformer output</span>
+            <span class="c1"># is 20ms per frame. Downsample the KMeans label if it&#39;s generated by MFCC</span>
+            <span class="c1"># features.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_downsampling</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_downsampling</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_audio</span><span class="p">:</span>
+                <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">_crop_audio_label</span><span class="p">(</span>
+                    <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">num_frames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span>
+                <span class="p">)</span>
+            <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">uid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">waveform</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">common_collate_fn</span><span class="p">(</span>
+            <span class="n">new_data</span><span class="p">,</span>
+            <span class="n">float_pad_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">float_pad_value</span><span class="p">,</span>
+            <span class="n">int_pad_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">int_pad_value</span><span class="p">,</span>
+            <span class="n">not_sequence</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">not_sequence</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_crop_audio_label</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">label</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">num_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rand_crop</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collate the audio and label at the same time.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (Tensor): The waveform Tensor with dimensions `(time)`.</span>
+<span class="sd">        label (Tensor): The label Tensor with dimensions `(seq)`.</span>
+<span class="sd">        length (Tensor): The length Tensor with dimension `(1,)`.</span>
+<span class="sd">        num_frames (int): The final length of the waveform.</span>
+<span class="sd">        rand_crop (bool): if ``rand_crop`` is True, the starting index of the</span>
+<span class="sd">            waveform and label is random if the length is longer than the minimum</span>
+<span class="sd">            length in the mini-batch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (Tuple(Tensor, Tensor, Tensor)): Returns the Tensors for the waveform,</span>
+<span class="sd">            label, and the waveform length.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">kernel_size</span> <span class="o">=</span> <span class="mi">25</span>
+    <span class="n">stride</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">16</span>  <span class="c1"># 16 per millisecond</span>
+    <span class="n">frame_offset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">num_frames</span> <span class="ow">and</span> <span class="n">rand_crop</span><span class="p">:</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">num_frames</span>
+        <span class="n">frame_offset</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,))</span>
+    <span class="k">elif</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">num_frames</span><span class="p">:</span>
+        <span class="n">num_frames</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">label_offset</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">frame_offset</span> <span class="o">-</span> <span class="n">kernel_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">stride</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">))</span>
+        <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">num_label</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">num_frames</span> <span class="o">-</span> <span class="n">kernel_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">stride</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">))</span>
+        <span class="o">+</span> <span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">waveform</span> <span class="o">=</span> <span class="n">waveform</span><span class="p">[</span><span class="n">frame_offset</span> <span class="p">:</span> <span class="n">frame_offset</span> <span class="o">+</span> <span class="n">num_frames</span><span class="p">]</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="n">label_offset</span> <span class="p">:</span> <span class="n">label_offset</span> <span class="o">+</span> <span class="n">num_label</span><span class="p">]</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">num_frames</span>
+
+    <span class="k">return</span> <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span>
 
 
 <div class="viewcode-block" id="common_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.collate_fn.common_collate_fn">[docs]</a><span class="k">def</span> <span class="nf">common_collate_fn</span><span class="p">(</span>

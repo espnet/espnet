@@ -184,7 +184,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
@@ -194,6 +194,261 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
+
+
+<div class="viewcode-block" id="TorchAudioHuBERTPretrainEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.TorchAudioHuBERTPretrainEncoder">[docs]</a><span class="k">class</span> <span class="nc">TorchAudioHuBERTPretrainEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Torch Audio Hubert encoder module.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extractor_mode: Operation mode of feature extractor.</span>
+<span class="sd">            Valid values are &quot;group_norm&quot; or &quot;layer_norm&quot;.</span>
+<span class="sd">        extractor_conv_layer_config: Configuration of convolution layers in feature</span>
+<span class="sd">            extractor. List of convolution configuration,</span>
+<span class="sd">            i.e. [(output_channel, kernel_size, stride), ...]</span>
+<span class="sd">        extractor_conv_bias: Whether to include bias term to each convolution</span>
+<span class="sd">            operation.</span>
+<span class="sd">        encoder_embed_dim: The dimension of embedding in encoder.</span>
+<span class="sd">        encoder_projection_dropout: The dropout probability applied after the input</span>
+<span class="sd">            feature is projected to &quot;encoder_embed_dim&quot;.</span>
+<span class="sd">        encoder_pos_conv_kernel: Kernel size of convolutional positional embeddings.</span>
+<span class="sd">        encoder_pos_conv_groups: Number of groups of convolutional positional</span>
+<span class="sd">            embeddings.</span>
+<span class="sd">        encoder_num_layers: Number of self attention layers in transformer block.</span>
+<span class="sd">        encoder_num_heads: Number of heads in self attention layers.</span>
+<span class="sd">        encoder_attention_dropout: Dropout probability applied after softmax in</span>
+<span class="sd">            self-attention layer.</span>
+<span class="sd">        encoder_ff_interm_features: Dimension of hidden features in feed forward layer.</span>
+<span class="sd">        encoder_ff_interm_dropout: Dropout probability applied in feedforward layer.</span>
+<span class="sd">        encoder_dropout: Dropout probability applied at the end of feed forward layer.</span>
+<span class="sd">        encoder_layer_norm_first: Control the order of layer norm in transformer layer</span>
+<span class="sd">            and each encoder layer. If True, in transformer layer, layer norm is</span>
+<span class="sd">            applied before features are fed to encoder layers.</span>
+<span class="sd">        encoder_layer_drop: Probability to drop each encoder layer during training.</span>
+<span class="sd">        mask_prob: Probability for each token to be chosen as start of the span</span>
+<span class="sd">            to be masked.</span>
+<span class="sd">        mask_selection: How to choose the mask length.</span>
+<span class="sd">            Options: [static, uniform, normal, poisson].</span>
+<span class="sd">        mask_other: Secondary mask argument (used for more complex distributions).</span>
+<span class="sd">        mask_length: The lengths of the mask.</span>
+<span class="sd">        no_mask_overlap: Whether to allow masks to overlap.</span>
+<span class="sd">        mask_min_space: Minimum space between spans (if no overlap is enabled).</span>
+<span class="sd">        mask_channel_prob: (float): The probability of replacing a feature with 0.</span>
+<span class="sd">        mask_channel_selection: How to choose the mask length for channel masking.</span>
+<span class="sd">            Options: [static, uniform, normal, poisson].</span>
+<span class="sd">        mask_channel_other: Secondary mask argument for channel masking(used for more</span>
+<span class="sd">            complex distributions).</span>
+<span class="sd">        mask_channel_length: Minimum space between spans (if no overlap is enabled)</span>
+<span class="sd">            for channel masking.</span>
+<span class="sd">        no_mask_channel_overlap: Whether to allow channel masks to overlap.</span>
+<span class="sd">        mask_channel_min_space: Minimum space between spans for channel</span>
+<span class="sd">            masking(if no overlap is enabled).</span>
+<span class="sd">        skip_masked: If True, skip computing losses over masked frames.</span>
+<span class="sd">        skip_nomask: If True, skip computing losses over unmasked frames.</span>
+<span class="sd">        num_classes: The number of classes in the labels.</span>
+<span class="sd">        final_dim: Project final representations and targets to final_dim.</span>
+<span class="sd">        feature_grad_mult: The factor to scale the convolutional feature extraction</span>
+<span class="sd">            layer gradients by. The scale factor will not affect the forward pass.</span>
+<span class="sd">        finetuning: Whether to finetuning the model with ASR or other tasks.</span>
+<span class="sd">        freeze_encoder_updates: The number of steps to freeze the encoder parameters</span>
+<span class="sd">            in ASR finetuning.</span>
+<span class="sd">    Hubert specific Args:</span>
+<span class="sd">        Please refer to:</span>
+<span class="sd">        https://pytorch.org/audio/stable/generated/torchaudio.models.hubert_pretrain_model.html#torchaudio.models.hubert_pretrain_model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">extractor_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;group_norm&quot;</span><span class="p">,</span>
+        <span class="n">extractor_conv_layer_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">],</span>
+        <span class="n">extractor_conv_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">encoder_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">768</span><span class="p">,</span>
+        <span class="n">encoder_projection_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">encoder_pos_conv_kernel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
+        <span class="n">encoder_pos_conv_groups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="n">encoder_num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">encoder_num_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+        <span class="n">encoder_attention_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">encoder_ff_interm_features</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3072</span><span class="p">,</span>
+        <span class="n">encoder_ff_interm_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">encoder_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">encoder_layer_norm_first</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">encoder_layer_drop</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">mask_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">mask_selection</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+        <span class="n">mask_other</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">mask_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">no_mask_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">mask_min_space</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">mask_channel_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">mask_channel_selection</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;static&quot;</span><span class="p">,</span>
+        <span class="n">mask_channel_other</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">mask_channel_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+        <span class="n">no_mask_channel_overlap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">mask_channel_min_space</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">skip_masked</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">skip_nomask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">num_classes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+        <span class="n">final_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+        <span class="n">feature_grad_mult</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">finetuning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">freeze_encoder_updates</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">torchaudio</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: torchaudio is not properly installed.&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please install torchaudio&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">encoder_embed_dim</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="p">(</span>
+            <span class="n">extractor_mode</span><span class="o">=</span><span class="n">extractor_mode</span><span class="p">,</span>
+            <span class="n">extractor_conv_layer_config</span><span class="o">=</span><span class="n">extractor_conv_layer_config</span><span class="p">,</span>
+            <span class="n">extractor_conv_bias</span><span class="o">=</span><span class="n">extractor_conv_bias</span><span class="p">,</span>
+            <span class="n">encoder_embed_dim</span><span class="o">=</span><span class="n">encoder_embed_dim</span><span class="p">,</span>
+            <span class="n">encoder_projection_dropout</span><span class="o">=</span><span class="n">encoder_projection_dropout</span><span class="p">,</span>
+            <span class="n">encoder_pos_conv_kernel</span><span class="o">=</span><span class="n">encoder_pos_conv_kernel</span><span class="p">,</span>
+            <span class="n">encoder_pos_conv_groups</span><span class="o">=</span><span class="n">encoder_pos_conv_groups</span><span class="p">,</span>
+            <span class="n">encoder_num_layers</span><span class="o">=</span><span class="n">encoder_num_layers</span><span class="p">,</span>
+            <span class="n">encoder_num_heads</span><span class="o">=</span><span class="n">encoder_num_heads</span><span class="p">,</span>
+            <span class="n">encoder_attention_dropout</span><span class="o">=</span><span class="n">encoder_attention_dropout</span><span class="p">,</span>
+            <span class="n">encoder_ff_interm_features</span><span class="o">=</span><span class="n">encoder_ff_interm_features</span><span class="p">,</span>
+            <span class="n">encoder_ff_interm_dropout</span><span class="o">=</span><span class="n">encoder_ff_interm_dropout</span><span class="p">,</span>
+            <span class="n">encoder_dropout</span><span class="o">=</span><span class="n">encoder_dropout</span><span class="p">,</span>
+            <span class="n">encoder_layer_norm_first</span><span class="o">=</span><span class="n">encoder_layer_norm_first</span><span class="p">,</span>
+            <span class="n">encoder_layer_drop</span><span class="o">=</span><span class="n">encoder_layer_drop</span><span class="p">,</span>
+            <span class="n">mask_prob</span><span class="o">=</span><span class="n">mask_prob</span><span class="p">,</span>
+            <span class="n">mask_selection</span><span class="o">=</span><span class="n">mask_selection</span><span class="p">,</span>
+            <span class="n">mask_other</span><span class="o">=</span><span class="n">mask_other</span><span class="p">,</span>
+            <span class="n">mask_length</span><span class="o">=</span><span class="n">mask_length</span><span class="p">,</span>
+            <span class="n">no_mask_overlap</span><span class="o">=</span><span class="n">no_mask_overlap</span><span class="p">,</span>
+            <span class="n">mask_min_space</span><span class="o">=</span><span class="n">mask_min_space</span><span class="p">,</span>
+            <span class="n">mask_channel_prob</span><span class="o">=</span><span class="n">mask_channel_prob</span><span class="p">,</span>
+            <span class="n">mask_channel_selection</span><span class="o">=</span><span class="n">mask_channel_selection</span><span class="p">,</span>
+            <span class="n">mask_channel_other</span><span class="o">=</span><span class="n">mask_channel_other</span><span class="p">,</span>
+            <span class="n">mask_channel_length</span><span class="o">=</span><span class="n">mask_channel_length</span><span class="p">,</span>
+            <span class="n">no_mask_channel_overlap</span><span class="o">=</span><span class="n">no_mask_channel_overlap</span><span class="p">,</span>
+            <span class="n">mask_channel_min_space</span><span class="o">=</span><span class="n">mask_channel_min_space</span><span class="p">,</span>
+            <span class="n">skip_masked</span><span class="o">=</span><span class="n">skip_masked</span><span class="p">,</span>
+            <span class="n">skip_nomask</span><span class="o">=</span><span class="n">skip_nomask</span><span class="p">,</span>
+            <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+            <span class="n">final_dim</span><span class="o">=</span><span class="n">final_dim</span><span class="p">,</span>
+            <span class="n">feature_grad_mult</span><span class="o">=</span><span class="n">feature_grad_mult</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">finetuning</span> <span class="o">=</span> <span class="n">finetuning</span>
+        <span class="k">if</span> <span class="n">finetuning</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">feature_extractor</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;global_step&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freeze_encoder_updates</span> <span class="o">=</span> <span class="n">freeze_encoder_updates</span>
+
+<div class="viewcode-block" id="TorchAudioHuBERTPretrainEncoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.TorchAudioHuBERTPretrainEncoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span></div>
+
+<div class="viewcode-block" id="TorchAudioHuBERTPretrainEncoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.TorchAudioHuBERTPretrainEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ys_pad_length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">prev_states</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward Hubert Pretrain Encoder.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            xs_pad: input tensor (B, L, D)</span>
+<span class="sd">            ilens: input length (B)</span>
+<span class="sd">            prev_states: Not to be used now.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            position embedded tensor and mask</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finetuning</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pretraining_forward</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finetuning_forward</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_forward</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_pretraining_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">ys_pad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">(</span>
+            <span class="n">logit_m</span><span class="p">,</span>
+            <span class="n">logit_u</span><span class="p">,</span>
+            <span class="n">feature_penalty</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">logit_m</span><span class="p">,</span> <span class="n">logit_u</span><span class="p">,</span> <span class="n">feature_penalty</span>
+
+    <span class="k">def</span> <span class="nf">_finetuning_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">get_padding_mask</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">lengths</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;get_padding_mask() from torchaudio.models.wav2vec2.components&quot;&quot;&quot;</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_len</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">lengths</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_len</span><span class="p">)</span>
+                <span class="o">&gt;=</span> <span class="n">lengths</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">mask</span>
+
+        <span class="c1"># manually add the steps. It is not accurate.</span>
+        <span class="c1"># TODO(simpleoier): to introduce the global update steps into encoder module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">freeze_encoder_updates</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">out_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">feature_extractor</span><span class="p">(</span>
+                    <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+                <span class="p">)</span>
+                <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">get_padding_mask</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out_len</span><span class="p">)</span>
+                <span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span>
+                    <span class="n">attention_mask</span><span class="p">,</span>
+                <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">_preprocess</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out_len</span><span class="p">)</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">mask_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">padding_mask</span><span class="p">)</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">out_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">feature_extractor</span><span class="p">(</span>
+                    <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+                <span class="p">)</span>
+                <span class="n">padding_mask</span> <span class="o">=</span> <span class="n">get_padding_mask</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out_len</span><span class="p">)</span>
+
+            <span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span>
+                <span class="n">attention_mask</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">_preprocess</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">out_len</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">mask_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">padding_mask</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="o">~</span><span class="n">padding_mask</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_eval_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">feature_extractor</span><span class="p">(</span>
+            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">ilens</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">wav2vec2</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">lengths</span><span class="p">,</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TorchAudioHuBERTPretrainEncoder.reload_pretrained_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.TorchAudioHuBERTPretrainEncoder.reload_pretrained_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reload_pretrained_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hubert_pretrain_model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pretrained Hubert model parameters reloaded!&quot;</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FairseqHubertEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder">[docs]</a><span class="k">class</span> <span class="nc">FairseqHubertEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>

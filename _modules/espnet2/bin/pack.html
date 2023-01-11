@@ -218,6 +218,12 @@
     <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;enh_s2t_train_config&quot;</span><span class="p">,</span> <span class="s2">&quot;lm_train_config&quot;</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="SSLPackedContents"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.SSLPackedContents">[docs]</a><span class="k">class</span> <span class="nc">SSLPackedContents</span><span class="p">(</span><span class="n">PackedContents</span><span class="p">):</span>
+    <span class="c1"># These names must be consistent with the argument of inference functions</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span>
+    <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;train_config&quot;</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="add_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.add_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">contents</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">PackedContents</span><span class="p">]):</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--outpath&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">contents</span><span class="o">.</span><span class="n">yaml_files</span><span class="p">:</span>
@@ -240,6 +246,7 @@
         <span class="p">(</span><span class="s2">&quot;diar&quot;</span><span class="p">,</span> <span class="n">DiarPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;svs&quot;</span><span class="p">,</span> <span class="n">SVSPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;enh_s2t&quot;</span><span class="p">,</span> <span class="n">EnhS2TPackedContents</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;ssl&quot;</span><span class="p">,</span> <span class="n">SSLPackedContents</span><span class="p">),</span>
     <span class="p">]:</span>
         <span class="n">parser_asr</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
             <span class="n">name</span><span class="p">,</span>

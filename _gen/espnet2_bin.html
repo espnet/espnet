@@ -511,7 +511,7 @@ Text converter related:
                     [--model_conf MODEL_CONF]
                     [--preencoder {sinc,linear,None}]
                     [--preencoder_conf PREENCODER_CONF]
-                    [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer,e_branchformer}]
+                    [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}]
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,None}]
                     [--postencoder_conf POSTENCODER_CONF]
@@ -908,7 +908,7 @@ Optimizer related:
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
-  --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer,e_branchformer}
+  --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}
                         The encoder type (default: rnn)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
@@ -2273,7 +2273,7 @@ SeparateSpeech related:
                         [--normalize_conf NORMALIZE_CONF]
                         [--asr_preencoder {sinc,linear,None}]
                         [--asr_preencoder_conf ASR_PREENCODER_CONF]
-                        [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer,e_branchformer}]
+                        [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}]
                         [--asr_encoder_conf ASR_ENCODER_CONF]
                         [--asr_postencoder {hugging_face_transformers,None}]
                         [--asr_postencoder_conf ASR_POSTENCODER_CONF]
@@ -2717,7 +2717,7 @@ Optimizer related:
                         The asr_preencoder type (default: None)
   --asr_preencoder_conf ASR_PREENCODER_CONF
                         The keyword arguments for asr_preencoder (default: {})
-  --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer,branchformer,e_branchformer}
+  --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}
                         The asr_encoder type (default: rnn)
   --asr_encoder_conf ASR_ENCODER_CONF
                         The keyword arguments for asr_encoder (default: {})
@@ -4941,7 +4941,8 @@ Optimizer related:
                        [--scheduler_conf SCHEDULER_CONF]
                        [--token_list TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
-                       [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
+                       [--collate_fn_conf COLLATE_FN_CONF]
+                       [--input_size INPUT_SIZE] [--num_classes NUM_CLASSES]
                        [--use_preprocessor USE_PREPROCESSOR]
                        [--token_type {bpe,char,word,phn}]
                        [--bpemodel BPEMODEL]
@@ -4956,7 +4957,6 @@ Optimizer related:
                        [--pred_masked_weight PRED_MASKED_WEIGHT]
                        [--pred_nomask_weight PRED_NOMASK_WEIGHT]
                        [--loss_weights LOSS_WEIGHTS]
-                       [--hubert_dict HUBERT_DICT]
                        [--frontend {default,sliding_window}]
                        [--frontend_conf FRONTEND_CONF]
                        [--specaug {specaug,None}]
@@ -4965,8 +4965,10 @@ Optimizer related:
                        [--normalize_conf NORMALIZE_CONF]
                        [--preencoder {sinc,None}]
                        [--preencoder_conf PREENCODER_CONF]
-                       [--encoder {hubert_pretrain}]
+                       [--encoder {hubert_pretrain,torchaudio_hubert}]
                        [--encoder_conf ENCODER_CONF]
+                       [--model {fairseq,torchaudio}]
+                       [--model_conf MODEL_CONF]
 
 base parser
 
@@ -4978,8 +4980,6 @@ optional arguments:
                         weight for predictive loss for unmasked frames (default: 0.0)
   --loss_weights LOSS_WEIGHTS
                         weights for additional loss terms (not first one) (default: 0.0)
-  --hubert_dict HUBERT_DICT
-                        word-based target dictionary for Hubert pretraining stage (default: ./dict.txt)
 
 Common configuration:
   --print_config        Print the config file and exit (default: False)
@@ -5312,10 +5312,12 @@ Optimizer related:
                         A text mapping int-id to token (default: None)
   --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                         The initialization method (default: None)
+  --collate_fn_conf COLLATE_FN_CONF
+                        The keyword arguments for collate_fn class. (default: {})
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: False, &#39;report_wer&#39;: False, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;pred_masked_weight&#39;: 1.0, &#39;pred_nomask_weight&#39;: 0.0, &#39;loss_weights&#39;: 0.0})
+  --num_classes NUM_CLASSES
+                        The number of classes in hubert (default: None)
 
   Preprocess related
 
@@ -5357,10 +5359,14 @@ Optimizer related:
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
-  --encoder {hubert_pretrain}
+  --encoder {hubert_pretrain,torchaudio_hubert}
                         The encoder type (default: hubert_pretrain)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
+  --model {fairseq,torchaudio}
+                        The model type (default: fairseq)
+  --model_conf MODEL_CONF
+                        The keyword arguments for model (default: {})
 </pre></div>
 </div>
 </section>
@@ -6485,12 +6491,12 @@ Optimizer related:
 </section>
 <section id="pack-py">
 <span id="id24"></span><h1>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t} ...
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t,ssl} ...
 
 Pack input files to archive format
 
 positional arguments:
-  {asr,st,tts,enh,diar,svs,enh_s2t}
+  {asr,st,tts,enh,diar,svs,enh_s2t,ssl}
 
 optional arguments:
 </pre></div>

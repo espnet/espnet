@@ -666,6 +666,13 @@ registered hooks while the latter silently ignores them.</p>
 <p>Functor class of common_collate_fn()</p>
 </dd></dl>
 
+<dl class="class">
+<dt id="espnet2.train.collate_fn.HuBERTCollateFn">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.collate_fn.</code><code class="sig-name descname">HuBERTCollateFn</code><span class="sig-paren">(</span><em class="sig-param">float_pad_value: Union[float</em>, <em class="sig-param">int] = 0.0</em>, <em class="sig-param">int_pad_value: int = -32768</em>, <em class="sig-param">label_downsampling: int = 1</em>, <em class="sig-param">pad: bool = False</em>, <em class="sig-param">rand_crop: bool = True</em>, <em class="sig-param">crop_audio: bool = True</em>, <em class="sig-param">not_sequence: Collection[str] = ()</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/collate_fn.html#HuBERTCollateFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.collate_fn.HuBERTCollateFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.collate_fn.CommonCollateFn" title="espnet2.train.collate_fn.CommonCollateFn"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.collate_fn.CommonCollateFn</span></code></a></p>
+<p>Functor class of common_collate_fn()</p>
+</dd></dl>
+
 <dl class="function">
 <dt id="espnet2.train.collate_fn.common_collate_fn">
 <code class="sig-prename descclassname">espnet2.train.collate_fn.</code><code class="sig-name descname">common_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">data: Collection[Tuple[str, Dict[str, numpy.ndarray]]], float_pad_value: Union[float, int] = 0.0, int_pad_value: int = -32768, not_sequence: Collection[str] = ()</em><span class="sig-paren">)</span> &#x2192; Tuple[List[str], Dict[str, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/train/collate_fn.html#common_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.collate_fn.common_collate_fn" title="Permalink to this definition">¶</a></dt>

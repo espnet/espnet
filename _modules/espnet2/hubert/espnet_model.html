@@ -177,6 +177,7 @@
 <span class="c1">#     Paper: https://arxiv.org/pdf/2106.07447.pdf</span>
 <span class="c1">#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert</span>
 
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
@@ -201,6 +202,236 @@
     <span class="nd">@contextmanager</span>
     <span class="k">def</span> <span class="nf">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="k">yield</span>
+
+
+<div class="viewcode-block" id="TorchAudioHubertPretrainModel"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel">[docs]</a><span class="k">class</span> <span class="nc">TorchAudioHubertPretrainModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TorchAudio Hubert Pretrain model&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+        <span class="n">frontend</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFrontend</span><span class="p">],</span>
+        <span class="n">specaug</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsSpecAug</span><span class="p">],</span>
+        <span class="n">normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span><span class="p">],</span>
+        <span class="n">preencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPreEncoder</span><span class="p">],</span>
+        <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
+        <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nan_loss_count</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<div class="viewcode-block" id="TorchAudioHubertPretrainModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Calc loss</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            speech: (Batch, Length, ...)</span>
+<span class="sd">            speech_lengths: (Batch, )</span>
+<span class="sd">            text: (Batch, Length)</span>
+<span class="sd">            text_lengths: (Batch,)</span>
+<span class="sd">            kwargs: &quot;utt_id&quot; is among the input.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># Check that batch_size is unified</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">==</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">==</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">==</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">),</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># for data-parallel</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+        <span class="c1"># 1. Encoder</span>
+        <span class="n">logit_m</span><span class="p">,</span> <span class="n">logit_u</span><span class="p">,</span> <span class="n">feature_penalty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 2a. Hubert criterion</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_hubert_loss</span><span class="p">(</span>
+            <span class="n">logit_m</span><span class="p">,</span>
+            <span class="n">logit_u</span><span class="p">,</span>
+            <span class="n">feature_penalty</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss</span><span class="p">):</span>
+            <span class="k">pass</span>
+            <span class="c1"># logging.warning(f&quot;loss, {loss.item() / logit_m.size(0)}&quot;)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nan_loss_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;nan_loss_count, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nan_loss_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># log accuracies of masked and unmasked frames</span>
+        <span class="n">correct_m</span><span class="p">,</span> <span class="n">count_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_correct</span><span class="p">(</span><span class="n">logit_m</span><span class="p">)</span>
+        <span class="n">correct_u</span><span class="p">,</span> <span class="n">count_u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_correct</span><span class="p">(</span><span class="n">logit_u</span><span class="p">)</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="n">correct_m</span><span class="o">=</span><span class="n">correct_m</span><span class="p">,</span>
+            <span class="n">count_m</span><span class="o">=</span><span class="n">count_m</span><span class="p">,</span>
+            <span class="n">acc_m</span><span class="o">=</span><span class="n">correct_m</span> <span class="o">/</span> <span class="n">count_m</span><span class="p">,</span>
+            <span class="n">correct_u</span><span class="o">=</span><span class="n">correct_u</span><span class="p">,</span>
+            <span class="n">count_u</span><span class="o">=</span><span class="n">count_u</span><span class="p">,</span>
+            <span class="n">acc_u</span><span class="o">=</span><span class="n">correct_u</span> <span class="o">/</span> <span class="n">count_u</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+
+<div class="viewcode-block" id="TorchAudioHubertPretrainModel.collect_feats"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.collect_feats">[docs]</a>    <span class="k">def</span> <span class="nf">collect_feats</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="TorchAudioHubertPretrainModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_pad_length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by asr_inference.py</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            speech: (Batch, Length, ...)</span>
+<span class="sd">            speech_lengths: (Batch, )</span>
+<span class="sd">            y_pad: (Batch, Length, ...)</span>
+<span class="sd">            y_pad_length: (Batch, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># 1. Extract feats</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+
+            <span class="c1"># 2. Data augmentation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+            <span class="c1"># 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="c1"># Pre-encoder, e.g. used for raw input data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="c1"># 4. Forward encoder</span>
+        <span class="c1"># feats: (Batch, Length, Dim)</span>
+        <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim2)</span>
+        <span class="n">encoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">y_pad</span><span class="p">,</span> <span class="n">y_pad_length</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">encoder_out</span></div>
+
+    <span class="k">def</span> <span class="nf">_extract_feats</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1"># for data-parallel</span>
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Frontend</span>
+            <span class="c1">#  e.g. STFT and Feature extract</span>
+            <span class="c1">#       data_loader may send time-domain signal in this case</span>
+            <span class="c1"># speech (Batch, NSamples) -&gt; feats: (Batch, NFrames, Dim)</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># No frontend and no feature extract</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span>
+        <span class="k">return</span> <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span>
+
+    <span class="k">def</span> <span class="nf">_compute_correct</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">logits</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">logits</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">corr</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">logits</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span>
+            <span class="nb">max</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="nb">min</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="n">both</span> <span class="o">=</span> <span class="nb">max</span> <span class="o">&amp;</span> <span class="nb">min</span>
+            <span class="n">corr</span> <span class="o">=</span> <span class="nb">max</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">-</span> <span class="n">both</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">max</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">corr</span><span class="p">,</span> <span class="n">count</span>
+
+    <span class="k">def</span> <span class="nf">_calc_hubert_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">logit_m</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">logit_u</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">feature_penalty</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">masked_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">unmasked_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">feature_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+        <span class="n">reduction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the cross-entropy loss on HuBERT masked and non-masked logits.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            logit_m (Tensor or None): The masked logit Tensor of dimension</span>
+<span class="sd">                `(masked_frames, final_dim)`.</span>
+<span class="sd">            logit_u (Tensor or None): The non-masked logit Tensor of dimension</span>
+<span class="sd">                `(unmasked_frames, final_dim)`.</span>
+<span class="sd">            feature_penalty (Tensor): The feature mean value for additional penalty</span>
+<span class="sd">                loss.</span>
+<span class="sd">            masked_weight (float, optional): The weight for masked cross-entropy loss</span>
+<span class="sd">                (Default: ``1.0``).</span>
+<span class="sd">            unmasked_weight (float, optional): The weight for non-masked cross-entropy</span>
+<span class="sd">                loss (Default: ``0.0``).</span>
+<span class="sd">            feature_weight (float, optional): The weight for feature penalty loss</span>
+<span class="sd">                (Default: ``10.0``).</span>
+<span class="sd">            reduction (str, optional): The reduction method for cross-entropy loss</span>
+<span class="sd">                (Default: ``&quot;sum&quot;``).</span>
+<span class="sd">        Ref:</span>
+<span class="sd">            torchaudio: examples/hubert/loss/hubert_loss.py</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">feature_penalty</span> <span class="o">*</span> <span class="n">feature_weight</span> <span class="o">*</span> <span class="n">logit_m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">logit_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target_m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">logit_m</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logit_m</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">loss_m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
+                <span class="n">logit_m</span><span class="p">,</span> <span class="n">target_m</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span>
+            <span class="p">)</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">loss_m</span> <span class="o">*</span> <span class="n">masked_weight</span>
+        <span class="k">if</span> <span class="n">logit_u</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">target_u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                <span class="n">logit_u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logit_m</span><span class="o">.</span><span class="n">device</span>
+            <span class="p">)</span>
+            <span class="n">loss_u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
+                <span class="n">logit_u</span><span class="p">,</span> <span class="n">target_u</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span>
+            <span class="p">)</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">loss_u</span> <span class="o">*</span> <span class="n">unmasked_weight</span>
+        <span class="k">return</span> <span class="n">loss</span></div>
 
 
 <div class="viewcode-block" id="HubertPretrainModel"><a class="viewcode-back" href="../../../_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.HubertPretrainModel">[docs]</a><span class="k">class</span> <span class="nc">HubertPretrainModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
@@ -241,7 +472,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">criterion_att</span> <span class="o">=</span> <span class="n">HubertPretrainLoss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">criterion_hubert</span> <span class="o">=</span> <span class="n">HubertPretrainLoss</span><span class="p">(</span>
             <span class="n">pred_masked_weight</span><span class="p">,</span>
             <span class="n">pred_nomask_weight</span><span class="p">,</span>
             <span class="n">loss_weights</span><span class="p">,</span>
@@ -386,7 +617,7 @@
         <span class="n">logits</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">logits</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+            <span class="n">corr</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">logits</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span>
             <span class="nb">max</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
@@ -394,15 +625,15 @@
             <span class="n">both</span> <span class="o">=</span> <span class="nb">max</span> <span class="o">&amp;</span> <span class="nb">min</span>
             <span class="n">corr</span> <span class="o">=</span> <span class="nb">max</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">-</span> <span class="n">both</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
             <span class="n">count</span> <span class="o">=</span> <span class="nb">max</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">corr</span><span class="p">,</span> <span class="n">count</span></div>
+        <span class="k">return</span> <span class="n">corr</span><span class="p">,</span> <span class="n">count</span></div>
 
     <span class="k">def</span> <span class="nf">_calc_hubert_loss</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">):</span>
 
-        <span class="c1"># 1. Compute attention loss</span>
-        <span class="n">loss_att</span><span class="p">,</span> <span class="n">logp_m_list</span><span class="p">,</span> <span class="n">logp_u_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_att</span><span class="p">(</span>
+        <span class="c1"># 1. Compute hubert loss</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">logp_m_list</span><span class="p">,</span> <span class="n">logp_u_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_hubert</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">encoder_out</span>
         <span class="p">)</span>
 
@@ -418,10 +649,10 @@
                 <span class="n">corr_unmask</span> <span class="o">+=</span> <span class="n">corr_u</span>
                 <span class="n">count_unmask</span> <span class="o">+=</span> <span class="n">count_u</span>
 
-        <span class="n">acc_att_m</span> <span class="o">=</span> <span class="n">corr_masked</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_masked</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
-        <span class="n">acc_att_u</span> <span class="o">=</span> <span class="n">corr_unmask</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_unmask</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+        <span class="n">acc_m</span> <span class="o">=</span> <span class="n">corr_masked</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_masked</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+        <span class="n">acc_u</span> <span class="o">=</span> <span class="n">corr_unmask</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_unmask</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att_m</span><span class="p">,</span> <span class="n">acc_att_u</span></div>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">acc_m</span><span class="p">,</span> <span class="n">acc_u</span></div>
 </pre></div>
 
            </div>
