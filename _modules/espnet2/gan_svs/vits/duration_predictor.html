@@ -183,7 +183,7 @@
 
 <div class="viewcode-block" id="DurationPredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.duration_predictor.DurationPredictor">[docs]</a><span class="k">class</span> <span class="nc">DurationPredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">filter_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">gin_channels</span><span class="o">=</span><span class="mi">0</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="n">filter_channels</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">global_channels</span><span class="o">=</span><span class="mi">0</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -191,7 +191,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">filter_channels</span> <span class="o">=</span> <span class="n">filter_channels</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">kernel_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">gin_channels</span> <span class="o">=</span> <span class="n">gin_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">global_channels</span> <span class="o">=</span> <span class="n">global_channels</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">drop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
@@ -204,18 +204,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">norm_2</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">filter_channels</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">filter_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">gin_channels</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cond</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">gin_channels</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">global_channels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">global_channels</span><span class="p">,</span> <span class="n">channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DurationPredictor.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.duration_predictor.DurationPredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">beat_lab</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">beat_lab</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">beat_lab</span><span class="p">)</span>
-        <span class="n">beat_lab</span> <span class="o">=</span> <span class="n">beat_lab</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">beat_lab</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
 
+        <span class="c1"># multi-singer</span>
         <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
+        <span class="n">beat_lab</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">beat_lab</span><span class="p">)</span>
+        <span class="n">beat_lab</span> <span class="o">=</span> <span class="n">beat_lab</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">beat_lab</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_1</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">x_mask</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
