@@ -1,5 +1,5 @@
 import contextlib
-from typing import Tuple, Union
+from typing import Tuple
 
 import torch
 import torch.nn.functional as F
@@ -22,11 +22,7 @@ class WhisperFrontend(AbsFrontend):
     ):
         try:
             import whisper
-            from whisper.audio import (
-                N_FFT,
-                HOP_LENGTH,
-                N_MELS,
-            )
+            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(

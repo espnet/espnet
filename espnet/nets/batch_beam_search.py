@@ -118,10 +118,9 @@ class BatchBeamSearch(BeamSearch):
         for k, d in self.scorers.items():
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
-        
+
         # NOTE (Shih-Lun): added for OpenAI Whisper ASR
-        primer = [self.sos] if self.hyp_primer is None \
-            else self.hyp_primer
+        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
 
         return self.batchfy(
             [

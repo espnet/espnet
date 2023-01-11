@@ -3,11 +3,11 @@ from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.specaug.specaug import SpecAug
+
 
 class OpenAIWhisperEncoder(AbsEncoder):
     """Transformer-based Speech Encoder from OpenAI's Whisper Model:
@@ -27,16 +27,12 @@ class OpenAIWhisperEncoder(AbsEncoder):
     ):
         try:
             import whisper
-            from whisper.audio import (
-                N_FFT,
-                HOP_LENGTH,
-                N_MELS,
-                N_SAMPLES,
-            )
+            from whisper.audio import HOP_LENGTH, N_FFT, N_MELS, N_SAMPLES
         except Exception as e:
             print("Error: whisper is not properly installed.")
             print(
-                "Please install whisper with: cd ${MAIN_ROOT}/tools && ./installers/install_whisper.sh"
+                "Please install whisper with: cd ${MAIN_ROOT}/tools &&",
+                "./installers/install_whisper.sh",
             )
             raise e
 
@@ -73,18 +69,18 @@ class OpenAIWhisperEncoder(AbsEncoder):
 
     def pad_or_trim(
         self,
-        array: torch.Tensor, 
-        length: int, 
+        array: torch.Tensor,
+        length: int,
         axis: int = -1,
     ) -> torch.Tensor:
         """
-        Pad or trim the audio array to N_SAMPLES, as expected by the encoder.
+        Pad or trim the audio array to N_SAMPLES,
+        as expected by the encoder.
         """
         if array.shape[axis] > length:
             array = array.index_select(
-                        dim=axis, 
-                        index=torch.arange(length).to(array.device)
-                    )
+                dim=axis, index=torch.arange(length).to(array.device)
+            )
 
         if array.shape[axis] < length:
             pad_widths = [(0, 0)] * array.ndim
@@ -92,7 +88,6 @@ class OpenAIWhisperEncoder(AbsEncoder):
             array = F.pad(array, [pad for sizes in pad_widths[::-1] for pad in sizes])
 
         return array
-
 
     def log_mel_spectrogram(
         self,
@@ -145,9 +140,9 @@ class OpenAIWhisperEncoder(AbsEncoder):
 
         x = self.dropout(x)
 
-        for l, block in enumerate(self.encoders.blocks):
+        for layer, block in enumerate(self.encoders.blocks):
             x = block(x)
-            if l < len(self.encoders.blocks) - 1:
+            if layer < len(self.encoders.blocks) - 1:
                 x = self.dropout(x)
 
         x = self.encoders.ln_post(x)

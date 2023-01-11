@@ -14,6 +14,7 @@ from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 
+
 class AbsPreprocessor(ABC):
     def __init__(self, train: bool):
         self.train = train
@@ -173,7 +174,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 )
             else:
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
-                    model_type=bpemodel    
+                    model_type=bpemodel
                 )
         else:
             self.text_cleaner = None

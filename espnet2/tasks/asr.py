@@ -283,8 +283,13 @@ class ASRTask(AbsTask):
             type=str,
             default="bpe",
             choices=[
-                "bpe", "char", "word", "phn", "hugging_face",
-                "whisper_en", "whisper_multilingual"
+                "bpe",
+                "char",
+                "word",
+                "phn",
+                "hugging_face",
+                "whisper_en",
+                "whisper_multilingual",
             ],
             help="The text will be tokenized " "in the specified level token",
         )
@@ -302,8 +307,14 @@ class ASRTask(AbsTask):
         group.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese", \
-                     "whisper_en", "whisper_basic"],
+            choices=[
+                None,
+                "tacotron",
+                "jaconv",
+                "vietnamese",
+                "whisper_en",
+                "whisper_basic",
+            ],
             default=None,
             help="Apply text cleaning",
         )

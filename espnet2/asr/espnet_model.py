@@ -169,8 +169,9 @@ class ESPnetASRModel(AbsESPnetModel):
         self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
 
         if self.is_encoder_whisper:
-            assert self.frontend is None, \
-                   "frontend should be None when using full Whisper model"
+            assert (
+                self.frontend is None
+            ), "frontend should be None when using full Whisper model"
 
         if lang_token_id != -1:
             self.lang_token_id = torch.tensor([[lang_token_id]])
@@ -376,8 +377,10 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        if getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn" \
-           and not self.is_encoder_whisper:
+        if (
+            getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
+            and not self.is_encoder_whisper
+        ):
             assert encoder_out.size(-2) <= encoder_out_lens.max(), (
                 encoder_out.size(),
                 encoder_out_lens.max(),

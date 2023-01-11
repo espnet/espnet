@@ -12,10 +12,7 @@ except ImportError:
 from espnet2.text.korean_cleaner import KoreanCleaner
 
 try:
-    from whisper.normalizers import (
-        EnglishTextNormalizer,
-        BasicTextNormalizer
-    )
+    from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
 except ImportError:
     BasicTextNormalizer = None
 
@@ -60,7 +57,7 @@ class TextCleaner:
                 text = vietnamese_cleaners.vietnamese_cleaner(text)
             elif t == "korean_cleaner":
                 text = KoreanCleaner.normalize_text(text)
-            elif "whisper" in t and self.whisper_cleaner is not None :
+            elif "whisper" in t and self.whisper_cleaner is not None:
                 text = self.whisper_cleaner(text)
             else:
                 raise RuntimeError(f"Not supported: type={t}")

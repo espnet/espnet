@@ -20,28 +20,22 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             raise e
 
         self.model = model_type
-        if model_type == 'whisper_en':
-            self.tokenizer = whisper.tokenizer.get_tokenizer(
-                                                    multilingual=False
-                                                )
-        # TODO (Shih-Lun): should support feeding in 
+        if model_type == "whisper_en":
+            self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
+        # TODO (Shih-Lun): should support feeding in
         #                  different languages (default is en)
-        elif model_type == 'whisper_multilingual':
+        elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                                                    multilingual=True,
-                                                    language=None
-                                                )
+                multilingual=True, language=None
+            )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
     def __repr__(self):
         return f'{self.__class__.__name__}(model="{self.model}")'
 
-
     def text2tokens(self, line: str) -> List[str]:
-        return self.tokenizer.tokenizer.tokenize(
-                    line,
-                    add_special_tokens=False
-                )
+        return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)
+
     def tokens2text(self, tokens: Iterable[str]) -> str:
         return self.tokenizer.tokenizer.convert_tokens_to_string(tokens)

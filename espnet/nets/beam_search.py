@@ -91,7 +91,7 @@ class BeamSearch(torch.nn.Module):
 
         # added for OpenAI Whisper decoding
         self.hyp_primer = hyp_primer
-        
+
         self.token_list = token_list
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
@@ -111,8 +111,8 @@ class BeamSearch(torch.nn.Module):
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
-           Used for OpenAI Whisper models.
-        
+
+        Used for OpenAI Whisper models.
         """
         self.hyp_primer = hyp_primer
 
@@ -133,8 +133,7 @@ class BeamSearch(torch.nn.Module):
             init_scores[k] = 0.0
 
         # NOTE (Shih-Lun): added for OpenAI Whisper ASR
-        primer = [self.sos] if self.hyp_primer is None \
-                            else self.hyp_primer
+        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
 
         return [
             Hypothesis(

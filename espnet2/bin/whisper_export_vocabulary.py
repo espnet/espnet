@@ -8,11 +8,8 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 
-def export_vocabulary(
-    output: str,
-    whisper_model: str,
-    log_level: str
-):
+
+def export_vocabulary(output: str, whisper_model: str, log_level: str):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -37,34 +34,28 @@ def export_vocabulary(
         fout = p.open("w", encoding="utf-8")
 
     if whisper_model == "whisper_en":
-        tokenizer = whisper.tokenizer.get_tokenizer(
-                                                multilingual=False
-                                            )
-    # TODO (Shih-Lun): should support feeding in 
+        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
+    # TODO (Shih-Lun): should support feeding in
     #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
-        tokenizer = whisper.tokenizer.get_tokenizer(
-                                                multilingual=True,
-                                                language=None
-                                            )
+        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
 
-    vocab_size = tokenizer.tokenizer.vocab_size + \
-                 len(tokenizer.tokenizer.get_added_vocab())
+    vocab_size = tokenizer.tokenizer.vocab_size + len(
+        tokenizer.tokenizer.get_added_vocab()
+    )
 
     for i in range(vocab_size):
         # take care of special char for <space>
         tkn = tokenizer.tokenizer.convert_ids_to_tokens(i).replace("Ġ", " ")
-        fout.write(tkn + '\n')
-    
+        fout.write(tkn + "\n")
+
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
-    full_vocab_size = 51865 if whisper_model == "whisper_multilingual" \
-                            else 51864
+    full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + '\n')
-
+        fout.write("()" + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:

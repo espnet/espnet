@@ -1,5 +1,5 @@
 import copy
-from typing import Tuple, List, Any
+from typing import Any, List, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -7,20 +7,21 @@ from typeguard import check_argument_types
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.scorer_interface import BatchScorerInterface
 
+
 class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     """Transformer-based Speech-to-Text Decoder from OpenAI's Whisper Model:
 
-        URL: https://github.com/openai/whisper
+    URL: https://github.com/openai/whisper
     """
 
     def __init__(
-            self,
-            vocab_size: int,
-            encoder_output_size: int,
-            dropout_rate: float = 0.0,
-            whisper_model: str = "small",
-            download_dir: str = None,
-        ):
+        self,
+        vocab_size: int,
+        encoder_output_size: int,
+        dropout_rate: float = 0.0,
+        whisper_model: str = "small",
+        download_dir: str = None,
+    ):
         try:
             import whisper
         except Exception as e:
@@ -46,18 +47,16 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         # orig vocab size (multilingual): 51865
         # orig vocab size (english): 51864
         if vocab_size != self.decoders.token_embedding.num_embeddings:
-            orig_emb_std, orig_emb_mean = \
-                torch.std_mean(
-                    self.decoders.token_embedding.weight
-                )
+            orig_emb_std, orig_emb_mean = torch.std_mean(
+                self.decoders.token_embedding.weight
+            )
             self.decoders.token_embedding = torch.nn.Embedding(
-                                                vocab_size,
-                                                attention_dim
-                                            )
+                vocab_size, attention_dim
+            )
             torch.nn.init.normal_(
                 self.decoders.token_embedding.weight,
                 orig_emb_mean.item(),
-                orig_emb_std.item()
+                orig_emb_std.item(),
             )
 
         self.decoders.train()
@@ -88,26 +87,23 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
             olens: (batch, )
         """
         tgt, memory = ys_in_pad, hs_pad
-        tgt = self.decoders.token_embedding(tgt) + \
-              self.decoders.positional_embedding[:tgt.size(1)]
+        tgt = (
+            self.decoders.token_embedding(tgt)
+            + self.decoders.positional_embedding[: tgt.size(1)]
+        )
         tgt = self.dropout(tgt)
 
         x = tgt.to(memory.dtype)
 
-        for l, block in enumerate(self.decoders.blocks):
-            x = block(
-                    x, memory, 
-                    mask=self.decoders.mask
-                )
-            if l < len(self.decoders.blocks) - 1:
+        for layer, block in enumerate(self.decoders.blocks):
+            x = block(x, memory, mask=self.decoders.mask)
+            if layer < len(self.decoders.blocks) - 1:
                 x = self.dropout(x)
 
         x = self.decoders.ln(x)
-        x = (x @ \
-             torch.transpose(
-                self.decoders.token_embedding.weight.to(x.dtype),
-                0, 1
-            )).float()
+        x = (
+            x @ torch.transpose(self.decoders.token_embedding.weight.to(x.dtype), 0, 1)
+        ).float()
 
         return x, ys_in_lens
 
@@ -130,30 +126,27 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         Returns:
             y, cache: NN output value and cache per `self.decoders`.
             y.shape` is (batch, maxlen_out, token)
-        NOTE (Shih-Lun): 
-            cache implementation is ignored for now 
+        NOTE (Shih-Lun):
+            cache implementation is ignored for now
             for simplicity & correctness
         """
-        x = self.decoders.token_embedding(tgt) + \
-            self.decoders.positional_embedding[:tgt.size(1)]
+        x = (
+            self.decoders.token_embedding(tgt)
+            + self.decoders.positional_embedding[: tgt.size(1)]
+        )
         x = self.dropout(x)
         x = x.to(memory.dtype)
 
-        for l, block in enumerate(self.decoders.blocks):
-            x = block(
-                    x, memory, 
-                    mask=self.decoders.mask
-                )
-            if l < len(self.decoders.blocks) - 1:
+        for layer, block in enumerate(self.decoders.blocks):
+            x = block(x, memory, mask=self.decoders.mask)
+            if layer < len(self.decoders.blocks) - 1:
                 x = self.dropout(x)
 
         x = self.decoders.ln(x)
         y = x[:, -1]
-        y = (y @ \
-             torch.transpose(
-                self.decoders.token_embedding.weight.to(x.dtype),
-                0, 1
-            )).float()
+        y = (
+            y @ torch.transpose(self.decoders.token_embedding.weight.to(x.dtype), 0, 1)
+        ).float()
         y = torch.log_softmax(y, dim=-1)
 
         return y, None
@@ -161,10 +154,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     def score(self, ys, state, x):
         """Score."""
         logp, state = self.forward_one_step(
-            ys.unsqueeze(0),
-            torch.empty(0), # dummy mask
-            x.unsqueeze(0),
-            cache=state
+            ys.unsqueeze(0), torch.empty(0), x.unsqueeze(0), cache=state  # dummy mask
         )
         return logp.squeeze(0), state
 

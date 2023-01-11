@@ -29,32 +29,28 @@ class OpenAIWhisperTokenIDConverter:
             )
             raise e
 
-        if model_type == 'whisper_en':
-            self.tokenizer = whisper.tokenizer.get_tokenizer(
-                                                    multilingual=False
-                                                )
-        # TODO (Shih-Lun): should support feeding in 
+        if model_type == "whisper_en":
+            self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
+        # TODO (Shih-Lun): should support feeding in
         #                  different languages (default is en)
-        elif model_type == 'whisper_multilingual':
+        elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                                                    multilingual=True,
-                                                    language=None
-                                                )
+                multilingual=True, language=None
+            )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
     def get_num_vocabulary_size(self) -> int:
-        return self.tokenizer.tokenizer.vocab_size + \
-               len(self.tokenizer.tokenizer.get_added_vocab())
+        return self.tokenizer.tokenizer.vocab_size + len(
+            self.tokenizer.tokenizer.get_added_vocab()
+        )
 
     def ids2tokens(self, integers: Union[np.ndarray, Iterable[int]]) -> List[str]:
         return self.tokenizer.tokenizer.convert_ids_to_tokens(
-                                            integers,
-                                            skip_special_tokens=True
-                                        )
+            integers, skip_special_tokens=True
+        )
 
     def tokens2ids(self, tokens: Iterable[str]) -> List[int]:
-        return list(self.tokenizer.sot_sequence_including_notimestamps[1:]) + \
-               self.tokenizer.tokenizer.convert_tokens_to_ids(
-                                            tokens
-                                        )
+        return list(
+            self.tokenizer.sot_sequence_including_notimestamps[1:]
+        ) + self.tokenizer.tokenizer.convert_tokens_to_ids(tokens)
