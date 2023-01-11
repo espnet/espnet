@@ -112,6 +112,9 @@ Model: https://huggingface.co/pyf98/librispeech_100h_transformer
   - Commit date: `Mon Jan 9 11:06:45 2023 -0600`
 
 ## asr_whisper_medium_finetune_lr1e-5_adamw_wd1e-2_3epochs
+
+- Huggingface model URL: https://huggingface.co/espnet/shihlun_asr_whisper_medium_finetuned_librispeech100
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|

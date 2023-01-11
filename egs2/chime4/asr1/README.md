@@ -58,6 +58,9 @@
   - Commit date: `Mon Jan 9 11:06:45 2023 -0600`
 
 ## asr_whisper_medium_lr1e-5_adamw_wd1e-2_3epochs
+
+- Huggingface model URL: https://huggingface.co/espnet/shihlun_asr_whisper_medium_finetuned_chime4
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
