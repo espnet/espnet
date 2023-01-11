@@ -114,10 +114,6 @@ class VITS(AbsGANSVS):
             "flow_dropout_rate": 0.0,
             "use_weight_norm_in_flow": True,
             "use_only_mean_in_flow": True,
-            "stochastic_duration_predictor_kernel_size": 3,
-            "stochastic_duration_predictor_dropout_rate": 0.5,
-            "stochastic_duration_predictor_flows": 4,
-            "stochastic_duration_predictor_dds_conv_layers": 3,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -306,8 +302,8 @@ class VITS(AbsGANSVS):
         tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        pitch: torch.LongTensor = None,
+        pitch_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -337,7 +333,7 @@ class VITS(AbsGANSVS):
                 value (LongTensor): Batch of the lengths of padded tempo (B, ).
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+            beat_lengths (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
@@ -765,7 +761,6 @@ class VITS(AbsGANSVS):
         tempo: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
-        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -774,6 +769,7 @@ class VITS(AbsGANSVS):
         alpha: float = 1.0,
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
@@ -789,27 +785,23 @@ class VITS(AbsGANSVS):
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
-            durations (Tensor): Ground-truth duration tensor (T_text,).
             noise_scale (float): Noise scale value for flow.
             noise_scale_dur (float): Noise scale value for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated singing.
             max_len (Optional[int]): Maximum length.
             use_teacher_forcing (bool): Whether to use teacher forcing.
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
 
         Returns:
             Dict[str, Tensor]:
                 * wav (Tensor): Generated waveform tensor (T_wav,).
-                * att_w (Tensor): Monotonic attention weight tensor (T_feats, T_text).
-                * duration (Tensor): Predicted duration tensor (T_text,).
 
         """
         # setup
-        duration = duration["phn"]
         label = label["lab"]
         melody = melody["lab"]
         beat = beat["score_syb"]
@@ -839,7 +831,7 @@ class VITS(AbsGANSVS):
                 dtype=torch.long,
                 device=feats.device,
             )
-            wav, att_w, dur = self.generator.inference(
+            wav = self.generator.inference(
                 text=text,
                 text_lengths=text_lengths,
                 feats=feats,
@@ -855,7 +847,7 @@ class VITS(AbsGANSVS):
                 use_teacher_forcing=use_teacher_forcing,
             )
         else:
-            wav, att_w, dur = self.generator.inference(
+            wav = self.generator.inference(
                 text=text,
                 text_lengths=text_lengths,
                 label=label,
@@ -865,11 +857,9 @@ class VITS(AbsGANSVS):
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
-                # dur=durations,
                 noise_scale=noise_scale,
                 noise_scale_dur=noise_scale_dur,
                 alpha=alpha,
                 max_len=max_len,
             )
-        # return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
         return dict(wav=wav.view(-1))

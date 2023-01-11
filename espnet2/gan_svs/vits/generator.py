@@ -239,7 +239,7 @@ class VITSGenerator(torch.nn.Module):
                 filter_channels=256,
                 kernel_size=3,
                 dropout_rate=0.5,
-                gin_channels=0,
+                global_channels=global_channels,
             )
 
         self.lr = LengthRegulator()
@@ -250,12 +250,14 @@ class VITSGenerator(torch.nn.Module):
         )
 
         self.frame_prior_net = FramePriorNet(
+            hidden_channels=hidden_channels,
             attention_dim=hidden_channels,
             blocks=4,
         )
 
         self.phoneme_predictor = PhonemePredictor(
             vocabs=vocabs,
+            hidden_channels=hidden_channels,
             attention_dim=hidden_channels,
             blocks=2,
         )
@@ -283,17 +285,17 @@ class VITSGenerator(torch.nn.Module):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
-        duration: Optional[Dict[str, torch.Tensor]] = None,
-        label: Optional[Dict[str, torch.Tensor]] = None,
-        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        duration: torch.Tensor = None,
+        label: torch.Tensor = None,
+        label_lengths: torch.Tensor = None,
+        melody: torch.Tensor = None,
+        melody_lengths: torch.Tensor = None,
+        tempo: torch.Tensor = None,
+        tempo_lengths: torch.Tensor = None,
+        beat: torch.Tensor = None,
+        beat_lengths: torch.Tensor = None,
+        pitch: torch.Tensor = None,
+        pitch_lengths: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -320,26 +322,17 @@ class VITSGenerator(torch.nn.Module):
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             feats (Tensor): Batch of padded target features (B, Lmax, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_lengths (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            label (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (LongTensor): Batch of the lengths of padded label ids (B, ).
+            melody (LongTensor): Batch of padded melody (B, Tmax).
+            melody_lengths (LongTensor): Batch of the lengths of padded melody (B, ).
+            tempo (LongTensor): Batch of padded tempo (B, Tmax).
+            tempo_lengths (LongTensor): Batch of the lengths of padded tempo (B, ).
+            beat (LongTensor): Batch of padded beat (B, Tmax).
+            beat_lengths (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
+            duration (LongTensor): Batch of padded beat (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -554,8 +547,6 @@ class VITSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Generated waveform tensor (B, T_wav).
-            Tensor: Monotonic attention weight tensor (B, T_feats, T_text).
-            Tensor: Duration tensor (B, T_text).
 
         """
         # encoder
@@ -602,6 +593,7 @@ class VITSGenerator(torch.nn.Module):
                     logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
                     w = logw * x_mask
                     w = w.squeeze(1).to(torch.long)
+                    w[w < 1] = 1
 
                     x, frame_pitch, x_lengths = self.lr(x, melody, w, label_lengths)
                     x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
@@ -620,6 +612,4 @@ class VITSGenerator(torch.nn.Module):
             z = self.flow(z_p, x_mask, g=g, inverse=True)
             wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
-        # return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
-        return wav.squeeze(1), None, None
-        # return wav.squeeze(1)
+        return wav.squeeze(1)
