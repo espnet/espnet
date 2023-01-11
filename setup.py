@@ -67,6 +67,8 @@ requirements = {
         "fastdtw",
         "nara_wpe>=0.0.5",
         "sacrebleu>=1.5.1",
+        "praatio>=5.1.1",  # for librispeech phoneme alignment
+        "scikit-learn>=1.0.0",  # for HuBERT kmeans
     ],
     # all: The modules should be optionally installled due to some reason.
     #      Please consider moving them to "install" occasionally
