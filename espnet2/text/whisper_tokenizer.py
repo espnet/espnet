@@ -22,7 +22,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         self.model = model_type
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO (Shih-Lun): should support feeding in
+        # TODO(Shih-Lun): should support feeding in
         #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(

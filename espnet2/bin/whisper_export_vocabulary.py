@@ -35,7 +35,7 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str):
 
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-    # TODO (Shih-Lun): should support feeding in
+    # TODO(Shih-Lun): should support feeding in
     #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
