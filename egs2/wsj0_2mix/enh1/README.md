@@ -191,3 +191,13 @@ config: conf/tuning/train_enh_dptnet.yaml
 |---|---|---|---|---|---|
 |enhanced_cv_min_8k|97.43|21.39|20.98|32.17|20.63|
 |enhanced_tt_min_8k|98.18|21.47|21.06|32.48|20.72|
+
+
+## TF-GridNet
+
+config: conf/tuning/train_enh_tfgridnet_tf_lr-patience3_patience5.yaml
+
+|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|
+|enhanced_cv_min_8k|97.98|22.62|22.29|34.54|22.24|
+|enhanced_tt_min_8k|98.68|23.23|22.90|35.30|22.81|
