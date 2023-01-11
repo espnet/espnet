@@ -62,3 +62,5 @@ code and results: https://github.com/pytorch/audio/tree/main/examples/hubert
 
 We would like to thank Wei-Ning Hsu(Facebook) and Abdelrahman Mohamed(Facebook) for their work on Hubert and valuable
 information/kind help of this implementation.
+
+We would also like to thank Zhaoheng Ni @nateanl (Meta) for his substantial support in using Torchaudio HuBERT implementaion and in reproducing the similar results as in Torchaudio.
