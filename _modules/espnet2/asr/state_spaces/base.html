@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.asr.state_spaces.base &mdash; ESPnet 202211 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202211
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.asr.state_spaces.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.asr.state_spaces.base</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This code is derived from https://github.com/HazyResearch/state-spaces</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+
+<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
+
+
+<div class="viewcode-block" id="SequenceModule"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceModule">[docs]</a><span class="k">class</span> <span class="nc">SequenceModule</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract sequence model class.</span>
+
+<span class="sd">    All models must adhere to this interface</span>
+
+<span class="sd">    A SequenceModule is generally a model that transforms an input of shape</span>
+<span class="sd">    (n_batch, l_sequence, d_model) to (n_batch, l_sequence, d_output)</span>
+
+<span class="sd">    REQUIRED methods and attributes</span>
+<span class="sd">    forward, d_model, d_output: controls standard forward pass,</span>
+<span class="sd">    a sequence-to-sequence transformation</span>
+<span class="sd">    __init__ should also satisfy the following interface;</span>
+<span class="sd">    see SequenceIdentity for an example</span>
+<span class="sd">        def __init__(self, d_model, transposed=False, **kwargs)</span>
+
+<span class="sd">    OPTIONAL methods</span>
+<span class="sd">    default_state, step: allows stepping the model recurrently with a hidden state</span>
+<span class="sd">    state_to_tensor, d_state: allows decoding from hidden state</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">d_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Model dimension (generally same as input dimension).</span>
+
+<span class="sd">        This attribute is required for all SequenceModule instantiations.</span>
+<span class="sd">        It is used by the rest of the pipeline</span>
+<span class="sd">        (e.g. model backbone, encoder) to track the internal shapes of the full model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_d_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;SequenceModule instantiation must set d_model&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_model</span>
+
+    <span class="nd">@d_model</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">d_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_d_model</span> <span class="o">=</span> <span class="n">d</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">d_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Output dimension of model.</span>
+
+<span class="sd">        This attribute is required for all SequenceModule instantiations.</span>
+<span class="sd">        It is used by the rest of the pipeline</span>
+<span class="sd">        (e.g. model backbone, decoder) to track the internal shapes of the full model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_d_output&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;SequenceModule instantiation must specify d_output for decoder&quot;</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_d_output</span>
+
+    <span class="nd">@d_output</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">d_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_d_output</span> <span class="o">=</span> <span class="n">d</span>
+
+<div class="viewcode-block" id="SequenceModule.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceModule.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass.</span>
+
+<span class="sd">        A sequence-to-sequence transformation with an optional state.</span>
+
+<span class="sd">        Generally, this should map a tensor of shape</span>
+<span class="sd">        (batch, length, self.d_model) to (batch, length, self.d_output)</span>
+
+<span class="sd">        Additionally, it returns a &quot;state&quot; which can be any additional information</span>
+<span class="sd">        For example, RNN and SSM layers may return their hidden state,</span>
+<span class="sd">        while some types of transformer layers</span>
+<span class="sd">        (e.g. Transformer-XL) may want to pass a state as well</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="kc">None</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state_to_tensor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a function mapping a state to a single tensor.</span>
+
+<span class="sd">        This method should be implemented if one wants to use</span>
+<span class="sd">        the hidden state insteadof the output sequence for final prediction.</span>
+<span class="sd">        Currently only used with the StateDecoder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">d_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return dimension of output of self.state_to_tensor.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SequenceModule.default_state"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceModule.default_state">[docs]</a>    <span class="k">def</span> <span class="nf">default_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">batch_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create initial state for a batch of inputs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SequenceModule.step"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceModule.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Step the model recurrently for one step of the input sequence.</span>
+
+<span class="sd">        For example, this should correspond to unrolling an RNN for one step.</span>
+<span class="sd">        If the forward pass has signature (B, L, H1) -&gt; (B, L, H2),</span>
+<span class="sd">        this method should generally have signature</span>
+<span class="sd">        (B, H1) -&gt; (B, H2) with an optional recurrent state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+
+<div class="viewcode-block" id="TransposedModule"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.TransposedModule">[docs]</a><span class="k">def</span> <span class="nf">TransposedModule</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transpose module.</span>
+
+<span class="sd">    Wrap a SequenceModule class to accept transposed parameter,</span>
+<span class="sd">    handle state, absorb kwargs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># https://stackoverflow.com/a/65470430/1980685</span>
+    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">updated</span><span class="o">=</span><span class="p">())</span>
+    <span class="k">class</span> <span class="nc">TransposedModule</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">transposed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span> <span class="o">=</span> <span class="n">transposed</span>
+
+        <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">next_state</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>  <span class="c1"># Don&#39;t use kwarg because nn.LSTM</span>
+            <span class="n">next_state</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">next_state</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">next_state</span>
+
+    <span class="c1"># https://stackoverflow.com/questions/5352781/how-to-set-class-names-dynamically</span>
+    <span class="c1"># TransposedModule.__name__ = module.__name__ # functools wraps is better solution</span>
+    <span class="k">return</span> <span class="n">TransposedModule</span></div>
+
+
+<div class="viewcode-block" id="SequenceIdentity"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceIdentity">[docs]</a><span class="nd">@TransposedModule</span>
+<span class="k">class</span> <span class="nc">SequenceIdentity</span><span class="p">(</span><span class="n">SequenceModule</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple SequenceModule for testing purposes.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_model</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize SequenceModule.</span>
+
+<span class="sd">        d_model: input dimension (sometimes denoted H for hidden dimension)</span>
+<span class="sd">        transposed: if True, inputs have axis ordering (B, H, L) instead of (B, H, L)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_output</span> <span class="o">=</span> <span class="n">d_model</span>
+
+<div class="viewcode-block" id="SequenceIdentity.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.base.SequenceIdentity.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span></div>
+
+    <span class="k">def</span> <span class="nf">default_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">batch_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create initial state for a batch of inputs.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Step the model recurrently for one step of the input sequence.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">state</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -182,6 +182,7 @@
 <span class="kn">import</span> <span class="nn">torch.quantization</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.s4_decoder</span> <span class="kn">import</span> <span class="n">S4Decoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ExtendedHypothesis</span> <span class="k">as</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span>
@@ -606,6 +607,12 @@
                 <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">S4Decoder</span><span class="p">):</span>
+                    <span class="c1"># Setup: required for S4 autoregressive generation</span>
+                    <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;setup_step&quot;</span><span class="p">):</span>
+                            <span class="n">module</span><span class="o">.</span><span class="n">setup_step</span><span class="p">()</span>
             <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
                 <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span>
             <span class="p">)</span>

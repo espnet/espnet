@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.asr.state_spaces.components &mdash; ESPnet 202211 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202211
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.asr.state_spaces.components</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.asr.state_spaces.components</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This code is derived from https://github.com/HazyResearch/state-spaces</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">from</span> <span class="nn">einops</span> <span class="kn">import</span> <span class="n">rearrange</span>
+<span class="kn">from</span> <span class="nn">opt_einsum</span> <span class="kn">import</span> <span class="n">contract</span>
+
+
+<div class="viewcode-block" id="stochastic_depth"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.stochastic_depth">[docs]</a><span class="k">def</span> <span class="nf">stochastic_depth</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply stochastic depth.</span>
+
+<span class="sd">    Implements the Stochastic Depth from `&quot;Deep Networks with Stochastic Depth&quot;</span>
+<span class="sd">    &lt;https://arxiv.org/abs/1603.09382&gt;`_ used for randomly dropping residual</span>
+<span class="sd">    branches of residual architectures.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input (Tensor[N, ...]): The input tensor or arbitrary dimensions with the first</span>
+<span class="sd">                    one being its batch i.e. a batch with ``N`` rows.</span>
+<span class="sd">        p (float): probability of the input to be zeroed.</span>
+<span class="sd">        mode (str): ``&quot;batch&quot;`` or ``&quot;row&quot;``.</span>
+<span class="sd">                    ``&quot;batch&quot;`` randomly zeroes the entire input, ``&quot;row&quot;`` zeroes</span>
+<span class="sd">                    randomly selected rows from the batch.</span>
+<span class="sd">        training: apply stochastic depth if is ``True``. Default: ``True``</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor[N, ...]: The randomly zeroed tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">p</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;drop probability has to be between 0 and 1, but got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;row&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;mode has to be either &#39;batch&#39; or &#39;row&#39;, but got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mode</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">input</span>
+
+    <span class="n">survival_rate</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;row&quot;</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="p">[</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">input</span><span class="o">.</span><span class="n">ndim</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">.</span><span class="n">bernoulli_</span><span class="p">(</span><span class="n">survival_rate</span><span class="p">)</span><span class="o">.</span><span class="n">div_</span><span class="p">(</span><span class="n">survival_rate</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">input</span> <span class="o">*</span> <span class="n">noise</span></div>
+
+
+<div class="viewcode-block" id="StochasticDepth"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.StochasticDepth">[docs]</a><span class="k">class</span> <span class="nc">StochasticDepth</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stochastic depth module.</span>
+
+<span class="sd">    See :func:`stochastic_depth`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># NOTE: need to upgrade to torchvision==0.11.0 to use StochasticDepth directly</span>
+        <span class="c1"># from torchvision.ops import StochasticDepth</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="StochasticDepth.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.StochasticDepth.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">stochastic_depth</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">tmpstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;(&quot;</span>
+        <span class="n">tmpstr</span> <span class="o">+=</span> <span class="s2">&quot;p=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">tmpstr</span> <span class="o">+=</span> <span class="s2">&quot;, mode=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">)</span>
+        <span class="n">tmpstr</span> <span class="o">+=</span> <span class="s2">&quot;)&quot;</span>
+        <span class="k">return</span> <span class="n">tmpstr</span></div>
+
+
+<div class="viewcode-block" id="DropoutNd"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.DropoutNd">[docs]</a><span class="k">class</span> <span class="nc">DropoutNd</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">tie</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transposed</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize dropout module.</span>
+
+<span class="sd">        tie: tie dropout mask across sequence lengths (Dropout1d/2d/3d)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;dropout probability has to be in [0, 1), &quot;</span> <span class="s2">&quot;but got </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tie</span> <span class="o">=</span> <span class="n">tie</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span> <span class="o">=</span> <span class="n">transposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binomial</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">binomial</span><span class="o">.</span><span class="n">Binomial</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DropoutNd.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.DropoutNd.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass.</span>
+
+<span class="sd">        X: (batch, dim, lengths...)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="s2">&quot;b d ... -&gt; b ... d&quot;</span><span class="p">)</span>
+            <span class="c1"># binomial = torch.distributions.binomial.Binomial(</span>
+            <span class="c1">#   probs=1-self.p) # This is incredibly slow</span>
+            <span class="n">mask_shape</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tie</span> <span class="k">else</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+            <span class="c1"># mask = self.binomial.sample(mask_shape)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="o">*</span><span class="n">mask_shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">X</span> <span class="o">*</span> <span class="n">mask</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="s2">&quot;b ... d -&gt; b d ...&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">X</span>
+        <span class="k">return</span> <span class="n">X</span></div></div>
+
+
+<div class="viewcode-block" id="Activation"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.Activation">[docs]</a><span class="k">def</span> <span class="nf">Activation</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">activation</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;identity&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;tanh&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;gelu&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;swish&quot;</span><span class="p">,</span> <span class="s2">&quot;silu&quot;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">SiLU</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;glu&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">GLU</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;sigmoid&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;sqrelu&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">SquaredReLU</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;ln&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">TransposedLN</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;hidden activation &#39;</span><span class="si">{}</span><span class="s2">&#39; is not implemented&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_initializer"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.get_initializer">[docs]</a><span class="k">def</span> <span class="nf">get_initializer</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">activation</span> <span class="ow">in</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;identity&quot;</span><span class="p">,</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span> <span class="s2">&quot;modrelu&quot;</span><span class="p">]:</span>
+        <span class="n">nonlinearity</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span> <span class="s2">&quot;tanh&quot;</span><span class="p">,</span> <span class="s2">&quot;sigmoid&quot;</span><span class="p">]:</span>
+        <span class="n">nonlinearity</span> <span class="o">=</span> <span class="n">activation</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;gelu&quot;</span><span class="p">,</span> <span class="s2">&quot;swish&quot;</span><span class="p">,</span> <span class="s2">&quot;silu&quot;</span><span class="p">]:</span>
+        <span class="n">nonlinearity</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span>  <span class="c1"># Close to ReLU so approximate with ReLU&#39;s gain</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;get_initializer: activation </span><span class="si">{</span><span class="n">activation</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;uniform&quot;</span><span class="p">:</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="o">=</span><span class="n">nonlinearity</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;normal&quot;</span><span class="p">:</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_normal_</span><span class="p">,</span> <span class="n">nonlinearity</span><span class="o">=</span><span class="n">nonlinearity</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;xavier&quot;</span><span class="p">:</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">xavier_normal_</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;zero&quot;</span><span class="p">:</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;one&quot;</span><span class="p">:</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;get_initializer: initializer type </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">initializer</span></div>
+
+
+<div class="viewcode-block" id="LinearActivation"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.LinearActivation">[docs]</a><span class="k">def</span> <span class="nf">LinearActivation</span><span class="p">(</span>
+    <span class="n">d_input</span><span class="p">,</span>
+    <span class="n">d_output</span><span class="p">,</span>
+    <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">zero_bias_init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">transposed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">initializer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">activate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Apply activation as part of this module</span>
+    <span class="n">weight_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a linear module, initialization, and activation.&quot;&quot;&quot;</span>
+    <span class="c1"># Construct core module</span>
+    <span class="c1"># linear_cls = partial(nn.Conv1d, kernel_size=1) if transposed else nn.Linear</span>
+    <span class="n">linear_cls</span> <span class="o">=</span> <span class="n">TransposedLinear</span> <span class="k">if</span> <span class="n">transposed</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span>
+    <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s2">&quot;glu&quot;</span><span class="p">:</span>
+        <span class="n">d_output</span> <span class="o">*=</span> <span class="mi">2</span>
+    <span class="n">linear</span> <span class="o">=</span> <span class="n">linear_cls</span><span class="p">(</span><span class="n">d_input</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Initialize weight</span>
+    <span class="k">if</span> <span class="n">initializer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">get_initializer</span><span class="p">(</span><span class="n">initializer</span><span class="p">,</span> <span class="n">activation</span><span class="p">)(</span><span class="n">linear</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+
+    <span class="c1"># Initialize bias</span>
+    <span class="k">if</span> <span class="n">bias</span> <span class="ow">and</span> <span class="n">zero_bias_init</span><span class="p">:</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+
+    <span class="c1"># Weight norm</span>
+    <span class="k">if</span> <span class="n">weight_norm</span><span class="p">:</span>
+        <span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">(</span><span class="n">linear</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">activate</span> <span class="ow">and</span> <span class="n">activation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">Activation</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span> <span class="k">if</span> <span class="n">transposed</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">linear</span><span class="p">,</span> <span class="n">activation</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">linear</span></div>
+
+
+<div class="viewcode-block" id="SquaredReLU"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.SquaredReLU">[docs]</a><span class="k">class</span> <span class="nc">SquaredReLU</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="SquaredReLU.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.SquaredReLU.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span></div></div>
+
+
+<div class="viewcode-block" id="TransposedLinear"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TransposedLinear">[docs]</a><span class="k">class</span> <span class="nc">TransposedLinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transposed linear module.</span>
+
+<span class="sd">    Linear module on the second-to-last dimension</span>
+<span class="sd">    Assumes shape (B, D, L), where L can be 1 or more axis</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d_input</span><span class="p">,</span> <span class="n">d_output</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">d_output</span><span class="p">,</span> <span class="n">d_input</span><span class="p">))</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>  <span class="c1"># nn.Linear default init</span>
+        <span class="c1"># nn.init.kaiming_uniform_(</span>
+        <span class="c1">#   self.weight, nonlinearity=&#39;linear&#39;) # should be equivalent</span>
+
+        <span class="k">if</span> <span class="n">bias</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">d_output</span><span class="p">))</span>
+            <span class="n">bound</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">d_input</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="o">-</span><span class="n">bound</span><span class="p">,</span> <span class="n">bound</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="s2">&quot;_optim&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;weight_decay&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+<div class="viewcode-block" id="TransposedLinear.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TransposedLinear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">num_axis</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>  <span class="c1"># num_axis in L, for broadcasting bias</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">contract</span><span class="p">(</span><span class="s2">&quot;b u ..., v u -&gt; b v ...&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_axis</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div></div>
+
+
+<div class="viewcode-block" id="TransposedLN"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TransposedLN">[docs]</a><span class="k">class</span> <span class="nc">TransposedLN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transposed LayerNorm module.</span>
+
+<span class="sd">    LayerNorm module over second dimension</span>
+<span class="sd">    Assumes shape (B, D, L), where L can be 1 or more axis</span>
+
+<span class="sd">    This is slow and a dedicated CUDA/Triton implementation</span>
+<span class="sd">    shuld provide substantial end-to-end speedup</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">scalar</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scalar</span> <span class="o">=</span> <span class="n">scalar</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scalar</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">,</span> <span class="s2">&quot;_optim&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;weight_decay&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;_optim&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;weight_decay&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ln</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TransposedLN.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TransposedLN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scalar</span><span class="p">:</span>
+            <span class="c1"># calc. stats over D dim / channels</span>
+            <span class="n">s</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">std_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">m</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># move channel to last axis, apply layer_norm,</span>
+            <span class="c1"># then move channel back to second axis</span>
+            <span class="n">_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ln</span><span class="p">(</span><span class="n">rearrange</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;b d ... -&gt; b ... d&quot;</span><span class="p">))</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">_x</span><span class="p">,</span> <span class="s2">&quot;b ... d -&gt; b d ...&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">y</span></div></div>
+
+
+<div class="viewcode-block" id="Normalization"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.Normalization">[docs]</a><span class="k">class</span> <span class="nc">Normalization</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">d</span><span class="p">,</span>
+        <span class="n">transposed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Length dimension is -1 or -2</span>
+        <span class="n">_name_</span><span class="o">=</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span> <span class="o">=</span> <span class="n">transposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span> <span class="o">=</span> <span class="n">_name_</span>
+
+        <span class="k">if</span> <span class="n">_name_</span> <span class="o">==</span> <span class="s2">&quot;layer&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Normalize over channel dimension</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">TransposedLN</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">_name_</span> <span class="o">==</span> <span class="s2">&quot;instance&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">norm_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;affine&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;track_running_stats&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="n">norm_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">InstanceNorm1d</span><span class="p">(</span>
+                <span class="n">d</span><span class="p">,</span> <span class="o">**</span><span class="n">norm_args</span>
+            <span class="p">)</span>  <span class="c1"># (True, True) performs very poorly</span>
+        <span class="k">elif</span> <span class="n">_name_</span> <span class="o">==</span> <span class="s2">&quot;batch&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">norm_args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;affine&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;track_running_stats&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+            <span class="n">norm_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="o">**</span><span class="n">norm_args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">_name_</span> <span class="o">==</span> <span class="s2">&quot;group&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="o">*</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">_name_</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Identity</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="Normalization.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.Normalization.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Handle higher dimension logic</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;b d ... -&gt; b d (...)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">rearrange</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s2">&quot;b ... d -&gt; b (...)d &quot;</span><span class="p">)</span>
+
+        <span class="c1"># The cases of LayerNorm / no normalization</span>
+        <span class="c1"># are automatically handled in all cases</span>
+        <span class="c1"># Instance/Batch Norm work automatically with transposed axes</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="Normalization.step"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.Normalization.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name_</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;layer&quot;</span><span class="p">,</span> <span class="s2">&quot;instance&quot;</span><span class="p">,</span> <span class="s2">&quot;batch&quot;</span><span class="p">,</span> <span class="s2">&quot;group&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="TSNormalization"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TSNormalization">[docs]</a><span class="k">class</span> <span class="nc">TSNormalization</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">horizon</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">=</span> <span class="n">horizon</span>
+
+<div class="viewcode-block" id="TSNormalization.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TSNormalization.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># x must be BLD</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">abs</span><span class="p">()[:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;last&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">abs</span><span class="p">()[:,</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">horizon</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="TSInverseNormalization"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TSInverseNormalization">[docs]</a><span class="k">class</span> <span class="nc">TSInverseNormalization</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">normalizer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span> <span class="o">=</span> <span class="n">normalizer</span>
+
+<div class="viewcode-block" id="TSInverseNormalization.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.TSInverseNormalization.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;last&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalizer</span><span class="o">.</span><span class="n">scale</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="ReversibleInstanceNorm1dInput"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.ReversibleInstanceNorm1dInput">[docs]</a><span class="k">class</span> <span class="nc">ReversibleInstanceNorm1dInput</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">transposed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># BLD if transpoed is False, otherwise BDL</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span> <span class="o">=</span> <span class="n">transposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">InstanceNorm1d</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">affine</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">track_running_stats</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ReversibleInstanceNorm1dInput.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.ReversibleInstanceNorm1dInput.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Means, stds</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">std_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">+=</span> <span class="mf">1e-4</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">m</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span>
+        <span class="c1"># x = self.norm.weight.unsqueeze(-1) * x + self.norm.bias.unsqueeze(-1)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="ReversibleInstanceNorm1dOutput"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.ReversibleInstanceNorm1dOutput">[docs]</a><span class="k">class</span> <span class="nc">ReversibleInstanceNorm1dOutput</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">norm_input</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span> <span class="o">=</span> <span class="n">norm_input</span><span class="o">.</span><span class="n">transposed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">norm_input</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">norm_input</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">bias</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_input</span> <span class="o">=</span> <span class="n">norm_input</span>
+
+<div class="viewcode-block" id="ReversibleInstanceNorm1dOutput.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.ReversibleInstanceNorm1dOutput.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># x = (x - self.bias.unsqueeze(-1))/self.weight.unsqueeze(-1)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_input</span><span class="o">.</span><span class="n">s</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_input</span><span class="o">.</span><span class="n">m</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">transposed</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

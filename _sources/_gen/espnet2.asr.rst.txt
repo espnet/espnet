@@ -367,6 +367,17 @@ espnet2.asr.decoder.transformer_decoder
     :show-inheritance:
 
 
+.. _espnet2.asr.decoder.s4_decoder:
+
+espnet2.asr.decoder.s4_decoder
+------------------------------
+
+.. automodule:: espnet2.asr.decoder.s4_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.decoder.transducer_decoder:
 
 espnet2.asr.decoder.transducer_decoder
@@ -483,6 +494,149 @@ espnet2.asr.frontend.s3prl
 --------------------------
 
 .. automodule:: espnet2.asr.frontend.s3prl
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.base:
+
+espnet2.asr.state_spaces.base
+-----------------------------
+
+.. automodule:: espnet2.asr.state_spaces.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.residual:
+
+espnet2.asr.state_spaces.residual
+---------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.residual
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.model:
+
+espnet2.asr.state_spaces.model
+------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.block:
+
+espnet2.asr.state_spaces.block
+------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.block
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.utils:
+
+espnet2.asr.state_spaces.utils
+------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.pool:
+
+espnet2.asr.state_spaces.pool
+-----------------------------
+
+.. automodule:: espnet2.asr.state_spaces.pool
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.ff:
+
+espnet2.asr.state_spaces.ff
+---------------------------
+
+.. automodule:: espnet2.asr.state_spaces.ff
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.components:
+
+espnet2.asr.state_spaces.components
+-----------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.components
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.cauchy:
+
+espnet2.asr.state_spaces.cauchy
+-------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.cauchy
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.s4:
+
+espnet2.asr.state_spaces.s4
+---------------------------
+
+.. automodule:: espnet2.asr.state_spaces.s4
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.registry:
+
+espnet2.asr.state_spaces.registry
+---------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.registry
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.attention:
+
+espnet2.asr.state_spaces.attention
+----------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.attention
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.state_spaces.__init__:
+
+espnet2.asr.state_spaces.__init__
+---------------------------------
+
+.. automodule:: espnet2.asr.state_spaces.__init__
     :members:
     :undoc-members:
     :show-inheritance:

@@ -482,6 +482,8 @@ Text converter related:
                     [--max_cache_size MAX_CACHE_SIZE]
                     [--max_cache_fd MAX_CACHE_FD]
                     [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                    [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -515,7 +517,7 @@ Text converter related:
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,None}]
                     [--postencoder_conf POSTENCODER_CONF]
-                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
+                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}]
                     [--decoder_conf DECODER_CONF]
                     [--preprocessor {default,multi}]
                     [--preprocessor_conf PREPROCESSOR_CONF]
@@ -843,6 +845,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -916,7 +922,7 @@ Optimizer related:
                         The postencoder type (default: None)
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
-  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
+  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})
@@ -1114,6 +1120,8 @@ Text converter related:
                                [--max_cache_size MAX_CACHE_SIZE]
                                [--max_cache_fd MAX_CACHE_FD]
                                [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                               [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                               [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                                [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                                [--optim_conf OPTIM_CONF]
                                [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -1465,6 +1473,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -1681,6 +1693,8 @@ Enh + Diar related:
                      [--max_cache_size MAX_CACHE_SIZE]
                      [--max_cache_fd MAX_CACHE_FD]
                      [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                     [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                      [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                      [--optim_conf OPTIM_CONF]
                      [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -2022,6 +2036,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -2231,6 +2249,8 @@ SeparateSpeech related:
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -2277,7 +2297,7 @@ SeparateSpeech related:
                         [--asr_encoder_conf ASR_ENCODER_CONF]
                         [--asr_postencoder {hugging_face_transformers,None}]
                         [--asr_postencoder_conf ASR_POSTENCODER_CONF]
-                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}]
+                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}]
                         [--asr_decoder_conf ASR_DECODER_CONF]
                         [--st_preencoder {sinc,linear,None}]
                         [--st_preencoder_conf ST_PREENCODER_CONF]
@@ -2627,6 +2647,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -2725,7 +2749,7 @@ Optimizer related:
                         The asr_postencoder type (default: None)
   --asr_postencoder_conf ASR_POSTENCODER_CONF
                         The keyword arguments for asr_postencoder (default: {})
-  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers}
+  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}
                         The asr_decoder type (default: rnn)
   --asr_decoder_conf ASR_DECODER_CONF
                         The keyword arguments for asr_decoder (default: {})
@@ -2881,6 +2905,8 @@ Input data related:
                     [--max_cache_size MAX_CACHE_SIZE]
                     [--max_cache_fd MAX_CACHE_FD]
                     [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                    [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -3229,6 +3255,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -3454,6 +3484,8 @@ SeparateSpeech related:
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -3803,6 +3835,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -3944,6 +3980,8 @@ Optimizer related:
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -4307,6 +4345,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -4443,6 +4485,8 @@ Optimizer related:
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -4803,6 +4847,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -4935,6 +4983,8 @@ Optimizer related:
                        [--max_cache_size MAX_CACHE_SIZE]
                        [--max_cache_fd MAX_CACHE_FD]
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                       [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                       [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -5297,6 +5347,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -5555,6 +5609,8 @@ The model configuration related:
                    [--max_cache_size MAX_CACHE_SIZE]
                    [--max_cache_fd MAX_CACHE_FD]
                    [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                   [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                   [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -5895,6 +5951,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -6083,6 +6143,8 @@ Text converter related:
                    [--max_cache_size MAX_CACHE_SIZE]
                    [--max_cache_fd MAX_CACHE_FD]
                    [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                   [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                   [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -6434,6 +6496,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -6685,6 +6751,8 @@ Text converter related:
                    [--max_cache_size MAX_CACHE_SIZE]
                    [--max_cache_fd MAX_CACHE_FD]
                    [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                   [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                   [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -7045,6 +7113,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
@@ -7363,6 +7435,8 @@ Vocoder related:
                     [--max_cache_size MAX_CACHE_SIZE]
                     [--max_cache_fd MAX_CACHE_FD]
                     [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                    [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
+                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
@@ -7715,6 +7789,10 @@ Dataset related:
                         The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
 
 Optimizer related:
+  --exclude_weight_decay EXCLUDE_WEIGHT_DECAY
+                        Exclude weight decay in optimizer for model bias, normalization, or other special parameters (default: False)
+  --exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF
+                        The keyword arguments for configuring weight decay in optimizer. e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias params. See also espnet2.optimizers.optim_groups.configure_optimizer. (default: {})
   --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF

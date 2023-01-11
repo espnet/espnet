@@ -197,6 +197,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.iterators.multiple_iter_factory</span> <span class="kn">import</span> <span class="n">MultipleIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.main_funcs.collect_stats</span> <span class="kn">import</span> <span class="n">collect_stats</span>
+<span class="kn">from</span> <span class="nn">espnet2.optimizers.optim_groups</span> <span class="kn">import</span> <span class="n">configure_optimizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.sgd</span> <span class="kn">import</span> <span class="n">SGD</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.build_batch_sampler</span> <span class="kn">import</span> <span class="n">BATCH_TYPES</span><span class="p">,</span> <span class="n">build_batch_sampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
@@ -988,6 +989,21 @@
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Optimizer related&quot;</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--exclude_weight_decay&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Exclude weight decay in optimizer for model bias, normalization, &quot;</span>
+            <span class="s2">&quot;or other special parameters&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--exclude_weight_decay_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for configuring weight decay in optimizer. &quot;</span>
+            <span class="s2">&quot;e.g., &#39;bias_weight_decay&#39;: False will set zero weight decay for bias &quot;</span>
+            <span class="s2">&quot;params. See also espnet2.optimizers.optim_groups.configure_optimizer.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">num_optimizers</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">suf</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
             <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -1044,7 +1060,15 @@
                 <span class="n">params</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">optim</span><span class="o">=</span><span class="n">optim_class</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">optim_conf</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">optim</span> <span class="o">=</span> <span class="n">optim_class</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">optim_conf</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">exclude_weight_decay</span><span class="p">:</span>
+                <span class="n">optim</span> <span class="o">=</span> <span class="n">configure_optimizer</span><span class="p">(</span>
+                    <span class="n">model</span><span class="p">,</span>
+                    <span class="n">optim_class</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">optim_conf</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">exclude_weight_decay_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">optim</span> <span class="o">=</span> <span class="n">optim_class</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">optim_conf</span><span class="p">)</span>
 
         <span class="n">optimizers</span> <span class="o">=</span> <span class="p">[</span><span class="n">optim</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">optimizers</span></div>
