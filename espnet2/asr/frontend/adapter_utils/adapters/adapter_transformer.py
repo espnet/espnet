@@ -7,7 +7,6 @@ from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
 
 
 class TransformerSentenceEncoderLayer(nn.Module):
-
     def __init__(
         self,
         embedding_dim: float = 768,
@@ -111,7 +110,6 @@ class TransformerSentenceEncoderLayer(nn.Module):
 
 
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
-
     def __init__(
         self,
         embedding_dim: float = 768,
