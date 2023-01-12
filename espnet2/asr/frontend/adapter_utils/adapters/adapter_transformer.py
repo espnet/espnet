@@ -7,10 +7,6 @@ from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
 
 
 class TransformerSentenceEncoderLayer(nn.Module):
-    """
-    Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
-    models.
-    """
 
     def __init__(
         self,
@@ -61,10 +57,6 @@ class TransformerSentenceEncoderLayer(nn.Module):
         need_weights: bool = False,
         att_args=None,
     ):
-        """
-        LayerNorm is applied either before or after the self-attention/ffn
-        modules similar to the original Transformer imlementation.
-        """
         residual = x
 
         if self.layer_norm_first:
@@ -119,9 +111,6 @@ class TransformerSentenceEncoderLayer(nn.Module):
 
 
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
-    """
-    fairseq's TransformerSentenceEncoderLayer for wav2vec2 with adapters
-    """
 
     def __init__(
         self,

@@ -6,14 +6,6 @@ from espnet2.asr.frontend.adapter_utils.adapters.adapter_transformer import (
 
 
 def add_adapters(s3prl_upstream_model, adapter_down_dim, adapt_layers=None):
-    """
-
-    add adapters to S3PRL upstream model.
-
-    * adapter_down_dim - down-projection dimension of adapter.
-
-    * adapt_layers - list of indices of layers to insert adapters. If `None`, adapters are inserted to every layer. (default=`None`).
-    """
     if adapt_layers == []:
         print(">> adapt_layers is an empy list. No adapters will be inserted.")
         return s3prl_upstream_model
