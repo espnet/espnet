@@ -73,9 +73,9 @@ class OpenAIWhisperEncoder(AbsEncoder):
         length: int,
         axis: int = -1,
     ) -> torch.Tensor:
-        """
-        Pad or trim the audio array to N_SAMPLES,
-        as expected by the encoder.
+        """Pad or trim the audio array to N_SAMPLES.
+
+        Used in zero-shot inference cases.
         """
         if array.shape[axis] > length:
             array = array.index_select(
