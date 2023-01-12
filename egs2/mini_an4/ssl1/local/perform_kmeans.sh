@@ -1,0 +1,1 @@
+../../../librispeech/ssl1/local/perform_kmeans.sh

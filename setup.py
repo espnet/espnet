@@ -27,6 +27,8 @@ requirements = {
         "numpy",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
+        "hydra-core",
+        "opt-einsum",
         # ASR
         "sentencepiece",
         "ctc-segmentation>=1.6.6",
@@ -67,6 +69,8 @@ requirements = {
         "fastdtw",
         "nara_wpe>=0.0.5",
         "sacrebleu>=1.5.1",
+        "praatio>=5.1.1",  # for librispeech phoneme alignment
+        "scikit-learn>=1.0.0",  # for HuBERT kmeans
     ],
     # all: The modules should be optionally installled due to some reason.
     #      Please consider moving them to "install" occasionally
@@ -95,6 +99,7 @@ requirements = {
         "flake8-docstrings>=1.3.1",
         "black",
         "isort",
+        "music21",
     ],
     "doc": [
         "Jinja2<3.1",
