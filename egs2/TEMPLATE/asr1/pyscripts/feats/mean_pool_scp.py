@@ -47,22 +47,8 @@ def main():
     os.makedirs(args.save_dir, exist_ok=True)
     save_path = osp.join(args.save_dir, args.split)
 
-#    copyfile(source_path + ".tsv", save_path + ".tsv")
-#
-#    if os.path.exists(source_path + ".phn"):
-#        copyfile(source_path + ".phn", save_path + ".phn")
-#    if os.path.exists(source_path + ".wrd"):
-#        copyfile(source_path + ".wrd", save_path + ".wrd")
-#
-#    if os.path.exists(osp.join(args.source, "dict.phn.txt")):
-#        copyfile(
-#            osp.join(args.source, "dict.phn.txt"),
-#            osp.join(args.save_dir, "dict.phn.txt"),
-#        )
-
     if osp.exists(save_path + ".npy"):
         os.remove(save_path + ".npy")
-#    npaa = NpyAppendArray(save_path + ".npy")
 
     utt_ids = []
     lengths = []
@@ -107,7 +93,6 @@ def main():
                 feat_file = f"{output_dir}/{utt_id}.npy"
                 np.save(feat_file, x.cpu().numpy())
                 sf.write(f"{utt_id} {feat_file}\n")
-#                npaa.append(x.cpu().numpy())
 
 
 if __name__ == "__main__":

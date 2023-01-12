@@ -46,7 +46,7 @@ def main():
     offset = 0
     with open(source_path + ".lengths", "r") as len_f:
         for line in len_f.readlines():
-            utt_id, length= line.split()
+            utt_id, length = line.split()
             length = int(length)
             sizes.append(length)
             offsets.append(offset)
@@ -59,22 +59,9 @@ def main():
             items = line_list[1:]
             items = list(map(int, items))
             clusters.append(items)
-    
 
     os.makedirs(args.save_dir, exist_ok=True)
     save_path = osp.join(args.save_dir, args.split)
-
-#    copyfile(source_path + ".tsv", save_path + ".tsv")
-
-#    if os.path.exists(source_path + ".phn"):
-#        copyfile(source_path + ".phn", save_path + ".phn")
-#    if os.path.exists(osp.join(args.source, "dict.phn.txt")):
-#        copyfile(
-#            osp.join(args.source, "dict.phn.txt"),
-#            osp.join(args.save_dir, "dict.phn.txt"),
-#        )
-#    if os.path.exists(source_path + ".wrd"):
-#        copyfile(source_path + ".wrd", save_path + ".wrd")
 
     if osp.exists(save_path + ".npy"):
         os.remove(save_path + ".npy")

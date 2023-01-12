@@ -359,17 +359,17 @@ class ESPnetUASRModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        text: Optional[torch.Tensor] = None,
+        text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
 
-        speech = F.layer_norm(speech, speech.shape)
         if self.frontend is not None:
             # Frontend
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            speech = F.layer_norm(speech, speech.shape)
             feats, feats_lengths = self.frontend(speech, speech_lengths)
         else:
             # No frontend and no feature extract
@@ -389,6 +389,7 @@ class ESPnetUASRModel(AbsESPnetModel):
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            speech = F.layer_norm(speech, speech.shape)
             feats, feats_lengths = self.frontend(speech, speech_lengths)
         else:
             # No frontend and no feature extract (usually with pre-extracted feat)

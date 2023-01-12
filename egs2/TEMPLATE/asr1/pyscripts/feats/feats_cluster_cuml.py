@@ -51,7 +51,7 @@ def main():
         gc.collect()
 
     print("Computing kmeans")
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init=1).fit(feats)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0, n_init=10).fit(feats)
 
     np.save(osp.join(save_path, "centroids"), kmeans.cluster_centers_)
     pickle.dump(kmeans, open(f"{save_path}/kmeans_{n_clusters}.pkl", "wb"))
