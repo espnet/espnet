@@ -68,8 +68,8 @@ sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
-postprocess_word_boundary='  '   # word boundary for post process
-postprocess_sil_token="\<SIL\>"  # silence injection tokens in post process
+postprocess_word_boundary="   "  # word boundary for post process
+postprocess_sil_token="sil"  # silence injection tokens in post process
 postprocess_sil_prob=0.5         # silence injection probability in post process
 
 # Ngram language model related
@@ -93,9 +93,10 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # UASR V1 feature clustering related
-use_feature_clustering=false
-feature_pca_dim=512
-feature_num_cluster=128
+use_feature_clustering=false        # Do PCA and k-means on input feature
+feature_clustering_tool="faiss"     # Tool for feature clustering (faiss or cuml)
+feature_pca_dim=512                 # Dimension of PCAed feature vector 
+feature_num_clusters=128            # Number of feature clusters
 
 # uasr model related
 uasr_tag=       # Suffix to the result dir for uasr model training.
@@ -226,8 +227,9 @@ Options:
 
     # UASR V1 feature clustering related
     --use_feature_clustering # Whether conduct cluster for features (default="${use_feature_clustering}").
+    --feature_clustering_tool # Tool to do feature clustering (default="${feature_clustering_tool}")
     --feature_pca_dim        # PCA dimension of features (default="${feature_pca_dim}").
-    --feature_num_cluster    # Number of clusters for feature clustering pooling (default="${feature_num_cluster}").
+    --feature_num_clusters   # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
 
     # uasr model related
     --uasr_tag          # Suffix to the result dir for uasr model training (default="${uasr_tag}").
@@ -369,9 +371,8 @@ if ${use_k2}; then
     [ -z "${k2_lang_dir}" ] && k2_lang_dir="${tokendir}/lang"
     mkdir -p "${k2_lang_dir}"
     if [ -z "${k2_lexicon}" ]; then
-        k2_lexicon="${k2_lang_dir}/lexicon.txt"
-        paste -d ' ' "${token_list}" "${token_list}" > ${k2_lexicon}
-        log "Build lexicon '${k2_lexicon}' from '${token_list}'"
+        log "Lexicon must be provided for k2 decoding"
+        exit 2
     else
         if [ ! -f ${k2_lexicon} ]; then
             log "Error: '${k2_lexicon}' does not exit."
@@ -714,11 +715,9 @@ if ! "${skip_data_prep}"; then
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${split_dir}/JOB/text \
-                --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/unpaired_text \
-                --write_vocabulary true \
-                --write_text true \
-                --cutoff 2
+                --output ${split_dir}/JOB/unpaired_text \
+                --write_vocabulary false \
+                --field "2-"
 
             ${python} pyscripts/text/combine_text_and_vocab.py \
                     --split_dir ${split_dir} \
@@ -732,25 +731,23 @@ if ! "${skip_data_prep}"; then
                     --add_symbol "</s>" \
                     --add_symbol "<unk>" \
                     --add_symbol "${postprocess_sil_token}"
+            cp "${data_feats}/${train_set}/tokens.txt" "${token_list}"
 
-            # Note(Dongji): for dev text we can keep utterance ids to compute PER
-            log "Tokenize ${lm_dev_text}"
+            # Note(Dongji): for dev text we keep utterance ids to compute PER
+            log "Tokenizing ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type ${token_type} ${_opts} \
                 --cleaner "${cleaner}" \
                 --input ${lm_dev_text}\
-                --output "${data_feats}/${valid_set}/tokens.txt" \
-                --text_output "${data_feats}/${valid_set}/token.tmp" \
+                --output "${data_feats}/${valid_set}/unpaired_text.tmp" \
                 --write_vocabulary false \
-                --write_text true \
-                --cutoff 0 \
                 --field "2-"
 
             # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal 
             # evaluation (however, the results with unpaired text are not suppose to be used for model 
             # selection)
-            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/token.tmp" \
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/unpaired_text.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
 
         elif [ "${token_type}" == phn ]; then
@@ -771,50 +768,55 @@ if ! "${skip_data_prep}"; then
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type phn \
                 --input ${split_dir}/JOB/text \
-                --output ${split_dir}/JOB/tokens.txt \
-                --text_output ${split_dir}/JOB/unpaired_text_nosil \
+                --output ${split_dir}/JOB/unpaired_text_nosil \
                 --g2p "${g2p}" \
-                --write_vocabulary true \
-                --write_text true \
-                --cutoff 2 
+                --write_vocabulary false \
+                --field "2-"
 
              # FIXME(jiatong): this post process is very hard-coded, need fix
              ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
              ${python} pyscripts/text/post_processing.py \
                --word_boundary "${postprocess_word_boundary}" \
-               --sil_prob ${postprocess_sil_token} \
-               --sil_token ${postprocess_sil_prob} \
+               --sil_prob ${postprocess_sil_prob} \
+               --sil_token ${postprocess_sil_token} \
                --input_text "${split_dir}/JOB/unpaired_text_nosil" \
                --output_text "${split_dir}/JOB/unpaired_text" \
-               --output_vocab "${split_dir}/JOB/tokens_post.txt" \
-               --reduce_vocab
+               --reduce_vocab true
 
             ${python} pyscripts/text/combine_text_and_vocab.py \
-                    --split_dir ${split_dir} \
-                    --num_splits ${nj} \
-                    --output_dir "${data_feats}/${train_set}" \
-                    --add_symbol "<blank>" \
-                    --add_symbol "<s>" \
-                    --add_symbol "<pad>" \
-                    --add_symbol "</s>" \
-                    --add_symbol "<unk>" \
-                    --add_symbol "<SIL>"
+                --split_dir ${split_dir} \
+                --num_splits ${nj} \
+                --output_dir "${data_feats}/${train_set}" \
+                --text_file "unpaired_text" \
+                --vocab_file "tokens.txt" \
+                --add_symbol "<blank>" \
+                --add_symbol "<s>" \
+                --add_symbol "<pad>" \
+                --add_symbol "</s>" \
+                --add_symbol "<unk>" \
+                --add_symbol "${postprocess_sil_token}"
 
-            # Note(Dongji): for dev text we need to keep utterance ids to compute PER
-            log "Tokenizer ${lm_dev_text}"
+            cp "${data_feats}/${train_set}/tokens.txt" "${token_list}"
+
+            # Note(Dongji): for dev text we keep utterance ids to compute PER
+            log "Tokenizing ${lm_dev_text}"
             cut -d ' ' -f1 "${lm_dev_text}" > "${data_feats}/${valid_set}/utt_ids"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type phn \
                 --input ${lm_dev_text}\
-                --output "${data_feats}/${valid_set}/tokens.txt" \
-                --text_output "${data_feats}/${valid_set}/phones" \
+                --output "${data_feats}/${valid_set}/unpaired_text.raw" \
                 --g2p "${g2p}" \
                 --write_vocabulary false \
-                --write_text true \
-                --cutoff 0 \
                 --field "2-"
 
-            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/phones" \
+             ${python} pyscripts/text/post_processing.py \
+               --word_boundary "${postprocess_word_boundary}" \
+               --sil_prob 0.0 \
+               --input_text "${data_feats}/${valid_set}/unpaired_text.raw" \
+               --output_text "${data_feats}/${valid_set}/unpaired_text.tmp" \
+               --reduce_vocab true
+
+            paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/unpaired_text.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
 
         else
@@ -1028,6 +1030,7 @@ if ! "${skip_train}"; then
         [ -z ${kenlm_path} ] && kenlm_path="${ngram_exp}/${ngram_num}gram.bin"
         # TODO(jiatong): can we add other options? otherwise, this is a muste?
     fi
+
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         if "${use_ngram}"; then
             log "Stage 10: Ngram Training: train_set=${unpaired_text}"
@@ -1043,6 +1046,7 @@ if ! "${skip_train}"; then
             log "Stage 10: Skip ngram stages: use_ngram=${use_ngram}"
         fi
     fi
+
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         if "${use_k2}"; then
@@ -1080,9 +1084,8 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         _uasr_train_dir="${data_feats}/${train_set}"
         _uasr_valid_dir="${data_feats}/${valid_set}"
-        # FIXME(Jiatong): test set may not be only one...
-        _uasr_test_dir="${data_feats}/${test_sets}"
-        log "Stage 13: UASR collect stats: train_set=${_uasr_train_dir}, valid_set=${_uasr_valid_dir}, test_sets={_uasr_test_dir}"
+
+        log "Stage 13: UASR collect stats: train_set=${_uasr_train_dir}, valid_set=${_uasr_valid_dir}"
 
         if ${gpu_collect_stats}; then
             _cmd="${cuda_cmd}"
@@ -1140,14 +1143,6 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        key_file="${_uasr_test_dir}/${_scp}"
-        split_scps=""
-        for n in $(seq "${_nj}"); do
-            split_scps+=" ${_logdir}/test.${n}.scp"
-        done
-        # shellcheck disable=SC2086
-        utils/split_scp.pl "${key_file}" ${split_scps}
-
         # 2. Generate run.sh
         log "Generate '${uasr_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
         mkdir -p "${uasr_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${uasr_stats_dir}/run.sh"; chmod +x "${uasr_stats_dir}/run.sh"
@@ -1174,11 +1169,8 @@ if ! "${skip_train}"; then
                 --train_data_path_and_name_and_type "${unpaired_text_and_scp},text,random_text" \
                 --valid_data_path_and_name_and_type "${_uasr_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_uasr_valid_dir}/text,text,text" \
-                --test_data_path_and_name_and_type "${_uasr_test_dir}/${_scp},speech,${_type}" \
-                --test_data_path_and_name_and_type "${_uasr_test_dir}/text,text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
-                --test_shape_file "${_logdir}/test.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${uasr_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
@@ -1201,7 +1193,6 @@ if ! "${skip_train}"; then
         
         cp ${uasr_stats_dir}/train/collect_feats/feats.scp "${data_feats}/${train_set}"/feats.scp
         cp ${uasr_stats_dir}/valid/collect_feats/feats.scp "${data_feats}/${valid_set}"/feats.scp
-        cp ${uasr_stats_dir}/test/collect_feats/feats.scp "${data_feats}/${test_sets}"/feats.scp
     fi
 
     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
@@ -1211,65 +1202,42 @@ if ! "${skip_train}"; then
         # TODO(jiatong): generalize the clustering process (we have so many now, v1 preprocessing, pseudo labeling, auto-encoder)
 
         if "${use_feature_clustering}"; then
-            log "Stage 14(a): Clustering feature"
             output_feats_dir="${uasr_stats_dir}/clustered/"
 
-            ${cuda_cmd} --gpu "${ngpu}" "${_logdir}/cluster_feature.log" \
+            log "Using ${feature_clustering_tool} for feature clustering"
+            if [ "${feature_clustering_tool}" = "faiss" ]; then
                 scripts/feats/feats_clustering.sh \
-                ${uasr_stats_dir} \
-                ${output_feats_dir} \
-                --num_cluster ${feature_num_cluster}
+                    --cmd "${cuda_cmd}" \
+                    --nj ${nj} \
+                    --dim ${feature_pca_dim} \
+                    --num_clusters ${feature_num_clusters} \
+                    ${uasr_stats_dir} \
+                    ${output_feats_dir} 
+
+            elif [ "${feature_clustering_tool}" = "cuml" ]; then
+                scripts/feats/feats_clustering_cuml.sh \
+                    --cmd "${cuda_cmd}" \
+                    --nj ${nj} \
+                    --dim ${feature_pca_dim} \
+                    --num_clusters ${feature_num_clusters} \
+                    ${uasr_stats_dir} \
+                    ${output_feats_dir} 
+
+            else
+                log "${feature_clustering_tool}" is not supported
+            fi
             
             echo "${feature_pca_dim}" > ${uasr_stats_dir}/train/feats_dim
             echo "${feature_pca_dim}" > ${uasr_stats_dir}/valid/feats_dim
-            echo "${feature_pca_dim}" > ${uasr_stats_dir}/test/feats_dim
 
             log "Using clustered feature"
             # TODO(Jiatong): remove hard-code paths
-            cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_cluster}_mean_pooled/test/feats.scp" \
-                "${data_feats}/${test_sets}"/feats.scp
-            cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_cluster}_mean_pooled/train/feats.scp" \
+            cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_clusters}_mean_pooled/train/feats.scp" \
                 "${data_feats}/${train_set}"/feats.scp
-            cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_cluster}_mean_pooled/valid/feats.scp" \
+            cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_clusters}_mean_pooled/valid/feats.scp" \
                 "${data_feats}/${valid_set}"/feats.scp
         fi
-
         # TODO(Jiatong): add pseudo label clustering
-
-        if "${use_autoencoder_cluster}"; then
-            log "Stage 14(b): Clustering input feature"
-            _uasr_train_dir="${data_feats}/${train_set}"
-            _uasr_valid_dir="${data_feats}/${valid_set}"
-            _feats_type="$(<${_uasr_train_dir}/feats_type)"
-            if [ "${_feats_type}" = raw ] && [ "${write_collected_feats}" ]; then
-                # Whether to use extracted features from collect_stats
-                input_scp=feats.scp
-                input_type=npy # TODO(jiatong): update other types for more compact version
-            
-                if "${use_feature_clustering}"; then
-                    # TODO(Jiatong): remove hard-code paths
-                    train_feat_dir="${output_feats_dir}/precompute_pca${feature_pca_dim}_cls${feature_num_cluster}_mean_pooled/train"
-                    valid_feat_dir="${output_feats_dir}/precompute_pca${feature_pca_dim}_cls${feature_num_cluster}_mean_pooled/valid"
-                else
-                    train_feat_dir="${uasr_stats_dir}/train/collect_feats"
-                    valid_feat_dir="${uasr_stats_dir}/valid/collect_feats"
-                fi
-
-                # Generate cluster ID (i.e., input.cluster at ${train/valid_feat_dir})
-                ${cuda_cmd} --gpu "${ngpu}" "${_logdir}/cluster_input_feature.log" \
-                    scripts/feats/input_feats_clustering.sh \
-                        ${train_feat_dir} \
-                        ${valid_feat_dir} \
-                        --num_cluster ${autoencoder_num_cluster}
-
-                cp "${train_feat_dir}/input.cluster" ${_uasr_train_dir}/input.cluster
-                cp "${valid_feat_dir}/input.cluster" ${_uasr_valid_dir}/input.cluster
-
-            else
-                log "Only support raw feature with writed collected feats now"
-                exit 1
-            fi
-        fi
     else
         log "Stage 14: Skip doing feature preprocess"
     fi
@@ -1354,11 +1322,6 @@ if ! "${skip_train}"; then
         fi
         [ ! -z ${fairseq_checkpoint} ] && _opts+="--fairseq_checkpoint ${fairseq_checkpoint}"
 
-        if ${use_autoencoder_cluster}; then
-            _opts+="--train_data_path_and_name_and_type ${_uasr_train_dir}/input.cluster,input_cluster_id,csv_int "
-            _opts+="--valid_data_path_and_name_and_type ${_uasr_valid_dir}/input.cluster,input_cluster_id,csv_int "
-        fi
-
         log "Generate '${uasr_exp}/run.sh'. You can resume the process from stage 15 using this script"
         mkdir -p "${uasr_exp}"; echo "${run_args} --stage 15 \"\$@\"; exit \$?" > "${uasr_exp}/run.sh"; chmod +x "${uasr_exp}/run.sh"
 
@@ -1439,7 +1402,66 @@ fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
-        log "Stage 16: Decoding: training_dir=${uasr_exp}"
+        log "Stage 16: Extracting feature: test_sets=${test_sets}"
+
+        _logdir="${uasr_stats_dir}/logdir"
+        mkdir -p "${_logdir}"
+
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _scp=wav.scp
+            _type=sound
+
+            ${cuda_cmd} --gpu "${ngpu}" "${_logdir}/extract_feature_${dset}.log" \
+                ${python} -m espnet2.bin.uasr_extract_feature \
+                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                    --uasr_train_config "${uasr_exp}/config.yaml" \
+                    --uasr_model_file "${uasr_exp}/${inference_uasr_model}" \
+                    --key_file "${_data}/${_scp}"\
+                    --ngpu ${ngpu} \
+                    --batch_size ${precompute_batchsize} \
+                    --output_dir "${uasr_stats_dir}" \
+                    --dset "${dset}"
+
+                cp ${uasr_stats_dir}/${dset}/collect_feats/feats.scp "${data_feats}/${dset}"/feats.scp
+        done
+
+        if "${use_feature_clustering}"; then
+            output_feats_dir="${uasr_stats_dir}/clustered/"
+
+            log "Using ${feature_clustering_tool} for feature clustering"
+            if [ "${feature_clustering_tool}" = "faiss" ]; then
+                scripts/feats/feats_clustering.sh \
+                    --cmd "${cuda_cmd}" \
+                    --nj ${nj} \
+                    --dim ${feature_pca_dim} \
+                    --num_clusters ${feature_num_clusters} \
+                    --valid-set "" \
+                    --test-sets "${test_sets}" \
+                    --skip-training true \
+                    ${uasr_stats_dir} \
+                    ${output_feats_dir} 
+            
+            elif [ "${feature_clustering_tool}" = "cuml" ]; then
+                scripts/feats/feats_clustering_cuml.sh \
+                    --cmd "${cuda_cmd}" \
+                    --nj ${nj} \
+                    --dim ${feature_pca_dim} \
+                    --num_clusters ${feature_num_clusters} \
+                    --valid-set "" \
+                    --test-sets "${test_sets}" \
+                    --skip-training true \
+                    ${uasr_stats_dir} \
+                    ${output_feats_dir} 
+
+            else
+                log "${feature_clustering_tool}" is not supported
+            fi
+        fi
+    fi
+
+    if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ]; then
+        log "Stage 17: Decoding: training_dir=${uasr_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1525,7 +1547,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --uasr_train_config "${uasr_exp}"/config.yaml \
-                    --uasr_model_file "${uasr_exp}"/"${inference_uasr_model}" \
+                    --uasr_model_file "${uasr_exp}/${inference_uasr_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/uasr_inference.*.log) ; exit 1; }
 
@@ -1541,8 +1563,8 @@ if ! "${skip_eval}"; then
     fi
 
 
-    if [ ${stage} -le 17 ] && [ ${stop_stage} -ge 17 ]; then
-        log "Stage 17: Scoring"
+    if [ ${stage} -le 18 ] && [ ${stop_stage} -ge 18 ]; then
+        log "Stage 18: Scoring"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1701,8 +1723,8 @@ fi
 packed_model="${uasr_exp}/${uasr_exp##*/}_${inference_uasr_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
-    if [ ${stage} -le 18 ] && [ ${stop_stage} -ge 18 ]; then
-        log "Stage 18: Pack model: ${packed_model}"
+    if [ ${stage} -le 19 ] && [ ${stop_stage} -ge 19 ]; then
+        log "Stage 19: Pack model: ${packed_model}"
 
         _opts=
         if "${use_lm}"; then
@@ -1730,8 +1752,8 @@ if [ -z "${download_model}" ]; then
 fi
 
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 19 ] && [ ${stop_stage} -ge 19 ]; then
-        log "Stage 19: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 20 ] && [ ${stop_stage} -ge 20 ]; then
+        log "Stage 20: Upload model to Zenodo: ${packed_model}"
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
@@ -1791,11 +1813,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 20 ] && [ ${stop_stage} -ge 20 ]; then
+    if [ ${stage} -le 21 ] && [ ${stop_stage} -ge 21 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
             exit 1
-        log "Stage 19: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 21: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

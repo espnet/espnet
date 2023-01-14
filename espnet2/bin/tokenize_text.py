@@ -17,9 +17,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 def field2slice(field: Optional[str]) -> slice:
     """Convert field string to slice
-
     Note that field string accepts 1-based integer.
-
     Examples:
         >>> field2slice("1-")
         slice(0, None, None)
@@ -64,7 +62,6 @@ def field2slice(field: Optional[str]) -> slice:
 def tokenize(
     input: str,
     output: str,
-    text_output: Optional[str],
     field: Optional[str],
     delimiter: Optional[str],
     token_type: str,
@@ -73,7 +70,6 @@ def tokenize(
     bpemodel: Optional[str],
     log_level: str,
     write_vocabulary: bool,
-    write_text: bool,
     vocabulary_size: int,
     remove_non_linguistic_symbols: bool,
     cutoff: int,
@@ -82,8 +78,6 @@ def tokenize(
     g2p: Optional[str],
 ):
     assert check_argument_types()
-    if write_text: # check consistency
-        assert text_output is not None, "write text must have text_ouput != None"
 
     logging.basicConfig(
         level=log_level,
@@ -99,13 +93,6 @@ def tokenize(
         p = Path(output)
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
-
-    if write_text:
-        tp = Path(text_output)
-        tp.parent.mkdir(parents=True, exist_ok=True)
-        tfout = tp.open("w", encoding="utf-8")
-    else:
-        tfout = None
 
     cleaner = TextCleaner(cleaner)
     tokenizer = build_tokenizer(
@@ -136,16 +123,12 @@ def tokenize(
 
         line = cleaner(line)
         tokens = tokenizer.text2tokens(line)
-        if write_text:
-            tfout.write(" ".join(tokens) + "\n")
         if not write_vocabulary:
             fout.write(" ".join(tokens) + "\n")
         else:
             for t in tokens:
                 counter[t] += 1
 
-    if write_text:
-        tfout.close()
     if not write_vocabulary:
         return
 
@@ -180,7 +163,6 @@ def tokenize(
     # Write words
     for w, c in words_and_counts:
         fout.write(w + "\n")
-    fout.close()
 
     # Logging
     total_count = sum(counter.values())
@@ -190,7 +172,7 @@ def tokenize(
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Tokenize texts, default write tokenized text",
+        description="Tokenize texts",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -205,10 +187,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--input", "-i", required=True, help="Input text. - indicates sys.stdin"
     )
     parser.add_argument(
-        "--output", "-o", required=True, help="Output vocabulary. - indicates sys.stdout"
-    )
-    parser.add_argument(
-        "--text_output", required=False, help="Output text. - indicates sys.stdout"
+        "--output", "-o", required=True, help="Output text. - indicates sys.stdout"
     )
     parser.add_argument(
         "--field",
@@ -256,13 +235,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--write_vocabulary",
         type=str2bool,
         default=False,
-        help="Write tokens list per line",
-    )
-    group.add_argument(
-        "--write_text",
-        type=str2bool,
-        default=False,
-        help="Write tokenized text per line",
+        help="Write tokens list instead of tokenized text per line",
     )
     group.add_argument("--vocabulary_size", type=int, default=0, help="Vocabulary size")
     group.add_argument(

@@ -37,6 +37,10 @@ class UASRGradientPenalty(AbsUASRLoss):
         """Forward.
 
         Args:
+            fake_sample: generated sample from generator
+            real_sample: real sample
+            is_training: whether is at training step
+            is_discriminative_step: whether is training discriminator
         """
         if self.weight > 0 and is_discrimininative_step and is_training:
             batch_size = min(fake_sample.size(0), real_sample.size(0))

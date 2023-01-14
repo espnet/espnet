@@ -27,9 +27,9 @@ from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 
 from espnet2.uasr.loss.discriminator_loss import UASRDiscriminatorLoss
 from espnet2.uasr.loss.gradient_penalty import UASRGradientPenalty
-from espnet2.uasr.loss.smoothness_penalty import UASRSmoothnessPenalty
 from espnet2.uasr.loss.phoneme_diversity_loss import UASRPhonemeDiversityLoss
 from espnet2.uasr.loss.pseudo_label_loss import UASRPseudoLabelLoss
+from espnet2.uasr.loss.smoothness_penalty import UASRSmoothnessPenalty
 
 from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.torch_utils.initialize import initialize

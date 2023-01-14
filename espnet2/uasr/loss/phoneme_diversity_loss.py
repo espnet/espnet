@@ -25,6 +25,9 @@ class UASRPhonemeDiversityLoss(AbsUASRLoss):
         """Forward.
 
         Args:
+            dense_x: predicted logits of generated samples 
+            sample_size: batch size
+            is_dicriminative_step: whether is training discriminator
         """
         if self.weight > 0 and not is_discriminative_step:
             batch_size, time_length, channel_size = dense_x.shape

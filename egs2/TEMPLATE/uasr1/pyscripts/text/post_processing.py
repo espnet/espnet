@@ -17,11 +17,11 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--word_boundary", type=str, required=True)
     parser.add_argument("--sil_token", type=str, default="<SIL>")
-    parser.add_argument("--sil_prob", type=float, required=True)
+    parser.add_argument("--sil_prob", type=float, default=0.5, required=True)
     parser.add_argument("--input_text", required=True, help="Input text.")
     parser.add_argument("--output_text", required=True, help="Output text.")
     parser.add_argument("--output_vocab", help="Output vocabulary.")
-    parser.add_argument("--reduce_vocab", action="store_true")
+    parser.add_argument("--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary")
     return parser
 
 
