@@ -3,7 +3,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
+from espnet2.fileio.read_text import (
+    load_num_sequence_text,
+    read_2column_text,
+    read_label,
+)
 
 
 def test_read_2column_text(tmp_path: Path):
@@ -51,3 +55,11 @@ def test_load_num_sequence_text_invalid(tmp_path: Path):
         f.write("abc 2 4\n")
     with pytest.raises(RuntimeError):
         load_num_sequence_text(p)
+
+
+def test_read_label(tmp_path: Path):
+    p = tmp_path / "dummy.text"
+    with p.open("w") as f:
+        f.write("abc 0.5 1.2 a 1.2 1.5 b\n")
+    label = read_label(p)
+    assert label == {"abc": [["0.5", "1.2", "a"], ["1.2", "1.5", "b"]]}
