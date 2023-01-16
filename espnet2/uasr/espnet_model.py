@@ -51,6 +51,8 @@ class ESPnetUASRModel(AbsESPnetModel):
         cfg: Optional[Dict] = None,
         pad: int = 1,
         sil_token: str = "<SIL>",
+        sos_token: str = "<s>",
+        eos_token: str = "</s>",
         skip_softmax: str2bool = False,
         use_gumbel: str2bool = False,
         use_hard_gumbel: str2bool = True,
@@ -96,7 +98,9 @@ class ESPnetUASRModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.token_list = token_list
         self.token_id_converter = TokenIDConverter(token_list=token_list)
-        self.sil_id = self.token_id_converter.tokens2ids([sil_token])[0]
+        self.sil = self.token_id_converter.tokens2ids([sil_token])[0]
+        self.sos = self.token_id_converter.tokens2ids([sos_token])[0]
+        self.eos = self.token_id_converter.tokens2ids([eos_token])[0]
 
         self.kenlm = None
         if kenlm_path:
@@ -198,7 +202,7 @@ class ESPnetUASRModel(AbsESPnetModel):
                 # remove duplicate tokens
                 hyp_ids = hyp_ids.unique_consecutive()
                 # remove silence
-                hyp_ids_nosil = hyp_ids[hyp_ids != self.sil_id]
+                hyp_ids_nosil = hyp_ids[hyp_ids != self.sil]
                 hyp_ids_nosil_list = hyp_ids_nosil.tolist()
 
                 if self.kenlm:
