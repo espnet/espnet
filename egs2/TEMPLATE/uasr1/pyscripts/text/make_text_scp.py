@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import sys
 import argparse
-from pathlib import Path
+import sys
 from mmap import mmap
+from pathlib import Path
+
 from espnet.utils.cli_utils import get_commandline_args
 
 

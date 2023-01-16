@@ -6,17 +6,16 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import logging
 import os
 import os.path as osp
-import logging
-import numpy as np
-import tqdm
-import torch
 import sys
 
 import faiss
+import numpy as np
+import torch
 import torch.nn.functional as F
-
+import tqdm
 from feats_cluster_faiss import parse_faiss_specs
 
 
@@ -109,7 +108,7 @@ def main():
     had_labels = False
     label_path = osp.join(args.output_path, f"{args.split}.{args.labels}")
 
-    output_cluster =  f"{args.output_path}/{args.split}.cluster"
+    output_cluster = f"{args.output_path}/{args.split}.cluster"
     with torch.no_grad():
         with open(output_cluster, "w") as oc, open(label_path, "w") as lp:
             for f, fname, lbl in tqdm.tqdm(iterator, total=num):

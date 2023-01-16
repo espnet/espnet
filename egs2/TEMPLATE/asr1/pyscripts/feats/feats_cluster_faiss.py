@@ -10,15 +10,13 @@ import gc
 import os
 import os.path as osp
 import random
-import numpy as np
-import tqdm
-import torch
-
 from collections import namedtuple
 
 import faiss
-
+import numpy as np
 import soundfile as sf
+import torch
+import tqdm
 
 
 def get_parser():

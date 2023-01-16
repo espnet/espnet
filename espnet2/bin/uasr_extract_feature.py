@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-import sys
 import argparse
 import logging
+import sys
 from pathlib import Path
 from typing import Optional, Sequence, Tuple, Union
 
 from torch.nn.parallel import data_parallel
 from typeguard import check_argument_types
 
-from espnet2.tasks.uasr import UASRTask
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.tasks.uasr import UASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.forward_adaptor import ForwardAdaptor
-from espnet2.utils.types import str2bool, str_or_none, str2triple_str
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -29,19 +29,30 @@ def get_parser():
         action="append",
     )
     parser.add_argument(
-        "--uasr_train_config", type=str, help="uasr training configuration",
+        "--uasr_train_config",
+        type=str,
+        help="uasr training configuration",
     )
     parser.add_argument(
-        "--uasr_model_file", type=str, help="uasr model parameter file",
+        "--uasr_model_file",
+        type=str,
+        help="uasr model parameter file",
     )
     parser.add_argument(
-        "--key_file", type=str_or_none, help="key file",
+        "--key_file",
+        type=str_or_none,
+        help="key file",
     )
     parser.add_argument(
-        "--allow_variable_data_keys", type=str2bool, default=False,
+        "--allow_variable_data_keys",
+        type=str2bool,
+        default=False,
     )
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument(
         "--num_workers",
@@ -62,10 +73,14 @@ def get_parser():
         help="Data type",
     )
     parser.add_argument(
-        "--dset", type=str, help="dataset",
+        "--dset",
+        type=str,
+        help="dataset",
     )
     parser.add_argument(
-        "--output_dir", type=str, help="Output directory",
+        "--output_dir",
+        type=str,
+        help="Output directory",
     )
     parser.add_argument(
         "--log_level",

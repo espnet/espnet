@@ -21,10 +21,10 @@ from espnet2.fileio.rand_gen_dataset import (
     IntRandomGenerateDataset,
 )
 from espnet2.fileio.read_text import (
+    RandomTextReader,
     load_num_sequence_text,
     read_2column_text,
     read_label,
-    RandomTextReader,
 )
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader

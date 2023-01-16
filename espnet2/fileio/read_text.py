@@ -1,7 +1,7 @@
-import logging
 import collections.abc
-from pathlib import Path
+import logging
 from mmap import mmap
+from pathlib import Path
 from random import randint
 from typing import Dict, List, Union
 
@@ -112,22 +112,23 @@ def read_label(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
 class RandomTextReader(collections.abc.Mapping):
     """Reader class for random access to text.
 
-     Examples:
-         text
-             text1line
-             text2line
-             text3line
-         scp
-             11                    (number of digits per int value)
-             00000000000000000010  (text start at bytes 0 and end at bytes 10 (including "\n"))
-             00000000110000000020  (text start at bytes 11 and end at bytes 20 (including "\n"))
-             00000000210000000030  (text start at bytes 21 and end at bytes 30 (including "\n"))
+    Examples:
+        text
+            text1line
+            text2line
+            text3line
+        scp
+            11                    (number of digits per int value)
+            00000000000000000010  (text start at bytes 0 and end at bytes 10 (including "\n"))
+            00000000110000000020  (text start at bytes 11 and end at bytes 20 (including "\n"))
+            00000000210000000030  (text start at bytes 21 and end at bytes 30 (including "\n"))
 
-     Simple text reader for non-pair text data (for unsupervised ASR)
-     """
+    Simple text reader for non-pair text data (for unsupervised ASR)
+    """
 
     def __init__(
-        self, text_and_scp: str,
+        self,
+        text_and_scp: str,
     ):
         assert check_argument_types()
         super().__init__()

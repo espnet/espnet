@@ -9,14 +9,12 @@ import argparse
 import gc
 import os
 import os.path as osp
+import pickle
 import random
-import tqdm
-
-
 from collections import namedtuple
 
-import pickle
 import numpy as np
+import tqdm
 from cuml.cluster import KMeans
 
 

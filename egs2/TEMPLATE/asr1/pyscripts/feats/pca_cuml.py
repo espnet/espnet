@@ -8,11 +8,10 @@
 import argparse
 import os
 import os.path as osp
-import numpy as np
-
 import pickle
-from cuml import PCA
 
+import numpy as np
+from cuml import PCA
 
 
 def get_parser():

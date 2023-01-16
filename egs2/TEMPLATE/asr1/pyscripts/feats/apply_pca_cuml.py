@@ -6,14 +6,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import math
 import os
 import os.path as osp
-import math
-import numpy as np
-import tqdm
+import pickle
 from shutil import copyfile
 
-import pickle
+import numpy as np
+import tqdm
 from npy_append_array import NpyAppendArray
 
 

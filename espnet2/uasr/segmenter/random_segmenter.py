@@ -1,5 +1,4 @@
 import torch
-
 from typeguard import check_argument_types
 
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter

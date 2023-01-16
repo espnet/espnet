@@ -2,21 +2,19 @@
 import argparse
 import logging
 import sys
+from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
 from typing import Optional, Tuple
-
-from copy import deepcopy
-from scipy.signal import lfilter
-
 
 import kaldiio
 import numpy as np
 import resampy
+import soundfile
 import soundfile as sf
+from scipy.signal import lfilter
 from tqdm import tqdm
 from typeguard import check_argument_types
-from io import BytesIO
-import soundfile
 
 from espnet2.fileio.read_text import read_2column_text
 from espnet.utils.cli_utils import get_commandline_args

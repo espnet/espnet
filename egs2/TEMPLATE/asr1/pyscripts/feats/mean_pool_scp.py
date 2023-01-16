@@ -5,15 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import math
 import os
 import os.path as osp
-import math
-import numpy as np
-import tqdm
-import torch
-import torch.nn.functional as F
 from shutil import copyfile
 
+import numpy as np
+import torch
+import torch.nn.functional as F
+import tqdm
 from npy_append_array import NpyAppendArray
 
 
@@ -65,7 +65,9 @@ def main():
     scp_file = f"{save_path}/feats.scp"
     prefix = args.root
     with torch.no_grad():
-        with open(save_path + ".lengths", "w") as lengths_out, open(scp_file, "w") as sf:
+        with open(save_path + ".lengths", "w") as lengths_out, open(
+            scp_file, "w"
+        ) as sf:
 
             for length, utt_id in tqdm.tqdm(zip(lengths, utt_ids)):
                 utt_id = utt_id.rstrip()

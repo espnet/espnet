@@ -7,10 +7,9 @@
 import argparse
 import os
 import os.path as osp
-import numpy as np
 
 import faiss
-
+import numpy as np
 
 
 def get_parser():

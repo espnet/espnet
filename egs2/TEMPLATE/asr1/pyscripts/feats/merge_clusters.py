@@ -7,12 +7,12 @@
 import argparse
 import os
 import os.path as osp
-import numpy as np
-import tqdm
-import torch
 import random
 from shutil import copyfile
 
+import numpy as np
+import torch
+import tqdm
 from npy_append_array import NpyAppendArray
 
 

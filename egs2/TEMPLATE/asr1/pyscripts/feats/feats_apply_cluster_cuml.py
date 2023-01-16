@@ -1,18 +1,18 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 # Copyright (c) Facebook, Inc. and its affiliates.
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import logging
 import os
 import os.path as osp
-import logging
-import tqdm
+import pickle
 import sys
 
-import pickle
 import numpy as np
+import tqdm
 from cuml.cluster import KMeans
 
 
@@ -58,7 +58,10 @@ def main():
 
     output_cluster = f"{args.output_path}/{args.split}.cluster"
     with open(output_cluster, "w") as oc:
-        for feats, fname, in tqdm.tqdm(iterator, total=num):
+        for (
+            feats,
+            fname,
+        ) in tqdm.tqdm(iterator, total=num):
             clusters = kmeans.predict(feats)
 
             clusters_str = " ".join(str(c) for c in clusters)
