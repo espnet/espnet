@@ -46,7 +46,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
@@ -82,7 +82,7 @@ svs_stats_dir=""   # Specify the direcotry path for statistics. If empty, automa
 num_splits=1       # Number of splitting for svs corpus.
 teacher_dumpdir="" # Directory of teacher outpus
 write_collected_feats=false # Whether to dump features in stats collection.
-svs_task=svs                # SVS task (svs or gan_svs, now only support svs)
+svs_task=svs                # SVS task (svs or gan_svs)
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 
@@ -231,7 +231,7 @@ else
 fi
 
 # Extra files for SVS
-utt_extra_files="label xml.scp"
+utt_extra_files="label score.scp"
 
 # Check token list type
 token_listdir="data/token_list/${token_type}"
@@ -306,7 +306,7 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
         # [Task dependent] Need to create data.sh for new corpus
-        local/data.sh ${local_data_opts} --fs "${fs}"
+        local/data.sh ${local_data_opts} --fs "${fs}" --g2p "${g2p}"
     fi
     
 
@@ -351,9 +351,9 @@ if ! "${skip_data_prep}"; then
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                     "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
-                scripts/audio/format_xml_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                scripts/audio/format_score_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     ${_opts} \
-                    "xml_dump" "${data_feats}${_suf}/${dset}"
+                    "data/${dset}/score.scp" "${data_feats}${_suf}/${dset}"
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
         fi
@@ -471,6 +471,7 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${blank}:0" \
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
+        
     fi
 else
     log "Skip the stages for data preparation"
@@ -509,7 +510,6 @@ if ! "${skip_train}"; then
             _opts+="--feats_extract_conf n_mels=${n_mels} "
         fi
 
-
         # Add extra configs for additional inputs
         # NOTE(kan-bayashi): We always pass this options but not used in default
         _opts+="--score_feats_extract ${score_feats_extract} "
@@ -517,6 +517,7 @@ if ! "${skip_train}"; then
         _opts+="--score_feats_extract_conf n_fft=${n_fft} "
         _opts+="--score_feats_extract_conf win_length=${win_length} "
         _opts+="--score_feats_extract_conf hop_length=${n_shift} "
+        _opts+="--pitch_extract ${pitch_extract} "
         _opts+="--pitch_extract_conf fs=${fs} "
         _opts+="--pitch_extract_conf n_fft=${n_fft} "
         _opts+="--pitch_extract_conf hop_length=${n_shift} "
@@ -597,11 +598,11 @@ if ! "${skip_train}"; then
                 --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
                 --train_data_path_and_name_and_type "${_train_dir}/label,label,duration" \
-                --train_data_path_and_name_and_type "${_train_dir}/xml.scp,midi,midi" \
+                --train_data_path_and_name_and_type "${_train_dir}/score.scp,score,score" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},singing,${_type}" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/label,label,duration" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/xml.scp,midi,midi" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/score.scp,score,score" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},singing,${_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
@@ -642,6 +643,7 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
+            log "CASE 1: AR model training"
             #####################################
             #     CASE 1: AR model training     #
             #####################################
@@ -704,24 +706,20 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},singing,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/xml.scp,midi,midi "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/score.scp,score,score "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${svs_stats_dir}/train/singing_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/durations_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/score_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/label,label,duration "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/xml.scp,midi,midi "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score.scp,score,score "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/score_shape "
         else
-
+            log "CASE 2: Non-AR model training"
             #####################################
             #   CASE 2: Non-AR model training   #
             #####################################
@@ -791,8 +789,9 @@ if ! "${skip_train}"; then
         if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+="--pitch_extract_conf fs=${fs} "
             _opts+="--pitch_extract_conf n_fft=${n_fft} "
-            _opts+="--pitch_extract_conf win_length=${win_length} "
             _opts+="--pitch_extract_conf hop_length=${n_shift} "
+            _opts+="--pitch_extract_conf f0max=${f0max} "
+            _opts+="--pitch_extract_conf f0min=${f0min} "
             _opts+="--pitch_normalize_conf stats_file=${svs_stats_dir}/train/pitch_stats.npz "
         fi
         if [ -e "${svs_stats_dir}/train/energy_stats.npz" ]; then
@@ -858,7 +857,7 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
-		--init_param ${pretrained_model} \
+                --init_param ${pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
@@ -974,23 +973,27 @@ if ! "${skip_eval}"; then
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type "${_data}/label,label,duration" \
-                    --data_path_and_name_and_type "${_data}/xml.scp,midi,midi" \
+                    --data_path_and_name_and_type "${_data}/score.scp,score,score" \
                     --data_path_and_name_and_type "${_data}/${_scp},singing,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${svs_exp}"/"${inference_model}" \
                     --train_config "${svs_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-		    --vocoder_checkpoint "${vocoder_file}" \
+                    --vocoder_checkpoint "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/norm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/denorm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+
+            if [ ${svs_task} == svs ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/norm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/denorm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            fi
+
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/speech_shape/speech_shape"
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"

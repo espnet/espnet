@@ -25,9 +25,6 @@ scheduler_conf:
     mode: min
     factor: 0.5
     patience: 1
-model_conf:
-    loss_type: mask_mse
-    mask_type: PSM^2
 encoder: stft
 encoder_conf:
     n_fft: 512
@@ -62,3 +59,16 @@ separator_conf:
     rtf_iterations: 3
     bdropout_rate: 0.0
     shared_power: True
+
+
+criterions: 
+  # The first criterion
+  - name: mse 
+    conf:
+      compute_on_mask: True
+      mask_type: PSM^2
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

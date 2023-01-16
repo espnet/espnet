@@ -99,7 +99,6 @@ if [ -n "${segments}" ]; then
     for n in $(seq ${nj}); do
         split_segments="${split_segments} ${logdir}/segments.${n}"
     done
-
     utils/split_scp.pl "${segments}" ${split_segments}
 
     ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
@@ -109,7 +108,6 @@ if [ -n "${segments}" ]; then
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
             "${scp}" "${outdir}/format.JOB"
-
 else
     log "[info]: without segments"
     nutt=$(<${scp} wc -l)

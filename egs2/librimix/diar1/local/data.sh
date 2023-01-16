@@ -74,6 +74,7 @@ done
 
 for file in reco2dur rttm segments spk2utt utt2spk wav.scp; do
     for dir in data/test data/train data/dev; do
+        mkdir -p ${dir}
         echo -n "" > ${dir}/${file}
         for i in $num_spk; do
             cat ${dir}${i}/${file} >> ${dir}/${file}

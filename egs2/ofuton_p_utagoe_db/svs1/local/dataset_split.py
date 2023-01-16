@@ -65,7 +65,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
-    musicxmlscp = open(os.path.join(subset, "musicxml.scp"), "w", encoding="utf-8")
+    musicxmlscp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
 
     for folder in subfolder:
         if not os.path.isdir(os.path.join(src_data, folder)):
