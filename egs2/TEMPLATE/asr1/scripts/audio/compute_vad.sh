@@ -23,9 +23,6 @@ out_filename=vad.scp
 cmd=utils/run.pl
 nj=30
 
-ref_channels=
-utt2ref_channels=
-
 log "$0 $*"
 . utils/parse_options.sh
 
