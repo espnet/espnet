@@ -65,6 +65,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
   - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, Conformer or [Branchformer](https://proceedings.mlr.press/v162/peng22a.html)
+  - Decoder: RNN (LSTM/GRU), Transformer, or S4
 - Attention: Dot product, location-aware attention, variants of multi-head
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
