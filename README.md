@@ -65,6 +65,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
   - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, Conformer or [Branchformer](https://proceedings.mlr.press/v162/peng22a.html)
+  - Decoder: RNN (LSTM/GRU), Transformer, or S4
 - Attention: Dot product, location-aware attention, variants of multi-head
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
@@ -208,17 +209,26 @@ Demonstration
   - RNN-based non-autoregressive model
   - Xiaoice
   - Sequence-to-sequence Transformer (with GLU-based encoder)
-  - MLP singer
+  - MLP singer (in progress)
   - Tacotron-singing (in progress)
-  - DiffSinger (to be published)
-  - VISinger (in progress)
+  - DiffSinger (in progress)
+  - VISinger
 - Support multi-speaker & multilingual singing synthesis
   - Speaker ID embedding
   - Language ID embedding
-  - Global sytle token (GST) embedding
 - Various language support
   - Jp / En / Kr / Zh
 - Tight integration with neural vocoders (the same as TTS)
+
+### SSL: Self-supervised Learning
+- Support HuBERT Pretraining:
+  * Example recipe: [egs2/LibriSpeech/ssl1](egs2/LibriSpeech/ssl1)
+
+### UASR: Unsupervised ASR (EURO: ESPnet Unsupervised Recognition - Open-source)
+- Architecture
+  - wav2vec-U (with different self-supervised models)
+  - wav2vec-U 2.0 (in progress)
+- Support PrefixBeamSearch and K2-based WFST decoding
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
@@ -285,7 +295,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | Task                                                              |     CER (%)     |     WER (%)     |                                                                              Pretrained model                                                                               |
 | ----------------------------------------------------------------- | :-------------: | :-------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Aishell dev/test                                                  |     4.6/5.1     |       N/A       |                [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#conformer-kernel-size--15--specaugment--lm-weight--00-result)                |
-| **ESPnet2** Aishell dev/test                                      |     4.4/4.7     |       N/A       |                [link](https://github.com/espnet/espnet/tree/master/egs2/aishell/asr1#conformer--specaug--speed-perturbation-featsraw-n_fft512-hop_length128)                |
+| **ESPnet2** Aishell dev/test                                      |     4.1/4.4     |       N/A       |                [link](https://github.com/espnet/espnet/tree/master/egs2/aishell/asr1#branchformer-initial)                |
 | Common Voice dev/test                                             |     1.7/1.8     |     2.2/2.3     |    [link](https://github.com/espnet/espnet/blob/master/egs/commonvoice/asr1/RESULTS.md#first-results-default-pytorch-transformer-setting-with-bpe-100-epochs-single-gpu)    |
 | CSJ eval1/eval2/eval3                                             |   5.7/3.8/4.2   |       N/A       |                 [link](https://github.com/espnet/espnet/blob/master/egs/csj/asr1/RESULTS.md#pytorch-backend-transformer-without-any-hyperparameter-tuning)                  |
 | **ESPnet2** CSJ eval1/eval2/eval3                                 |   4.5/3.3/3.6   |       N/A       |                                        [link](https://github.com/espnet/espnet/tree/master/egs2/csj/asr1#initial-conformer-results)                                         |
@@ -295,6 +305,7 @@ We list the character error rate (CER) and word error rate (WER) of major ASR ta
 | **ESPnet2** Librispeech dev_clean/dev_other/test_clean/test_other | 0.6/1.5/0.6/1.4 | 1.7/3.4/1.8/3.6 |    [link](https://github.com/espnet/espnet/tree/master/egs2/librispeech/asr1#self-supervised-learning-features-hubert_large_ll60k-conformer-utt_mvn-with-transformer-lm)    |
 | Switchboard (eval2000) callhm/swbd                                |       N/A       |    14.0/6.8     |          [link](https://github.com/espnet/espnet/blob/master/egs/swbd/asr1/RESULTS.md#conformer-with-bpe-2000-specaug-speed-perturbation-transformer-lm-decoding)           |
 | TEDLIUM2 dev/test                                                 |       N/A       |     8.6/7.2     |                 [link](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md#conformer-large-model--specaug--speed-perturbation--rnnlm)                 |
+| **ESPnet2** TEDLIUM2 dev/test                                                 |       N/A       |     7.3/7.1     |                 [link](https://github.com/espnet/espnet/blob/master/egs2/tedlium2/asr1/README.md#e-branchformer-12-encoder-layers) |
 | TEDLIUM3 dev/test                                                 |       N/A       |     9.6/7.6     |                                              [link](https://github.com/espnet/espnet/blob/master/egs/tedlium3/asr1/RESULTS.md)                                              |
 | WSJ dev93/eval92                                                  |     3.2/2.1     |     7.0/4.7     |                                                                                     N/A                                                                                     |
 | **ESPnet2** WSJ dev93/eval92                                      |     1.1/0.8     |     2.8/1.8     |       [link](https://github.com/espnet/espnet/tree/master/egs2/wsj/asr1#self-supervised-learning-features-wav2vec2_large_ll60k-conformer-utt_mvn-with-transformer-lm)       |
@@ -825,10 +836,26 @@ Also, we can use this tool to provide token-level segmentation information if we
   year={2021},
   organization={IEEE},
 }
-@article{arora2021espnet,
-  title={ESPnet-SLU: Advancing Spoken Language Understanding through ESPnet},
+@inproceedings{arora2021espnet,
+  title={{ESPnet-SLU}: Advancing Spoken Language Understanding through ESPnet},
   author={Arora, Siddhant and Dalmia, Siddharth and Denisov, Pavel and Chang, Xuankai and Ueda, Yushi and Peng, Yifan and Zhang, Yuekai and Kumar, Sujay and Ganesan, Karthik and Yan, Brian and others},
-  journal={arXiv preprint arXiv:2111.14706},
-  year={2021}
+  booktitle={ICASSP 2022-2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={7167--7171},
+  year={2022},
+  organization={IEEE}
+}
+@inproceedings{shi2022muskits,
+  author={Shi, Jiatong and Guo, Shuai and Qian, Tao and Huo, Nan and Hayashi, Tomoki and Wu, Yuning and Xu, Frank and Chang, Xuankai and Li, Huazhe and Wu, Peter and Watanabe, Shinji and Jin, Qin},
+  title={{Muskits}: an End-to-End Music Processing Toolkit for Singing Voice Synthesis},
+  year={2022},
+  booktitle={Proceedings of Interspeech},
+  pages={4277-4281},
+  url={https://www.isca-speech.org/archive/pdfs/interspeech_2022/shi22d_interspeech.pdf}
+}
+@article{gao2022euro,
+  title={{EURO}: {ESPnet} Unsupervised ASR Open-source Toolkit},
+  author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
+  journal={arXiv preprint arXiv:2211.17196},
+  year={2022}
 }
 ```

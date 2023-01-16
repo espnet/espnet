@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import sys
 import argparse
+import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Optional
+
+from tqdm import tqdm
 
 from espnet.utils.cli_utils import get_commandline_args
-from typing import Optional
-from tqdm import tqdm
 
 
 def get_parser() -> argparse.ArgumentParser:

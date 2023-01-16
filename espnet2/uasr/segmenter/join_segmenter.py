@@ -1,9 +1,8 @@
 import argparse
 import logging
+from typing import Dict, Optional
 
 import torch
-
-from typing import Optional, Dict
 from typeguard import check_argument_types
 
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter

@@ -1,10 +1,9 @@
 import torch
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class UASRPhonemeDiversityLoss(AbsUASRLoss):
@@ -25,7 +24,7 @@ class UASRPhonemeDiversityLoss(AbsUASRLoss):
         """Forward.
 
         Args:
-            dense_x: predicted logits of generated samples 
+            dense_x: predicted logits of generated samples
             sample_size: batch size
             is_dicriminative_step: whether is training discriminator
         """

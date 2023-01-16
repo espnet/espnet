@@ -249,6 +249,16 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                 + "".join([self.token_list[x] for x in best.yseq[1:-1]])
                 + "\n"
             )
+        if best.yseq[1:-1].shape[0] == x.shape[0]:
+            logging.warning(
+                "best hypo length: {} == max output length: {}".format(
+                    best.yseq[1:-1].shape[0], maxlen
+                )
+            )
+            logging.warning(
+                "decoding may be stopped by the max output length limitation, "
+                + "please consider to increase the maxlenratio."
+            )
         return nbest_hyps
 
     def extend(self, x: torch.Tensor, hyps: Hypothesis) -> List[Hypothesis]:

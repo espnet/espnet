@@ -1,30 +1,25 @@
-import logging
 import argparse
-
+import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
-import torch
-import kenlm
 import editdistance
-
+import kenlm
+import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.text.token_id_converter import TokenIDConverter
-
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
-from espnet2.uasr.generator.abs_generator import AbsGenerator
-from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
-
-from espnet2.uasr.loss.abs_loss import AbsUASRLoss
-
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
+from espnet2.uasr.generator.abs_generator import AbsGenerator
+from espnet2.uasr.loss.abs_loss import AbsUASRLoss
+from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -38,7 +33,7 @@ else:
 class ESPnetUASRModel(AbsESPnetModel):
     """
     Unsupervised ASR model
-    The source code is from FAIRSEQ: 
+    The source code is from FAIRSEQ:
         https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
     """
 

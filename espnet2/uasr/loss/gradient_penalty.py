@@ -1,12 +1,11 @@
 import torch
 from torch import autograd
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.utils.types import str2bool
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class UASRGradientPenalty(AbsUASRLoss):

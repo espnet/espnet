@@ -169,26 +169,32 @@ parser.add_argument(
     default="decode_asr_asr_model_valid.acc.ave/test/",
     help="Directory inside exp_root containing inference on test set",
 )
+parser.add_argument(
+    "--score_folder",
+    default="score_ter",
+    help="Directory inside inference folder containing hypothesis and reference files",
+)
 args = parser.parse_args()
 
 exp_root = args.exp_root
 valid_inference_folder = args.valid_folder
 test_inference_folder = args.test_folder
+score_folder = args.score_folder
 
 # Read original tokenized text
 valid_hyp_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_ter/hyp.trn")
+    os.path.join(exp_root, valid_inference_folder, score_folder, "hyp.trn")
 )
 valid_ref_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_ter/ref.trn")
+    os.path.join(exp_root, valid_inference_folder, score_folder, "ref.trn")
 )
 
 # Write detokenized text
 valid_hyp_asr_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_ter/hyp_asr.trn"), "w"
+    os.path.join(exp_root, valid_inference_folder, score_folder, "hyp_asr.trn"), "w"
 )
 valid_ref_asr_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_ter/ref_asr.trn"), "w"
+    os.path.join(exp_root, valid_inference_folder, score_folder, "ref_asr.trn"), "w"
 )
 
 result, label_result = get_classification_result(
@@ -202,21 +208,21 @@ print(json.dumps(label_result, indent=4))
 print()
 
 
-if os.path.isdir(test_inference_folder):
+if os.path.isdir(os.path.join(exp_root, test_inference_folder)):
     # Read files
     test_hyp_file = open(
-        os.path.join(exp_root, test_inference_folder + "score_ter/hyp.trn")
+        os.path.join(exp_root, test_inference_folder, score_folder, "hyp.trn")
     )
     test_ref_file = open(
-        os.path.join(exp_root, test_inference_folder + "score_ter/ref.trn")
+        os.path.join(exp_root, test_inference_folder, score_folder, "ref.trn")
     )
 
     # Write files
     test_hyp_asr_file = open(
-        os.path.join(exp_root, test_inference_folder + "score_ter/hyp_asr.trn"), "w"
+        os.path.join(exp_root, test_inference_folder, score_folder, "hyp_asr.trn"), "w"
     )
     test_ref_asr_file = open(
-        os.path.join(exp_root, test_inference_folder + "score_ter/ref_asr.trn"), "w"
+        os.path.join(exp_root, test_inference_folder, score_folder, "ref_asr.trn"), "w"
     )
 
     result, label_result = get_classification_result(

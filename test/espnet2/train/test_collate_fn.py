@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from espnet2.train.collate_fn import CommonCollateFn, common_collate_fn
+from espnet2.train.collate_fn import CommonCollateFn, HuBERTCollateFn, common_collate_fn
 
 
 @pytest.mark.parametrize(
@@ -118,5 +118,122 @@ def test_CommonCollateFn_repr(float_pad_value, int_pad_value, not_sequence):
             float_pad_value=float_pad_value,
             int_pad_value=int_pad_value,
             not_sequence=not_sequence,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop",
+    [
+        (0.0, -1, (), 1, True, False),
+        (3.0, 2, ("a",), 1, False, False),
+        (np.inf, 100, ("a", "b"), 2, True, False),
+    ],
+)
+def test_HuBERT_(
+    float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop
+):
+    _hubert_collate_fn = HuBERTCollateFn(
+        float_pad_value=float_pad_value,
+        int_pad_value=int_pad_value,
+        not_sequence=not_sequence,
+        label_downsampling=label_downsampling,
+        pad=pad,
+        rand_crop=rand_crop,
+    )
+    data = [
+        (
+            "id",
+            dict(
+                speech=np.random.randn(16000), text=np.random.randn(49).astype(np.long)
+            ),
+        ),
+        (
+            "id2",
+            dict(
+                speech=np.random.randn(22000), text=np.random.randn(67).astype(np.long)
+            ),
+        ),
+    ]
+    t = _hubert_collate_fn(data)
+
+    if pad:
+        desired = dict(
+            speech=np.stack(
+                [
+                    np.pad(
+                        data[0][1]["speech"],
+                        (0, 6000),
+                        mode="constant",
+                        constant_values=float_pad_value,
+                    ),
+                    data[1][1]["speech"],
+                ]
+            ),
+            text=np.stack(
+                [
+                    np.pad(
+                        data[0][1]["text"],
+                        (0, 18),
+                        mode="constant",
+                        constant_values=int_pad_value,
+                    )[::label_downsampling],
+                    data[1][1]["text"][::label_downsampling],
+                ]
+            ),
+            speech_lengths=np.array([16000, 22000], dtype=np.long),
+            text_lengths=np.array([49, 67], dtype=np.long),
+        )
+    else:
+        desired = dict(
+            speech=np.stack(
+                [
+                    data[0][1]["speech"],
+                    data[1][1]["speech"][:16000],
+                ]
+            ),
+            text=np.stack(
+                [
+                    data[0][1]["text"][::label_downsampling],
+                    data[1][1]["text"][:49:label_downsampling],
+                ]
+            ),
+            speech_lengths=np.array([16000, 16000], dtype=np.long),
+            text_lengths=np.array([49, 49], dtype=np.long),
+        )
+
+    if label_downsampling > 1:
+        desired["text_lengths"] = (
+            desired["text_lengths"] + 1 - label_downsampling
+        ) // label_downsampling + 1
+
+    np.testing.assert_array_equal(t[1]["speech"], desired["speech"])
+    np.testing.assert_array_equal(t[1]["text"], desired["text"])
+
+    if "speech" not in not_sequence:
+        np.testing.assert_array_equal(t[1]["speech_lengths"], desired["speech_lengths"])
+    if "text" not in not_sequence:
+        np.testing.assert_array_equal(t[1]["text_lengths"], desired["text_lengths"])
+
+
+@pytest.mark.parametrize(
+    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop",
+    [
+        (0.0, -1, (), 1, True, True),
+        (3.0, 2, ("a",), 1, False, False),
+        (np.inf, 100, ("a", "b"), 2, True, False),
+    ],
+)
+def test_HuBERTCollateFn_repr(
+    float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop
+):
+    print(
+        HuBERTCollateFn(
+            float_pad_value=float_pad_value,
+            int_pad_value=int_pad_value,
+            not_sequence=not_sequence,
+            label_downsampling=label_downsampling,
+            pad=pad,
+            rand_crop=rand_crop,
         )
     )

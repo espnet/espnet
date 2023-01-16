@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
-import sys
 import argparse
+import sys
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import numpy as np
-from espnet.utils.cli_utils import get_commandline_args
+
 from espnet2.utils.types import str2bool
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -21,7 +22,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input_text", required=True, help="Input text.")
     parser.add_argument("--output_text", required=True, help="Output text.")
     parser.add_argument("--output_vocab", help="Output vocabulary.")
-    parser.add_argument("--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary")
+    parser.add_argument(
+        "--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary"
+    )
     return parser
 
 

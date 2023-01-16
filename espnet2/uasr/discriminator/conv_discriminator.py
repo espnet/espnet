@@ -1,8 +1,8 @@
-import torch
 import argparse
-
 import logging
-from typing import Optional, Dict
+from typing import Dict, Optional
+
+import torch
 from typeguard import check_argument_types
 
 from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator

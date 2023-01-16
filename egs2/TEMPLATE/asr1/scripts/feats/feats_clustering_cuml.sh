@@ -43,7 +43,7 @@ echo "using ${dim} dim for PCA"
 train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats.scp"
 if "${reduce}"; then
     echo "$0: Reducing ${train_feats_scp}"
-    cat "${train_feats_scp}" | sort | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
+    sort "${train_feats_scp}" | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
     train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp"
 fi    
 
@@ -59,7 +59,7 @@ if ! ${skip_training}; then
     utils/split_scp.pl "${feats_scp}" ${train_split_feats_scp}
 fi
 
-if [ ! -z ${valid_set} ]; then
+if [ -n "${valid_set}" ]; then
     feats_scp="${uasr_stats_dir}/${valid_set}/collect_feats/feats.scp"
     split_dir="${uasr_stats_dir}/${valid_set}/collect_feats/split${nj}"
     mkdir -p "${split_dir}"
@@ -71,8 +71,9 @@ if [ ! -z ${valid_set} ]; then
     utils/split_scp.pl "${feats_scp}" ${valid_split_feats_scp}
 fi
 
-if [ ! -z "${test_sets}" ]; then
-    for test_set in ${test_sets}; do
+if [ -n "${test_sets}" ]; then
+for test_set in ${test_sets}; do
+    if [ -n "${test_set}" ]; then
         feats_scp="${uasr_stats_dir}/${test_set}/collect_feats/feats.scp"
         split_dir="${uasr_stats_dir}/${test_set}/collect_feats/split${nj}"
         mkdir -p "${split_dir}"
@@ -82,8 +83,8 @@ if [ ! -z "${test_sets}" ]; then
             test_split_feats_scp="${test_split_feats_scp} ${split_dir}/${n}/feats.scp"        
         done
         utils/split_scp.pl "${feats_scp}" ${test_split_feats_scp}
-    done
-fi
+    fi
+done
 
 
 if ! ${skip_training}; then

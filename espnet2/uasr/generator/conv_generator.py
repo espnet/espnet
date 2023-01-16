@@ -1,10 +1,9 @@
 import argparse
 import logging
+from typing import Dict, Optional
 
 import torch
-
 from typeguard import check_argument_types
-from typing import Optional, Dict
 
 from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.utils.types import str2bool
