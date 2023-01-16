@@ -13,6 +13,7 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H30
 )
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
@@ -35,6 +36,7 @@ from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
+    TorchAudioHuBERTPretrainEncoder,
 )
 from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -147,6 +149,7 @@ encoder_choices = ClassChoices(
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        torchaudiohubert=TorchAudioHuBERTPretrainEncoder,
         longformer=LongformerEncoder,
         branchformer=BranchformerEncoder,
         whisper=OpenAIWhisperEncoder,
@@ -177,6 +180,7 @@ decoder_choices = ClassChoices(
         mlm=MLMDecoder,
         whisper=OpenAIWhisperDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
+        s4=S4Decoder,
     ),
     type_check=AbsDecoder,
     default="rnn",

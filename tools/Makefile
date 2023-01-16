@@ -149,6 +149,14 @@ speechbrain.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_speechbrain.sh
 	touch speechbrain.done
 
+mfa.done: espnet.done conda_packages.done
+ifneq ($(strip $(USE_CONDA)),)
+	. ./activate_python.sh && ./installers/install_mfa.sh "true"
+else
+	. ./activate_python.sh && ./installers/install_mfa.sh "false"
+endif
+	touch mfa.done
+
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
@@ -212,6 +220,10 @@ longformer.done: espnet.done
 muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
 	touch muskits.done
+
+cauchy_mult.done: espnet.done
+	. ./activate_python.sh && ./installers/install_cauchy_mult.sh
+	touch cauchy_mult.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
