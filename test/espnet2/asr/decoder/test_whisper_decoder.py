@@ -5,6 +5,8 @@ from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 
 VOCAB_SIZE_WHISPER_MULTILINGUAL = 51865
 
+pytest.importorskip("whisper")
+
 
 @pytest.fixture()
 def whisper_decoder(request):

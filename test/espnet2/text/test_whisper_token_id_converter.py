@@ -2,6 +2,8 @@ import pytest
 
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 
+pytest.importorskip("whisper")
+
 
 @pytest.fixture(params=["whisper_multilingual"])
 def whisper_token_id_converter(request):

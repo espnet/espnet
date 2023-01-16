@@ -3,6 +3,8 @@ import torch
 
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 
+pytest.importorskip("whisper")
+
 
 @pytest.fixture()
 def whisper_encoder(request):

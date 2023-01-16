@@ -4,6 +4,9 @@ import pytest
 
 from espnet2.bin.whisper_export_vocabulary import export_vocabulary, get_parser, main
 
+pytest.importorskip("whisper")
+
+
 VOCAB_SIZE_MULTILINGUAL = 51865
 VOCAB_SIZE_EN = 51864
 

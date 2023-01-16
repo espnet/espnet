@@ -3,6 +3,8 @@ import torch
 
 from espnet2.asr.frontend.whisper import WhisperFrontend
 
+pytest.importorskip("whisper")
+
 
 @pytest.fixture()
 def whisper_frontend(request):

@@ -2,6 +2,8 @@ import pytest
 
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
+pytest.importorskip("whisper")
+
 
 @pytest.fixture(params=["whisper_multilingual"])
 def whisper_tokenizer(request):
