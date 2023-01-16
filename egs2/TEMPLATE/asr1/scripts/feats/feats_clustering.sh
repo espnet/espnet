@@ -43,7 +43,7 @@ echo "using ${dim} dim for PCA"
 train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats.scp"
 if "${reduce}"; then
     echo "$0: Reducing ${train_feats_scp}"
-    < "${train_feats_scp}" | sort | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
+    sort "${train_feats_scp}" | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
     train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp"
 fi    
 
@@ -59,7 +59,7 @@ if ! ${skip_training}; then
     utils/split_scp.pl "${feats_scp}" ${train_split_feats_scp}
 fi
 
-if [ -n ${valid_set} ]; then
+if [ -n "${valid_set}" ]; then
     feats_scp="${uasr_stats_dir}/${valid_set}/collect_feats/feats.scp"
     split_dir="${uasr_stats_dir}/${valid_set}/collect_feats/split${nj}"
     mkdir -p "${split_dir}"

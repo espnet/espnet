@@ -43,7 +43,7 @@ echo "using ${dim} dim for PCA"
 train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats.scp"
 if "${reduce}"; then
     echo "$0: Reducing ${train_feats_scp}"
-    cat "${train_feats_scp}" | sort | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
+    sort "${train_feats_scp}" | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
     train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp"
 fi    
 
