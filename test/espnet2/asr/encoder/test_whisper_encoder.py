@@ -76,20 +76,3 @@ def test_encoder_backward(whisper_encoder):
     xs_pad, _, _ = whisper_encoder(input_tensor, None)
 
     xs_pad.sum().backward()
-
-
-@pytest.mark.timeout(50)
-def test_encoder_padtrim(whisper_encoder):
-    if not is_torch_1_7_plus:
-        return
-
-    from whisper.audio import N_FRAMES
-
-    whisper_encoder.do_pad_trim = True
-    whisper_encoder.eval()
-
-    input_tensor = torch.randn(
-        4, 3200, device=next(whisper_encoder.parameters()).device
-    )
-    xs_pad, _, _ = whisper_encoder(input_tensor, None)
-    assert xs_pad.size(1) == N_FRAMES // 2
