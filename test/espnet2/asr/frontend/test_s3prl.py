@@ -39,12 +39,13 @@ def test_frontend_output_size():
 @pytest.mark.parametrize(
     "fs, frontend_conf, multilayer_feature",
     [
-        (16000, dict(upstream="mel"), True),
-        (16000, dict(upstream="mel"), False),
-        (16000, dict(upstream="mel", tile_factor=1), False),
+        (16000, dict(upstream="mel"), True, -1),
+        (16000, dict(upstream="mel"), False, -1),
+        (16000, dict(upstream="mel", tile_factor=1), False, -1),
+        (16000, dict(upstream="mel"), False, 0),
     ],
 )
-def test_frontend_backward(fs, frontend_conf, multilayer_feature):
+def test_frontend_backward(fs, frontend_conf, multilayer_feature, layer):
     if not is_torch_1_8_plus:
         return
 

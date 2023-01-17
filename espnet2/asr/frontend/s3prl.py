@@ -58,8 +58,14 @@ class S3prlFrontend(AbsFrontend):
             "HubertModel",
         ]:
             upstream.model.encoder.layerdrop = 0.0
+
         if layer != -1:
             layer_selections = [layer]
+            assert (
+                not multilayer_feature
+            ), "multilayer feature will be deactivated, when specific layer used"
+        else:
+            layer_selections = None
         featurizer = Featurizer(upstream, layer_selections=layer_selections)
 
         self.multilayer_feature = multilayer_feature
