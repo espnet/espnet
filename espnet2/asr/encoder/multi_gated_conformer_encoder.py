@@ -304,11 +304,24 @@ class MultiGatedConformerEncoder(AbsEncoder):
                 ))
                 
         self.gating = gating
+        
         if self.gating:
             self.gating_layers = torch.nn.ModuleList()
-            for idx in range(num_pre_encs):
-                self.gating_layers.append(torch.nn.Linear(output_size, 1))
+            if not layerwise:
+                for idx in range(num_pre_encs):
+                    self.gating_layers.append(torch.nn.Linear(output_size, 1))
+            else:
+                for idx in range(num_pre_encs):
+                    layer_per_blocks = torch.nn.ModuleList()
+                    for block_idx in range(num_multi_blocks):
+                        layer_per_blocks.append(torch.nn.Linear(output_size, 1))
+                    self.gating_layers.append(layer_per_blocks)
+                    
+            self.num_multi_blocks = num_multi_blocks
+            self.layerwise = layerwise
             self.sigmoid = torch.nn.Sigmoid()
+        else:
+            self.layerwise = False
             
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
@@ -359,22 +372,37 @@ class MultiGatedConformerEncoder(AbsEncoder):
         else:
             xs_pad = self.embed(xs_pad)
 
-
-        xs_pad_array, pos_embeds = [], []
-        for idx in range(self.num_pre_encs):
-            res, masks = self.pre_encoders[idx](xs_pad, masks)  #use the last mask
-            xs_pad_array.append(res[0])
-            pos_embeds.append(res[1])
-
-        if not self.gating:
-            xs_pad = (torch.sum(torch.stack(xs_pad_array, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))   #sum of encoder states, mean of pos embeds (in case there a type of learnable pos embed used)
-        else:
-            scored_xs_pad = []
+        if not self.layerwise:
+            xs_pad_array, pos_embeds = [], []
             for idx in range(self.num_pre_encs):
-                score = self.sigmoid(self.gating_layers[idx](xs_pad_array[idx]))
-                scored_xs_pad.append(score*xs_pad_array[idx])
-            xs_pad = (torch.sum(torch.stack(scored_xs_pad, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))
+                res, masks = self.pre_encoders[idx](xs_pad, masks)  #use the last mask
+                xs_pad_array.append(res[0])
+                pos_embeds.append(res[1])
+
+            if not self.gating:
+                xs_pad = (torch.sum(torch.stack(xs_pad_array, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))   #sum of encoder states, mean of pos embeds (in case there a type of learnable pos embed used)
+            else:
+                scored_xs_pad = []
+                for idx in range(self.num_pre_encs):
+                    score = self.sigmoid(self.gating_layers[idx](xs_pad_array[idx]))
+                    scored_xs_pad.append(score*xs_pad_array[idx])
+                xs_pad = (torch.sum(torch.stack(scored_xs_pad, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))
+        
+        else:
             
+            for block_idx in range(self.num_multi_blocks):
+                xs_pad_array, pos_embeds = [], []
+                for enc_idx in range(self.num_pre_encs):
+                    res, masks = self.pre_encoders[enc_idx][block_idx](xs_pad, masks)
+                    xs_pad_array.append(res[0])
+                    pos_embeds.append(res[1])
+                
+                scored_xs_pad = []
+                for enc_idx in range(self.num_pre_encs):
+                    score = self.sigmoid(self.gating_layers[enc_idx][block_idx](xs_pad_array[enc_idx]))
+                    scored_xs_pad.append(score*xs_pad_array[enc_idx])
+                xs_pad = (torch.sum(torch.stack(scored_xs_pad, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))
+                
         if self.post_encoder:
             xs_pad, masks = self.encoders(xs_pad, masks)     
        
