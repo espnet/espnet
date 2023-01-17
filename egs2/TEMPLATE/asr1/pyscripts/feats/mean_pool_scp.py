@@ -18,9 +18,7 @@ from npy_append_array import NpyAppendArray
 
 
 def get_parser():
-    parser = argparse.ArgumentParser(
-        description="mean pooling of the representation"
-    )
+    parser = argparse.ArgumentParser(description="mean pooling of the representation")
     parser.add_argument("source", help="directory with features")
     parser.add_argument("--split", help="which split to read", required=True)
     parser.add_argument("--root", help="root of espnet", required=True)
