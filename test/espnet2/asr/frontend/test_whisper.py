@@ -12,6 +12,9 @@ is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 
 @pytest.fixture()
 def whisper_frontend(request):
+    if not is_torch_1_7_plus:
+        return None
+
     with torch.no_grad():
         return WhisperFrontend("tiny")
 

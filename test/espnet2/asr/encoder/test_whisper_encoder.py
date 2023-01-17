@@ -12,6 +12,9 @@ is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 
 @pytest.fixture()
 def whisper_encoder(request):
+    if not is_torch_1_7_plus:
+        return None
+
     encoder = OpenAIWhisperEncoder(whisper_model="tiny")
 
     return encoder
