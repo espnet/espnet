@@ -95,7 +95,7 @@ class Speech2Text:
                 uasr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
             )
 
-        decoder = UASRPrefixScorer(eos=3)  # FIXME(jiatong): remove hard code
+        decoder = UASRPrefixScorer(eos=uasr_model.eos)
         token_list = uasr_model.token_list
         scorers.update(decoder=decoder)
         logging.info(f"beam search token list: {token_list}")
@@ -136,8 +136,8 @@ class Speech2Text:
             beam_size=beam_size,
             weights=weights,
             scorers=scorers,
-            sos=1,  # FIXME(jiatong): remove hardcode
-            eos=3,
+            sos=uasr_model.sos, 
+            eos=uasr_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None,  # Note(jiatong): for frame-decoding (current scope)
