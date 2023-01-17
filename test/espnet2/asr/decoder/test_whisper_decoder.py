@@ -16,6 +16,7 @@ def whisper_decoder(request):
     )
 
 
+@pytest.mark.timeout(50)
 def test_decoder_init(whisper_decoder):
     assert (
         whisper_decoder.decoders.token_embedding.num_embeddings
@@ -23,6 +24,7 @@ def test_decoder_init(whisper_decoder):
     )
 
 
+@pytest.mark.timeout(50)
 def test_decoder_reinit_emb():
     vocab_size = 1000
     decoder = OpenAIWhisperDecoder(
@@ -42,6 +44,7 @@ def test_decoder_invalid_init():
         del decoder
 
 
+@pytest.mark.timeout(50)
 def test_decoder_forward_backward(whisper_decoder):
     hs_pad = torch.randn(4, 100, 768, device=next(whisper_decoder.parameters()).device)
     ys_in_pad = torch.randint(
@@ -53,6 +56,7 @@ def test_decoder_forward_backward(whisper_decoder):
     out.sum().backward()
 
 
+@pytest.mark.timeout(50)
 def test_decoder_scoring(whisper_decoder):
     hs_pad = torch.randn(4, 100, 768, device=next(whisper_decoder.parameters()).device)
     ys_in_pad = torch.randint(

@@ -12,6 +12,7 @@ def whisper_frontend(request):
         return WhisperFrontend()
 
 
+@pytest.mark.timeout(50)
 def test_frontend_init():
     frontend = WhisperFrontend()
     assert frontend.output_size() == 768
@@ -23,6 +24,7 @@ def test_frontend_invalid_init():
         del frontend
 
 
+@pytest.mark.timeout(50)
 def test_frontend_forward_no_ilens(whisper_frontend):
     input_tensor = torch.randn(
         4, 32000, device=next(whisper_frontend.parameters()).device
@@ -32,6 +34,7 @@ def test_frontend_forward_no_ilens(whisper_frontend):
     assert feats.size() == torch.Size([4, 100, 768])
 
 
+@pytest.mark.timeout(50)
 def test_frontend_forward_ilens(whisper_frontend):
     input_tensor = torch.randn(
         4, 32000, device=next(whisper_frontend.parameters()).device

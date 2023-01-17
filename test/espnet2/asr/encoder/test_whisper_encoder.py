@@ -14,6 +14,7 @@ def whisper_encoder(request):
     return encoder
 
 
+@pytest.mark.timeout(50)
 def test_encoder_init(whisper_encoder):
     assert whisper_encoder.output_size() == 768
 
@@ -24,6 +25,7 @@ def test_encoder_invalid_init():
         del encoder
 
 
+@pytest.mark.timeout(50)
 def test_encoder_forward_no_ilens(whisper_encoder):
     input_tensor = torch.randn(
         4, 32000, device=next(whisper_encoder.parameters()).device
@@ -33,6 +35,7 @@ def test_encoder_forward_no_ilens(whisper_encoder):
     assert xs_pad.size() == torch.Size([4, 100, 768])
 
 
+@pytest.mark.timeout(50)
 def test_encoder_forward_ilens(whisper_encoder):
     input_tensor = torch.randn(
         4, 32000, device=next(whisper_encoder.parameters()).device
@@ -46,6 +49,7 @@ def test_encoder_forward_ilens(whisper_encoder):
     assert torch.equal(olens.cpu(), torch.tensor([16, 31, 50, 100]))
 
 
+@pytest.mark.timeout(50)
 def test_encoder_backward(whisper_encoder):
     input_tensor = torch.randn(
         4, 32000, device=next(whisper_encoder.parameters()).device
@@ -55,6 +59,7 @@ def test_encoder_backward(whisper_encoder):
     xs_pad.sum().backward()
 
 
+@pytest.mark.timeout(50)
 def test_encoder_padtrim(whisper_encoder):
     from whisper.audio import N_FRAMES
 
