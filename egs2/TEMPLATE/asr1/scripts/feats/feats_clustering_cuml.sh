@@ -71,7 +71,6 @@ if [ -n "${valid_set}" ]; then
     utils/split_scp.pl "${feats_scp}" ${valid_split_feats_scp}
 fi
 
-if [ -n "${test_sets}" ]; then
 for test_set in ${test_sets}; do
     if [ -n "${test_set}" ]; then
         feats_scp="${uasr_stats_dir}/${test_set}/collect_feats/feats.scp"
