@@ -19,7 +19,7 @@ from npy_append_array import NpyAppendArray
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description="mean pools representations by compressing uniform splits of the data"
+        description="mean pooling of the representation"
     )
     parser.add_argument("source", help="directory with features")
     parser.add_argument("--split", help="which split to read", required=True)
@@ -32,7 +32,7 @@ def get_parser():
     parser.add_argument(
         "--remove_extra",
         action="store_true",
-        help="if true, removes extra states that cant be pooled, otherwise pads with 0s",
+        help="if true, removes extra states, otherwise pads with 0s",
     )
 
     return parser
