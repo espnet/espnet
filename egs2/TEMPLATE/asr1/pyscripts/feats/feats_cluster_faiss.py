@@ -23,19 +23,27 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="compute kmeans codebook from kaldi-computed feats"
     )
-    # fmt: off
-    parser.add_argument('feats_scp', help='location of feature scp files')
-    parser.add_argument('--save_dir', help='where to save the output', required=True)
-    parser.add_argument('--sample_pct', '-r', type=float, help='percentage of timesteps to sample', default=0)
-    parser.add_argument('--faiss_specs', '-f', type=str,
-                        help='faiss index specs; separated by space '
-                             'format is: PCAx_NORM_CLUSx_SPHERICAL -> '
-                                'PCAx if exists first apply PCA '
-                                'NORM if exists, normalize the vector by L2 norm '
-                                'CLUSx must exist, cluster to x clusters '
-                                'SPEHRICAL if exists, apply spherical kmeans',
-                        default='l2')
-    # fmt: on
+    parser.add_argument("feats_scp", help="location of feature scp files")
+    parser.add_argument("--save_dir", help="where to save the output", required=True)
+    parser.add_argument(
+        "--sample_pct",
+        "-r",
+        type=float,
+        help="percentage of timesteps to sample",
+        default=0,
+    )
+    parser.add_argument(
+        "--faiss_specs",
+        "-f",
+        type=str,
+        help="faiss index specs; separated by space "
+        "format is: PCAx_NORM_CLUSx_SPHERICAL -> "
+        "PCAx if exists first apply PCA "
+        "NORM if exists, normalize the vector by L2 norm "
+        "CLUSx must exist, cluster to x clusters "
+        "SPEHRICAL if exists, apply spherical kmeans",
+        default="l2",
+    )
 
     return parser
 

@@ -18,10 +18,9 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="compute a pca matrix given an array of numpy features"
     )
-    # fmt: off
-    parser.add_argument('data', help='features scp files')
-    parser.add_argument('--output', help='where to save the pca matrix', required=True)
-    parser.add_argument('--dim', type=int, help='dim for pca reduction', default=512)
+    parser.add_argument("data", help="features scp files")
+    parser.add_argument("--output", help="where to save the pca matrix", required=True)
+    parser.add_argument("--dim", type=int, help="dim for pca reduction", default=512)
 
     return parser
 

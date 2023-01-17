@@ -21,14 +21,17 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="transforms features via a given pca and stored them in target dir"
     )
-    # fmt: off
-    parser.add_argument('feats_scp', help='features scp file')
-    parser.add_argument('--split', help='which split to read', required=True)
-    parser.add_argument('--save_dir', help='where to save the output', required=True)
-    parser.add_argument('--pca_path', type=str, help='pca location. will append _A.npy and _b.npy', required=True)
-    parser.add_argument('--batch_size', type=int, default=2048000, help='batch size')
-    parser.add_argument('--dim', type=int, default=512, help="pca dimension")
-    # fmt: on
+    parser.add_argument("feats_scp", help="features scp file")
+    parser.add_argument("--split", help="which split to read", required=True)
+    parser.add_argument("--save_dir", help="where to save the output", required=True)
+    parser.add_argument(
+        "--pca_path",
+        type=str,
+        help="pca location. will append _A.npy and _b.npy",
+        required=True,
+    )
+    parser.add_argument("--batch_size", type=int, default=2048000, help="batch size")
+    parser.add_argument("--dim", type=int, default=512, help="pca dimension")
 
     return parser
 
