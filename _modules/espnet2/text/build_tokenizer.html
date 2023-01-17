@@ -179,6 +179,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.text.hugging_face_tokenizer</span> <span class="kn">import</span> <span class="n">HuggingFaceTokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">PhonemeTokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.sentencepiece_tokenizer</span> <span class="kn">import</span> <span class="n">SentencepiecesTokenizer</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.whisper_tokenizer</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.word_tokenizer</span> <span class="kn">import</span> <span class="n">WordTokenizer</span>
 
 
@@ -238,6 +239,9 @@
             <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
             <span class="n">remove_non_linguistic_symbols</span><span class="o">=</span><span class="n">remove_non_linguistic_symbols</span><span class="p">,</span>
         <span class="p">)</span>
+
+    <span class="k">elif</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">OpenAIWhisperTokenizer</span><span class="p">(</span><span class="n">bpemodel</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>

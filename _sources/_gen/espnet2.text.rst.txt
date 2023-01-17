@@ -59,6 +59,17 @@ espnet2.text.token_id_converter
     :show-inheritance:
 
 
+.. _espnet2.text.whisper_token_id_converter:
+
+espnet2.text.whisper_token_id_converter
+---------------------------------------
+
+.. automodule:: espnet2.text.whisper_token_id_converter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.text.korean_cleaner:
 
 espnet2.text.korean_cleaner
@@ -76,6 +87,17 @@ espnet2.text.hugging_face_tokenizer
 -----------------------------------
 
 .. automodule:: espnet2.text.hugging_face_tokenizer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.text.whisper_tokenizer:
+
+espnet2.text.whisper_tokenizer
+------------------------------
+
+.. automodule:: espnet2.text.whisper_tokenizer
     :members:
     :undoc-members:
     :show-inheritance:

@@ -194,6 +194,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.whisper_token_id_converter</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenIDConverter</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
@@ -474,14 +475,25 @@
 
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span> <span class="ow">or</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span>
+            <span class="ow">or</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span>
+            <span class="ow">or</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span>
+        <span class="p">):</span>
             <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span> <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">)</span>
-        <span class="n">converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
+            <span class="n">converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">converter</span> <span class="o">=</span> <span class="n">OpenAIWhisperTokenIDConverter</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
+            <span class="n">beam_search</span><span class="o">.</span><span class="n">set_hyp_primer</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">converter</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">sot_sequence_including_notimestamps</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Text tokenizer: </span><span class="si">{</span><span class="n">tokenizer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span> <span class="o">=</span> <span class="n">asr_model</span>

@@ -169,6 +169,17 @@ espnet2.asr.encoder.conformer_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.whisper_encoder:
+
+espnet2.asr.encoder.whisper_encoder
+-----------------------------------
+
+.. automodule:: espnet2.asr.encoder.whisper_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.branchformer_encoder:
 
 espnet2.asr.encoder.branchformer_encoder
@@ -400,6 +411,17 @@ espnet2.asr.decoder.__init__
     :show-inheritance:
 
 
+.. _espnet2.asr.decoder.whisper_decoder:
+
+espnet2.asr.decoder.whisper_decoder
+-----------------------------------
+
+.. automodule:: espnet2.asr.decoder.whisper_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.specaug.specaug:
 
 espnet2.asr.specaug.specaug
@@ -461,6 +483,17 @@ espnet2.asr.frontend.fused
 --------------------------
 
 .. automodule:: espnet2.asr.frontend.fused
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.whisper:
+
+espnet2.asr.frontend.whisper
+----------------------------
+
+.. automodule:: espnet2.asr.frontend.whisper
     :members:
     :undoc-members:
     :show-inheritance:

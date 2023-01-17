@@ -182,6 +182,11 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.text.korean_cleaner</span> <span class="kn">import</span> <span class="n">KoreanCleaner</span>
 
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">whisper.normalizers</span> <span class="kn">import</span> <span class="n">BasicTextNormalizer</span><span class="p">,</span> <span class="n">EnglishTextNormalizer</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">BasicTextNormalizer</span> <span class="o">=</span> <span class="kc">None</span>
+
 
 <div class="viewcode-block" id="TextCleaner"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.cleaner.TextCleaner">[docs]</a><span class="k">class</span> <span class="nc">TextCleaner</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Text cleaner.</span>
@@ -203,6 +208,14 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cleaner_types</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">whisper_cleaner</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">BasicTextNormalizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_types</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;whisper_en&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">whisper_cleaner</span> <span class="o">=</span> <span class="n">EnglishTextNormalizer</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;whisper_basic&quot;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">whisper_cleaner</span> <span class="o">=</span> <span class="n">BasicTextNormalizer</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaner_types</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;tacotron&quot;</span><span class="p">:</span>
@@ -215,6 +228,8 @@
                 <span class="n">text</span> <span class="o">=</span> <span class="n">vietnamese_cleaners</span><span class="o">.</span><span class="n">vietnamese_cleaner</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">t</span> <span class="o">==</span> <span class="s2">&quot;korean_cleaner&quot;</span><span class="p">:</span>
                 <span class="n">text</span> <span class="o">=</span> <span class="n">KoreanCleaner</span><span class="o">.</span><span class="n">normalize_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">t</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">whisper_cleaner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">whisper_cleaner</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: type=</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

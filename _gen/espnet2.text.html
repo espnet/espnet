@@ -136,8 +136,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-build-tokenizer">espnet2.text.build_tokenizer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-char-tokenizer">espnet2.text.char_tokenizer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-token-id-converter">espnet2.text.token_id_converter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-whisper-token-id-converter">espnet2.text.whisper_token_id_converter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-korean-cleaner">espnet2.text.korean_cleaner</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-hugging-face-tokenizer">espnet2.text.hugging_face_tokenizer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-whisper-tokenizer">espnet2.text.whisper_tokenizer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-word-tokenizer">espnet2.text.word_tokenizer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-cleaner">espnet2.text.cleaner</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-init">espnet2.text.__init__</a></li>
@@ -300,8 +302,32 @@
 </dd></dl>
 
 </section>
+<section id="espnet2-text-whisper-token-id-converter">
+<span id="id6"></span><h2>espnet2.text.whisper_token_id_converter<a class="headerlink" href="#espnet2-text-whisper-token-id-converter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.whisper_token_id_converter"></span><dl class="class">
+<dt id="espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.whisper_token_id_converter.</code><code class="sig-name descname">OpenAIWhisperTokenIDConverter</code><span class="sig-paren">(</span><em class="sig-param">model_type: str = 'whisper_multilingual'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/whisper_token_id_converter.html#OpenAIWhisperTokenIDConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.get_num_vocabulary_size">
+<code class="sig-name descname">get_num_vocabulary_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/text/whisper_token_id_converter.html#OpenAIWhisperTokenIDConverter.get_num_vocabulary_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.get_num_vocabulary_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.ids2tokens">
+<code class="sig-name descname">ids2tokens</code><span class="sig-paren">(</span><em class="sig-param">integers: Union[numpy.ndarray, Iterable[int]]</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/whisper_token_id_converter.html#OpenAIWhisperTokenIDConverter.ids2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.ids2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.tokens2ids">
+<code class="sig-name descname">tokens2ids</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="reference internal" href="../_modules/espnet2/text/whisper_token_id_converter.html#OpenAIWhisperTokenIDConverter.tokens2ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.tokens2ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-text-korean-cleaner">
-<span id="id6"></span><h2>espnet2.text.korean_cleaner<a class="headerlink" href="#espnet2-text-korean-cleaner" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.text.korean_cleaner<a class="headerlink" href="#espnet2-text-korean-cleaner" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.korean_cleaner"></span><dl class="class">
 <dt id="espnet2.text.korean_cleaner.KoreanCleaner">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.korean_cleaner.</code><code class="sig-name descname">KoreanCleaner</code><a class="reference internal" href="../_modules/espnet2/text/korean_cleaner.html#KoreanCleaner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.korean_cleaner.KoreanCleaner" title="Permalink to this definition">¶</a></dt>
@@ -315,7 +341,7 @@
 
 </section>
 <section id="espnet2-text-hugging-face-tokenizer">
-<span id="id7"></span><h2>espnet2.text.hugging_face_tokenizer<a class="headerlink" href="#espnet2-text-hugging-face-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.text.hugging_face_tokenizer<a class="headerlink" href="#espnet2-text-hugging-face-tokenizer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.hugging_face_tokenizer"></span><dl class="class">
 <dt id="espnet2.text.hugging_face_tokenizer.HuggingFaceTokenizer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.hugging_face_tokenizer.</code><code class="sig-name descname">HuggingFaceTokenizer</code><span class="sig-paren">(</span><em class="sig-param">model: Union[pathlib.Path, str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/hugging_face_tokenizer.html#HuggingFaceTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.hugging_face_tokenizer.HuggingFaceTokenizer" title="Permalink to this definition">¶</a></dt>
@@ -333,8 +359,27 @@
 </dd></dl>
 
 </section>
+<section id="espnet2-text-whisper-tokenizer">
+<span id="id9"></span><h2>espnet2.text.whisper_tokenizer<a class="headerlink" href="#espnet2-text-whisper-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.whisper_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.whisper_tokenizer.</code><code class="sig-name descname">OpenAIWhisperTokenizer</code><span class="sig-paren">(</span><em class="sig-param">model_type: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/whisper_tokenizer.html#OpenAIWhisperTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/whisper_tokenizer.html#OpenAIWhisperTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/whisper_tokenizer.html#OpenAIWhisperTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.whisper_tokenizer.OpenAIWhisperTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-text-word-tokenizer">
-<span id="id8"></span><h2>espnet2.text.word_tokenizer<a class="headerlink" href="#espnet2-text-word-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.text.word_tokenizer<a class="headerlink" href="#espnet2-text-word-tokenizer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.word_tokenizer"></span><dl class="class">
 <dt id="espnet2.text.word_tokenizer.WordTokenizer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.word_tokenizer.</code><code class="sig-name descname">WordTokenizer</code><span class="sig-paren">(</span><em class="sig-param">delimiter: str = None</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/word_tokenizer.html#WordTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.word_tokenizer.WordTokenizer" title="Permalink to this definition">¶</a></dt>
@@ -353,7 +398,7 @@
 
 </section>
 <section id="espnet2-text-cleaner">
-<span id="id9"></span><h2>espnet2.text.cleaner<a class="headerlink" href="#espnet2-text-cleaner" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.text.cleaner<a class="headerlink" href="#espnet2-text-cleaner" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.cleaner"></span><dl class="class">
 <dt id="espnet2.text.cleaner.TextCleaner">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.cleaner.</code><code class="sig-name descname">TextCleaner</code><span class="sig-paren">(</span><em class="sig-param">cleaner_types: Collection[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/cleaner.html#TextCleaner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.cleaner.TextCleaner" title="Permalink to this definition">¶</a></dt>
@@ -369,10 +414,10 @@
 
 </section>
 <section id="espnet2-text-init">
-<span id="id10"></span><h2>espnet2.text.__init__<a class="headerlink" href="#espnet2-text-init" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.text.__init__<a class="headerlink" href="#espnet2-text-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.__init__"></span></section>
 <section id="espnet2-text-phoneme-tokenizer">
-<span id="id11"></span><h2>espnet2.text.phoneme_tokenizer<a class="headerlink" href="#espnet2-text-phoneme-tokenizer" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.text.phoneme_tokenizer<a class="headerlink" href="#espnet2-text-phoneme-tokenizer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.phoneme_tokenizer"></span><dl class="class">
 <dt id="espnet2.text.phoneme_tokenizer.G2p_en">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">G2p_en</code><span class="sig-paren">(</span><em class="sig-param">no_space: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#G2p_en"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.G2p_en" title="Permalink to this definition">¶</a></dt>

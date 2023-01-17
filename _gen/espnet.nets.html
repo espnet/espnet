@@ -1307,7 +1307,7 @@ and recognition when performing multi-task learning with the ASR task.</p>
 <span class="target" id="module-espnet.nets.batch_beam_search_online_sim"></span><p>Parallel beam search module for online simulation.</p>
 <dl class="class">
 <dt id="espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online_sim.</code><code class="sig-name descname">BatchBeamSearchOnlineSim</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online_sim.html#BatchBeamSearchOnlineSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online_sim.</code><code class="sig-name descname">BatchBeamSearchOnlineSim</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online_sim.html#BatchBeamSearchOnlineSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="espnet.nets.batch_beam_search.BatchBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.batch_beam_search.BatchBeamSearch</span></code></a></p>
 <p>Online beam search implementation.</p>
 <p>This simulates streaming decoding.
@@ -1590,7 +1590,7 @@ to automatically find maximum hypothesis lengths</p></li>
 <span class="target" id="module-espnet.nets.beam_search"></span><p>Beam search module.</p>
 <dl class="class">
 <dt id="espnet.nets.beam_search.BeamSearch">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search.</code><code class="sig-name descname">BeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search.</code><code class="sig-name descname">BeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Beam search implementation.</p>
 <p>Initialize beam search.</p>
@@ -1849,6 +1849,13 @@ and state values of <cite>self.part_scorers</cite></p>
 </dl>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet.nets.beam_search.BeamSearch.set_hyp_primer">
+<code class="sig-name descname">set_hyp_primer</code><span class="sig-paren">(</span><em class="sig-param">hyp_primer: List[int] = None</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.set_hyp_primer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.set_hyp_primer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the primer sequence for decoding.</p>
+<p>Used for OpenAI Whisper models.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -2086,7 +2093,7 @@ pre_beam is used to select candidates from vocab to extend hypotheses</p></li>
 <span class="target" id="module-espnet.nets.batch_beam_search"></span><p>Parallel beam search module.</p>
 <dl class="class">
 <dt id="espnet.nets.batch_beam_search.BatchBeamSearch">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search.</code><code class="sig-name descname">BatchBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search.</code><code class="sig-name descname">BatchBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.beam_search.BeamSearch" title="espnet.nets.beam_search.BeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.beam_search.BeamSearch</span></code></a></p>
 <p>Batch beam search implementation.</p>
 <p>Initialize beam search.</p>

@@ -185,6 +185,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.cleaner</span> <span class="kn">import</span> <span class="n">TextCleaner</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.whisper_token_id_converter</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenIDConverter</span>
 
 
 <div class="viewcode-block" id="AbsPreprocessor"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.preprocessor.AbsPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">AbsPreprocessor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
@@ -339,10 +340,15 @@
                 <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                 <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span>
-                <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
-                <span class="n">unk_symbol</span><span class="o">=</span><span class="n">unk_symbol</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span>
+                    <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+                    <span class="n">unk_symbol</span><span class="o">=</span><span class="n">unk_symbol</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span> <span class="o">=</span> <span class="n">OpenAIWhisperTokenIDConverter</span><span class="p">(</span>
+                    <span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">text_cleaner</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>

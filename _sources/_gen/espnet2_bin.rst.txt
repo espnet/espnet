@@ -309,10 +309,10 @@ asr_train.py
                         [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                         [--joint_net_conf JOINT_NET_CONF]
                         [--use_preprocessor USE_PREPROCESSOR]
-                        [--token_type {bpe,char,word,phn,hugging_face}]
+                        [--token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}]
                         [--bpemodel BPEMODEL]
                         [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
-                        [--cleaner {None,tacotron,jaconv,vietnamese}]
+                        [--cleaner {None,tacotron,jaconv,vietnamese,whisper_en,whisper_basic}]
                         [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                         [--speech_volume_normalize SPEECH_VOLUME_NORMALIZE]
                         [--rir_scp RIR_SCP] [--rir_apply_prob RIR_APPLY_PROB]
@@ -320,7 +320,7 @@ asr_train.py
                         [--noise_apply_prob NOISE_APPLY_PROB]
                         [--noise_db_range NOISE_DB_RANGE]
                         [--short_noise_thres SHORT_NOISE_THRES]
-                        [--frontend {default,sliding_window,s3prl,fused}]
+                        [--frontend {default,sliding_window,s3prl,fused,whisper}]
                         [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                         [--specaug_conf SPECAUG_CONF]
                         [--normalize {global_mvn,utterance_mvn,None}]
@@ -329,11 +329,11 @@ asr_train.py
                         [--model_conf MODEL_CONF]
                         [--preencoder {sinc,linear,None}]
                         [--preencoder_conf PREENCODER_CONF]
-                        [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}]
+                        [--encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer}]
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
-                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}]
+                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}]
                         [--decoder_conf DECODER_CONF]
                         [--preprocessor {default,multi}]
                         [--preprocessor_conf PREPROCESSOR_CONF]
@@ -690,10 +690,10 @@ asr_train.py
     
       --use_preprocessor USE_PREPROCESSOR
                             Apply preprocessing to data or not (default: True)
-      --token_type {bpe,char,word,phn,hugging_face}
+      --token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}
                             The text will be tokenized in the specified level token (default: bpe)
       --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
-      --cleaner {None,tacotron,jaconv,vietnamese}
+      --cleaner {None,tacotron,jaconv,vietnamese,whisper_en,whisper_basic}
                             Apply text cleaning (default: None)
       --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
                             Specify g2p method if --token_type=phn (default: None)
@@ -710,7 +710,7 @@ asr_train.py
                             The range of noise decibel level. (default: 13_15)
       --short_noise_thres SHORT_NOISE_THRES
                             If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
-      --frontend {default,sliding_window,s3prl,fused}
+      --frontend {default,sliding_window,s3prl,fused,whisper}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
                             The keyword arguments for frontend (default: {})
@@ -730,7 +730,7 @@ asr_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}
+      --encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
@@ -738,7 +738,7 @@ asr_train.py
                             The postencoder type (default: None)
       --postencoder_conf POSTENCODER_CONF
                             The keyword arguments for postencoder (default: {})
-      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}
+      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
@@ -2113,7 +2113,7 @@ enh_s2t_train.py
                             [--enh_decoder_conf ENH_DECODER_CONF]
                             [--enh_mask_module {multi_mask}]
                             [--enh_mask_module_conf ENH_MASK_MODULE_CONF]
-                            [--frontend {default,sliding_window,s3prl,fused}]
+                            [--frontend {default,sliding_window,s3prl,fused,whisper}]
                             [--frontend_conf FRONTEND_CONF]
                             [--specaug {specaug,None}]
                             [--specaug_conf SPECAUG_CONF]
@@ -2121,11 +2121,11 @@ enh_s2t_train.py
                             [--normalize_conf NORMALIZE_CONF]
                             [--asr_preencoder {sinc,linear,None}]
                             [--asr_preencoder_conf ASR_PREENCODER_CONF]
-                            [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}]
+                            [--asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer}]
                             [--asr_encoder_conf ASR_ENCODER_CONF]
                             [--asr_postencoder {hugging_face_transformers,None}]
                             [--asr_postencoder_conf ASR_POSTENCODER_CONF]
-                            [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}]
+                            [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}]
                             [--asr_decoder_conf ASR_DECODER_CONF]
                             [--st_preencoder {sinc,linear,None}]
                             [--st_preencoder_conf ST_PREENCODER_CONF]
@@ -2553,7 +2553,7 @@ enh_s2t_train.py
                             The enh_mask_module type (default: multi_mask)
       --enh_mask_module_conf ENH_MASK_MODULE_CONF
                             The keyword arguments for enh_mask_module (default: {})
-      --frontend {default,sliding_window,s3prl,fused}
+      --frontend {default,sliding_window,s3prl,fused,whisper}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
                             The keyword arguments for frontend (default: {})
@@ -2569,7 +2569,7 @@ enh_s2t_train.py
                             The asr_preencoder type (default: None)
       --asr_preencoder_conf ASR_PREENCODER_CONF
                             The keyword arguments for asr_preencoder (default: {})
-      --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,e_branchformer}
+      --asr_encoder {conformer,transformer,transformer_multispkr,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,torchaudiohubert,longformer,branchformer,whisper,e_branchformer}
                             The asr_encoder type (default: rnn)
       --asr_encoder_conf ASR_ENCODER_CONF
                             The keyword arguments for asr_encoder (default: {})
@@ -2577,7 +2577,7 @@ enh_s2t_train.py
                             The asr_postencoder type (default: None)
       --asr_postencoder_conf ASR_POSTENCODER_CONF
                             The keyword arguments for asr_postencoder (default: {})
-      --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,hugging_face_transformers,s4}
+      --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}
                             The asr_decoder type (default: rnn)
       --asr_decoder_conf ASR_DECODER_CONF
                             The keyword arguments for asr_decoder (default: {})
@@ -7083,7 +7083,7 @@ tokenize_text.py
                             [--bpemodel BPEMODEL]
                             [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                             [--remove_non_linguistic_symbols REMOVE_NON_LINGUISTIC_SYMBOLS]
-                            [--cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner}]
+                            [--cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner,whisper_en,whisper_basic}]
                             [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                             [--write_vocabulary WRITE_VOCABULARY]
                             [--vocabulary_size VOCABULARY_SIZE] [--cutoff CUTOFF]
@@ -7113,7 +7113,7 @@ tokenize_text.py
       --remove_non_linguistic_symbols REMOVE_NON_LINGUISTIC_SYMBOLS
                             Remove non-language-symbols from tokens (default:
                             False)
-      --cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner}
+      --cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner,whisper_en,whisper_basic}
                             Apply text cleaning (default: None)
       --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
                             Specify g2p method if --token_type=phn (default: None)

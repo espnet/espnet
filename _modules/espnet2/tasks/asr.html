@@ -193,6 +193,7 @@
     <span class="n">LightweightConvolutionTransformerDecoder</span><span class="p">,</span>
     <span class="n">TransformerDecoder</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.whisper_decoder</span> <span class="kn">import</span> <span class="n">OpenAIWhisperDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.branchformer_encoder</span> <span class="kn">import</span> <span class="n">BranchformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
@@ -216,11 +217,13 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.vgg_rnn_encoder</span> <span class="kn">import</span> <span class="n">VGGRNNEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.wav2vec2_encoder</span> <span class="kn">import</span> <span class="n">FairSeqWav2Vec2Encoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.whisper_encoder</span> <span class="kn">import</span> <span class="n">OpenAIWhisperEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.fused</span> <span class="kn">import</span> <span class="n">FusedFrontends</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.whisper</span> <span class="kn">import</span> <span class="n">WhisperFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.windowing</span> <span class="kn">import</span> <span class="n">SlidingWindow</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.maskctc_model</span> <span class="kn">import</span> <span class="n">MaskCTCModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.pit_espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span> <span class="k">as</span> <span class="n">PITESPnetModel</span>
@@ -260,6 +263,7 @@
         <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">,</span>
         <span class="n">s3prl</span><span class="o">=</span><span class="n">S3prlFrontend</span><span class="p">,</span>
         <span class="n">fused</span><span class="o">=</span><span class="n">FusedFrontends</span><span class="p">,</span>
+        <span class="n">whisper</span><span class="o">=</span><span class="n">WhisperFrontend</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsFrontend</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
@@ -319,6 +323,7 @@
         <span class="n">torchaudiohubert</span><span class="o">=</span><span class="n">TorchAudioHuBERTPretrainEncoder</span><span class="p">,</span>
         <span class="n">longformer</span><span class="o">=</span><span class="n">LongformerEncoder</span><span class="p">,</span>
         <span class="n">branchformer</span><span class="o">=</span><span class="n">BranchformerEncoder</span><span class="p">,</span>
+        <span class="n">whisper</span><span class="o">=</span><span class="n">OpenAIWhisperEncoder</span><span class="p">,</span>
         <span class="n">e_branchformer</span><span class="o">=</span><span class="n">EBranchformerEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
@@ -344,6 +349,7 @@
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNDecoder</span><span class="p">,</span>
         <span class="n">transducer</span><span class="o">=</span><span class="n">TransducerDecoder</span><span class="p">,</span>
         <span class="n">mlm</span><span class="o">=</span><span class="n">MLMDecoder</span><span class="p">,</span>
+        <span class="n">whisper</span><span class="o">=</span><span class="n">OpenAIWhisperDecoder</span><span class="p">,</span>
         <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersDecoder</span><span class="p">,</span>
         <span class="n">s4</span><span class="o">=</span><span class="n">S4Decoder</span><span class="p">,</span>
     <span class="p">),</span>
@@ -451,7 +457,15 @@
             <span class="s2">&quot;--token_type&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="s2">&quot;phn&quot;</span><span class="p">,</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;bpe&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;char&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;word&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;phn&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;hugging_face&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The text will be tokenized &quot;</span> <span class="s2">&quot;in the specified level token&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -468,7 +482,14 @@
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--cleaner&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;tacotron&quot;</span><span class="p">,</span> <span class="s2">&quot;jaconv&quot;</span><span class="p">,</span> <span class="s2">&quot;vietnamese&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;tacotron&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;jaconv&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;vietnamese&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;whisper_basic&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply text cleaning&quot;</span><span class="p">,</span>
         <span class="p">)</span>

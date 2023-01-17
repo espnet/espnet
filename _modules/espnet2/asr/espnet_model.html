@@ -242,7 +242,12 @@
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">interctc_weight</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">interctc_weight</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_blank</span><span class="p">)</span>
+        <span class="c1"># NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,</span>
+        <span class="c1">#                  which doesn&#39;t use &lt;blank&gt; token</span>
+        <span class="k">if</span> <span class="n">sym_blank</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_blank</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="n">sym_sos</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">sym_sos</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -331,6 +336,13 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="n">extract_feats_in_collect_stats</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_encoder_whisper</span> <span class="o">=</span> <span class="s2">&quot;Whisper&quot;</span> <span class="ow">in</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_encoder_whisper</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">),</span> <span class="s2">&quot;frontend should be None when using full Whisper model&quot;</span>
 
         <span class="k">if</span> <span class="n">lang_token_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">lang_token_id</span><span class="p">]])</span>
@@ -536,7 +548,10 @@
             <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
             <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s2">&quot;selfattention_layer_type&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;lf_selfattn&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s2">&quot;selfattention_layer_type&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;lf_selfattn&quot;</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_encoder_whisper</span>
+        <span class="p">):</span>
             <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="p">(</span>
                 <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
                 <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>

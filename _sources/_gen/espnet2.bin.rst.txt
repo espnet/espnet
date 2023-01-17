@@ -59,6 +59,17 @@ espnet2.bin.aggregate_stats_dirs
     :show-inheritance:
 
 
+.. _espnet2.bin.whisper_export_vocabulary:
+
+espnet2.bin.whisper_export_vocabulary
+-------------------------------------
+
+.. automodule:: espnet2.bin.whisper_export_vocabulary
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.asr_inference_k2:
 
 espnet2.bin.asr_inference_k2
