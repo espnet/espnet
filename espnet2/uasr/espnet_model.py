@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from typing import Dict, Optional, Tuple
 
 import editdistance
-import kenlm
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
@@ -29,10 +28,13 @@ else:
     def autocast(enabled=True):
         yield
 
+try:
+    import kenlm  # for CI import
+except ImportError or ModuleNotFoundError:
+    kenlm = None
 
 class ESPnetUASRModel(AbsESPnetModel):
-    """
-    Unsupervised ASR model.
+    """Unsupervised ASR model.
 
     The source code is from FAIRSEQ:
     https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
@@ -100,6 +102,8 @@ class ESPnetUASRModel(AbsESPnetModel):
         self.sil_id = self.token_id_converter.tokens2ids([sil_token])[0]
 
         self.kenlm = None
+        assert kenlm is not None, \
+            "kenlm is not installed, please install from tools/installers"
         if kenlm_path:
             self.kenlm = kenlm.Model(kenlm_path)
 
