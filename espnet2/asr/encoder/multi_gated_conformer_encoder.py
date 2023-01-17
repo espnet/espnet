@@ -1,6 +1,5 @@
 # Copyright 2020 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-# Sathvik Udupa 2023
 
 """Conformer encoder definition."""
 
@@ -46,7 +45,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
 
 
 class MultiGatedConformerEncoder(AbsEncoder):
-    """Multi Gated Conformer encoder module.
+    """Conformer encoder module.
 
     Args:
         input_size (int): Input dimension.
@@ -109,11 +108,11 @@ class MultiGatedConformerEncoder(AbsEncoder):
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
         layer_drop_rate: float = 0.0,
         max_pos_emb_len: int = 5000,
-        num_pre_encs: int = 3,
+        num_pre_encs: int = 5,
         num_multi_blocks: int = 4,
         gating: bool = False,
         post_encoder: bool = False,
-        
+        layerwise: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -267,10 +266,6 @@ class MultiGatedConformerEncoder(AbsEncoder):
                 f"Length of stochastic_depth_rate ({len(stochastic_depth_rate)}) "
                 f"should be equal to num_blocks ({num_blocks})"
             )
-
-        assert num_pre_encs > 0 or post_encoder = True, 'No Encoder added'
-        assert len(interctc_layer_idx) == 0, "interctc_layer_idx not tested with multi encoders"
-        
         self.post_encoder = post_encoder
         if post_encoder:       
             self.encoders = repeat(
@@ -288,11 +283,13 @@ class MultiGatedConformerEncoder(AbsEncoder):
                 ),
                 layer_drop_rate,
             )
+        
+        
         self.num_pre_encs = num_pre_encs
         if num_pre_encs > 0:
-            self.pre_encoders = []
+            self.pre_encoders = torch.nn.ModuleList()
             for idx in range(num_pre_encs):
-                self.pre_encoders.apend(self.encoders = repeat(
+                self.pre_encoders.append(repeat(
                     num_multi_blocks,
                     lambda lnum: EncoderLayer(
                         output_size,
@@ -308,7 +305,7 @@ class MultiGatedConformerEncoder(AbsEncoder):
                 
         self.gating = gating
         if self.gating:
-            self.gating_layers = []
+            self.gating_layers = torch.nn.ModuleList()
             for idx in range(num_pre_encs):
                 self.gating_layers.append(torch.nn.Linear(output_size, 1))
             self.sigmoid = torch.nn.Sigmoid()
@@ -316,11 +313,8 @@ class MultiGatedConformerEncoder(AbsEncoder):
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
-        self.interctc_layer_idx = interctc_layer_idx
         if len(interctc_layer_idx) > 0:
             assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
-        self.interctc_use_conditioning = interctc_use_conditioning
-        self.conditioning_layer = None
 
     def output_size(self) -> int:
         return self._output_size
@@ -365,56 +359,30 @@ class MultiGatedConformerEncoder(AbsEncoder):
         else:
             xs_pad = self.embed(xs_pad)
 
-        intermediate_outs = []
-        if len(self.interctc_layer_idx) == 0:
-            xs_pad_array, pos_embeds = [], []
-            for idx in range(num_pre_encs):
-                res = self.pre_encoders[idx](xs_pad, masks)
-                xs_pad_array.append(res[0][0])
-                pos_embeds.append(res[0][1])
-            masks = res[1]
-            if not self.gating:
-                xs_pad = (torch.sum(torch.cat(xs_pad_array, 0), 0), torch.mean(torch.cat(pos_embeds, 0), 0))   #change this
-            else:
-                scored_xs_pad = []
-                for idx in range(num_pre_encs):
-                    score = self.sigmoid(self.gating_layers[idx](xs_pad_array[idx][0]))
-                    scored_xs_pad.append(score*xs_pad_array[idx][0])
-                xs_pad = (torch.sum(torch.cat(scored_xs_pad, 0), 0), torch.mean(torch.cat(pos_embeds, 0), 0))
-            if self.post_encoder:
-                xs_pad, masks = self.encoders(xs_pad, masks)     
-                       
+
+        xs_pad_array, pos_embeds = [], []
+        for idx in range(self.num_pre_encs):
+            res, masks = self.pre_encoders[idx](xs_pad, masks)  #use the last mask
+            xs_pad_array.append(res[0])
+            pos_embeds.append(res[1])
+
+        if not self.gating:
+            xs_pad = (torch.sum(torch.stack(xs_pad_array, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))   #sum of encoder states, mean of pos embeds (in case there a type of learnable pos embed used)
         else:
-            for layer_idx, encoder_layer in enumerate(self.encoders):
-                xs_pad, masks = encoder_layer(xs_pad, masks)
-
-                if layer_idx + 1 in self.interctc_layer_idx:
-                    encoder_out = xs_pad
-                    if isinstance(encoder_out, tuple):
-                        encoder_out = encoder_out[0]
-
-                    # intermediate outputs are also normalized
-                    if self.normalize_before:
-                        encoder_out = self.after_norm(encoder_out)
-
-                    intermediate_outs.append((layer_idx + 1, encoder_out))
-
-                    if self.interctc_use_conditioning:
-                        ctc_out = ctc.softmax(encoder_out)
-
-                        if isinstance(xs_pad, tuple):
-                            x, pos_emb = xs_pad
-                            x = x + self.conditioning_layer(ctc_out)
-                            xs_pad = (x, pos_emb)
-                        else:
-                            xs_pad = xs_pad + self.conditioning_layer(ctc_out)
-
+            scored_xs_pad = []
+            for idx in range(self.num_pre_encs):
+                score = self.sigmoid(self.gating_layers[idx](xs_pad_array[idx]))
+                scored_xs_pad.append(score*xs_pad_array[idx])
+            xs_pad = (torch.sum(torch.stack(scored_xs_pad, 0), 0), torch.mean(torch.stack(pos_embeds, 0), 0))
+            
+        if self.post_encoder:
+            xs_pad, masks = self.encoders(xs_pad, masks)     
+       
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
         olens = masks.squeeze(1).sum(1)
-        if len(intermediate_outs) > 0:
-            return (xs_pad, intermediate_outs), olens, None
+        
         return xs_pad, olens, None
