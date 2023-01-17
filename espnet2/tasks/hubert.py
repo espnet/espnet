@@ -7,7 +7,7 @@
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -16,6 +16,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.hubert_encoder import (  # noqa: H301
     FairseqHubertPretrainEncoder,
+    TorchAudioHuBERTPretrainEncoder,
 )
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
@@ -24,18 +25,21 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.hubert.espnet_model import HubertPretrainModel
+from espnet2.hubert.espnet_model import (
+    HubertPretrainModel,
+    TorchAudioHubertPretrainModel,
+)
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.collate_fn import HuBERTCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
@@ -75,9 +79,19 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        torchaudio_hubert=TorchAudioHuBERTPretrainEncoder,
     ),
     type_check=AbsEncoder,
     default="hubert_pretrain",
+)
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        fairseq=HubertPretrainModel,
+        torchaudio=TorchAudioHubertPretrainModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="fairseq",
 )
 
 
@@ -97,6 +111,8 @@ class HubertTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
+        # --model and --model_conf
+        model_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -131,6 +147,12 @@ class HubertTask(AbsTask):
                 None,
             ],
         )
+        group.add_argument(
+            "--collate_fn_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for collate_fn class.",
+        )
 
         group.add_argument(
             "--input_size",
@@ -140,10 +162,10 @@ class HubertTask(AbsTask):
         )
 
         group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(HubertPretrainModel),
-            help="The keyword arguments for model class.",
+            "--num_classes",
+            type=int,
+            default=None,
+            help="The number of classes in hubert",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -239,12 +261,6 @@ class HubertTask(AbsTask):
             default=0.0,
             help="weights for additional loss terms (not first one)",
         )
-        parser.add_argument(
-            "--hubert_dict",
-            type=str,
-            default="./dict.txt",
-            help="word-based target dictionary for Hubert pretraining stage",
-        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -259,7 +275,14 @@ class HubertTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
-        return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
+        return HuBERTCollateFn(
+            float_pad_value=0.0,
+            int_pad_value=-1,
+            label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
+            pad=args.collate_fn_conf.get("pad", False),
+            rand_crop=args.collate_fn_conf.get("rand_crop", True),
+            crop_audio=not args.collect_stats,
+        )
 
     @classmethod
     def build_preprocess_fn(
@@ -319,7 +342,9 @@ class HubertTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> HubertPretrainModel:
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -373,13 +398,16 @@ class HubertTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(
             input_size=input_size,
-            use_amp=args.use_amp,
-            hubert_dict=args.hubert_dict,
+            num_classes=args.num_classes,
             **args.encoder_conf,
         )
 
         # 8. Build model
-        model = HubertPretrainModel(
+        try:
+            model_class = model_choices.get_class(args.model)
+        except AttributeError:
+            model_class = model_choices.get_class("fairseq")
+        model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
