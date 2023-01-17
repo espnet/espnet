@@ -197,3 +197,35 @@ Model: https://huggingface.co/pyf98/librispeech_100h_transformer
 |beam20_ctc0.3/dev_other|2864|64524|78.5|15.3|6.2|2.8|24.3|83.8|
 |beam20_ctc0.3/test_clean|2620|66983|90.0|6.2|3.9|0.8|10.9|63.3|
 |beam20_ctc0.3/test_other|2939|66650|77.9|15.2|6.9|2.5|24.6|84.8|
+
+
+# RESULTS
+## Environments
+- date: `Mon Jan  9 23:06:34 CST 2023`
+- python version: `3.9.13 (main, Aug 25 2022, 23:26:10)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `d89be931dcc8f61437ac49cbe39a773f2054c50c`
+  - Commit date: `Mon Jan 9 11:06:45 2023 -0600`
+
+## asr_whisper_medium_finetune_lr1e-5_adamw_wd1e-2_3epochs
+
+- Huggingface model URL: https://huggingface.co/espnet/shihlun_asr_whisper_medium_finetuned_librispeech100
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_clean|2703|54798|97.7|1.9|0.3|0.3|2.6|30.1|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_other|2864|51528|95.3|4.3|0.4|0.6|5.3|45.4|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_clean|2620|53027|97.6|2.1|0.3|0.4|2.7|30.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_other|2939|52882|95.1|4.4|0.5|0.7|5.6|47.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_clean|2703|287287|99.3|0.3|0.4|0.3|1.0|30.1|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_other|2864|265648|98.3|1.0|0.7|0.6|2.3|45.4|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_clean|2620|280691|99.3|0.3|0.3|0.3|1.0|30.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_other|2939|271738|98.3|1.0|0.7|0.7|2.4|47.5|

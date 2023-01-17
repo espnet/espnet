@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: kaldi showenv python conda_packages.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done whisper.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi
@@ -196,6 +196,10 @@ fairseq.done: espnet.done
 s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	touch s3prl.done
+
+whisper.done: espnet.done
+	. ./activate_python.sh && ./installers/install_whisper.sh
+	touch whisper.done
 
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
