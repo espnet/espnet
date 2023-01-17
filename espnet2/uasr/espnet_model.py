@@ -28,10 +28,12 @@ else:
     def autocast(enabled=True):
         yield
 
+
 try:
     import kenlm  # for CI import
 except ImportError or ModuleNotFoundError:
     kenlm = None
+
 
 class ESPnetUASRModel(AbsESPnetModel):
     """Unsupervised ASR model.
@@ -102,8 +104,9 @@ class ESPnetUASRModel(AbsESPnetModel):
         self.sil_id = self.token_id_converter.tokens2ids([sil_token])[0]
 
         self.kenlm = None
-        assert kenlm is not None, \
-            "kenlm is not installed, please install from tools/installers"
+        assert (
+            kenlm is not None
+        ), "kenlm is not installed, please install from tools/installers"
         if kenlm_path:
             self.kenlm = kenlm.Model(kenlm_path)
 
