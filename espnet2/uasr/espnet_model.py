@@ -1,7 +1,7 @@
 import argparse
 import logging
 from contextlib import contextmanager
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 import editdistance
 import kenlm
@@ -32,9 +32,10 @@ else:
 
 class ESPnetUASRModel(AbsESPnetModel):
     """
-    Unsupervised ASR model
+    Unsupervised ASR model.
+
     The source code is from FAIRSEQ:
-        https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
+    https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised
     """
 
     def __init__(

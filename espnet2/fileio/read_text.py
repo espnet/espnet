@@ -118,11 +118,15 @@ class RandomTextReader(collections.abc.Mapping):
             text2line
             text3line
         scp
-            11                    (number of digits per int value)
-            00000000000000000010  (text start at bytes 0 and end at bytes 10 (including "\n"))
-            00000000110000000020  (text start at bytes 11 and end at bytes 20 (including "\n"))
-            00000000210000000030  (text start at bytes 21 and end at bytes 30 (including "\n"))
-
+            11
+            00000000000000000010
+            00000000110000000020
+            00000000210000000030
+        scp explanation
+            (number of digits per int value)
+            (text start at bytes 0 and end at bytes 10 (including "\n"))
+            (text start at bytes 11 and end at bytes 20 (including "\n"))
+            (text start at bytes 21 and end at bytes 30 (including "\n"))
     Simple text reader for non-pair text data (for unsupervised ASR)
     """
 

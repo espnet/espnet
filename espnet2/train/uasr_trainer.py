@@ -168,7 +168,8 @@ class UASRTrainer(Trainer):
                         retval = model(**batch)
 
                         # Note(jiatong):
-                        # Supporting only one patterns for the returned value from the model
+                        # Supporting only one patterns
+                        # for the returned value from the model
                         # must be tuple or list type
                         if not (isinstance(retval, list) or isinstance(retval, tuple)):
                             raise RuntimeError("model output must be tuple or list.")

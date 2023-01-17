@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import autograd
 from typeguard import check_argument_types
@@ -5,7 +6,6 @@ from typeguard import check_argument_types
 from espnet2.uasr.discriminator.abs_discriminator import AbsDiscriminator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class UASRGradientPenalty(AbsUASRLoss):
@@ -51,7 +51,7 @@ class UASRGradientPenalty(AbsUASRLoss):
                     size = sample.size(dim)
                     diff = size - target_size
                     if diff <= 0:
-                        return data
+                        return sample
 
                     start = np.random.randint(0, diff + 1)
                     return sample.narrow(dim=dim, start=start, length=target_size)

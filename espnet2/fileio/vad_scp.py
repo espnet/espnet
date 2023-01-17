@@ -84,7 +84,7 @@ class VADScpWriter:
         assert (
             key not in self.data.keys()
         ), "found duplicate key (key: {}) in your vad values".format(key)
-        assert isinstance(signal, List), type(value)
+        assert isinstance(value, List), type(value)
 
         output_str = []
         for v in value:

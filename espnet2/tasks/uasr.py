@@ -1,16 +1,11 @@
 import argparse
 import logging
-import os
-import sys
-from dataclasses import dataclass
-from pathlib import Path
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet import __version__
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
@@ -35,9 +30,8 @@ from espnet2.uasr.loss.pseudo_label_loss import UASRPseudoLabelLoss
 from espnet2.uasr.loss.smoothness_penalty import UASRSmoothnessPenalty
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.uasr.segmenter.join_segmenter import JoinSegmenter
-from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
