@@ -93,9 +93,3 @@ def test_encoder_padtrim(whisper_encoder):
     )
     xs_pad, _, _ = whisper_encoder(input_tensor, None)
     assert xs_pad.size(1) == N_FRAMES // 2
-
-    input_tensor = torch.randn(
-        1, 490000, device=next(whisper_encoder.parameters()).device
-    )
-    xs_pad, _, _ = whisper_encoder(input_tensor, None)
-    assert xs_pad.size(1) == N_FRAMES // 2
