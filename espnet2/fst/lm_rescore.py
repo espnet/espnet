@@ -1,8 +1,12 @@
 import math
 from typing import List, Tuple
 
-import k2
 import torch
+
+try:
+    import k2  # for CI import
+except ImportError or ModuleNotFoundError:
+    k2 = None
 
 
 def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
@@ -45,6 +49,8 @@ def _intersect_device(
 
     NOTE: You can decrease batch_size in case of CUDA out of memory error.
     """
+    assert k2 is not None, "please follow 'tools/installers' to install"
+
     num_fsas = b_fsas.shape[0]
     if num_fsas <= batch_size:
         return k2.intersect_device(
@@ -101,6 +107,9 @@ def compute_am_scores_and_lm_scores(
       `am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
       `lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
     """
+    assert (
+        k2 is not None
+    ), "k2 is not installed, please follow 'tools/installers' to install"
     assert len(lats.shape) == 3
 
     # k2.compose() currently does not support b_to_a_map. To void
@@ -166,6 +175,9 @@ def nbest_am_lm_scores(
 
     Compatible with both ctc_decoding or TLG decoding.
     """
+    assert (
+        k2 is not None
+    ), "k2 is not installed, please follow 'tools/installers' to install"
     paths = k2.random_paths(lats, num_paths=num_paths, use_double_scores=True)
     if isinstance(lats.aux_labels, torch.Tensor):
         word_seqs = k2.ragged.index(lats.aux_labels.contiguous(), paths)
