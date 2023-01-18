@@ -37,7 +37,8 @@ def main():
     with open(args.reco_list) as f:
         for line in f:
             seg = line.rstrip("\n")
-            reco, timestamps = seg.split("-")  # utt = f'{reco}-{start_time}_{end_time}'
+            # utt = f'{reco}-{start_time}_{end_time}'
+            reco, timestamps = seg.split("-")
             start, end = timestamps.split("_")
 
             start = float(start) / 1000
@@ -48,7 +49,6 @@ def main():
                 too_short.write(f"{seg}\t{end - start}\n")
                 continue
 
-            # TODO: manually cut these audio files
             if end - start > args.max_duration:
                 # print(f"WARNING: {seg} too long (>{args.max_duration}s)")
                 n_too_long += 1
@@ -71,10 +71,12 @@ def main():
             out_segments.write(f"{seg}\t{reco}\t{start}\t{end}\n")
 
     print(
-        f"WARNING: {n_too_short} utterances are too short (<{args.min_duration}s), see {too_short_path}"
+        f"WARNING: {n_too_short} utterances are too short"
+        f"(<{args.min_duration}s), see {too_short_path}"
     )
     print(
-        f"WARNING: {n_too_short} utterances are too long (>{args.max_duration}s), see {too_long_path}"
+        f"WARNING: {n_too_short} utterances are too long"
+        f"(>{args.max_duration}s), see {too_long_path}"
     )
 
 

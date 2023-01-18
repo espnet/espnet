@@ -27,9 +27,8 @@ def clean_trans(trans: str) -> str:
     trans = re.sub(r"\[[+-] \w+]?", "", trans)
 
     # Word errors
-    trans = re.sub(
-        r"\[: .+?] \[\* \S+]", "", trans
-    )  # '[: put] [* p:w-ret]'   '[: princess]'
+    # '[: put] [* p:w-ret]' '[: princess]'
+    trans = re.sub(r"\[: .+?] \[\* \S+]", "", trans)
     trans = re.sub(r"\[: .+?]", "", trans)  # [: x [* n:uk]
     trans = re.sub(r"\[\* .+?]", "", trans)  # [* s:r-ret]
     trans = re.sub(r"\[\*]", "", trans)  # [*]
@@ -46,9 +45,8 @@ def clean_trans(trans: str) -> str:
 
     # Retracing and repetition
     trans = re.sub(r"\[/+]", "", trans)
-    trans = re.sub(
-        r"\[x \d]", "", trans
-    )  # FIXME: we shouldn't remove this but there is only one occurrence in UNH03b
+    # we shouldn't remove this but there is only one occurrence in UNH03b
+    trans = re.sub(r"\[x \d]", "", trans)
 
     # Pauses
     trans = re.sub(r"\([\d:.]+\)", "", trans)  # (.) (..) (2:13.12)
@@ -69,12 +67,10 @@ def clean_trans(trans: str) -> str:
     # laughter
     trans = re.sub(r"&=laughs", "<LAU>", trans)
     trans = re.sub(r"&=chuckles", "<LAU>", trans)
-    trans = re.sub(
-        r"&=\w*[:\w]*", "", trans
-    )  # '&=points:picture_1'  '&=clears:throat'  '&=twiddles'
+    # '&=points:picture_1'  '&=clears:throat'  '&=twiddles'
+    trans = re.sub(r"&=\w*[:\w]*", "", trans)
 
     # Fillers and fragments
-    # TODO: trans = re.sub(r'&-[a-z]*', '<FLR>', trans)  # &-uh  &-um
     trans = re.sub(r"&-", "", trans)  # &-uh  &-um
     trans = re.sub(r"&\+?", "", trans)  # phonological fragment
 
@@ -82,10 +78,9 @@ def clean_trans(trans: str) -> str:
     trans = re.sub(r"www|xxx", "", trans)
 
     # Other remaining punctuations
-    trans = re.sub(r"[,?!;:\"“%‘”.�‡„$^↓↑≠()\[\]↫\x15+]", "", trans)  # chars to remove
-    trans = re.sub(
-        r"_|-| {2,}", " ", trans
-    )  # '_', '-', and multiple whitespaces are replaced with a single whitespace
+    trans = re.sub(r"[,?!;:\"“%‘”.�‡„$^↓↑≠()\[\]↫\x15+]", "", trans)
+    # '_', '-', and multiple whitespaces are replaced with a single whitespace
+    trans = re.sub(r"_|-| {2,}", " ", trans)
 
     return trans.strip()
 
@@ -122,7 +117,9 @@ def main():
             n_utts = len(utts)
             for i in range(n_utts):
                 time_marks = utts[i].time_marks
-                if time_marks is None:  # skipping utterances without time marks
+
+                # skipping utterances without time marks
+                if time_marks is None:
                     continue
 
                 start, end = utts[i].time_marks

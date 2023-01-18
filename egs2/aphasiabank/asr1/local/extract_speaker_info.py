@@ -32,8 +32,6 @@ def main():
     spk_ids = []
     spk2aphasia_type = {}
     spk2aphasia_severity = {}
-    # all_aphasia_types = set()
-    # '', 'notaphasicbywab', 'conduction', 'anomic', 'global', 'transsensory', 'transmotor', 'broca', 'aphasia', 'wernicke', 'control'
     with open(os.path.join(out_dir, "spk_info.txt"), "w") as f:
         f.write("spk\twab_aq\tseverity\taphasia_type\n")
         for file in files:
@@ -45,12 +43,12 @@ def main():
             chat: pla.Reader = pla.read_chat(path)
 
             header = chat.headers()
-            # sex = header[0]['Participants']['PAR']['sex']  # sex information
-            # age = header[0]['Participants']['PAR']['age']  # age information, format year;month.day
-            # age = int(age.split(';')[0])
+            # sex = header[0]['Participants']['PAR']['sex']
+            # age = header[0]['Participants']['PAR']['age']
+            # age = int(age.split(';')[0])  # "year;month.day"
             aphasia_type = header[0]["Participants"]["PAR"]["group"].lower()
 
-            wab_aq = header[0]["Participants"]["PAR"]["custom"]  # WAB_AQ information
+            wab_aq = header[0]["Participants"]["PAR"]["custom"]
             if wab_aq == "":
                 # print(f'Cannot find the WAB_AQ of {spk}')
                 wab_aq = "none"
@@ -72,8 +70,6 @@ def main():
 
             spk2aphasia_type[spk] = aphasia_type
             spk2aphasia_severity[spk] = severity
-
-    # print("All aphasia types:", all_aphasia_types)
 
     with open(os.path.join(out_dir, "spk2aphasia_type"), "w") as f:
         json.dump(spk2aphasia_type, f)

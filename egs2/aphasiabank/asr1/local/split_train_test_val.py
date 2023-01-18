@@ -771,7 +771,8 @@ def main():
         for spk in spks:
             if spk not in spk2utts:
                 print(
-                    f"Skipping utterances of {spk} since they are not found in {args.text}"
+                    f"Skipping utterances of {spk}"
+                    f"since they are not found in {args.text}"
                 )
                 continue
 
