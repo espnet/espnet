@@ -71,7 +71,12 @@ class ESPnetASRModel(AbsESPnetModel):
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__()
-        self.blank_id = token_list.index(sym_blank)
+        # NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,
+        #                  which doesn't use <blank> token
+        if sym_blank in token_list:
+            self.blank_id = token_list.index(sym_blank)
+        else:
+            self.blank_id = 0
         if sym_sos in token_list:
             self.sos = token_list.index(sym_sos)
         else:
@@ -160,6 +165,13 @@ class ESPnetASRModel(AbsESPnetModel):
             self.ctc = ctc
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
+
+        self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+
+        if self.is_encoder_whisper:
+            assert (
+                self.frontend is None
+            ), "frontend should be None when using full Whisper model"
 
         if lang_token_id != -1:
             self.lang_token_id = torch.tensor([[lang_token_id]])
@@ -365,7 +377,10 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        if getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn":
+        if (
+            getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
+            and not self.is_encoder_whisper
+        ):
             assert encoder_out.size(-2) <= encoder_out_lens.max(), (
                 encoder_out.size(),
                 encoder_out_lens.max(),
