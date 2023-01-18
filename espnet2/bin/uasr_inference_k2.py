@@ -12,7 +12,6 @@ import yaml
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.fst.lm_rescore import nbest_am_lm_scores
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.uasr import UASRTask
 from espnet2.text.build_tokenizer import build_tokenizer

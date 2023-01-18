@@ -202,7 +202,7 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis],]]:
+    ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis]]]:
         """Inference
 
         Args:
