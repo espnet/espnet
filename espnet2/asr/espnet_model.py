@@ -47,7 +47,7 @@ class ESPnetASRModel(AbsESPnetModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: Optional[AbsDecoder],
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
         ctc_weight: float = 0.5,
@@ -137,10 +137,12 @@ class ESPnetASRModel(AbsESPnetModel):
             # self.decoder parameters were never used and PyTorch complained
             # and threw an Exception in the multi-GPU experiment.
             # thanks Jeff Farris for pointing out the issue.
-            if ctc_weight == 1.0:
-                self.decoder = None
-            else:
-                self.decoder = decoder
+            if ctc_weight < 1.0:
+                assert (
+                    self.decoder is not None
+                ), "decoder should not be None when attention is used"
+
+            self.decoder = decoder
 
             self.criterion_att = LabelSmoothingLoss(
                 size=vocab_size,
