@@ -33,6 +33,8 @@ module_list = [
     ("longformer", None, "installers/install_longformer.sh"),
     ("nlg-eval", None, "installers/install_longformer.sh"),
     ("datasets", None, "installers/install_longformer.sh"),
+    ("pykeops", None, "installers/install_cauchy_mult.sh"),
+    ("whisper", None, "installers/install_whisper.sh"),
 ]
 
 executable_list = [

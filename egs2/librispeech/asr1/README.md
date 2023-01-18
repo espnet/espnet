@@ -301,6 +301,62 @@
 
 
 
+# Conformer, S4 Decoder
+- Params: 113.20M
+- ASR config [conf/tuning/train_asr_s4_decoder.yaml](conf/tuning/train_asr_s4_decoder.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://huggingface.co/espnet/kmiyazaki_librispeech_asr_s4_decoder](https://huggingface.co/espnet/kmiyazaki_librispeech_asr_s4_decoder)
+# RESULTS
+## Environments
+- date: `Thu Dec 29 11:58:25 UTC 2022`
+- python version: `3.10.8 (main, Nov 24 2022, 14:13:03) [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.0`
+- Git hash: `617189d2d7e060bbcf670ab54b88776333b5137e`
+  - Commit date: `Mon Dec 26 18:01:58 2022 +0900`
+
+## asr_train_asr_s4_decoder_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|25.9|
+|beam60_ctc0.3/dev_other|2864|50948|95.5|4.2|0.4|0.5|5.0|42.2|
+|beam60_ctc0.3/test_clean|2620|52576|98.0|1.8|0.2|0.3|2.3|27.2|
+|beam60_ctc0.3/test_other|2939|52343|95.6|4.0|0.4|0.6|5.0|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|54402|98.5|1.3|0.2|0.2|1.7|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|50948|96.4|3.3|0.3|0.4|4.0|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|52576|98.3|1.5|0.2|0.2|1.9|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|52343|96.3|3.3|0.4|0.4|4.1|39.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.6|25.9|
+|beam60_ctc0.3/dev_other|2864|265951|98.4|1.0|0.6|0.5|2.1|42.2|
+|beam60_ctc0.3/test_clean|2620|281530|99.5|0.3|0.2|0.2|0.7|27.2|
+|beam60_ctc0.3/test_other|2939|272758|98.6|0.8|0.6|0.6|2.0|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|265951|98.6|0.8|0.5|0.5|1.8|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|281530|99.6|0.2|0.2|0.2|0.6|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|272758|98.8|0.7|0.6|0.5|1.7|39.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|68010|97.8|1.6|0.6|0.4|2.5|25.9|
+|beam60_ctc0.3/dev_other|2864|63110|94.5|4.3|1.3|0.9|6.4|42.2|
+|beam60_ctc0.3/test_clean|2620|65818|97.5|1.7|0.7|0.4|2.8|27.2|
+|beam60_ctc0.3/test_other|2939|65101|94.6|3.9|1.5|0.8|6.2|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|68010|98.1|1.4|0.5|0.4|2.2|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.4|3.5|1.1|0.9|5.5|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|65818|98.0|1.4|0.6|0.4|2.4|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|65101|95.5|3.2|1.3|0.8|5.4|39.5|
+
+
+
 # Conformer, `hop_length=160`
 - Params: 116.15 M
 - ASR config: [conf/tuning/train_asr_conformer10_hop_length160.yaml](conf/tuning/train_asr_conformer10_hop_length160.yaml)
