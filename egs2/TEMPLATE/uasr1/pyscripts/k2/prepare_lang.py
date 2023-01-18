@@ -36,8 +36,8 @@ from typing import Any, Dict, List, Tuple
 
 import k2
 import torch
-
 from icefall.lexicon import read_lexicon, write_lexicon
+
 from espnet2.utils.types import str2bool
 
 Lexicon = List[Tuple[str, List[str]]]
@@ -241,6 +241,7 @@ def add_self_loops(
 
     return arcs + ans
 
+
 def lexicon_to_fst_nosil(
     lexicon: Lexicon,
     token2id: Dict[str, int],
@@ -264,7 +265,7 @@ def lexicon_to_fst_nosil(
         tokens = [token2id[i] for i in tokens]
 
         for i in range(len(tokens) - 1):
-            w = word if i ==0 else eps
+            w = word if i == 0 else eps
             arcs.append([cur_state, next_state, tokens[i], w, 0])
 
             cur_state = next_state
@@ -294,6 +295,7 @@ def lexicon_to_fst_nosil(
 
     fsa = k2.Fsa.from_str(arcs, acceptor=False)
     return fsa
+
 
 def lexicon_to_fst(
     lexicon: Lexicon,
@@ -436,35 +438,35 @@ def main():
     write_lexicon(lang_dir / "lexicon_disambig.txt", lexicon_disambig)
 
     if sil_prob == 0:
-	    L = lexicon_to_fst_nosil(
-	        lexicon,
-	        token2id=token2id,
-	        word2id=word2id,
-	    )
-	
-	    L_disambig = lexicon_to_fst_nosil(
-	        lexicon_disambig,
-	        token2id=token2id,
-	        word2id=word2id,
-	        need_self_loops=True,
-	    )
+        L = lexicon_to_fst_nosil(
+            lexicon,
+            token2id=token2id,
+            word2id=word2id,
+        )
+
+        L_disambig = lexicon_to_fst_nosil(
+            lexicon_disambig,
+            token2id=token2id,
+            word2id=word2id,
+            need_self_loops=True,
+        )
     else:
-	    L = lexicon_to_fst(
-	        lexicon,
-	        token2id=token2id,
-	        word2id=word2id,
-	        sil_token=sil_token,
-	        sil_prob=sil_prob,
-	    )
-	
-	    L_disambig = lexicon_to_fst(
-	        lexicon_disambig,
-	        token2id=token2id,
-	        word2id=word2id,
-	        sil_token=sil_token,
-	        sil_prob=sil_prob,
-	        need_self_loops=True,
-		)
+        L = lexicon_to_fst(
+            lexicon,
+            token2id=token2id,
+            word2id=word2id,
+            sil_token=sil_token,
+            sil_prob=sil_prob,
+        )
+
+        L_disambig = lexicon_to_fst(
+            lexicon_disambig,
+            token2id=token2id,
+            word2id=word2id,
+            sil_token=sil_token,
+            sil_prob=sil_prob,
+            need_self_loops=True,
+        )
 
     torch.save(L.as_dict(), lang_dir / "L.pt")
     torch.save(L_disambig.as_dict(), lang_dir / "L_disambig.pt")

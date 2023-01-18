@@ -12,20 +12,20 @@ import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.uasr import UASRTask
 from espnet2.tasks.lm import LMTask
+from espnet2.tasks.uasr import UASRTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.nets.scorers.uasr import UASRPrefixScorer
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.uasr import UASRPrefixScorer
 
 # from espnet.nets.scorers.uasr import UASRPrefixScorer
 from espnet.utils.cli_utils import get_commandline_args
@@ -130,13 +130,17 @@ class Speech2Text:
         scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
-        weights = dict(decoder=1.0, lm=lm_weight, ngram=ngram_weight,)
+        weights = dict(
+            decoder=1.0,
+            lm=lm_weight,
+            ngram=ngram_weight,
+        )
 
         beam_search = BeamSearch(
             beam_size=beam_size,
             weights=weights,
             scorers=scorers,
-            sos=uasr_model.sos, 
+            sos=uasr_model.sos,
             eos=uasr_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
@@ -261,7 +265,8 @@ class Speech2Text:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build Speech2Text instance from the pretrained model.
 
@@ -361,7 +366,8 @@ def inference(
         quantize_dtype=quantize_dtype,
     )
     speech2text = Speech2Text.from_pretrained(
-        model_tag=model_tag, **speech2text_kwargs,
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -430,7 +436,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -458,25 +467,39 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--uasr_train_config", type=str, help="uasr training configuration",
+        "--uasr_train_config",
+        type=str,
+        help="uasr training configuration",
     )
     group.add_argument(
-        "--uasr_model_file", type=str, help="uasr model parameter file",
+        "--uasr_model_file",
+        type=str,
+        help="uasr model parameter file",
     )
     group.add_argument(
-        "--lm_train_config", type=str, help="LM training configuration",
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
     )
     group.add_argument(
-        "--lm_file", type=str, help="LM parameter file",
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
     )
     group.add_argument(
-        "--word_lm_train_config", type=str, help="Word LM training configuration",
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
     )
     group.add_argument(
-        "--word_lm_file", type=str, help="Word LM parameter file",
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
     )
     group.add_argument(
-        "--ngram_file", type=str, help="N-gram parameter file",
+        "--ngram_file",
+        type=str,
+        help="N-gram parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -518,7 +541,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")

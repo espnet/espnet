@@ -23,12 +23,13 @@ class UASRPrefixScorer(CTCPrefixScorer):
         Returns: initial state
 
         """
-        x[:, 0] = x[:, 0] - 100000000000 # simulate a no-blank CTC
-        self.logp = torch.nn.functional.log_softmax(x, dim=1).detach().squeeze(0).cpu().numpy()
+        x[:, 0] = x[:, 0] - 100000000000  # simulate a no-blank CTC
+        self.logp = (
+            torch.nn.functional.log_softmax(x, dim=1).detach().squeeze(0).cpu().numpy()
+        )
         # TODO(karita): use CTCPrefixScoreTH
         self.impl = CTCPrefixScore(logp, 0, self.eos, np)
         return 0, self.impl.initial_state()
-
 
     def batch_init_state(self, x: torch.Tensor):
         """Get an initial state for decoding.
@@ -39,8 +40,10 @@ class UASRPrefixScorer(CTCPrefixScorer):
         Returns: initial state
 
         """
-        x[:, 0] = x[:, 0] - 100000000000 # simulate a no-blank CTC
-        logp = torch.nn.functional.log_softmax(x, dim=1).unsqueeze(0)  # assuming batch_size = 1
+        x[:, 0] = x[:, 0] - 100000000000  # simulate a no-blank CTC
+        logp = torch.nn.functional.log_softmax(x, dim=1).unsqueeze(
+            0
+        )  # assuming batch_size = 1
         xlen = torch.tensor([logp.size(1)])
         self.impl = CTCPrefixScoreTH(logp, xlen, 0, self.eos)
         return None

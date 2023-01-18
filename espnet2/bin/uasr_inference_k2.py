@@ -7,29 +7,25 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import k2
-from icefall.decode import (
-    get_lattice,
-    one_best_decoding,
-)
-from icefall.utils import get_texts
-
 import numpy as np
 import torch
 import yaml
+from icefall.decode import get_lattice, one_best_decoding
+from icefall.utils import get_texts
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fst.lm_rescore import nbest_am_lm_scores
-from espnet2.tasks.uasr import UASRTask
 from espnet2.tasks.lm import LMTask
+from espnet2.tasks.uasr import UASRTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def indices_to_split_size(indices, total_elements: int = None):
@@ -191,9 +187,7 @@ class k2Speech2Text:
 
         # b. Forward Encoder
         # enc: [N, T, C]
-        generated_sample, _ = self.uasr_model.inference(
-            **batch
-        )
+        generated_sample, _ = self.uasr_model.inference(**batch)
 
         # nnet_output: [N, T, C]
         logp_encoder_output = torch.nn.functional.log_softmax(generated_sample, dim=-1)
@@ -317,7 +311,10 @@ class k2Speech2Text:
             split_size = indices_to_split_size(
                 seq_to_path_splits.tolist(), total_elements=batch_tot_scores.size(0)
             )
-            batch_tot_scores = torch.split(batch_tot_scores, split_size,)
+            batch_tot_scores = torch.split(
+                batch_tot_scores,
+                split_size,
+            )
 
             hyps = []
             scores = []
@@ -362,7 +359,8 @@ class k2Speech2Text:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build k2Speech2Text instance from the pretrained model.
 
@@ -476,7 +474,8 @@ def inference(
 
     speech2text_kwargs = dict(**speech2text_kwargs, **dict_k2_config)
     speech2text = k2Speech2Text.from_pretrained(
-        model_tag=model_tag, **speech2text_kwargs,
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -543,7 +542,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -571,22 +573,34 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--uasr_train_config", type=str, help="UASR training configuration",
+        "--uasr_train_config",
+        type=str,
+        help="UASR training configuration",
     )
     group.add_argument(
-        "--uasr_model_file", type=str, help="UASR model parameter file",
+        "--uasr_model_file",
+        type=str,
+        help="UASR model parameter file",
     )
     group.add_argument(
-        "--lm_train_config", type=str, help="LM training configuration",
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
     )
     group.add_argument(
-        "--lm_file", type=str, help="LM parameter file",
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
     )
     group.add_argument(
-        "--word_lm_train_config", type=str, help="Word LM training configuration",
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
     )
     group.add_argument(
-        "--word_lm_file", type=str, help="Word LM parameter file",
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -597,7 +611,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -618,7 +635,10 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding",
+        "--ctc_weight",
+        type=float,
+        default=0.5,
+        help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--streaming", type=str2bool, default=False)

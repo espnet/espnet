@@ -35,7 +35,6 @@ from pathlib import Path
 
 import k2
 import torch
-
 from icefall.lexicon import Lexicon
 
 
@@ -63,25 +62,25 @@ def get_args():
 
     return parser.parse_args()
 
+
 def make_h_no_blank(max_token_id, self_loop_penalty=-3):
     num_states = max_token_id + 1
     final_state = num_states
-    arcs = ''
+    arcs = ""
     for i in range(num_states):
         for j in range(1, num_states):
             if i == j:
-                arcs += f'{i} {i} {i} 0 {self_loop_penalty}\n'
+                arcs += f"{i} {i} {i} 0 {self_loop_penalty}\n"
             else:
-                arcs += f'{i} {j} {j} {j} 0.0\n'
-        arcs += f'{i} {final_state} -1 -1 0.0\n'
-    arcs += f'{final_state}'
+                arcs += f"{i} {j} {j} {j} 0.0\n"
+        arcs += f"{i} {final_state} -1 -1 0.0\n"
+    arcs += f"{final_state}"
     ans = k2.Fsa.from_str(arcs, num_aux_labels=1)
     ans = k2.arc_sort(ans)
     return ans
 
-def compile_HLG(lang_dir: str,
-                graph_dir: str,
-                ngram_num: int) -> k2.Fsa:
+
+def compile_HLG(lang_dir: str, graph_dir: str, ngram_num: int) -> k2.Fsa:
     """
     Args:
       lang_dir:
@@ -177,9 +176,7 @@ def main():
 
 
 if __name__ == "__main__":
-    formatter = (
-        "%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s"
-    )
+    formatter = "%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s"
 
     logging.basicConfig(format=formatter, level=logging.INFO)
 
