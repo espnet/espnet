@@ -144,6 +144,7 @@ lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
+hyp_cleaner=none # Text cleaner for hypotheses (may be used with external tokenizers)
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
@@ -349,6 +350,14 @@ elif [ "${token_type}" = char ]; then
 elif [ "${token_type}" = word ]; then
     token_list="${wordtoken_list}"
     bpemodel=none
+elif [ "${token_type}" = whisper_en ]; then # should make token_list an output filepath here
+    token_list="${token_listdir}"/whisper_en/tokens.txt
+    bpemodel=whisper_en
+    hyp_cleaner=${cleaner}
+elif [ "${token_type}" = whisper_multilingual ]; then
+    token_list="${token_listdir}"/whisper_multilingual/tokens.txt
+    bpemodel=whisper_multilingual
+    hyp_cleaner=${cleaner}
 elif [ "${token_type}" = hugging_face ]; then
     token_list="${hugging_face_token_list}"
     bpemodel=${hugging_face_model_name_or_path}
@@ -762,9 +771,16 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
+        elif grep -q "whisper" <<< ${token_type}; then
+            log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            echo ${token_list}
+            ${python} -m espnet2.bin.whisper_export_vocabulary  \
+                --whisper_model "${token_type}" \
+                --output "${token_list}"
         elif [ "${token_type}" = hugging_face ]; then
             log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
-
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
             # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
@@ -1410,7 +1426,7 @@ if ! "${skip_eval}"; then
                 _opts="--token_type ${_tok_type} "
                 if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
                     _type="${_tok_type:0:1}er"
-                    _opts+="--non_linguistic_symbols \"${nlsyms_txt}\" "
+                    _opts+="--non_linguistic_symbols ${nlsyms_txt} "
                     _opts+="--remove_non_linguistic_symbols true "
 
                 elif [ "${_tok_type}" = "bpe" ]; then
@@ -1446,6 +1462,7 @@ if ! "${skip_eval}"; then
                             ${python} -m espnet2.bin.tokenize_text  \
                                 -f 2- --input - --output - \
                                 ${_opts} \
+                                --cleaner "${hyp_cleaner}" \
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
