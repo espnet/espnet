@@ -9,8 +9,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from icefall.decode import get_lattice, one_best_decoding
-from icefall.utils import get_texts
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -28,6 +26,8 @@ from espnet.utils.cli_utils import get_commandline_args
 
 try:
     import k2  # for CI import
+    from icefall.decode import get_lattice, one_best_decoding
+    from icefall.utils import get_texts
 except ImportError or ModuleNotFoundError:
     k2 = None
 
@@ -700,7 +700,7 @@ def get_parser():
 def main(cmd=None):
     assert (
         k2 is not None
-    ), "k2 is not installed, please follow 'tools/installers' to install"
+    ), "k2/icefall is not installed, please follow 'tools/installers' to install"
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
