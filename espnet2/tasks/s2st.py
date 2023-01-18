@@ -56,6 +56,10 @@ from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron
+from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
+from espnet2.s2st.tgt_feats_extract.log_mel_fbank import LogMelFbank
+from espnet2.s2st.tgt_feats_extract.linear_spectrogram import LinearSpectrogram
+from espnet2.s2st.tgt_feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -78,6 +82,16 @@ frontend_choices = ClassChoices(
     ),
     type_check=AbsFrontend,
     default="default",
+)
+tgt_feats_extract_choices = ClassChoices(
+    name="tgt_feats_extract",
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
+    type_check=AbsTgtFeatsExtract,
+    default="fbank",
 )
 specaug_choices = ClassChoices(
     name="specaug",
@@ -202,6 +216,8 @@ class S2STTask(STTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --tgt_feats_extract and --tgt_feats_extract_conf
+        tgt_feats_extract_choices,
         # --specaug and --specaug_conf
         specaug_choices,
         # --{src, tgt}_normalize and --{src, tgt}_normalize_conf
@@ -283,6 +299,12 @@ class S2STTask(STTask):
             type=int_or_none,
             default=None,
             help="The number of input dimension of the feature",
+        )
+        group.add_argument(
+            "--output_size",
+            type=int_or_none,
+            default=None,
+            help="The number of output dimension of the feature",
         )
         group.add_argument(
             "--asr_ctc",
@@ -387,10 +409,12 @@ class S2STTask(STTask):
             # Loss format would be like:
             # losses:
             #   - name: loss1
+            #     type: attention
             #     conf:
             #       weight: 1.0
             #       smoothed: false
             #   - name: loss2
+            #     type: ctc
             #     conf:
             #       weight: 0.1
             #       smoothed: false
@@ -554,9 +578,9 @@ class S2STTask(STTask):
         else:
             src_token_list, src_vocab_size = None, None
 
-        # 1. frontend
+        # 1. frontend and tgt_feats_extract
         if args.input_size is None:
-            # Extract features in the model
+            # Extract source features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             raw_input_size = frontend.output_size()
@@ -566,7 +590,13 @@ class S2STTask(STTask):
             args.frontend_conf = {}
             frontend = None
             raw_input_size = args.input_size
-
+        
+        if args.output_size is None:
+            # Extract target features in the model
+            tgt_feats_extract_class = tgt_feats_extract_choices.get_class(args.tgt_feats_extract)
+            tgt_feats_extract = tgt_feats_extract_class(**args.tgt_feats_extract_conf)
+            output_size = tgt_feats_extract.output_size()
+        
         # 2. Data augmentation for spectrogram
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
@@ -667,11 +697,12 @@ class S2STTask(STTask):
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
         synthesizer_idim = (
             encoder_output_size
-            if aux_attention is not None
+            if args.aux_attention is None
             else 2 * encoder_output_size
         )
+        logging.info("synthesizer_idim: {}, encoder_output_size: {}, aux_attention {}".format(synthesizer_idim, encoder_output_size, args.aux_attention))
         synthesizer = synthesizer_class(
-            idim=encoder_output_size, odim=raw_input_size, **args.synthesizer_conf
+            idim=synthesizer_idim, odim=output_size, **args.synthesizer_conf
         )
 
         # 8. Loss definition
@@ -697,6 +728,7 @@ class S2STTask(STTask):
         model = ESPnetS2STModel(
             s2st_type=args.s2st_type,
             frontend=frontend,
+            tgt_feats_extract=tgt_feats_extract,
             specaug=specaug,
             src_normalize=src_normalize,
             tgt_normalize=tgt_normalize,
@@ -742,8 +774,8 @@ class S2STTask(STTask):
                 vocoder_config_file = Path(vocoder_config_file)
                 with vocoder_config_file.open("r", encoding="utf-8") as f:
                     vocoder_conf = yaml.safe_load(f)
-            if model.feats_extract is not None:
-                vocoder_conf.update(model.feats_extract.get_parameters())
+            if model.frontend is not None:
+                vocoder_conf.update(model.frontend.get_parameters())
             if (
                 "n_fft" in vocoder_conf
                 and "n_shift" in vocoder_conf

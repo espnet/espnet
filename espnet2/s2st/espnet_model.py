@@ -17,6 +17,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.s2st.aux_attention.abs_aux_attention import AbsS2STAuxAttention
 from espnet2.s2st.losses.abs_loss import AbsS2STLoss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
+from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
@@ -40,6 +41,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self,
         s2st_type: str,
         frontend: Optional[AbsFrontend],
+        tgt_feats_extract: Optional[AbsTgtFeatsExtract],
         specaug: Optional[AbsSpecAug],
         src_normalize: Optional[AbsNormalize],
         tgt_normalize: Optional[AbsNormalize],
@@ -80,6 +82,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.s2st_type = s2st_type
 
         self.frontend = frontend
+        self.tgt_feats_extract = tgt_feats_extract
         self.specaug = specaug
         self.src_normalize = src_normalize
         self.tgt_normalize = tgt_normalize
@@ -422,7 +425,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         # NOTE(jiatong): only for teaching-forcing in spectrogram
         if tgt_speech is not None:
             tgt_feats, tgt_feats_lengths = self._extract_feats(
-                tgt_speech, tgt_speech_lengths
+                tgt_speech, tgt_speech_lengths, target=True
             )
             # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.tgt_normalize is not None:
@@ -458,6 +461,13 @@ class ESPnetS2STModel(AbsESPnetModel):
             raise ValueError(
                 "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
             )
+
+        if self.tgt_normalize is not None and output_dict.get("feat_gen") is not None:
+            # NOTE: normalize.inverse is in-place operation
+            feat_gen_denorm = self.tgt_normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+            output_dict.update(feat_gen_denorm=feat_gen_denorm)
         return output_dict
 
     def collect_feats(
@@ -475,7 +485,7 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             # Note(jiatong): need change for discret units
             tgt_feats, tgt_feats_lengths = self._extract_feats(
-                tgt_speech, tgt_speech_lengths
+                tgt_speech, tgt_speech_lengths, target=True
             )
         else:
             # Generate dummy stats if extract_feats_in_collect_stats is False
@@ -541,7 +551,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         return encoder_out, encoder_out_lens
 
     def _extract_feats(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor, target: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         if speech_lengths is not None:
             assert speech_lengths.dim() == 1, speech_lengths.shape
@@ -554,7 +564,10 @@ class ESPnetS2STModel(AbsESPnetModel):
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            feats, feats_lengths = self.frontend(speech, speech_lengths)
+            if target:
+                feats, feats_lengths = self.tgt_feats_extract(speech, speech_lengths)
+            else:
+                feats, feats_lengths = self.frontend(speech, speech_lengths)
         else:
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
