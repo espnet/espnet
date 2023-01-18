@@ -21,7 +21,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -144,7 +143,7 @@ class Speech2Text:
             eos=uasr_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key=None,  # Note(jiatong): for frame-decoding (current scope)
+            pre_beam_score_key=None,  # NOTE(jiatong): for frame-decoding
         )
 
         # TODO(karita): make all scorers batchfied
@@ -203,7 +202,7 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis],]]:
+    ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis], ]]:
         """Inference
 
         Args:
