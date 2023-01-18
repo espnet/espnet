@@ -79,7 +79,7 @@ int_pad_value: 1
 use_amp: false
 num_workers: 6
 batch_type: sorted
-batch_size: 16
+batch_size: 160
 accum_grad: 1
 max_epoch: 3000
 patience: none

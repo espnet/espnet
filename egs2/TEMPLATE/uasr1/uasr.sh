@@ -55,21 +55,25 @@ max_wav_duration=20  # Maximum duration in second.
 vad_home=            # The directory for vad
                      # TODO(jiatong): add more options and variants of vad for choices
 silence_trim=true    # Whether to apply vad information in audio trimming
-precompute_batchsize=4       # Batchsize for feature pre-computation
+precompute_batchsize=1       # Batchsize for feature pre-computation
 write_collected_feats=false  # Whether to write collected feats for faster training (need more extra spaces)
 
 # Tokenization related
 token_type=phn      # Tokenization type (phn).
 nbpe=30             # The number of BPE vocabulary.
 bpemode=unigram     # Mode of BPE (unigram or bpe).
+reduce_vocab=true   # Reduce vocabulary size by removing suffix digits in tokens
 oov="<unk>"         # Out of vocabulary symbol.
-blank="<blank>"     # CTC blank symbol
-sos_eos="<sos/eos>" # sos and eos symbole
+blank="<eps>"       # CTC blank symbol/ WFST espilon symbol
+sos="<s>"           # sos symbol
+eos="</s>"          # eos symbol
+pad="<pad>"         # padding symbol
+sos_eos="<sos/eos>" # sos and eos symbol
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 postprocess_word_boundary="   "  # word boundary for post process
-postprocess_sil_token="sil"  # silence injection tokens in post process
+postprocess_sil_token="<SIL>"  # silence injection tokens in post process
 postprocess_sil_prob=0.5         # silence injection probability in post process
 
 # Ngram language model related
@@ -131,6 +135,9 @@ inference_uasr_model=valid.weighted_lm_ppl.best.pth # uasr model path for decodi
                                                     # inference_uasr_model=3epoch.pth
 download_model= # Download a model from Model Zoo and use it for decoding.
 fairseq_checkpoint= # Decode with a fairseq pre-trained checkpoint.
+
+# Scoring related
+remove_silence=true # Remove silence token in hyp
 
 # Upload model related
 hf_repo=        # Specify a Huggingface directory.
@@ -338,9 +345,6 @@ fi
 unpaired_text="${data_feats}/${train_set}"/unpaired_text
 unpaired_text_scp="${data_feats}/${train_set}"/unpaired_text.scp
 unpaired_text_and_scp="${unpaired_text}-${unpaired_text_scp}"
-# phones="${data_feats}/${train_set}"/phones.txt
-# phones_scp="${data_feats}/${train_set}"/phones.scp
-# phones_and_scp="${phones}-${phones_scp}"
 bpemodel=none
 if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
@@ -353,7 +357,7 @@ elif [ "${token_type}" = char ]; then
     token_list="${tokendir}"/tokens.txt
 elif [ "${token_type}" = phn ]; then
     tokendir="${token_listdir}"/"phn_${g2p}"
-    token_list="${tokendir}"/lm/tokens.txt
+    token_list="${tokendir}"/tokens.txt
 elif [ "${token_type}" = word ]; then
     # NOTE: keep for future development.
     # shellcheck disable=SC2034
@@ -366,26 +370,12 @@ else
 fi
 
 # Check if use k2 decoding
-# Question(jiatong): neet to put it after the tokenizer, we should not do anything like `paste` here
 if ${use_k2}; then
     [ -z "${k2_lang_dir}" ] && k2_lang_dir="${tokendir}/lang"
     mkdir -p "${k2_lang_dir}"
-    if [ -z "${k2_lexicon}" ]; then
-        log "Lexicon must be provided for k2 decoding"
-        exit 2
-    else
-        if [ ! -f ${k2_lexicon} ]; then
-            log "Error: '${k2_lexicon}' does not exit."
-            exit 2
-        else
-            k2_lexicon_name=$(basename "${k2_lexicon}")
-            [ ! -f "${k2_lang_dir}/${k2_lexicon_name}" ] && cp ${k2_lexicon} ${k2_lang_dir}
-        fi
-    fi
-    token_list="${k2_lang_dir}/tokens.txt"
 
-    [ -z "${graph_dir}" ] && graph_dir="${tokendir}/graph"
-    mkdir -p "${graph_dir}"
+    [ -z "${k2_graph_dir}" ] && k2_graph_dir="${tokendir}/graph"
+    mkdir -p "${k2_graph_dir}"
 fi
 
 
@@ -725,11 +715,11 @@ if ! "${skip_data_prep}"; then
                     --output_dir "${data_feats}/${train_set}" \
                     --text_file "unpaired_text" \
                     --vocab_file "tokens.txt" \
-                    --add_symbol "<blank>" \
-                    --add_symbol "<s>" \
-                    --add_symbol "<pad>" \
-                    --add_symbol "</s>" \
-                    --add_symbol "<unk>" \
+                    --add_symbol "${blank}" \
+                    --add_symbol "${sos}" \
+                    --add_symbol "${pad}" \
+                    --add_symbol "${eos}" \
+                    --add_symbol "${oov}" \
                     --add_symbol "${postprocess_sil_token}"
             cp "${data_feats}/${train_set}/tokens.txt" "${token_list}"
 
@@ -764,24 +754,23 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
-            ${python} -m espnet2.bin.tokenize_text \
-                --token_type phn \
-                --input ${split_dir}/JOB/text \
-                --output ${split_dir}/JOB/unpaired_text_nosil \
-                --g2p "${g2p}" \
-                --write_vocabulary false \
-                --field "2-"
+#            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
+#            ${python} -m espnet2.bin.tokenize_text \
+#                --token_type phn \
+#                --input ${split_dir}/JOB/text \
+#                --output ${split_dir}/JOB/unpaired_text_nosil \
+#                --g2p "${g2p}" \
+#                --write_vocabulary false \
+#                --field "2-"
 
-             # FIXME(jiatong): this post process is very hard-coded, need fix
              ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
              ${python} pyscripts/text/post_processing.py \
                --word_boundary "${postprocess_word_boundary}" \
                --sil_prob ${postprocess_sil_prob} \
-               --sil_token ${postprocess_sil_token} \
+               --sil_token "'${postprocess_sil_token}'" \
                --input_text "${split_dir}/JOB/unpaired_text_nosil" \
                --output_text "${split_dir}/JOB/unpaired_text" \
-               --reduce_vocab true
+               --reduce_vocab ${reduce_vocab}
 
             ${python} pyscripts/text/combine_text_and_vocab.py \
                 --split_dir ${split_dir} \
@@ -789,12 +778,11 @@ if ! "${skip_data_prep}"; then
                 --output_dir "${data_feats}/${train_set}" \
                 --text_file "unpaired_text" \
                 --vocab_file "tokens.txt" \
-                --add_symbol "<blank>" \
-                --add_symbol "<s>" \
-                --add_symbol "<pad>" \
-                --add_symbol "</s>" \
-                --add_symbol "<unk>" \
-                --add_symbol "${postprocess_sil_token}"
+                --add_symbol "${blank}" \
+                --add_symbol "${sos}" \
+                --add_symbol "${pad}" \
+                --add_symbol "${eos}" \
+                --add_symbol "${oov}" 
 
             cp "${data_feats}/${train_set}/tokens.txt" "${token_list}"
 
@@ -1028,7 +1016,6 @@ if ! "${skip_train}"; then
     if "${use_ngram}"; then
         mkdir -p ${ngram_exp}
         [ -z ${kenlm_path} ] && kenlm_path="${ngram_exp}/${ngram_num}gram.bin"
-        # TODO(jiatong): can we add other options? otherwise, this is a muste?
     fi
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
@@ -1037,9 +1024,11 @@ if ! "${skip_train}"; then
             _logdir="${ngram_exp}"
             lmplz -o ${ngram_num} < ${unpaired_text} --discount_fallback --prune 0 0 0 3 >${ngram_exp}/${ngram_num}gram.arpa
             build_binary ${ngram_exp}/${ngram_num}gram.arpa "${kenlm_path}"
+
             if "${use_k2}"; then
-                log "Stage 10: Building text lm for lattce loss: train_set=${lm_train_text}"
-                lmplz -o ${ngram_num} < ${lm_train_text} --discount_fallback --prune 0 0 0 3 \
+                log "Stage 10: Building text lm: train_set=${lm_train_text}"
+                cut -d ' ' -f2- "${lm_train_text}" > "${k2_lang_dir}/text"
+                lmplz -o ${ngram_num} < "${k2_lang_dir}/text" --discount_fallback --prune 0 0 0 3 \
                     >${ngram_exp}/${ngram_num}gram.word.arpa
             fi
         else
@@ -1050,21 +1039,34 @@ if ! "${skip_train}"; then
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         if "${use_k2}"; then
+            if [ -z "${k2_lexicon}" ]; then
+                log "Stage 11: Making lexicon: train_set=${lm_train_text}"
+
+                scripts/k2/make_lexicon.sh \
+                    --text "${lm_train_text}" \
+                    --lang_dir "${k2_lang_dir}" \
+                    --g2p "${g2p}" \
+                    --oov "${oov}" \
+                    --reduce_vocab ${reduce_vocab}
+            else
+                [ ! -f "${k2_lang_dir}/lexicon.txt" ] && cp "${k2_lexicon}" "${k2_lang_dir}/lexicon.txt"
+            fi
+
+            log "Stage 11: Preparing lang directory"
             ${python} pyscripts/k2/prepare_lang.py \
-              --k2_lang_dir "${k2_lang_dir}"
+              --lang_dir "${k2_lang_dir}" \
+              --token_list "${token_list}" \
+              --sil_token "${postprocess_sil_token}"
 
-            cut -d ' ' -f1 "${k2_lang_dir}/words.txt" > "${token_list}"
-
-            # use "-" instead of "_" for kaldilm
             ${python} -m kaldilm \
                 --read-symbol-table="${k2_lang_dir}/words.txt" \
                 --disambig-symbol="#0" \
                 --max-order="${ngram_num}" \
-                "${ngram_exp}/${ngram_num}gram.arpa" > "${graph_dir}/G_${ngram_num}_gram.fst.txt"
+                "${ngram_exp}/${ngram_num}gram.word.arpa" > "${k2_graph_dir}/G_${ngram_num}_gram.fst.txt"
 
-            ${python} pyscripts/compile_hlg.py
-                --k2_lang_dir "${k2_lang_dir}" \
-                --graph_dir "${graph_dir}" \
+            ${python} pyscripts/k2/compile_hlg.py \
+                --lang_dir "${k2_lang_dir}" \
+                --graph_dir "${k2_graph_dir}" \
                 --ngram_num "${ngram_num}"
         fi
     else
@@ -1080,7 +1082,6 @@ if ! "${skip_train}"; then
     fi
 
     # TODO(Dongji): fix the ad-hoc token_type
-    token_type="phn"
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         _uasr_train_dir="${data_feats}/${train_set}"
         _uasr_valid_dir="${data_feats}/${valid_set}"
@@ -1263,7 +1264,7 @@ if ! "${skip_train}"; then
                 # TODO(jiatong): update other types for more compact version
                 _type=npy
                 _fold_length="${uasr_speech_fold_length}"
-                _input_size="$(<${uasr_stats_dir}/${train_set}/feats_dim)"
+                _input_size="$(<${uasr_stats_dir}/train/feats_dim)"
                 _opts+="--input_size=${_input_size} "
             else
                 _scp=wav.scp
@@ -1317,8 +1318,8 @@ if ! "${skip_train}"; then
         else
             _opts+="--train_data_path_and_name_and_type ${_uasr_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${unpaired_text_and_scp},text,random_text "
-            _opts+="--train_shape_file ${uasr_stats_dir}/${train_set}/speech_shape "
-            _opts+="--train_shape_file ${uasr_stats_dir}/${train_set}/text_shape.${token_type} "
+            _opts+="--train_shape_file ${uasr_stats_dir}/train/speech_shape "
+            _opts+="--train_shape_file ${uasr_stats_dir}/train/text_shape.${token_type} "
         fi
         [ ! -z ${fairseq_checkpoint} ] && _opts+="--fairseq_checkpoint ${fairseq_checkpoint}"
 
@@ -1423,7 +1424,7 @@ if ! "${skip_eval}"; then
                     --output_dir "${uasr_stats_dir}" \
                     --dset "${dset}"
 
-                cp ${uasr_stats_dir}/${dset}/collect_feats/feats.scp "${data_feats}/${dset}"/feats.scp
+            cp ${uasr_stats_dir}/${dset}/collect_feats/feats.scp "${data_feats}/${dset}"/feats.scp
         done
 
         if "${use_feature_clustering}"; then
@@ -1436,9 +1437,9 @@ if ! "${skip_eval}"; then
                     --nj ${nj} \
                     --dim ${feature_pca_dim} \
                     --num_clusters ${feature_num_clusters} \
-                    --valid-set "" \
-                    --test-sets "${test_sets}" \
-                    --skip-training true \
+                    --valid_set "" \
+                    --test_sets "${test_sets}" \
+                    --skip_training true \
                     ${uasr_stats_dir} \
                     ${output_feats_dir} 
             
@@ -1448,15 +1449,20 @@ if ! "${skip_eval}"; then
                     --nj ${nj} \
                     --dim ${feature_pca_dim} \
                     --num_clusters ${feature_num_clusters} \
-                    --valid-set "" \
-                    --test-sets "${test_sets}" \
-                    --skip-training true \
+                    --valid_set "" \
+                    --test_sets "${test_sets}" \
+                    --skip_training true \
                     ${uasr_stats_dir} \
                     ${output_feats_dir} 
 
             else
                 log "${feature_clustering_tool}" is not supported
             fi
+
+            for dset in ${test_sets}; do
+                cp "${uasr_stats_dir}/clustered/precompute_pca${feature_pca_dim}_cls${feature_num_clusters}_mean_pooled/${dset}/feats.scp" \
+                    "${data_feats}/${dset}"/feats.scp
+            done
         fi
     fi
 
@@ -1484,15 +1490,25 @@ if ! "${skip_eval}"; then
                 _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
         fi
-        if "${use_ngram}"; then
-             _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
-        fi
 
         # 2. Generate run.sh
         log "Generate '${uasr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${uasr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${uasr_exp}/${inference_tag}/run.sh"; chmod +x "${uasr_exp}/${inference_tag}/run.sh"
 
         uasr_inference_tool="espnet2.bin.uasr_inference"
+        if "${use_k2}"; then
+            uasr_inference_tool="espnet2.bin.uasr_inference_k2"
+            use_ngram=false
+
+            _opts+="--k2_config ${k2_config} "
+            _opts+="--token_type word "
+            _opts+="--decoding_graph ${k2_graph_dir}/HLG.pt "
+            _opts+="--word_token_list ${k2_lang_dir}/words.txt "
+        fi
+
+        if "${use_ngram}"; then
+             _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
+        fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1542,7 +1558,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/uasr_inference.JOB.log \
                 ${python} -m ${uasr_inference_tool} \
-                    --batch_size ${batch_size} \
+                    --batch_size 1 \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
@@ -1577,14 +1593,22 @@ if ! "${skip_eval}"; then
                 log "${_data}/text" 
 
                 # Tokenize text to phn level (the phn is separate as word)
+                ${python} -m espnet2.bin.tokenize_text \
+                    --token_type phn \
+                    --input "${_data}/text" \
+                    --output "${_data}/phonemiced_text.tmp" \
+                    --g2p "${g2p}" \
+                    --field "2-"
+
+                ${python} pyscripts/text/post_processing.py \
+                    --word_boundary "${postprocess_word_boundary}" \
+                    --sil_prob 0.0 \
+                    --input_text "${_data}/phonemiced_text.tmp" \
+                    --output_text "${_data}/phonemiced_text" \
+                    --reduce_vocab ${reduce_vocab}
+
                 paste \
-                    <(<"${_data}/text" \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                --token_type word \
-                                --non_linguistic_symbols "${nlsyms_txt}" \
-                                --remove_non_linguistic_symbols true \
-                                ) \
+                    <(cat "${_data}/phonemiced_text") \
                     <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                         >"${_scoredir}/ref.trn"
 
