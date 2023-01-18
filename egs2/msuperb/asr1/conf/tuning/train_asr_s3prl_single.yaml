@@ -8,7 +8,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d
+    input_layer: conv2d2
     normalize_before: true
     macaron_style: true
     rel_pos_type: latest
@@ -18,20 +18,10 @@ encoder_conf:
     use_cnn_module: true
     cnn_module_kernel: 15
 
-decoder: transformer
-decoder_conf:
-    attention_heads: 8
-    linear_units: 1024
-    num_blocks: 3
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
+decoder: none
 
 model_conf:
-    ctc_weight: 0.3
-    lsm_weight: 0.1
-    length_normalized_loss: false
+    ctc_weight: 1.0
 
 unused_parameters: true
 freeze_param: [
@@ -52,8 +42,8 @@ preencoder_conf:
 
 num_workers: 4
 batch_type: sorted
-batch_size: 16
-accum_grad: 2
+batch_size: 8
+accum_grad: 4
 max_epoch: 50
 patience: none
 init: none
@@ -65,11 +55,8 @@ keep_nbest_models: 10
 
 optim: adam
 optim_conf:
-    lr: 0.0025
+    lr: 0.0001
     weight_decay: 0.000001
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 4000
 
 specaug: specaug
 specaug_conf:
