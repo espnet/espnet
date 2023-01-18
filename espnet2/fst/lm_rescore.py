@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch
 
 try:
-    import k2  # for CI import
+    import k2
 except ImportError or ModuleNotFoundError:
     k2 = None
 
