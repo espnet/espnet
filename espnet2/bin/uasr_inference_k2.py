@@ -251,11 +251,9 @@ class k2Speech2Text:
         lattices.scores *= self.lattice_weight
 
         results = []
-        # TODO(Dongji): add nbest_rescoring 
+        # TODO(Dongji): add nbest_rescoring
         if self.use_nbest_rescoring:
-            raise ValueError(
-                "Currently nbest rescoring is not supported"
-            )
+            raise ValueError("Currently nbest rescoring is not supported")
         else:
             best_paths = one_best_decoding(lattices, use_double_scores=True)
             scores = best_paths.get_tot_scores(
