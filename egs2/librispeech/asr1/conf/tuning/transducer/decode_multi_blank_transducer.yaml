@@ -1,0 +1,4 @@
+# The multi-blank transducer decoding configuration 
+beam_size: 1
+transducer_conf:
+    search_type: mbg

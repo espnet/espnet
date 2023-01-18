@@ -109,6 +109,7 @@ class Speech2Text:
         asr_model, asr_train_args = task.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
+
         if enh_s2t_task:
             asr_model.inherite_attributes(
                 inherite_s2t_attrs=[
@@ -171,12 +172,19 @@ class Speech2Text:
 
         # 4. Build BeamSearch object
         if asr_model.use_transducer_decoder:
+
+            # In multi-blank RNNT, we assume all big blanks are just before the standard blank in token_list
+            multi_blank_durations = getattr(asr_model, "transducer_multi_blank_durations", []) + [1]
+            multi_blank_index = [asr_model.blank_id - i + 1 for i in range(len(multi_blank_durations), 0, -1)]
+
             beam_search_transducer = BeamSearchTransducer(
                 decoder=asr_model.decoder,
                 joint_network=asr_model.joint_network,
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
+                multi_blank_durations=multi_blank_durations,
+                multi_blank_index=multi_blank_index,
                 token_list=token_list,
                 **transducer_conf,
             )
