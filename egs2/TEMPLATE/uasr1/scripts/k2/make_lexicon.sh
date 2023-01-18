@@ -24,10 +24,10 @@ python3 -m espnet2.bin.tokenize_text \
     --cutoff 0
 
 if ${reduce_vocab}; then
-    cat "${lang_dir}/lexicon.phones" | sed "s/[0-9]//g" | sed "s/'//g" | \
+    sed "s/[0-9]//g" < "${lang_dir}/lexicon.phones" | sed "s/'//g" | \
         paste -d " " "${lang_dir}/lexicon.words" - > "${lang_dir}/lexicon.txt"
 else
-    cat "${lang_dir}/lexicon.phones" | \
-        paste -d " " "${lang_dir}/lexicon.words" - > "${lang_dir}/lexicon.txt"
+    paste -d " " "${lang_dir}/lexicon.words" \
+                 "${lang_dir}/lexicon.phones" > "${lang_dir}/lexicon.txt"
 fi
 echo "${oov} ${oov}" >> "${lang_dir}/lexicon.txt"
