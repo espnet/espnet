@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import k2
 import numpy as np
 import torch
 import yaml
@@ -26,6 +25,11 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.utils.cli_utils import get_commandline_args
+
+try:
+    import k2  # for CI import
+except ImportError or ModuleNotFoundError:
+    k2 = None
 
 
 def indices_to_split_size(indices, total_elements: int = None):
@@ -694,6 +698,9 @@ def get_parser():
 
 
 def main(cmd=None):
+    assert (
+        k2 is not None
+    ), "k2 is not installed, please follow 'tools/installers' to install"
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
