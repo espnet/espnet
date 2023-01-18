@@ -65,6 +65,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
   - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, Conformer or [Branchformer](https://proceedings.mlr.press/v162/peng22a.html)
+  - Decoder: RNN (LSTM/GRU), Transformer, or S4
 - Attention: Dot product, location-aware attention, variants of multi-head
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
@@ -208,17 +209,20 @@ Demonstration
   - RNN-based non-autoregressive model
   - Xiaoice
   - Sequence-to-sequence Transformer (with GLU-based encoder)
-  - MLP singer
+  - MLP singer (in progress)
   - Tacotron-singing (in progress)
-  - DiffSinger (to be published)
-  - VISinger (in progress)
+  - DiffSinger (in progress)
+  - VISinger
 - Support multi-speaker & multilingual singing synthesis
   - Speaker ID embedding
   - Language ID embedding
-  - Global sytle token (GST) embedding
 - Various language support
   - Jp / En / Kr / Zh
 - Tight integration with neural vocoders (the same as TTS)
+
+### Self-supervised Learning
+- Support HuBERT Pretraining:
+  * Example recipe: [egs2/LibriSpeech/ssl1](egs2/LibriSpeech/ssl1)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
