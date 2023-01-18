@@ -28,7 +28,7 @@ class UASRPrefixScorer(CTCPrefixScorer):
             torch.nn.functional.log_softmax(x, dim=1).detach().squeeze(0).cpu().numpy()
         )
         # TODO(karita): use CTCPrefixScoreTH
-        self.impl = CTCPrefixScore(logp, 0, self.eos, np)
+        self.impl = CTCPrefixScore(self.logp, 0, self.eos, np)
         return 0, self.impl.initial_state()
 
     def batch_init_state(self, x: torch.Tensor):
