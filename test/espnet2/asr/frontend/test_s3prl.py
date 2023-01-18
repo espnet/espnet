@@ -38,7 +38,8 @@ def test_frontend_output_size():
 
 @pytest.mark.parametrize(
     "fs, frontend_conf, multilayer_feature",
-    "layer"[
+    "layer",
+    [
         (16000, dict(upstream="mel"), True, -1),
         (16000, dict(upstream="mel"), False, -1),
         (16000, dict(upstream="mel", tile_factor=1), False, -1),
