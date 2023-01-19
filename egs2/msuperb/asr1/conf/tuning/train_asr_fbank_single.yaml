@@ -1,10 +1,9 @@
-# Trained with Tesla V100 (32GB) x 4 GPUs. It takes about 3.5 days.
 encoder: conformer
 encoder_conf:
     output_size: 256
     attention_heads: 8
     linear_units: 1024
-    num_blocks: 3
+    num_blocks: 2
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1

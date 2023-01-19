@@ -144,7 +144,7 @@ class ESPnetASRModel(AbsESPnetModel):
             # thanks Jeff Farris for pointing out the issue.
             if ctc_weight < 1.0:
                 assert (
-                    self.decoder is not None
+                    decoder is not None
                 ), "decoder should not be None when attention is used"
 
             self.decoder = decoder
