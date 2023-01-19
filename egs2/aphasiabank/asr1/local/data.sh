@@ -45,12 +45,30 @@ fi
 tmp=data/local
 mkdir -p $tmp
 
-# things that were manually done:
-# - Converting all *.mp4 and *.mp3 data into .wav files in their original directories
-# - Copy all transcripts (including control group data) into ${APHASIABANK}/transcripts
-# - Speakers in train, test, and val set is hardcoded in split_train_test_val.py
+# Things to manually prepare:
+# - Download AphasiaBank data from https://aphasia.talkbank.org/
+# - Set ${APHASIABANK} to the path to English subset ("<data_root>/English/") in db.sh
+# - Download transcripts (Aphasia and Control subfolder) from
+#   https://aphasia.talkbank.org/data/English/
+# - Unzip and copy all *.cha files into ${APHASIABANK}/transcripts
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+  log "Converting *.mp4 and *.mp3 files into .wav"
+
+  for ext in mp3 mp4; do
+    for subdir in Aphasia Control; do
+      for f in $(find ${APHASIABANK}/${subdir} -type f -name "*.${ext}"); do
+        filename=$(basename -- "$f")
+        dir=$(dirname "$f")
+        filename="${filename%.*}"
+        echo "Converting $f to $dir/${filename}.wav"
+        ffmpeg -y -i "$f" -acodec pcm_s16le -ac 1 -ar 16000 "${dir}/${filename}.wav" &>/dev/null
+      done
+    done
+  done
+fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   log "Extracting speaker information"
 
   # generate data/spk_info.txt
@@ -61,7 +79,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   python local/extract_speaker_info.py --transcript-dir=${APHASIABANK}/transcripts --out-dir=data
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   log "Extracting sentence information"
 
   # generate data/local/text
@@ -73,14 +91,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   python local/extract_sentence_info.py ${_opts}
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   log "Split data into train, test, and val"
 
   # split data, generate text and utt2spk
   python local/split_train_test_val.py --text=$tmp/text --out-dir=$tmp
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   log "Generating data files of the entire database"
 
   # generate wav.scp of all data
@@ -96,7 +114,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   sed -i 's/\.wav//' $tmp/all_wav.scp
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
   log "Generating data files of subsets"
 
   # generate 'wav.scp' and 'segments' files for subsets
@@ -108,7 +126,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   done
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
   log "Finalizing data"
 
   # finalize
