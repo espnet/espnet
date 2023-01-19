@@ -182,8 +182,9 @@ decoder_choices = ClassChoices(
         hugging_face_transformers=HuggingFaceTransformersDecoder,
         s4=S4Decoder,
     ),
-    type_check=Union[AbsDecoder, None],
+    type_check=AbsDecoder,
     default="rnn",
+    optional=True,
 )
 preprocessor_choices = ClassChoices(
     "preprocessor",
