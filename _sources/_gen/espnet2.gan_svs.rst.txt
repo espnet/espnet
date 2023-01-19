@@ -4,17 +4,6 @@ espnet2.gan_svs package
 
 
 
-.. _espnet2.gan_svs.espnet_model:
-
-espnet2.gan_svs.espnet_model
-----------------------------
-
-.. automodule:: espnet2.gan_svs.espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.gan_svs.abs_gan_svs:
 
 espnet2.gan_svs.abs_gan_svs
@@ -37,12 +26,12 @@ espnet2.gan_svs.__init__
     :show-inheritance:
 
 
-.. _espnet2.gan_svs.vits.duration_predictor:
+.. _espnet2.gan_svs.espnet_model:
 
-espnet2.gan_svs.vits.duration_predictor
----------------------------------------
+espnet2.gan_svs.espnet_model
+----------------------------
 
-.. automodule:: espnet2.gan_svs.vits.duration_predictor
+.. automodule:: espnet2.gan_svs.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,23 +48,12 @@ espnet2.gan_svs.vits.text_encoder
     :show-inheritance:
 
 
-.. _espnet2.gan_svs.vits.pitch_predictor:
+.. _espnet2.gan_svs.vits.generator:
 
-espnet2.gan_svs.vits.pitch_predictor
-------------------------------------
+espnet2.gan_svs.vits.generator
+------------------------------
 
-.. automodule:: espnet2.gan_svs.vits.pitch_predictor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_svs.vits.vits:
-
-espnet2.gan_svs.vits.vits
--------------------------
-
-.. automodule:: espnet2.gan_svs.vits.vits
+.. automodule:: espnet2.gan_svs.vits.generator
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,34 +70,23 @@ espnet2.gan_svs.vits.frame_prior_net
     :show-inheritance:
 
 
-.. _espnet2.gan_svs.vits.phoneme_predictor:
-
-espnet2.gan_svs.vits.phoneme_predictor
---------------------------------------
-
-.. automodule:: espnet2.gan_svs.vits.phoneme_predictor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_svs.vits.generator:
-
-espnet2.gan_svs.vits.generator
-------------------------------
-
-.. automodule:: espnet2.gan_svs.vits.generator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.gan_svs.vits.modules:
 
 espnet2.gan_svs.vits.modules
 ----------------------------
 
 .. automodule:: espnet2.gan_svs.vits.modules
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.vits.vits:
+
+espnet2.gan_svs.vits.vits
+-------------------------
+
+.. automodule:: espnet2.gan_svs.vits.vits
     :members:
     :undoc-members:
     :show-inheritance:
@@ -136,12 +103,45 @@ espnet2.gan_svs.vits.length_regulator
     :show-inheritance:
 
 
+.. _espnet2.gan_svs.vits.phoneme_predictor:
+
+espnet2.gan_svs.vits.phoneme_predictor
+--------------------------------------
+
+.. automodule:: espnet2.gan_svs.vits.phoneme_predictor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_svs.vits.__init__:
 
 espnet2.gan_svs.vits.__init__
 -----------------------------
 
 .. automodule:: espnet2.gan_svs.vits.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.vits.duration_predictor:
+
+espnet2.gan_svs.vits.duration_predictor
+---------------------------------------
+
+.. automodule:: espnet2.gan_svs.vits.duration_predictor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.vits.pitch_predictor:
+
+espnet2.gan_svs.vits.pitch_predictor
+------------------------------------
+
+.. automodule:: espnet2.gan_svs.vits.pitch_predictor
     :members:
     :undoc-members:
     :show-inheritance:

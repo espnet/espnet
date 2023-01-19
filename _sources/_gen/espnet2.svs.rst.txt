@@ -15,17 +15,6 @@ espnet2.svs.abs_svs
     :show-inheritance:
 
 
-.. _espnet2.svs.espnet_model:
-
-espnet2.svs.espnet_model
-------------------------
-
-.. automodule:: espnet2.svs.espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.svs.__init__:
 
 espnet2.svs.__init__
@@ -37,56 +26,12 @@ espnet2.svs.__init__
     :show-inheritance:
 
 
-.. _espnet2.svs.xiaoice.XiaoiceSing:
+.. _espnet2.svs.espnet_model:
 
-espnet2.svs.xiaoice.XiaoiceSing
--------------------------------
+espnet2.svs.espnet_model
+------------------------
 
-.. automodule:: espnet2.svs.xiaoice.XiaoiceSing
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.xiaoice.__init__:
-
-espnet2.svs.xiaoice.__init__
-----------------------------
-
-.. automodule:: espnet2.svs.xiaoice.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.naive_rnn_dp:
-
-espnet2.svs.naive_rnn.naive_rnn_dp
-----------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.naive_rnn_dp
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.naive_rnn:
-
-espnet2.svs.naive_rnn.naive_rnn
--------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.naive_rnn
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.__init__:
-
-espnet2.svs.naive_rnn.__init__
-------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.__init__
+.. automodule:: espnet2.svs.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -109,6 +54,61 @@ espnet2.svs.feats_extract.__init__
 ----------------------------------
 
 .. automodule:: espnet2.svs.feats_extract.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.naive_rnn.__init__:
+
+espnet2.svs.naive_rnn.__init__
+------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.naive_rnn.naive_rnn:
+
+espnet2.svs.naive_rnn.naive_rnn
+-------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.naive_rnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.naive_rnn.naive_rnn_dp:
+
+espnet2.svs.naive_rnn.naive_rnn_dp
+----------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.naive_rnn_dp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.XiaoiceSing:
+
+espnet2.svs.xiaoice.XiaoiceSing
+-------------------------------
+
+.. automodule:: espnet2.svs.xiaoice.XiaoiceSing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.__init__:
+
+espnet2.svs.xiaoice.__init__
+----------------------------
+
+.. automodule:: espnet2.svs.xiaoice.__init__
     :members:
     :undoc-members:
     :show-inheritance:

@@ -37,34 +37,23 @@ espnet.asr.__init__
     :show-inheritance:
 
 
-.. _espnet.asr.chainer_backend.__init__:
+.. _espnet.asr.pytorch_backend.recog:
 
-espnet.asr.chainer_backend.__init__
------------------------------------
+espnet.asr.pytorch_backend.recog
+--------------------------------
 
-.. automodule:: espnet.asr.chainer_backend.__init__
+.. automodule:: espnet.asr.pytorch_backend.recog
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.asr.chainer_backend.asr:
+.. _espnet.asr.pytorch_backend.asr:
 
-espnet.asr.chainer_backend.asr
+espnet.asr.pytorch_backend.asr
 ------------------------------
 
-.. automodule:: espnet.asr.chainer_backend.asr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.asr.pytorch_backend.asr_init:
-
-espnet.asr.pytorch_backend.asr_init
------------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.asr_init
+.. automodule:: espnet.asr.pytorch_backend.asr
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,12 +70,12 @@ espnet.asr.pytorch_backend.asr_mix
     :show-inheritance:
 
 
-.. _espnet.asr.pytorch_backend.recog:
+.. _espnet.asr.pytorch_backend.asr_init:
 
-espnet.asr.pytorch_backend.recog
---------------------------------
+espnet.asr.pytorch_backend.asr_init
+-----------------------------------
 
-.. automodule:: espnet.asr.pytorch_backend.recog
+.. automodule:: espnet.asr.pytorch_backend.asr_init
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,12 +92,23 @@ espnet.asr.pytorch_backend.__init__
     :show-inheritance:
 
 
-.. _espnet.asr.pytorch_backend.asr:
+.. _espnet.asr.chainer_backend.asr:
 
-espnet.asr.pytorch_backend.asr
+espnet.asr.chainer_backend.asr
 ------------------------------
 
-.. automodule:: espnet.asr.pytorch_backend.asr
+.. automodule:: espnet.asr.chainer_backend.asr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.chainer_backend.__init__:
+
+espnet.asr.chainer_backend.__init__
+-----------------------------------
+
+.. automodule:: espnet.asr.chainer_backend.__init__
     :members:
     :undoc-members:
     :show-inheritance:
