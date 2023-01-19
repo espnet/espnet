@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
