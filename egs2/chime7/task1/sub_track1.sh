@@ -4,19 +4,50 @@
 set -e
 set -u
 set -o pipefail
-stage=1
+stage=2
 
+CHIME5_ROOT=
 CHIME6_ROOT=
 DIPCO_ROOT=
 MIXER6_ROOT=
 MANIFESTS_DIR=${CWD}/dataset
 AUDIO_DUMP_DIR=
-dsets=tr cv tt
+dsets=tr,cv,tt
+
+. ./path.sh
+. ./cmd.sh
+
+
+if [ ${stage} -le 0 ]; then
+  # download DiPCO
+  if [ -d "$DIPCO_ROOT/DiPCo" ]; then
+    echo "$DIPCO_ROOT/DiPCo already exists,
+    exiting as I am assuming you already downloaded it."
+    exit
+  fi
+
+  mkdir -p $DIPCO_ROOT
+  if ! [ -d ${DIPCO_ROOT}/DiPCo.tgz ]; then
+    wget https://s3.amazonaws.com/dipco/DiPCo.tgz -O ${DIPCO_ROOT}/DiPCo.tgz
+
+  fi
+  tar -zxf --directory ${DIPCO_ROOT}
+fi
 
 if [ ${stage} -le 1 ]; then
-  # create JSONL annotation and lhotse manifests
-  # create also old annotation compatible with CHiME6 challenge for analysis of results
-  #TODO if exists already return error
+  # from CHiME5 create CHiME6
+  local/data/generate_chime6_data.sh \
+    --cmd "$train_cmd" \
+    ${CHIME5_ROOT} \
+    ${CHIME6_ROOT}
+fi
+
+
+if [ ${stage} -le 2 ]; then
+  if [ -d "$MANIFESTS_DIR" ]; then
+    echo "${MANIFESTS_DIR} already exists, exiting"
+    exit
+  fi
   python local/prep_data.py $CHIME6_ROOT $DIPCO_ROOT $MIXER6_ROOT $MANIFESTS_DIR
 fi
 
