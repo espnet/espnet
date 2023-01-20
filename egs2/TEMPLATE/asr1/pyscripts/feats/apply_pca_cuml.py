@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
-# Copyright (c) Facebook, Inc. and its affiliates.
-#               2022 Johns Hopkins Univertiy (Author: Dongji Gao)
 #
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
+# Copyright 2022 Johns Hopkins University (Author: Dongji Gao)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import argparse
 import math
@@ -58,11 +67,9 @@ def main():
     features = np.vstack(x)
 
     save_path = osp.join(args.save_dir, args.split)
-
     npaa = NpyAppendArray(save_path + ".npy")
 
     batches = math.ceil(features.shape[0] / args.batch_size)
-
     for b in tqdm.trange(batches):
         start = b * args.batch_size
         end = start + args.batch_size
