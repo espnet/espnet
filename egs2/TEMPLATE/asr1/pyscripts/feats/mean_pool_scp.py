@@ -4,6 +4,7 @@
 #
 # Adapted from fairseq/examples/wav2vec/unsupervised/\
 #                  scripts/mean_pool.py
+#         to fit the scp data format
 # This source code is licensed under the MIT license in
 # https://github.com/facebookresearch/fairseq
 

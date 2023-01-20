@@ -2,6 +2,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 #
 # Adapted from fairseq/examples/wav2vec/unsupervised/scripts/apply_pca.py
+#         to fit the scp data format
 # This source code is licensed under the MIT license in
 # https://github.com/facebookresearch/fairseq
 

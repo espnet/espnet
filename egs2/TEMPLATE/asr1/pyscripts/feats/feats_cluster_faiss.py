@@ -4,6 +4,7 @@
 #
 # Adapted from fairseq/examples/wav2vec/unsupervised/\
 #                  scripts/wav2vec_cluster_faiss.py
+#         to fit the scp data format
 # This source code is licensed under the MIT license in
 # https://github.com/facebookresearch/fairseq
 
