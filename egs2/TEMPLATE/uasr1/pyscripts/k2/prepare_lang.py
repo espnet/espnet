@@ -2,7 +2,8 @@
 # Copyright    2021  Xiaomi Corp.        (authors: Fangjun Kuang)
 #              2022  Johns Hopkins University (author: Dongji Gao)
 #
-# This script is adapted from https://github.com/k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/prepare_lang.py
+# This script is adapted from \
+#    k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/prepare_lang.py
 #
 # See https://github.com/k2-fsa/icefall/blob/master/LICENSE
 # for clarification regarding multiple authors
@@ -62,13 +63,19 @@ def get_args():
         """,
     )
     parser.add_argument(
-        "--token_list", type=str, default="",
+        "--token_list",
+        type=str,
+        default="",
     )
     parser.add_argument(
-        "--sil_token", type=str, default="sil",
+        "--sil_token",
+        type=str,
+        default="sil",
     )
     parser.add_argument(
-        "--sil_prob", type=float, default=0.5,
+        "--sil_prob",
+        type=float,
+        default=0.5,
     )
 
     return parser.parse_args()
@@ -270,7 +277,9 @@ def lexicon_to_fst_nosil(
         disambig_token = token2id["#0"]
         disambig_word = word2id["#0"]
         arcs = add_self_loops(
-            arcs, disambig_token=disambig_token, disambig_word=disambig_word,
+            arcs,
+            disambig_token=disambig_token,
+            disambig_word=disambig_word,
         )
 
     final_state = next_state
@@ -364,7 +373,9 @@ def lexicon_to_fst(
         disambig_token = token2id["#0"]
         disambig_word = word2id["#0"]
         arcs = add_self_loops(
-            arcs, disambig_token=disambig_token, disambig_word=disambig_word,
+            arcs,
+            disambig_token=disambig_token,
+            disambig_word=disambig_word,
         )
 
     final_state = next_state
@@ -425,10 +436,17 @@ def main():
     write_lexicon(lang_dir / "lexicon_disambig.txt", lexicon_disambig)
 
     if sil_prob == 0:
-        L = lexicon_to_fst_nosil(lexicon, token2id=token2id, word2id=word2id,)
+        L = lexicon_to_fst_nosil(
+            lexicon,
+            token2id=token2id,
+            word2id=word2id,
+        )
 
         L_disambig = lexicon_to_fst_nosil(
-            lexicon_disambig, token2id=token2id, word2id=word2id, need_self_loops=True,
+            lexicon_disambig,
+            token2id=token2id,
+            word2id=word2id,
+            need_self_loops=True,
         )
     else:
         L = lexicon_to_fst(

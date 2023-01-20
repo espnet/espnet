@@ -2,7 +2,8 @@
 # Copyright    2021  Xiaomi Corp.        (authors: Fangjun Kuang)
 #              2022  Johns Hopkins University (author: Dongji Gao)
 #
-# This script is adapted from https://github.com/k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/compile_hlg.py
+# This script is adapted from \
+#    k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/compile_hlg.py
 #
 # See https://github.com/k2-fsa/icefall/blob/master/LICENSE
 # for clarification regarding multiple authors

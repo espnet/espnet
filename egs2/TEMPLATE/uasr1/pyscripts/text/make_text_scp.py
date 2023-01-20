@@ -11,7 +11,7 @@ def get_parser() -> argparse.ArgumentParser:
     # fmt: off
     parser = argparse.ArgumentParser(
         description="""
-            This script creates scp file for text that is used in RandomTextReader for UASR training",
+            This script creates scp file for RandomTextReader in  UASR training.
 
             Example:
                 text
@@ -19,10 +19,15 @@ def get_parser() -> argparse.ArgumentParser:
                     text2line
                     text3line
                 scp
-                    11                    (number of digits to store bytes offset)
-                    00000000000000000010  (line 1 start at bytes 0 and end at 10 (including "\n"))
-                    00000000110000000020  (line 2 start at bytes 11 and end at 20 (including "\n"))
-                    00000000210000000030  (line 3 start at bytes 21 and end at 30 (including "\n"))
+                    11                 
+                    00000000000000000010
+                    00000000110000000020
+                    00000000210000000030
+                scp explanation
+                    number of digits to store bytes offset
+                    line 1 start at bytes 0 and end at 10 (including "\n")
+                    line 2 start at bytes 11 and end at 20 (including "\n")
+                    line 3 start at bytes 21 and end at 30 (including "\n")
         """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
