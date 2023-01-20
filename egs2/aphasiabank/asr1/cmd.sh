@@ -80,9 +80,9 @@ elif [ "${cmd_backend}" = slurm ]; then
     # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
-    export train_cmd="slurm.pl --num_threads 8"
+    export train_cmd="slurm.pl"
     export cuda_cmd="slurm.pl"
-    export decode_cmd="slurm.pl --num_threads 8"
+    export decode_cmd="slurm.pl"
 
 elif [ "${cmd_backend}" = ssh ]; then
     # You have to create ".queue/machines" to specify the host to execute jobs.
