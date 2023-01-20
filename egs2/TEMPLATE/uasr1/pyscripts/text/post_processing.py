@@ -12,26 +12,39 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:
+    # fmt: off
     parser = argparse.ArgumentParser(
-        description="Post-process text file",
+        description="This scirpt processes (tokenized and combined) text file by "
+                    "1) inserting silence token between words by probability sil_prob "
+                    "2) reducing the (phone) vocabulary size (e.g., AA0 -> AA, AA1 -> AA).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--word_boundary", type=str, required=True)
-    parser.add_argument("--sil_token", type=str, default="<SIL>")
-    parser.add_argument("--sil_prob", type=float, default=0.5, required=True)
-    parser.add_argument("--input_text", required=True, help="Input text.")
-    parser.add_argument("--output_text", required=True, help="Output text.")
-    parser.add_argument("--output_vocab", help="Output vocabulary.")
     parser.add_argument(
-        "--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary"
+        "--word_boundary", 
+        type=str, 
+        required=True,
+        help="Word boundary in tokenized text sequence, usually 2 spaces. "
+             "e.g., HELLO WORLD: HH AH L OW  W ER L D",
     )
+    parser.add_argument("--sil_token", type=str, default="<SIL>", help="Silence token.")
+    parser.add_argument(
+        "--sil_prob", 
+        type=float, 
+        default=0.5,
+        required=True, help="Probability of inserting silence token between words.",
+    )
+    parser.add_argument("--input_text", required=True, help="Input text file.")
+    parser.add_argument("--output_text", required=True, help="Output text file.")
+    parser.add_argument("--output_vocab", help="Output vocabulary file.")
+    parser.add_argument(
+        "--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary size"
+    )
+    # fmt: on
     return parser
 
 
 def insert_silence(
-    line_list: List,
-    sil_prob: float,
-    sil_token: str,
+    line_list: List, sil_prob: float, sil_token: str,
 ):
     line_length = len(line_list)
 
@@ -50,8 +63,7 @@ def insert_silence(
 
 
 def filter_line(
-    line_list: List,
-    bad_word_set: List,
+    line_list: List, bad_word_set: List,
 ):
     filter_line_list = [word for word in line_list if word not in bad_word_set]
     return filter_line_list

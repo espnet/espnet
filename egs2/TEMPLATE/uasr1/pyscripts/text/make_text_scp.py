@@ -8,19 +8,40 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:
+    # fmt: off
     parser = argparse.ArgumentParser(
-        description="Insert silence token",
+        description="""
+            This script creates scp file for text that is used in RandomTextReader for UASR training",
+
+            Example:
+                text
+                    text1line
+                    text2line
+                    text3line
+                scp
+                    11                    (number of digits to store bytes offset)
+                    00000000000000000010  (line 1 start at bytes 0 and end at 10 (including "\n"))
+                    00000000110000000020  (line 2 start at bytes 11 and end at 20 (including "\n"))
+                    00000000210000000030  (line 3 start at bytes 21 and end at 30 (including "\n"))
+        """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--input_text", type=str, required=True)
-    parser.add_argument("--output_scp", type=str, required=True)
-    parser.add_argument("--num_digits", type=int, default=10)
+    parser.add_argument(
+        "--input_text", type=str, required=True, help="Input text file.",
+    )
+    parser.add_argument("--output_scp", type=str, required=True, help="Output scp file")
+    parser.add_argument(
+        "--num_digits",
+        type=int,
+        default=11,
+        help="Number of digits to store bytes offset",
+    )
+    # fmt: on
     return parser
 
 
 def convert_digits(
-    input_number: int,
-    num_digits: int,
+    input_number: int, num_digits: int,
 ):
     input_number_digits = len(str(input_number))
     assert input_number_digits <= num_digits
@@ -30,9 +51,7 @@ def convert_digits(
 
 
 def make_text_scp(
-    input_text: str,
-    output_scp: str,
-    num_digits: int,
+    input_text: str, output_scp: str, num_digits: int,
 ):
     input_text_path = Path(input_text)
     input_text_file = input_text_path.open("r+b")

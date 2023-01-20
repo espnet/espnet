@@ -754,14 +754,14 @@ if ! "${skip_data_prep}"; then
 
             utils/split_scp.pl "${data_feats}/lm_train.txt" ${split_text}
 
-#            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
-#            ${python} -m espnet2.bin.tokenize_text \
-#                --token_type phn \
-#                --input ${split_dir}/JOB/text \
-#                --output ${split_dir}/JOB/unpaired_text_nosil \
-#                --g2p "${g2p}" \
-#                --write_vocabulary false \
-#                --field "2-"
+            ${train_cmd} JOB=1:${nj} ${_logdir}/lm/tokenize_text.JOB.log \
+            ${python} -m espnet2.bin.tokenize_text \
+                --token_type phn \
+                --input ${split_dir}/JOB/text \
+                --output ${split_dir}/JOB/unpaired_text_nosil \
+                --g2p "${g2p}" \
+                --write_vocabulary false \
+                --field "2-"
 
              ${train_cmd} JOB=1:${nj} ${_logdir}/lm/post_processing.JOB.log \
              ${python} pyscripts/text/post_processing.py \
