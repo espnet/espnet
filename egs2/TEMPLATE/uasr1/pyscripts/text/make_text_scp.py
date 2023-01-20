@@ -41,7 +41,8 @@ def get_parser() -> argparse.ArgumentParser:
 
 
 def convert_digits(
-    input_number: int, num_digits: int,
+    input_number: int,
+    num_digits: int,
 ):
     input_number_digits = len(str(input_number))
     assert input_number_digits <= num_digits
@@ -51,7 +52,9 @@ def convert_digits(
 
 
 def make_text_scp(
-    input_text: str, output_scp: str, num_digits: int,
+    input_text: str,
+    output_scp: str,
+    num_digits: int,
 ):
     input_text_path = Path(input_text)
     input_text_file = input_text_path.open("r+b")

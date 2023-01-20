@@ -44,7 +44,9 @@ def get_parser() -> argparse.ArgumentParser:
 
 
 def insert_silence(
-    line_list: List, sil_prob: float, sil_token: str,
+    line_list: List,
+    sil_prob: float,
+    sil_token: str,
 ):
     line_length = len(line_list)
 
@@ -63,7 +65,8 @@ def insert_silence(
 
 
 def filter_line(
-    line_list: List, bad_word_set: List,
+    line_list: List,
+    bad_word_set: List,
 ):
     filter_line_list = [word for word in line_list if word not in bad_word_set]
     return filter_line_list

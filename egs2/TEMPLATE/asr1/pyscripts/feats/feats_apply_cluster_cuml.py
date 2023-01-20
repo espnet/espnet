@@ -68,7 +68,10 @@ def main():
 
     output_cluster = f"{args.output_path}/{args.split}.cluster"
     with open(output_cluster, "w") as oc:
-        for (feats, fname,) in tqdm.tqdm(iterator, total=num):
+        for (
+            feats,
+            fname,
+        ) in tqdm.tqdm(iterator, total=num):
             clusters = kmeans.predict(feats)
 
             clusters_str = " ".join(str(c) for c in clusters)
