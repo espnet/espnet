@@ -1,4 +1,5 @@
-# Implemented from (https://github.com/Rongjiehuang/ProDiff/blob/main/modules/ProDiff/model/ProDiff_teacher.py)
+# Implemented from
+# (https://github.com/Rongjiehuang/ProDiff/blob/main/modules/ProDiff/model/ProDiff_teacher.py)
 # Copyright 2022 Hitachi LTD. (Nelson Yalta)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 import math
@@ -164,9 +165,11 @@ class SpectogramDenoiser(nn.Module):
             layers (int, optional): Number of layers. Defaults to 20.
             channels (int, optional): Number of channels of each layer. Defaults to 256.
             cycle_length (int, optional): Cycle length of the diffusion. Defaults to 1.
-            timesteps (int, optional): Number of timesteps of the diffusion. Defaults to 200.
+            timesteps (int, optional): Number of timesteps of the diffusion.
+                Defaults to 200.
             timescale (int, optional): Number of timescale. Defaults to 1.
-            max_beta (float, optional): Maximum beta value for schedueler. Defaults to 40.
+            max_beta (float, optional): Maximum beta value for schedueler.
+                Defaults to 40.
             scheduler (str, optional): Type of noise scheduler. Defaults to "vpsde".
             dropout_rate (float, optional): Dropout rate. Defaults to 0.05.
         """
@@ -212,8 +215,10 @@ class SpectogramDenoiser(nn.Module):
 
         Args:
             xs (torch.Tensor): Phoneme-encoded tensor (#batch, time, dims)
-            ys (Optional[torch.Tensor], optional): Mel-based reference tensor (#batch, time, mels). Defaults to None.
-            masks (Optional[torch.Tensor], optional): Mask tensor (#batch, time). Defaults to None.
+            ys (Optional[torch.Tensor], optional): Mel-based reference
+                tensor (#batch, time, mels). Defaults to None.
+            masks (Optional[torch.Tensor], optional): Mask tensor (#batch, time).
+                Defaults to None.
 
         Returns:
             torch.Tensor: Output tensor (#batch, time, dims).

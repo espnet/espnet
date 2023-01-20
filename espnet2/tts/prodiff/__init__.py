@@ -1,1 +1,1 @@
-from espnet2.tts.prodiff.prodiff import ProDiff
+from espnet2.tts.prodiff.prodiff import ProDiff  # NOQA
