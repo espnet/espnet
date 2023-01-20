@@ -69,12 +69,11 @@ class ProDiff(AbsTTS):
         transformer_enc_positional_dropout_rate: float = 0.1,
         transformer_enc_attn_dropout_rate: float = 0.1,
         # Denoiser Decoder
-        denoiser_dim: int = 256,
         denoiser_layers: int = 20,
         denoiser_channels: int = 256,
         diffusion_steps: int = 1000,
         diffusion_timescale: int = 1,
-        diffusion_beta: float = 40.,
+        diffusion_beta: float = 40.0,
         diffusion_scheduler: str = "vpsde",
         diffusion_cycle_ln: int = 1,
         # only for conformer
@@ -404,12 +403,10 @@ class ProDiff(AbsTTS):
         self.length_regulator = LengthRegulator()
 
         # define decoder
-        # NOTE: we use encoder as decoder
-        # because fastspeech's decoder is the same as encoder
         if decoder_type == "diffusion":
             self.decoder = SpectogramDenoiser(
                 odim,
-                adim=denoiser_dim,
+                adim=adim,
                 layers=denoiser_layers,
                 channels=denoiser_channels,
                 timesteps=diffusion_steps,
@@ -424,6 +421,8 @@ class ProDiff(AbsTTS):
         # define final projection
         if decoder_type != "diffusion":
             self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
+        if reduction_factor > 1:
+            raise NotImplementedError()
 
         # define postnet
         self.postnet = (
@@ -593,6 +592,16 @@ class ProDiff(AbsTTS):
         is_inference: bool = False,
         alpha: float = 1.0,
     ) -> Sequence[torch.Tensor]:
+        """Calculate forward propagation without loss.
+
+        Args:
+            xs (Tensor): Batch of padded target features (B, T_feats, odim).
+            ilens (LongTensor): Batch of the lengths of each target (B,).
+
+        Returns:
+            Tensor: Weight value if not joint training else model outputs.
+
+        """
         # forward encoder
         x_masks = self._source_mask(ilens)
         hs, _ = self.encoder(xs, x_masks)  # (B, T_text, adim)
@@ -650,9 +659,11 @@ class ProDiff(AbsTTS):
             h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
-        
+
         if self.decoder_type == "diffusion":
-            before_outs = self.decoder(hs, ys, h_masks, is_inference)  # (B, T_feats, odim)
+            before_outs = self.decoder(
+                hs, ys, h_masks, is_inference
+            )  # (B, T_feats, odim)
         else:
             zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
             before_outs = self.feat_out(zs).view(
@@ -675,7 +686,7 @@ class ProDiff(AbsTTS):
         text: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
-        spembs: torch.Tensor = None,
+        spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -733,6 +744,7 @@ class ProDiff(AbsTTS):
                 spembs=spembs,
                 sids=sids,
                 lids=lids,
+                is_inference=True,
             )  # (1, T_feats, odim)
         else:
             _, outs, d_outs, p_outs, e_outs = self._forward(
@@ -803,6 +815,17 @@ class ProDiff(AbsTTS):
     def _reset_parameters(
         self, init_type: str, init_enc_alpha: float, init_dec_alpha: float
     ):
+        """Reset parameters of the model.
+
+        Args:
+            init_type (str): Type of initialization.
+            init_enc_alpha (float): Value of the initialization for the encoder.
+            init_dec_alpha (float): Value of the initialization for the decoder.
+
+        Returns:
+            None
+
+        """
         # initialize parameters
         if init_type != "pytorch":
             initialize(self, init_type)
