@@ -59,7 +59,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.prev_output = None
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor
+        self, hyp: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
