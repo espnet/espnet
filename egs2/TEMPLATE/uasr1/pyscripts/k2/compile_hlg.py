@@ -1,26 +1,20 @@
 #!/usr/bin/env python3
 # Copyright    2021  Xiaomi Corp.        (authors: Fangjun Kuang)
-#              2022  Dongji Gao
+#              2022  Johns Hopkins University (author: Dongji Gao)
 #
-# See ../../../../LICENSE for clarification regarding multiple authors
+# This script is adapted from https://github.com/k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/compile_hlg.py
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# See https://github.com/k2-fsa/icefall/blob/master/LICENSE
+# for clarification regarding multiple authors
 
 
 """
 This script takes as input lang_dir and generates HLG from
 
     - H, the ctc topology, built from tokens contained in lang_dir/lexicon.txt
+
+      (Dongji: Add a H topology with no blank symbol for UASR decoding)
+
     - L, the lexicon, built from lang_dir/L_disambig.pt
 
         Caution: We use a lexicon that contains disambiguation symbols
