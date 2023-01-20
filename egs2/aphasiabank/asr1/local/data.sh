@@ -57,7 +57,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
   for ext in mp3 mp4; do
     for subdir in Aphasia Control; do
-      for f in $(find ${APHASIABANK}/${subdir} -type f -name "*.${ext}"); do
+      files=$(find ${APHASIABANK}/${subdir} -type f -name "*.${ext}")
+      for f in $files; do
         filename=$(basename -- "$f")
         dir=$(dirname "$f")
         filename="${filename%.*}"
