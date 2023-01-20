@@ -54,6 +54,7 @@ def test_frontend_backward(fs, frontend_conf, multilayer_feature, layer):
         frontend_conf=frontend_conf,
         download_dir="./hub",
         multilayer_feature=multilayer_feature,
+        layer=layer,
     )
     wavs = torch.randn(2, 1600, requires_grad=True)
     lengths = torch.LongTensor([1600, 1600])
