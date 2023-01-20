@@ -1,8 +1,9 @@
 #!/usr/bin/env python3 -u
 # Copyright (c) Facebook, Inc. and its affiliates.
 #
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
+# Adapted from fairseq/examples/wav2vec/unsupervised/scripts/apply_pca.py
+# This source code is licensed under the MIT license in
+# https://github.com/facebookresearch/fairseq
 
 import argparse
 import math
