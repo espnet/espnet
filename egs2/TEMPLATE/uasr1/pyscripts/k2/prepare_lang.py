@@ -1,8 +1,10 @@
 #!/usrilbin/env python3
 # Copyright    2021  Xiaomi Corp.        (authors: Fangjun Kuang)
-#              2022  Dongji Gao
+#              2022  Johns Hopkins University (author: Dongji Gao)
 #
-# See https://github.com/k2-fsa/k2
+# This script is adapted from https://github.com/k2-fsa/icefall/blob/master/egs/librispeech/ASR/local/prepare_lang.py
+#
+# See https://github.com/k2-fsa/icefall/blob/master/LICENSE
 # for clarification regarding multiple authors
 
 
@@ -10,11 +12,17 @@
 This script takes as input a lexicon file "data/lang_phone/lexicon.txt"
 consisting of words and tokens (i.e., phones) and does the following:
 1. Add disambiguation symbols to the lexicon and generate lexicon_disambig.txt
+
 2. Generate tokens.txt, the token table mapping a token to a unique integer.
+
+   (Dongji: Add option to use existing tokens.txt (--token_list YOUR_TOKEN_LIST))
+
 3. Generate words.txt, the word table mapping a word to a unique integer.
+
 4. Generate L.pt, in k2 format. It can be loaded by
         d = torch.load("L.pt")
         lexicon = k2.Fsa.from_dict(d)
+
 5. Generate L_disambig.pt, in k2 format.
 """
 import argparse
@@ -54,19 +62,13 @@ def get_args():
         """,
     )
     parser.add_argument(
-        "--token_list",
-        type=str,
-        default="",
+        "--token_list", type=str, default="",
     )
     parser.add_argument(
-        "--sil_token",
-        type=str,
-        default="sil",
+        "--sil_token", type=str, default="sil",
     )
     parser.add_argument(
-        "--sil_prob",
-        type=float,
-        default=0.5,
+        "--sil_prob", type=float, default=0.5,
     )
 
     return parser.parse_args()
@@ -268,9 +270,7 @@ def lexicon_to_fst_nosil(
         disambig_token = token2id["#0"]
         disambig_word = word2id["#0"]
         arcs = add_self_loops(
-            arcs,
-            disambig_token=disambig_token,
-            disambig_word=disambig_word,
+            arcs, disambig_token=disambig_token, disambig_word=disambig_word,
         )
 
     final_state = next_state
@@ -364,9 +364,7 @@ def lexicon_to_fst(
         disambig_token = token2id["#0"]
         disambig_word = word2id["#0"]
         arcs = add_self_loops(
-            arcs,
-            disambig_token=disambig_token,
-            disambig_word=disambig_word,
+            arcs, disambig_token=disambig_token, disambig_word=disambig_word,
         )
 
     final_state = next_state
@@ -427,17 +425,10 @@ def main():
     write_lexicon(lang_dir / "lexicon_disambig.txt", lexicon_disambig)
 
     if sil_prob == 0:
-        L = lexicon_to_fst_nosil(
-            lexicon,
-            token2id=token2id,
-            word2id=word2id,
-        )
+        L = lexicon_to_fst_nosil(lexicon, token2id=token2id, word2id=word2id,)
 
         L_disambig = lexicon_to_fst_nosil(
-            lexicon_disambig,
-            token2id=token2id,
-            word2id=word2id,
-            need_self_loops=True,
+            lexicon_disambig, token2id=token2id, word2id=word2id, need_self_loops=True,
         )
     else:
         L = lexicon_to_fst(
