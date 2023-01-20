@@ -9,6 +9,23 @@
 - Git hash: `39c1ec0509904f16ac36d25efc971e2a94ff781f`
     - Commit date: `Wed Dec 21 12:50:18 2022 -0500`
 
+## asr_train_asr_ebranchformer_small_wavlm_large
+
+- [train_asr_ebranchformer_small_wavlm_large.yaml](conf/tuning/train_asr_ebranchformer_small_wavlm_large.yaml)
+- Control group data is included
+
+### WER
+
+| dataset                             | Snt   | Wrd    | Corr | Sub  | Del | Ins | Err  | S.Err |
+|-------------------------------------|-------|--------|------|------|-----|-----|------|-------|
+| decode_asr_model_valid.acc.ave/test | 16380 | 120684 | 76.6 | 16.7 | 6.7 | 3.8 | 27.1 | 72.4  |
+
+### CER
+
+| dataset                             | Snt   | Wrd    | Corr | Sub | Del | Ins | Err  | S.Err |
+|-------------------------------------|-------|--------|------|-----|-----|-----|------|-------|
+| decode_asr_model_valid.acc.ave/test | 16380 | 530731 | 87.1 | 5.3 | 7.6 | 4.9 | 17.7 | 72.4  |
+
 ## asr_train_asr_ebranchformer_small_raw_en_char_sp
 
 - [train_asr_ebranchformer_small.yaml](conf/tuning/train_asr_ebranchformer_small.yaml)
