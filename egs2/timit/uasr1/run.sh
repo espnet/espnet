@@ -17,7 +17,7 @@ fi
 
 train_set="train"
 valid_set="dev"
-test_sets="dev"
+test_sets="test"
 
 uasr_config=conf/train_uasr.yaml
 lm_config=conf/tuning/train_lm_transformer2.yaml
