@@ -12,26 +12,26 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:
-    # fmt: off
     parser = argparse.ArgumentParser(
         description="This scirpt processes (tokenized and combined) text file by "
-                    "1) inserting silence token between words by probability sil_prob "
-                    "2) reducing the (phone) vocabulary size (e.g., AA0 -> AA, AA1 -> AA).",
+        "1) inserting silence token between words by probability sil_prob "
+        "2) reducing the (phone) vocabulary size (e.g., AA0 -> AA, AA1 -> AA).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--word_boundary", 
-        type=str, 
+        "--word_boundary",
+        type=str,
         required=True,
         help="Word boundary in tokenized text sequence, usually 2 spaces. "
-             "e.g., HELLO WORLD: HH AH L OW  W ER L D",
+        "e.g., HELLO WORLD: HH AH L OW  W ER L D",
     )
     parser.add_argument("--sil_token", type=str, default="<SIL>", help="Silence token.")
     parser.add_argument(
-        "--sil_prob", 
-        type=float, 
+        "--sil_prob",
+        type=float,
         default=0.5,
-        required=True, help="Probability of inserting silence token between words.",
+        required=True,
+        help="Probability of inserting silence token between words.",
     )
     parser.add_argument("--input_text", required=True, help="Input text file.")
     parser.add_argument("--output_text", required=True, help="Output text file.")
@@ -39,7 +39,6 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--reduce_vocab", type=str2bool, default=True, help="reduce vocabulary size"
     )
-    # fmt: on
     return parser
 
 

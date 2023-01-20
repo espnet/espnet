@@ -11,27 +11,27 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def get_parser() -> argparse.ArgumentParser:
-    # fmt: off
     parser = argparse.ArgumentParser(
         description="This script combines (tokenized) text from split directories "
-                    "and generate vocabulary file",
+        "and generate vocabulary file",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--split_dir", 
-        type=str, 
+        "--split_dir",
+        type=str,
         required=True,
         help="Split directory",
     )
     parser.add_argument(
-        "--num_splits", 
-        type=int, 
-        required=True, 
+        "--num_splits",
+        type=int,
+        required=True,
         help="Number of splited directories",
     )
     parser.add_argument(
-        "--output_dir", "-o", 
-        required=True, 
+        "--output_dir",
+        "-o",
+        required=True,
         help="Output diretory",
     )
     parser.add_argument(
@@ -42,8 +42,8 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vocab_file",
-        type=str, 
-        default="tokens.txt", 
+        type=str,
+        default="tokens.txt",
         help="Output vocabulary file",
     )
     parser.add_argument(
@@ -53,7 +53,6 @@ def get_parser() -> argparse.ArgumentParser:
         action="append",
     )
     return parser
-    # fmt: on
 
 
 def combine(
