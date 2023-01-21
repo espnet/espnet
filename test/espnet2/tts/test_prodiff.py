@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from espnet2.tts.prodiff import ProDiff
+from espnet2.tts.prodiff.loss import SSimLoss
 
 
 @pytest.mark.parametrize("reduction_factor", [1])
@@ -10,6 +11,7 @@ from espnet2.tts.prodiff import ProDiff
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
+@pytest.mark.parametrize("diffusion_scheduler", ["linear", "cosine", "vpsde"])
 @pytest.mark.parametrize(
     "spks, langs, use_gst",
     [(-1, -1, False), (5, 2, True)],
@@ -18,6 +20,7 @@ def test_prodiff(
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
+    diffusion_scheduler,
     encoder_type,
     use_gst,
     spks,
@@ -65,6 +68,7 @@ def test_prodiff(
         denoiser_layers=1,
         denoiser_channels=4,
         diffusion_steps=1,
+        diffusion_scheduler=diffusion_scheduler,
     )
 
     inputs = dict(
@@ -112,3 +116,10 @@ def test_prodiff(
         inputs.update(pitch=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
         inputs.update(energy=torch.tensor([2, 2, 0], dtype=torch.float).unsqueeze(-1))
         model.inference(**inputs, use_teacher_forcing=True)
+
+
+@pytest.mark.parametrize("reduction_type", ["none", "mean"])
+def test_ssim(reduction_type):
+    lossfun = SSimLoss(reduction=reduction_type)
+    feats = torch.randn(2, 4, 5)
+    lossfun(feats, feats)
