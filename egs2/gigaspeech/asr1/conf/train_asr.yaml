@@ -1,1 +1,1 @@
-tuning/train_asr_conformer6_n_fft512_hop_length256.yaml
+tuning/train_asr_e_branchformer_e17_size512_mlp3072_linear1024_layerdrop.yaml
