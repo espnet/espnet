@@ -355,6 +355,7 @@
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">preprocessor_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="s2">&quot;preprocessor&quot;</span><span class="p">,</span>
@@ -700,28 +701,31 @@
             <span class="n">postencoder</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># 5. Decoder</span>
-        <span class="n">decoder_class</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">decoder_class</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">decoder</span> <span class="o">==</span> <span class="s2">&quot;transducer&quot;</span><span class="p">:</span>
-            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
-                <span class="n">vocab_size</span><span class="p">,</span>
-                <span class="n">embed_pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">decoder</span> <span class="o">==</span> <span class="s2">&quot;transducer&quot;</span><span class="p">:</span>
+                <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                    <span class="n">vocab_size</span><span class="p">,</span>
+                    <span class="n">embed_pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+                <span class="p">)</span>
 
-            <span class="n">joint_network</span> <span class="o">=</span> <span class="n">JointNetwork</span><span class="p">(</span>
-                <span class="n">vocab_size</span><span class="p">,</span>
-                <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
-                <span class="n">decoder</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">joint_net_conf</span><span class="p">,</span>
-            <span class="p">)</span>
+                <span class="n">joint_network</span> <span class="o">=</span> <span class="n">JointNetwork</span><span class="p">(</span>
+                    <span class="n">vocab_size</span><span class="p">,</span>
+                    <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
+                    <span class="n">decoder</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">joint_net_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                    <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                    <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">joint_network</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
-                <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-                <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
-            <span class="p">)</span>
-
+            <span class="n">decoder</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">joint_network</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># 6. CTC</span>

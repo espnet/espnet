@@ -517,7 +517,7 @@ Text converter related:
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,None}]
                     [--postencoder_conf POSTENCODER_CONF]
-                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}]
+                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}]
                     [--decoder_conf DECODER_CONF]
                     [--preprocessor {default,multi}]
                     [--preprocessor_conf PREPROCESSOR_CONF]
@@ -922,7 +922,7 @@ Optimizer related:
                         The postencoder type (default: None)
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
-  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}
+  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})
@@ -2297,7 +2297,7 @@ SeparateSpeech related:
                         [--asr_encoder_conf ASR_ENCODER_CONF]
                         [--asr_postencoder {hugging_face_transformers,None}]
                         [--asr_postencoder_conf ASR_POSTENCODER_CONF]
-                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}]
+                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}]
                         [--asr_decoder_conf ASR_DECODER_CONF]
                         [--st_preencoder {sinc,linear,None}]
                         [--st_preencoder_conf ST_PREENCODER_CONF]
@@ -2749,7 +2749,7 @@ Optimizer related:
                         The asr_postencoder type (default: None)
   --asr_postencoder_conf ASR_POSTENCODER_CONF
                         The keyword arguments for asr_postencoder (default: {})
-  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4}
+  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}
                         The asr_decoder type (default: rnn)
   --asr_decoder_conf ASR_DECODER_CONF
                         The keyword arguments for asr_decoder (default: {})
