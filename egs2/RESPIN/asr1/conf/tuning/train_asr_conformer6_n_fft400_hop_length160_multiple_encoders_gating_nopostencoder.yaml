@@ -1,8 +1,8 @@
 # Trained with Tesla V100-SXM2(32GB) x 16 GPUs. It takes about 1.5 days.
 batch_type: numel
-batch_bins: 6000000
+batch_bins: 8000000
 accum_grad: 1
-max_epoch: 15
+max_epoch: 12
 patience: none
 init: none
 best_model_criterion:
@@ -11,7 +11,7 @@ best_model_criterion:
     - max
 keep_nbest_models: 3
 
-encoder: conformer_mul
+encoder: multi_gated_conformer
 encoder_conf:
     output_size: 512
     attention_heads: 8
@@ -28,10 +28,11 @@ encoder_conf:
     activation_type: "swish"
     use_cnn_module:  true
     cnn_module_kernel: 31
-    num_encs: 3
-    num_multi_blocks: 6 
+    num_pre_encs: 3
+    num_multi_blocks: 4 
     gating: true
     post_encoder: false
+    layerwise: false
 
 decoder: transformer
 decoder_conf:
