@@ -11,6 +11,10 @@ from espnet2.fileio.read_text import read_2column_text
 class VADScpReader(collections.abc.Mapping):
     """Reader class for 'vad.scp'.
 
+    Different from `segments`, the `vad.scp` would focus on utterance-level,
+    while the `segments` are expected to focus on a whole session. The major
+    usage in ESPnet is to guide the silence trim for UASR.
+
     Examples:
         key1 0:1.2000
         key2 3.0000:4.5000 7.0000:9:0000

@@ -112,6 +112,11 @@ def read_label(path: Union[Path, str]) -> Dict[str, List[Union[float, int]]]:
 class RandomTextReader(collections.abc.Mapping):
     """Reader class for random access to text.
 
+    Simple text reader for non-pair text data (for unsupervised ASR)
+        Instead of loading the whole text into memory (often large for UASR),
+        the reader consumes text which stores in byte-offset of each text file
+        and randomly selected unpaired text from it for training using mmap.
+
     Examples:
         text
             text1line
@@ -127,7 +132,6 @@ class RandomTextReader(collections.abc.Mapping):
             (text start at bytes 0 and end at bytes 10 (including "\n"))
             (text start at bytes 11 and end at bytes 20 (including "\n"))
             (text start at bytes 21 and end at bytes 30 (including "\n"))
-    Simple text reader for non-pair text data (for unsupervised ASR)
     """
 
     def __init__(
