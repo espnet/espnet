@@ -26,6 +26,7 @@ for dirname in ["espnet", "espnet2"]:
                 not has_k2
                 and (
                     module_name == "espnet2.bin.asr_inference_k2"
+                    or module_name == "espnet2.bin.uasr_inference_k2"
                     or module_name == "espnet2.fst.lm_rescore"
                 )
             )
