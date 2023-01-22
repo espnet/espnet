@@ -104,12 +104,13 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
-inference_s2st_model=valid.acc.ave.pth # S2ST model path for decoding.
+inference_s2st_model=valid.loss.best.pth # S2ST model path for decoding.
                                       # e.g.
                                       # inference_s2st_model=train.loss.best.pth
                                       # inference_s2st_model=3epoch.pth
                                       # inference_s2st_model=valid.acc.best.pth
                                       # inference_s2st_model=valid.loss.ave.pth
+vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -210,6 +211,8 @@ Options:
                           # e.g., --inference_args "--lm_weight 0.1"
                           # Note that it will overwrite args in inference config.
     --inference_s2st_model # S2ST model path for decoding (default="${inference_s2st_model}").
+    --vocoder_file        # Vocoder paramemter file (default=${vocoder_file}).
+                          # If set to none, Griffin-Lim vocoder will be used.
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     
     # [Task dependent] Set the datadir name created by local/data.sh
@@ -464,6 +467,14 @@ if ! "${skip_data_prep}"; then
                 ln -sf "wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}/wav.scp"
 
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
+
+                # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
+                for utt_extra_file in ${utt_extra_files}; do
+                    python pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
+                        > ${data_feats}/${dset}/${utt_extra_file}.tmp
+                    mv ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp ${data_feats}${_suf}/${dset}/${utt_extra_file}
+                    sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
+                done
 
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
@@ -1178,7 +1189,7 @@ if ! "${skip_eval}"; then
             fi
 
             # 1. Split the key file
-            key_file=${_data}/${_scp}
+            key_file=${_data}/${_src_scp}
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
 
@@ -1198,9 +1209,10 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_src_scp},src_speech,${_type}" \
                     --data_path_and_name_and_type "${_data}/${_tgt_scp},tgt_speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --s2st_train_config "${s2st_exp}"/config.yaml \
-                    --s2st_model_file "${s2st_exp}"/"${inference_s2st_model}" \
+                    --train_config "${s2st_exp}"/config.yaml \
+                    --model_file "${s2st_exp}"/"${inference_s2st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
+                    --vocoder_file "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/s2st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs

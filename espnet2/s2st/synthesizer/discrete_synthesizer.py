@@ -11,91 +11,67 @@ import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
+from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    GuidedAttentionLoss,
-    Tacotron2Loss,
-)
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import (
-    AttForward,
-    AttForwardTA,
-    AttLoc,
-    AttMultiHeadAdd,
-)
-from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
-class Translatotron(AbsSynthesizer):
-    """TTranslatotron Synthesizer related modules for speech-to-speech translation.
+class TransformerDiscreteSynthesizer(AbsSynthesizer):
+    """Discrete unit Synthesizer related modules for speech-to-speech translation.
 
-    This is a module of Spectrogram prediction network in Translatotron described
-    in `Direct speech-to-speech translation with a sequence-to-sequence model`_,
-    which converts the sequence of hidden states into the sequence of Mel-filterbanks.
+    This is a module of discrete unit prediction network in discrete-unit described
+    in `Direct speech-to-speech translation with discrete units`_,
+    which converts the sequence of hidden states into the sequence of discrete unit (from SSLs).
 
-    .. _`Direct speech-to-speech translation with a sequence-to-sequence model`:
-       https://arxiv.org/pdf/1904.06037.pdf
+    .. _`Direct speech-to-speech translation with discrete units`:
+       https://arxiv.org/abs/2107.05604
 
     """
 
     def __init__(
         self,
-        # network structure related
-        idim: int,
-        odim: int,
-        embed_dim: int = 512,
-        atype: str = "multihead",
-        adim: int = 512,
-        aheads: int = 4,
-        aconv_chans: int = 32,
-        aconv_filts: int = 15,
-        cumulate_att_w: bool = True,
-        dlayers: int = 4,
-        dunits: int = 1024,
-        prenet_layers: int = 2,
-        prenet_units: int = 32,
-        postnet_layers: int = 5,
-        postnet_chans: int = 512,
-        postnet_filts: int = 5,
-        output_activation: str = None,
-        use_batch_norm: bool = True,
-        use_concate: bool = True,
-        use_residual: bool = False,
-        reduction_factor: int = 2,
+        # decoder related
+        vocab_size: int,
+        encoder_output_size: int,
+        attention_heads: int = 4,
+        linear_units: int = 2048,
+        num_blocks: int = 6,
+        dropout_rate: float = 0.1,
+        positional_dropout_rate: float = 0.1,
+        self_attention_dropout_rate: float = 0.0,
+        src_attention_dropout_rate: float = 0.0,
+        input_layer: str = "embed",
+        use_output_layer: bool = True,
+        pos_enc_class=PositionalEncoding,
+        normalize_before: bool = True,
+        concat_after: bool = False,
+        layer_drop_rate: float = 0.0,
         # extra embedding related
         spks: Optional[int] = None,
         langs: Optional[int] = None,
         spk_embed_dim: Optional[int] = None,
         spk_embed_integration_type: str = "concat",
-        # training related
-        dropout_rate: float = 0.5,
-        zoneout_rate: float = 0.1,
     ):
-        """Initialize Tacotron2 module.
+        """Transfomer decoder for discrete unit module.
 
         Args:
-            idim (int): Dimension of the inputs.
-            odim: (int) Dimension of the outputs.
-            adim (int): Number of dimension of mlp in attention.
-            atype (str): type of attention
-            aconv_chans (int): Number of attention conv filter channels.
-            aconv_filts (int): Number of attention conv filter size.
-            embed_dim (int): Dimension of the token embedding.
-            dlayers (int): Number of decoder lstm layers.
-            dunits (int): Number of decoder lstm units.
-            prenet_layers (int): Number of prenet layers.
-            prenet_units (int): Number of prenet units.
-            postnet_layers (int): Number of postnet layers.
-            postnet_filts (int): Number of postnet filter size.
-            postnet_chans (int): Number of postnet filter channels.
-            output_activation (str): Name of activation function for outputs.
-            cumulate_att_w (bool): Whether to cumulate previous attention weight.
-            use_batch_norm (bool): Whether to use batch normalization.
-            use_concate (bool): Whether to concat enc outputs w/ dec lstm outputs.
-            reduction_factor (int): Reduction factor.
+            vocab_size: output dim
+            encoder_output_size: dimension of attention
+            attention_heads: the number of heads of multi head attention
+            linear_units: the number of units of position-wise feed forward
+            num_blocks: the number of decoder blocks
+            dropout_rate: dropout rate
+            self_attention_dropout_rate: dropout rate for attention
+            input_layer: input layer type
+            use_output_layer: whether to use output layer
+            pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+            normalize_before: whether to use layer_norm before the first block
+            concat_after: whether to concat attention layer's input and output
+                if True, additional linear will be applied.
+                i.e. x -> x + linear(concat(x, att(x)))
+                if False, no additional linear will be applied.
+                i.e. x -> x + att(x)
             spks (Optional[int]): Number of speakers. If set to > 1, assume that the
                 sids will be provided as the input and use sid embedding layer.
             langs (Optional[int]): Number of languages. If set to > 1, assume that the
@@ -103,97 +79,49 @@ class Translatotron(AbsSynthesizer):
             spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
                 assume that spembs will be provided as the input.
             spk_embed_integration_type (str): How to integrate speaker embedding.
-            dropout_rate (float): Dropout rate.
-            zoneout_rate (float): Zoneout rate.
         """
         assert check_argument_types()
         super().__init__()
 
-        # store hyperparameters
-        self.idim = idim
-        self.odim = odim
-        self.atype = atype
-        self.cumulate_att_w = cumulate_att_w
-        self.reduction_factor = reduction_factor
-
-        # define activation function for the final output
-        if output_activation is None:
-            self.output_activation_fn = None
-        elif hasattr(F, output_activation):
-            self.output_activation_fn = getattr(F, output_activation)
-        else:
-            raise ValueError(
-                f"there is no such an activation function. " f"({output_activation})"
-            )
-
-        # set padding idx
-        padding_idx = 0
-        self.padding_idx = padding_idx
-
         self.spks = None
         if spks is not None and spks > 1:
             self.spks = spks
-            self.sid_emb = torch.nn.Embedding(spks, idim)
+            self.sid_emb = torch.nn.Embedding(spks, encoder_output_size)
         self.langs = None
         if langs is not None and langs > 1:
             self.langs = langs
-            self.lid_emb = torch.nn.Embedding(langs, idim)
+            self.lid_emb = torch.nn.Embedding(langs, encoder_output_size)
 
         self.spk_embed_dim = None
         if spk_embed_dim is not None and spk_embed_dim > 0:
             self.spk_embed_dim = spk_embed_dim
             self.spk_embed_integration_type = spk_embed_integration_type
         if self.spk_embed_dim is None:
-            dec_idim = idim
+            dec_idim = encoder_output_size
         elif self.spk_embed_integration_type == "concat":
-            dec_idim = idim + spk_embed_dim
+            dec_idim = encoder_output_size + spk_embed_dim
         elif self.spk_embed_integration_type == "add":
-            dec_idim = idim
-            self.projection = torch.nn.Linear(self.spk_embed_dim, idim)
+            dec_idim = encoder_output_size
+            self.projection = torch.nn.Linear(self.spk_embed_dim, encoder_output_size)
         else:
             raise ValueError(f"{spk_embed_integration_type} is not supported.")
 
-        if atype == "location":
-            att = AttLoc(dec_idim, dunits, adim, aconv_chans, aconv_filts)
-        elif atype == "forward":
-            att = AttForward(dec_idim, dunits, adim, aconv_chans, aconv_filts)
-            if self.cumulate_att_w:
-                logging.warning(
-                    "cumulation of attention weights is disabled "
-                    "in forward attention."
-                )
-                self.cumulate_att_w = False
-        elif atype == "forward_ta":
-            att = AttForwardTA(dec_idim, dunits, adim, aconv_chans, aconv_filts, odim)
-            if self.cumulate_att_w:
-                logging.warning(
-                    "cumulation of attention weights is disabled "
-                    "in forward attention."
-                )
-                self.cumulate_att_w = False
-        elif atype == "multihead":
-            att = AttMultiHeadAdd(dec_idim, dunits, aheads, adim, adim)
-            self.cumulate_att_w = False
-        else:
-            raise NotImplementedError("Support only location or forward")
-        self.dec = Decoder(
-            idim=dec_idim,
-            odim=odim,
-            att=att,
-            dlayers=dlayers,
-            dunits=dunits,
-            prenet_layers=prenet_layers,
-            prenet_units=prenet_units,
-            postnet_layers=postnet_layers,
-            postnet_chans=postnet_chans,
-            postnet_filts=postnet_filts,
-            output_activation_fn=self.output_activation_fn,
-            cumulate_att_w=self.cumulate_att_w,
-            use_batch_norm=use_batch_norm,
-            use_concate=use_concate,
+        self.decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            encoder_output_size=dec_idim,
+            attention_heads=attention_heads,
+            linear_units=linear_units,
+            num_blocks=num_blocks,
             dropout_rate=dropout_rate,
-            zoneout_rate=zoneout_rate,
-            reduction_factor=reduction_factor,
+            positional_dropout_rate=positional_dropout_rate,
+            self_attention_dropout_rate=self_attention_dropout_rate,
+            src_attention_dropout_rate=src_attention_dropout_rate,
+            input_layer=input_layer,
+            use_output_layer=use_output_layer,
+            pos_enc_class=pos_enc_class,
+            normalize_before=normalize_before,
+            concat_after=concat_after,
+            layer_drop_rate=layer_drop_rate,
         )
 
     def forward(

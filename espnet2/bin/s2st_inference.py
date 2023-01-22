@@ -59,14 +59,15 @@ class Speech2Speech:
         self.dtype = dtype
         self.train_args = train_args
         self.model = model
+        self.s2st_type = self.model.s2st_type
         self.preprocess_fn = S2STTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.s2st.require_vocder:
-            vocoder = S2ST.build_vocoder_from_file(
+        if self.model.require_vocoder:
+            vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
@@ -93,12 +94,14 @@ class Speech2Speech:
                 "Not recognized s2st type of {}".format(self.s2st_type)
             )
         self.decode_conf = decode_conf
-    
+
     @torch.no_grad()
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
+        src_speech_lengths: Union[torch.Tensor, np.ndarray],
         tgt_speech: Union[torch.Tensor, np.ndarray] = None,
+        tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Union[torch.Tensor, np.ndarray] = None,
         lids: Union[torch.Tensor, np.ndarray] = None,
@@ -116,11 +119,12 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'lids'")
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
-        
+
         # prepare batch
-        batch = dict(src_speech=src_speech)
+        batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)
         if tgt_speech is not None:
             batch.update(tgt_speech=tgt_speech)
+            batch.update(tgt_speech_lengths=tgt_speech_lengths)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -184,6 +188,52 @@ class Speech2Speech:
         """Return spemb is needed or not in the inference."""
         return self.model.synthesizer.spk_embed_dim is not None
 
+    @staticmethod
+    def from_pretrained(
+        vocoder_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Text2Speech instance from the pretrained model.
+
+        Args:
+            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
+                Currently, the tags of parallel_wavegan are supported, which should
+                start with the prefix "parallel_wavegan/".
+
+        Returns:
+            Text2Speech: Text2Speech instance.
+
+        """
+
+        if vocoder_tag is not None:
+            if vocoder_tag.startswith("parallel_wavegan/"):
+                try:
+                    from parallel_wavegan.utils import download_pretrained_model
+
+                except ImportError:
+                    logging.error(
+                        "`parallel_wavegan` is not installed. "
+                        "Please install via `pip install -U parallel_wavegan`."
+                    )
+                    raise
+
+                from parallel_wavegan import __version__
+
+                # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+                assert V(__version__) > V("0.5.1"), (
+                    "Please install the latest parallel_wavegan "
+                    "via `pip install -U parallel_wavegan`."
+                )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
+                vocoder_file = download_pretrained_model(vocoder_tag)
+                vocoder_config = Path(vocoder_file).parent / "config.yml"
+                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+
+            else:
+                raise ValueError(f"{vocoder_tag} is unsupported format.")
+
+        return Speech2Speech(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -197,7 +247,6 @@ def inference(
     key_file: Optional[str],
     train_config: Optional[str],
     model_file: Optional[str],
-    model_tag: Optional[str],
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
@@ -249,7 +298,6 @@ def inference(
         always_fix_seed=always_fix_seed,
     )
     speech2speech = Speech2Speech.from_pretrained(
-        model_tag=model_tag,
         vocoder_tag=vocoder_tag,
         **speech2speech_kwargs,
     )
@@ -292,8 +340,6 @@ def inference(
     ) as denorm_writer, open(
         output_dir / "speech_shape/speech_shape", "w"
     ) as shape_writer, open(
-        output_dir / "durations/durations", "w"
-    ) as duration_writer, open(
         output_dir / "focus_rates/focus_rates", "w"
     ) as focus_rate_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
@@ -302,9 +348,9 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert _bs == 1, _bs
 
-            # Change to single sequence and remove *_length
-            # because inference() requires 1-seq, not mini-batch.
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            # # Change to single sequence and remove *_length
+            # # because inference() requires 1-seq, not mini-batch.
+            # batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
             output_dict = speech2speech(**batch)
@@ -346,33 +392,38 @@ def inference(
                 # Plot attention weight
                 att_w = output_dict["att_w"].cpu().numpy()
 
-                if att_w.ndim == 2:
-                    att_w = att_w[None][None]
-                elif att_w.ndim != 4:
-                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
-
-                w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
-                fig = plt.Figure(
-                    figsize=(
-                        w * 1.3 * min(att_w.shape[0], 2.5),
-                        h * 1.3 * min(att_w.shape[1], 2.5),
+                if att_w.ndim == 3:
+                    logging.warning(
+                        "Cannot plot attn due to dim mismatch (for multihead)"
                     )
-                )
-                fig.suptitle(f"{key}")
-                axes = fig.subplots(att_w.shape[0], att_w.shape[1])
-                if len(att_w) == 1:
-                    axes = [[axes]]
-                for ax, att_w in zip(axes, att_w):
-                    for ax_, att_w_ in zip(ax, att_w):
-                        ax_.imshow(att_w_.astype(np.float32), aspect="auto")
-                        ax_.set_xlabel("Input")
-                        ax_.set_ylabel("Output")
-                        ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
-                        ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+                else:
+                    if att_w.ndim == 2:
+                        att_w = att_w[None][None]
+                    elif att_w.ndim != 4:
+                        raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
 
-                fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
-                fig.savefig(output_dir / f"att_ws/{key}.png")
-                fig.clf()
+                    w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
+                    fig = plt.Figure(
+                        figsize=(
+                            w * 1.3 * min(att_w.shape[0], 2.5),
+                            h * 1.3 * min(att_w.shape[1], 2.5),
+                        )
+                    )
+                    fig.suptitle(f"{key}")
+                    axes = fig.subplots(att_w.shape[0], att_w.shape[1])
+                    if len(att_w) == 1:
+                        axes = [[axes]]
+                    for ax, att_w in zip(axes, att_w):
+                        for ax_, att_w_ in zip(ax, att_w):
+                            ax_.imshow(att_w_.astype(np.float32), aspect="auto")
+                            ax_.set_xlabel("Input")
+                            ax_.set_ylabel("Output")
+                            ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
+                            ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+                    fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
+                    fig.savefig(output_dir / f"att_ws/{key}.png")
+                    fig.clf()
 
             if output_dict.get("prob") is not None:
                 # Plot stop token prediction
@@ -498,12 +549,6 @@ def get_parser():
         "--model_file",
         type=str,
         help="Model parameter file",
-    )
-    group.add_argument(
-        "--model_tag",
-        type=str,
-        help="Pretrained model tag. If specify this option, train_config and "
-        "model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Decoding related")

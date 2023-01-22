@@ -162,7 +162,10 @@ class Stft(torch.nn.Module, InversibleInterface):
                 pad = self.n_fft // 2
                 ilens = ilens + 2 * pad
 
-            olens = (ilens - self.n_fft) // self.hop_length + 1
+            olens = (
+                torch.div((ilens - self.n_fft), self.hop_length, rounding_mode="trunc")
+                + 1
+            )
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None
