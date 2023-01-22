@@ -5,6 +5,7 @@ from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import yaml
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
@@ -57,8 +58,8 @@ from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
-from espnet2.s2st.tgt_feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.s2st.tgt_feats_extract.linear_spectrogram import LinearSpectrogram
+from espnet2.s2st.tgt_feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.s2st.tgt_feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -401,23 +402,11 @@ class S2STTask(STTask):
             action=NestedDictAction,
             default=[
                 {
-                    "name": "discriminator_loss",
+                    "name": "syn_loss",
                     "conf": {},
                 },
             ],
             help="The criterions binded with the loss wrappers.",
-            # Loss format would be like:
-            # losses:
-            #   - name: loss1
-            #     type: attention
-            #     conf:
-            #       weight: 1.0
-            #       smoothed: false
-            #   - name: loss2
-            #     type: ctc
-            #     conf:
-            #       weight: 0.1
-            #       smoothed: false
         )
         group.add_argument(
             "--speech_volume_normalize",
@@ -590,13 +579,15 @@ class S2STTask(STTask):
             args.frontend_conf = {}
             frontend = None
             raw_input_size = args.input_size
-        
+
         if args.output_size is None:
             # Extract target features in the model
-            tgt_feats_extract_class = tgt_feats_extract_choices.get_class(args.tgt_feats_extract)
+            tgt_feats_extract_class = tgt_feats_extract_choices.get_class(
+                args.tgt_feats_extract
+            )
             tgt_feats_extract = tgt_feats_extract_class(**args.tgt_feats_extract_conf)
             output_size = tgt_feats_extract.output_size()
-        
+
         # 2. Data augmentation for spectrogram
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
@@ -700,7 +691,11 @@ class S2STTask(STTask):
             if args.aux_attention is None
             else 2 * encoder_output_size
         )
-        logging.info("synthesizer_idim: {}, encoder_output_size: {}, aux_attention {}".format(synthesizer_idim, encoder_output_size, args.aux_attention))
+        logging.info(
+            "synthesizer_idim: {}, encoder_output_size: {}, aux_attention {}".format(
+                synthesizer_idim, encoder_output_size, args.aux_attention
+            )
+        )
         synthesizer = synthesizer_class(
             idim=synthesizer_idim, odim=output_size, **args.synthesizer_conf
         )
@@ -775,7 +770,7 @@ class S2STTask(STTask):
                 with vocoder_config_file.open("r", encoding="utf-8") as f:
                     vocoder_conf = yaml.safe_load(f)
             if model.frontend is not None:
-                vocoder_conf.update(model.frontend.get_parameters())
+                vocoder_conf.update(model.tgt_feats_extract.get_parameters())
             if (
                 "n_fft" in vocoder_conf
                 and "n_shift" in vocoder_conf

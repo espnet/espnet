@@ -71,6 +71,6 @@ class LogSpectrogram(AbsTgtFeatsExtract):
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
         log_amp = 0.5 * torch.log10(torch.clamp(input_power, min=1.0e-10))
         return log_amp, feats_lens
-    
+
     def spectrogram(self) -> bool:
         return True

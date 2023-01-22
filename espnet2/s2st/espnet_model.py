@@ -22,7 +22,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, th_accuracy
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 
 if V(torch.__version__) >= V("1.6.0"):
@@ -176,7 +176,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         # 0. Target feature extract
         # NOTE(jiatong): only for teaching-forcing in spectrogram
         tgt_feats, tgt_feats_lengths = self._extract_feats(
-            tgt_speech, tgt_speech_lengths
+            tgt_speech, tgt_speech_lengths, target=True
         )
         # Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.tgt_normalize is not None:
@@ -188,6 +188,10 @@ class ESPnetS2STModel(AbsESPnetModel):
         encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
 
         loss_record = []
+
+        ########################
+        # Translaotron Forward #
+        ########################
         if self.s2st_type == "translatotron":
             # use a shared encoder with three decoders (i.e., asr, st, s2st)
             # reference https://arxiv.org/pdf/1904.06037.pdf
@@ -238,7 +242,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 "synthesis" in self.losses
             ), "must have synthesis loss in the losses for S2ST"
 
-            # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
+            # NOTE(jiatong): the tgt_feats is also updated based on the reduction_factor
             (
                 after_outs,
                 before_outs,
@@ -320,6 +324,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 syn_bce_loss=bce_loss.item(),
             )
 
+        #########################
+        # Translaotron2 Forward #
+        #########################
         elif self.s2st_type == "translatotron2":
             # use a sinlge decoder for synthesis
             # reference https://arxiv.org/pdf/2107.08661v5.pdf
@@ -344,6 +351,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                     acc_tgt_attn,
                     bleu_tgt_attn,
                     decoder_out,
+                    _,
                 ) = self._calc_st_att_loss(
                     encoder_out,
                     encoder_out_lens,
@@ -363,13 +371,29 @@ class ESPnetS2STModel(AbsESPnetModel):
             assert (
                 self.aux_attention is not None
             ), "must have aux attention in translatotron loss"
-            attention_out = self.aux_attention(decoder_out, encoder_out, encoder_out)
+
+            # NOTE(jiatong): tgt_text_lengths + 1 for <eos>
+            encoder_out_mask = (
+                make_pad_mask(encoder_out_lens).to(encoder_out.device).unsqueeze(1)
+            )
+            attention_out = self.aux_attention(
+                decoder_out, encoder_out, encoder_out, mask=encoder_out_mask
+            )
             decoder_out = torch.cat((decoder_out, attention_out), dim=-1)
 
-            # NOTE(jiatoing): the tgt_feats is also updated based on the reduction_factor
-            (after_outs, before_outs, sum_duration,) = self.synthesizer(
+            # NOTE(jiatong): the tgt_feats is also updated based on the reduction_factor
+            # TODO(jiatong): use non-attentive tacotron-based synthesizer
+            (
+                after_outs,
+                before_outs,
+                logits,
+                att_ws,
+                updated_tgt_feats,
+                stop_labels,
+                updated_tgt_feats_lengths,
+            ) = self.synthesizer(
                 decoder_out,
-                encoder_out_lens,
+                tgt_text_lengths + 1,  # NOTE(jiatong): +1 for <eos>
                 tgt_feats,
                 tgt_feats_lengths,
                 spembs,
@@ -377,14 +401,32 @@ class ESPnetS2STModel(AbsESPnetModel):
                 lids,
             )
 
-            syn_loss, l1_loss, mse_loss = self.losses["synthesis"](
+            syn_loss, l1_loss, mse_loss, bce_loss = self.losses["synthesis"](
                 after_outs,
                 before_outs,
-                sum_duration,
+                logits,
+                updated_tgt_feats,
+                stop_labels,
+                updated_tgt_feats_lengths,
             )
             loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
             loss = sum(loss_record)
+
+            stats = dict(
+                loss=loss.item(),
+                asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
+                cer_asr_ctc=cer_asr_ctc,
+                tgt_attn_loss=tgt_attn_loss.item()
+                if tgt_attn_loss is not None
+                else None,
+                acc_tgt_attn=acc_tgt_attn,
+                bleu_tgt_attn=bleu_tgt_attn,
+                syn_loss=syn_loss.item() if syn_loss is not None else None,
+                syn_l1_loss=l1_loss.item(),
+                syn_mse_loss=mse_loss.item(),
+                syn_bce_loss=bce_loss.item(),
+            )
 
         elif self.s2st_type == "discrete_unit":
             # discrete unit-based synthesis
@@ -454,9 +496,37 @@ class ESPnetS2STModel(AbsESPnetModel):
                 use_teacher_forcing,
             )
         elif self.s2st_type == "translatotron2":
-            pass
+            assert encoder_out.size(0) == 1
+            output_dict = self.synthesizer.inference(
+                encoder_out[0],
+                tgt_feats[0],
+                spembs,
+                sids,
+                lids,
+                threshold,
+                minlenratio,
+                maxlenratio,
+                use_att_constraint,
+                backward_window,
+                forward_window,
+                use_teacher_forcing,
+            )
         elif self.s2st_type == "discrete_unit":
-            pass
+            assert encoder_out.size(0) == 1
+            output_dict = self.synthesizer.inference(
+                encoder_out[0],
+                tgt_feats[0],
+                spembs,
+                sids,
+                lids,
+                threshold,
+                minlenratio,
+                maxlenratio,
+                use_att_constraint,
+                backward_window,
+                forward_window,
+                use_teacher_forcing,
+            )
         else:
             raise ValueError(
                 "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
@@ -585,8 +655,12 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, decoder_out_lengths = self.st_decoder(
-            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+        decoder_out, decoder_out_lengths, decoder_hidden = self.st_decoder(
+            encoder_out,
+            encoder_out_lens,
+            ys_in_pad,
+            ys_in_lens,
+            return_hidden=return_hidden,
         )
 
         # 2. Compute attention loss
@@ -605,7 +679,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         if return_hidden:
-            return loss_att, acc_att, bleu_att, decoder_out, decoder_out_lengths
+            return loss_att, acc_att, bleu_att, decoder_hidden, decoder_out_lengths
         else:
             return loss_att, acc_att, bleu_att
 

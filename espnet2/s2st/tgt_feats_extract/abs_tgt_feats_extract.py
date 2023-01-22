@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Tuple
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 import torch
+
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 
 class AbsTgtFeatsExtract(AbsFeatsExtract, ABC):
@@ -19,7 +20,7 @@ class AbsTgtFeatsExtract(AbsFeatsExtract, ABC):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
-    
+
     @abstractmethod
     def spectrogram(self) -> bool:
         raise NotImplementedError

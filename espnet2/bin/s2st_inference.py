@@ -392,33 +392,38 @@ def inference(
                 # Plot attention weight
                 att_w = output_dict["att_w"].cpu().numpy()
 
-                if att_w.ndim == 2:
-                    att_w = att_w[None][None]
-                elif att_w.ndim != 4:
-                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
-
-                w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
-                fig = plt.Figure(
-                    figsize=(
-                        w * 1.3 * min(att_w.shape[0], 2.5),
-                        h * 1.3 * min(att_w.shape[1], 2.5),
+                if att_w.ndim == 3:
+                    logging.warning(
+                        "Cannot plot attn due to dim mismatch (for multihead)"
                     )
-                )
-                fig.suptitle(f"{key}")
-                axes = fig.subplots(att_w.shape[0], att_w.shape[1])
-                if len(att_w) == 1:
-                    axes = [[axes]]
-                for ax, att_w in zip(axes, att_w):
-                    for ax_, att_w_ in zip(ax, att_w):
-                        ax_.imshow(att_w_.astype(np.float32), aspect="auto")
-                        ax_.set_xlabel("Input")
-                        ax_.set_ylabel("Output")
-                        ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
-                        ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+                else:
+                    if att_w.ndim == 2:
+                        att_w = att_w[None][None]
+                    elif att_w.ndim != 4:
+                        raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
 
-                fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
-                fig.savefig(output_dir / f"att_ws/{key}.png")
-                fig.clf()
+                    w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
+                    fig = plt.Figure(
+                        figsize=(
+                            w * 1.3 * min(att_w.shape[0], 2.5),
+                            h * 1.3 * min(att_w.shape[1], 2.5),
+                        )
+                    )
+                    fig.suptitle(f"{key}")
+                    axes = fig.subplots(att_w.shape[0], att_w.shape[1])
+                    if len(att_w) == 1:
+                        axes = [[axes]]
+                    for ax, att_w in zip(axes, att_w):
+                        for ax_, att_w_ in zip(ax, att_w):
+                            ax_.imshow(att_w_.astype(np.float32), aspect="auto")
+                            ax_.set_xlabel("Input")
+                            ax_.set_ylabel("Output")
+                            ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
+                            ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+                    fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
+                    fig.savefig(output_dir / f"att_ws/{key}.png")
+                    fig.clf()
 
             if output_dict.get("prob") is not None:
                 # Plot stop token prediction

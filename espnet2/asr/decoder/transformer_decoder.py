@@ -95,6 +95,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         hlens: torch.Tensor,
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
+        return_hidden: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
@@ -106,6 +107,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
+            return_hidden: (bool) whether to return the last hidden output
+                                  before output layer
         Returns:
             (tuple): tuple containing:
 
@@ -139,9 +142,13 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
+            if return_hidden:
+                hidden = x
             x = self.output_layer(x)
 
         olens = tgt_mask.sum(1)
+        if return_hidden:
+            return x, olens, hidden
         return x, olens
 
     def forward_one_step(

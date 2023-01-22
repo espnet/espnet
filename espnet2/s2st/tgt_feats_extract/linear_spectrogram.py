@@ -67,6 +67,6 @@ class LinearSpectrogram(AbsTgtFeatsExtract):
         input_power = input_stft[..., 0] ** 2 + input_stft[..., 1] ** 2
         input_amp = torch.sqrt(torch.clamp(input_power, min=1.0e-10))
         return input_amp, feats_lens
-    
+
     def spectrogram(self) -> bool:
         return True

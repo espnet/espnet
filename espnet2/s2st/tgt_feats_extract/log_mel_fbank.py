@@ -100,6 +100,6 @@ class LogMelFbank(AbsTgtFeatsExtract):
         input_amp = torch.sqrt(torch.clamp(input_power, min=1.0e-10))
         input_feats, _ = self.logmel(input_amp, feats_lens)
         return input_feats, feats_lens
-    
+
     def spectrogram(self) -> bool:
         return True
