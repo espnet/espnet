@@ -323,6 +323,8 @@ class CommonPreprocessor(AbsPreprocessor):
     ) -> Dict[str, np.ndarray]:
         if self.text_name in data and self.tokenizer is not None:
             text = data[self.text_name]
+            if isinstance(text, np.ndarray):
+                return data
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)

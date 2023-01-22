@@ -21,6 +21,7 @@ from espnet2.fileio.rand_gen_dataset import (
     IntRandomGenerateDataset,
 )
 from espnet2.fileio.read_text import (
+    RandomTextReader,
     load_num_sequence_text,
     read_2column_text,
     read_label,
@@ -294,6 +295,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A hello world\n"
         "   utterance_id_B foo bar\n"
+        "   ...",
+    ),
+    "random_text": dict(
+        func=RandomTextReader,
+        kwargs=[],
+        help="Return text as is. The text must be converted to ndarray "
+        "by 'preprocess'."
+        "\n\n"
+        "   hello world\n"
+        "   foo bar\n"
         "   ...",
     ),
     "hdf5": dict(
