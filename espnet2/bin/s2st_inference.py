@@ -251,7 +251,7 @@ def inference(
     speech2speech = Speech2Speech.from_pretrained(
         model_tag=model_tag,
         vocoder_tag=vocoder_tag,
-        **text2speech_kwargs,
+        **speech2speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -261,8 +261,8 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2STTask.build_preprocess_fn(text2speech.train_args, False),
-        collate_fn=S2STTask.build_collate_fn(text2speech.train_args, False),
+        preprocess_fn=S2STTask.build_preprocess_fn(speech2speech.train_args, False),
+        collate_fn=S2STTask.build_collate_fn(speech2speech.train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -307,7 +307,7 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
-            output_dict = text2speech(**batch)
+            output_dict = speech2speech(**batch)
 
             key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
@@ -396,7 +396,7 @@ def inference(
                 sf.write(
                     f"{output_dir}/wav/{key}.wav",
                     output_dict["wav"].cpu().numpy(),
-                    text2speech.fs,
+                    speech2speech.fs,
                     "PCM_16",
                 )
 
