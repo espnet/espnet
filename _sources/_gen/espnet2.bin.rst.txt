@@ -59,6 +59,17 @@ espnet2.bin.asr_train
     :show-inheritance:
 
 
+.. _espnet2.bin.uasr_extract_feature:
+
+espnet2.bin.uasr_extract_feature
+--------------------------------
+
+.. automodule:: espnet2.bin.uasr_extract_feature
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.tts_train:
 
 espnet2.bin.tts_train
@@ -224,12 +235,34 @@ espnet2.bin.asr_inference_maskctc
     :show-inheritance:
 
 
+.. _espnet2.bin.uasr_inference:
+
+espnet2.bin.uasr_inference
+--------------------------
+
+.. automodule:: espnet2.bin.uasr_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.whisper_export_vocabulary:
 
 espnet2.bin.whisper_export_vocabulary
 -------------------------------------
 
 .. automodule:: espnet2.bin.whisper_export_vocabulary
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.uasr_train:
+
+espnet2.bin.uasr_train
+----------------------
+
+.. automodule:: espnet2.bin.uasr_train
     :members:
     :undoc-members:
     :show-inheritance:
@@ -307,6 +340,17 @@ espnet2.bin.__init__
 --------------------
 
 .. automodule:: espnet2.bin.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.uasr_inference_k2:
+
+espnet2.bin.uasr_inference_k2
+-----------------------------
+
+.. automodule:: espnet2.bin.uasr_inference_k2
     :members:
     :undoc-members:
     :show-inheritance:

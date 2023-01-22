@@ -59,6 +59,17 @@ espnet2.fileio.rttm
     :show-inheritance:
 
 
+.. _espnet2.fileio.vad_scp:
+
+espnet2.fileio.vad_scp
+----------------------
+
+.. automodule:: espnet2.fileio.vad_scp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.fileio.__init__:
 
 espnet2.fileio.__init__

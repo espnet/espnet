@@ -124,6 +124,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -169,8 +170,11 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.fileio.read_text</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span></span><span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">mmap</span> <span class="kn">import</span> <span class="n">mmap</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
@@ -275,6 +279,93 @@
             <span class="p">)</span>
         <span class="n">retval</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">temp_info</span>
     <span class="k">return</span> <span class="n">retval</span></div>
+
+
+<div class="viewcode-block" id="RandomTextReader"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.RandomTextReader">[docs]</a><span class="k">class</span> <span class="nc">RandomTextReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reader class for random access to text.</span>
+
+<span class="sd">    Simple text reader for non-pair text data (for unsupervised ASR)</span>
+<span class="sd">        Instead of loading the whole text into memory (often large for UASR),</span>
+<span class="sd">        the reader consumes text which stores in byte-offset of each text file</span>
+<span class="sd">        and randomly selected unpaired text from it for training using mmap.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        text</span>
+<span class="sd">            text1line</span>
+<span class="sd">            text2line</span>
+<span class="sd">            text3line</span>
+<span class="sd">        scp</span>
+<span class="sd">            11</span>
+<span class="sd">            00000000000000000010</span>
+<span class="sd">            00000000110000000020</span>
+<span class="sd">            00000000210000000030</span>
+<span class="sd">        scp explanation</span>
+<span class="sd">            (number of digits per int value)</span>
+<span class="sd">            (text start at bytes 0 and end at bytes 10 (including &quot;\n&quot;))</span>
+<span class="sd">            (text start at bytes 11 and end at bytes 20 (including &quot;\n&quot;))</span>
+<span class="sd">            (text start at bytes 21 and end at bytes 30 (including &quot;\n&quot;))</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text_and_scp</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="n">text</span><span class="p">,</span> <span class="n">text_scp</span> <span class="o">=</span> <span class="n">text_and_scp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+
+        <span class="n">text_f</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r+b&quot;</span><span class="p">)</span>
+        <span class="n">scp_f</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">text_scp</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r+b&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_mm</span> <span class="o">=</span> <span class="n">mmap</span><span class="p">(</span><span class="n">text_f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scp_mm</span> <span class="o">=</span> <span class="n">mmap</span><span class="p">(</span><span class="n">scp_f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">max_num_digits_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scp_mm</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">max_num_digits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_num_digits_line</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">max_num_digits</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_line_offset</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_num_digits_line</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_num_digits</span> <span class="o">=</span> <span class="n">max_num_digits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">max_num_digits</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">num_text_bites</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scp_mm</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">max_num_digits_line</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_text_bites</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">num_lines</span> <span class="o">=</span> <span class="n">num_text_bites</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_lines</span> <span class="o">=</span> <span class="n">num_lines</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="c1"># choose random line from scp</span>
+        <span class="c1"># the first line defines the max number of digits</span>
+        <span class="n">random_line_number</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_lines</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># get the number of bytes of corresponding line in text</span>
+        <span class="n">scp_start_bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_line_offset</span>
+        <span class="n">scp_start_bytes</span> <span class="o">+=</span> <span class="n">random_line_number</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">scp_end_bytes</span> <span class="o">=</span> <span class="n">scp_start_bytes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="n">text_start_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scp_mm</span><span class="p">[</span><span class="n">scp_start_bytes</span> <span class="p">:</span> <span class="n">scp_start_bytes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_digits</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">text_end_bytes</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scp_mm</span><span class="p">[</span><span class="n">scp_start_bytes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_num_digits</span> <span class="p">:</span> <span class="n">scp_end_bytes</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># retrieve text line</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_mm</span><span class="p">[</span><span class="n">text_start_bytes</span><span class="p">:</span><span class="n">text_end_bytes</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">text</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_lines</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="RandomTextReader.keys"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.RandomTextReader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span></div></div>
 </pre></div>
 
            </div>

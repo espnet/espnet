@@ -14,3 +14,14 @@ espnet2.fst.lm_rescore
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.fst.__init__:
+
+espnet2.fst.__init__
+--------------------
+
+.. automodule:: espnet2.fst.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

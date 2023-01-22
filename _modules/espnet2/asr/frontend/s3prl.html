@@ -124,6 +124,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -191,6 +192,7 @@
         <span class="n">frontend_conf</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">Frontend</span><span class="p">),</span>
         <span class="n">download_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">multilayer_feature</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">s3prl</span>
@@ -217,6 +219,8 @@
         <span class="n">upstream</span> <span class="o">=</span> <span class="n">S3PRLUpstream</span><span class="p">(</span>
             <span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;upstream&quot;</span><span class="p">),</span>
             <span class="n">path_or_url</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;path_or_url&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+            <span class="n">normalize</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;normalize&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+            <span class="n">extra_conf</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extra_conf&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="n">upstream</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
@@ -226,9 +230,18 @@
             <span class="s2">&quot;HubertModel&quot;</span><span class="p">,</span>
         <span class="p">]:</span>
             <span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layerdrop</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">featurizer</span> <span class="o">=</span> <span class="n">Featurizer</span><span class="p">(</span><span class="n">upstream</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">layer</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer_selections</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">multilayer_feature</span>
+            <span class="p">),</span> <span class="s2">&quot;multilayer feature will be deactivated, when specific layer used&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer_selections</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">featurizer</span> <span class="o">=</span> <span class="n">Featurizer</span><span class="p">(</span><span class="n">upstream</span><span class="p">,</span> <span class="n">layer_selections</span><span class="o">=</span><span class="n">layer_selections</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span> <span class="o">=</span> <span class="n">multilayer_feature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="o">=</span> <span class="n">layer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span> <span class="o">=</span> <span class="n">upstream</span><span class="p">,</span> <span class="n">featurizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend_type</span> <span class="o">=</span> <span class="s2">&quot;s3prl&quot;</span>
@@ -260,6 +273,11 @@
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">feats_lens</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span><span class="p">:</span>
             <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lens</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

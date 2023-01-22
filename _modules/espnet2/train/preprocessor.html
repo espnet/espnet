@@ -124,6 +124,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -494,6 +495,8 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_name</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">text</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">data</span>
             <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_cleaner</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>

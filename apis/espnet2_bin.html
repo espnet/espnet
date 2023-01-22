@@ -127,6 +127,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -170,7 +171,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#split-scps-py">split_scps.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#st-inference-py">st_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#st-train-py">st_train.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#tokenize-text-py">tokenize_text.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tts-inference-py">tts_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#tts-train-py">tts_train.py</a></li>
 </ul>
@@ -845,6 +845,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -1473,6 +1480,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -2034,6 +2048,13 @@ Dataset related:
 
                            utterance_id_A hello world
                            utterance_id_B foo bar
+                           ...
+
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
                            ...
 
                         &quot;hdf5&quot;:
@@ -2647,6 +2668,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -3255,6 +3283,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -3835,6 +3870,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -4345,6 +4387,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -4847,6 +4896,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -5345,6 +5401,13 @@ Dataset related:
 
                            utterance_id_A hello world
                            utterance_id_B foo bar
+                           ...
+
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
                            ...
 
                         &quot;hdf5&quot;:
@@ -5951,6 +6014,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -6494,6 +6564,13 @@ Dataset related:
 
                            utterance_id_A hello world
                            utterance_id_B foo bar
+                           ...
+
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
                            ...
 
                         &quot;hdf5&quot;:
@@ -7113,6 +7190,13 @@ Dataset related:
                            utterance_id_B foo bar
                            ...
 
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
+                           ...
+
                         &quot;hdf5&quot;:
                         A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
                            &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
@@ -7246,67 +7330,8 @@ Optimizer related:
 </pre></div>
 </div>
 </section>
-<section id="tokenize-text-py">
-<span id="id29"></span><h2>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tokenize_text.py [-h]
-                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                        --input INPUT --output OUTPUT [--field FIELD]
-                        [--token_type {char,bpe,word,phn}]
-                        [--delimiter DELIMITER] [--space_symbol SPACE_SYMBOL]
-                        [--bpemodel BPEMODEL]
-                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
-                        [--remove_non_linguistic_symbols REMOVE_NON_LINGUISTIC_SYMBOLS]
-                        [--cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner,whisper_en,whisper_basic}]
-                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
-                        [--write_vocabulary WRITE_VOCABULARY]
-                        [--vocabulary_size VOCABULARY_SIZE] [--cutoff CUTOFF]
-                        [--add_symbol ADD_SYMBOL]
-
-Tokenize texts
-
-optional arguments:
-  --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
-                        The verbose level of logging (default: INFO)
-  --input INPUT, -i INPUT
-                        Input text. - indicates sys.stdin (default: None)
-  --output OUTPUT, -o OUTPUT
-                        Output text. - indicates sys.stdout (default: None)
-  --field FIELD, -f FIELD
-                        The target columns of the input text as 1-based
-                        integer. e.g 2- (default: None)
-  --token_type {char,bpe,word,phn}, -t {char,bpe,word,phn}
-                        Token type (default: char)
-  --delimiter DELIMITER, -d DELIMITER
-                        The delimiter (default: None)
-  --space_symbol SPACE_SYMBOL
-                        The space symbol (default: &lt;space&gt;)
-  --bpemodel BPEMODEL   The bpemodel file path (default: None)
-  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                        non_linguistic_symbols file path (default: None)
-  --remove_non_linguistic_symbols REMOVE_NON_LINGUISTIC_SYMBOLS
-                        Remove non-language-symbols from tokens (default:
-                        False)
-  --cleaner {None,tacotron,jaconv,vietnamese,korean_cleaner,whisper_en,whisper_basic}
-                        Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
-
-write_vocabulary mode related:
-  --write_vocabulary WRITE_VOCABULARY
-                        Write tokens list instead of tokenized text per line
-                        (default: False)
-  --vocabulary_size VOCABULARY_SIZE
-                        Vocabulary size (default: 0)
-  --cutoff CUTOFF       cut-off frequency used for write-vocabulary mode
-                        (default: 0)
-  --add_symbol ADD_SYMBOL
-                        Append symbol e.g. --add_symbol &#39;&lt;blank&gt;:0&#39;
-                        --add_symbol &#39;&lt;unk&gt;:1&#39; (default: [])
-</pre></div>
-</div>
-</section>
 <section id="tts-inference-py">
-<span id="id30"></span><h2>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h2>
+<span id="id29"></span><h2>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_inference.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -7405,7 +7430,7 @@ Vocoder related:
 </div>
 </section>
 <section id="tts-train-py">
-<span id="id31"></span><h2>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h2>
+<span id="id30"></span><h2>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_train.py [-h] [--config CONFIG] [--print_config]
                     [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                     [--dry_run DRY_RUN]
@@ -7787,6 +7812,13 @@ Dataset related:
 
                            utterance_id_A hello world
                            utterance_id_B foo bar
+                           ...
+
+                        &quot;random_text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           hello world
+                           foo bar
                            ...
 
                         &quot;hdf5&quot;:

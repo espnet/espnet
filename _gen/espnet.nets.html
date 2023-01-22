@@ -234,6 +234,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorers-ngram">espnet.nets.scorers.ngram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorers-length-bonus">espnet.nets.scorers.length_bonus</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorers-init">espnet.nets.scorers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorers-uasr">espnet.nets.scorers.uasr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorers-ctc">espnet.nets.scorers.ctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-chainer-backend-deterministic-embed-id">espnet.nets.chainer_backend.deterministic_embed_id</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-chainer-backend-asr-interface">espnet.nets.chainer_backend.asr_interface</a></li>
@@ -279,6 +280,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -14458,8 +14460,44 @@ and None</p>
 <span id="id131"></span><h2>espnet.nets.scorers.__init__<a class="headerlink" href="#espnet-nets-scorers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.scorers.__init__"></span><p>Initialize sub package.</p>
 </section>
+<section id="espnet-nets-scorers-uasr">
+<span id="id132"></span><h2>espnet.nets.scorers.uasr<a class="headerlink" href="#espnet-nets-scorers-uasr" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.nets.scorers.uasr"></span><p>ScorerInterface implementation for UASR.</p>
+<dl class="class">
+<dt id="espnet.nets.scorers.uasr.UASRPrefixScorer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.scorers.uasr.</code><code class="sig-name descname">UASRPrefixScorer</code><span class="sig-paren">(</span><em class="sig-param">eos: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/uasr.html#UASRPrefixScorer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.uasr.UASRPrefixScorer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet.nets.scorers.ctc.CTCPrefixScorer" title="espnet.nets.scorers.ctc.CTCPrefixScorer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorers.ctc.CTCPrefixScorer</span></code></a></p>
+<p>Decoder interface wrapper for CTCPrefixScore.</p>
+<p>Initialize class.</p>
+<dl class="method">
+<dt id="espnet.nets.scorers.uasr.UASRPrefixScorer.batch_init_state">
+<code class="sig-name descname">batch_init_state</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/uasr.html#UASRPrefixScorer.batch_init_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.uasr.UASRPrefixScorer.batch_init_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an initial state for decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – The encoded feature tensor</p>
+</dd>
+</dl>
+<p>Returns: initial state</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.scorers.uasr.UASRPrefixScorer.init_state">
+<code class="sig-name descname">init_state</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/scorers/uasr.html#UASRPrefixScorer.init_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.scorers.uasr.UASRPrefixScorer.init_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get an initial state for decoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – The encoded feature tensor</p>
+</dd>
+</dl>
+<p>Returns: initial state</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet-nets-scorers-ctc">
-<span id="id132"></span><h2>espnet.nets.scorers.ctc<a class="headerlink" href="#espnet-nets-scorers-ctc" title="Permalink to this headline">¶</a></h2>
+<span id="id133"></span><h2>espnet.nets.scorers.ctc<a class="headerlink" href="#espnet-nets-scorers-ctc" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.scorers.ctc"></span><p>ScorerInterface implementation for CTC.</p>
 <dl class="class">
 <dt id="espnet.nets.scorers.ctc.CTCPrefixScorer">
@@ -14598,7 +14636,7 @@ and next state for ys</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-deterministic-embed-id">
-<span id="id133"></span><h2>espnet.nets.chainer_backend.deterministic_embed_id<a class="headerlink" href="#espnet-nets-chainer-backend-deterministic-embed-id" title="Permalink to this headline">¶</a></h2>
+<span id="id134"></span><h2>espnet.nets.chainer_backend.deterministic_embed_id<a class="headerlink" href="#espnet-nets-chainer-backend-deterministic-embed-id" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.deterministic_embed_id"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.deterministic_embed_id.EmbedID">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.deterministic_embed_id.</code><code class="sig-name descname">EmbedID</code><span class="sig-paren">(</span><em class="sig-param">in_size</em>, <em class="sig-param">out_size</em>, <em class="sig-param">initialW=None</em>, <em class="sig-param">ignore_label=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/deterministic_embed_id.html#EmbedID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.deterministic_embed_id.EmbedID" title="Permalink to this definition">¶</a></dt>
@@ -14875,7 +14913,7 @@ of return value is filled with 0.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-asr-interface">
-<span id="id134"></span><h2>espnet.nets.chainer_backend.asr_interface<a class="headerlink" href="#espnet-nets-chainer-backend-asr-interface" title="Permalink to this headline">¶</a></h2>
+<span id="id135"></span><h2>espnet.nets.chainer_backend.asr_interface<a class="headerlink" href="#espnet-nets-chainer-backend-asr-interface" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.asr_interface"></span><p>ASR Interface module.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.asr_interface.ChainerASRInterface">
@@ -14910,7 +14948,7 @@ of return value is filled with 0.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-e2e-asr">
-<span id="id135"></span><h2>espnet.nets.chainer_backend.e2e_asr<a class="headerlink" href="#espnet-nets-chainer-backend-e2e-asr" title="Permalink to this headline">¶</a></h2>
+<span id="id136"></span><h2>espnet.nets.chainer_backend.e2e_asr<a class="headerlink" href="#espnet-nets-chainer-backend-e2e-asr" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.e2e_asr"></span><p>RNN sequence-to-sequence speech recognition model (chainer).</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.e2e_asr.E2E">
@@ -15040,14 +15078,14 @@ float (optional): Accuracy.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-init">
-<span id="id136"></span><h2>espnet.nets.chainer_backend.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-init" title="Permalink to this headline">¶</a></h2>
+<span id="id137"></span><h2>espnet.nets.chainer_backend.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.__init__"></span><p>Initialize sub package.</p>
 </section>
 <section id="espnet-nets-chainer-backend-nets-utils">
-<span id="id137"></span><h2>espnet.nets.chainer_backend.nets_utils<a class="headerlink" href="#espnet-nets-chainer-backend-nets-utils" title="Permalink to this headline">¶</a></h2>
+<span id="id138"></span><h2>espnet.nets.chainer_backend.nets_utils<a class="headerlink" href="#espnet-nets-chainer-backend-nets-utils" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.nets_utils"></span></section>
 <section id="espnet-nets-chainer-backend-e2e-asr-transformer">
-<span id="id138"></span><h2>espnet.nets.chainer_backend.e2e_asr_transformer<a class="headerlink" href="#espnet-nets-chainer-backend-e2e-asr-transformer" title="Permalink to this headline">¶</a></h2>
+<span id="id139"></span><h2>espnet.nets.chainer_backend.e2e_asr_transformer<a class="headerlink" href="#espnet-nets-chainer-backend-e2e-asr-transformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.e2e_asr_transformer"></span><p>Transformer-based model for End-to-end ASR.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.e2e_asr_transformer.E2E">
@@ -15230,7 +15268,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-ctc">
-<span id="id139"></span><h2>espnet.nets.chainer_backend.ctc<a class="headerlink" href="#espnet-nets-chainer-backend-ctc" title="Permalink to this headline">¶</a></h2>
+<span id="id140"></span><h2>espnet.nets.chainer_backend.ctc<a class="headerlink" href="#espnet-nets-chainer-backend-ctc" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.ctc"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.ctc.CTC">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.ctc.</code><code class="sig-name descname">CTC</code><span class="sig-paren">(</span><em class="sig-param">odim</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">dropout_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/ctc.html#CTC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.ctc.CTC" title="Permalink to this definition">¶</a></dt>
@@ -15283,7 +15321,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-decoder-layer">
-<span id="id140"></span><h2>espnet.nets.chainer_backend.transformer.decoder_layer<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-decoder-layer" title="Permalink to this headline">¶</a></h2>
+<span id="id141"></span><h2>espnet.nets.chainer_backend.transformer.decoder_layer<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-decoder-layer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.decoder_layer"></span><p>Class Declaration of Transformer’s Decoder Block.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.decoder_layer.DecoderLayer">
@@ -15325,7 +15363,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-attention">
-<span id="id141"></span><h2>espnet.nets.chainer_backend.transformer.attention<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-attention" title="Permalink to this headline">¶</a></h2>
+<span id="id142"></span><h2>espnet.nets.chainer_backend.transformer.attention<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-attention" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.attention"></span><p>Class Declaration of Transformer’s Attention.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.attention.MultiHeadAttention">
@@ -15373,7 +15411,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-encoder-layer">
-<span id="id142"></span><h2>espnet.nets.chainer_backend.transformer.encoder_layer<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-encoder-layer" title="Permalink to this headline">¶</a></h2>
+<span id="id143"></span><h2>espnet.nets.chainer_backend.transformer.encoder_layer<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-encoder-layer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.encoder_layer"></span><p>Class Declaration of Transformer’s Encoder Block.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.encoder_layer.EncoderLayer">
@@ -15401,7 +15439,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-positionwise-feed-forward">
-<span id="id143"></span><h2>espnet.nets.chainer_backend.transformer.positionwise_feed_forward<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-positionwise-feed-forward" title="Permalink to this headline">¶</a></h2>
+<span id="id144"></span><h2>espnet.nets.chainer_backend.transformer.positionwise_feed_forward<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-positionwise-feed-forward" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.positionwise_feed_forward"></span><p>Class Declaration of Transformer’s Positionwise Feedforward.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward">
@@ -15427,7 +15465,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-subsampling">
-<span id="id144"></span><h2>espnet.nets.chainer_backend.transformer.subsampling<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-subsampling" title="Permalink to this headline">¶</a></h2>
+<span id="id145"></span><h2>espnet.nets.chainer_backend.transformer.subsampling<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-subsampling" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.subsampling"></span><p>Class Declaration of Transformer’s Input layers.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.subsampling.Conv2dSubsampling">
@@ -15493,7 +15531,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-mask">
-<span id="id145"></span><h2>espnet.nets.chainer_backend.transformer.mask<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-mask" title="Permalink to this headline">¶</a></h2>
+<span id="id146"></span><h2>espnet.nets.chainer_backend.transformer.mask<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-mask" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.mask"></span><p>Create mask for subsequent steps.</p>
 <dl class="function">
 <dt id="espnet.nets.chainer_backend.transformer.mask.make_history_mask">
@@ -15514,7 +15552,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-embedding">
-<span id="id146"></span><h2>espnet.nets.chainer_backend.transformer.embedding<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-embedding" title="Permalink to this headline">¶</a></h2>
+<span id="id147"></span><h2>espnet.nets.chainer_backend.transformer.embedding<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-embedding" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.embedding"></span><p>Class Declaration of Transformer’s Positional Encoding.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.embedding.PositionalEncoding">
@@ -15541,7 +15579,7 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-label-smoothing-loss">
-<span id="id147"></span><h2>espnet.nets.chainer_backend.transformer.label_smoothing_loss<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-label-smoothing-loss" title="Permalink to this headline">¶</a></h2>
+<span id="id148"></span><h2>espnet.nets.chainer_backend.transformer.label_smoothing_loss<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-label-smoothing-loss" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.label_smoothing_loss"></span><p>Class Declaration of Transformer’s Label Smootion loss.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.label_smoothing_loss.LabelSmoothingLoss">
@@ -15582,11 +15620,11 @@ chainer.Variable (Optional): Output of the encoder.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-init">
-<span id="id148"></span><h2>espnet.nets.chainer_backend.transformer.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-init" title="Permalink to this headline">¶</a></h2>
+<span id="id149"></span><h2>espnet.nets.chainer_backend.transformer.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.__init__"></span><p>Initialize sub package.</p>
 </section>
 <section id="espnet-nets-chainer-backend-transformer-training">
-<span id="id149"></span><h2>espnet.nets.chainer_backend.transformer.training<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-training" title="Permalink to this headline">¶</a></h2>
+<span id="id150"></span><h2>espnet.nets.chainer_backend.transformer.training<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-training" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.training"></span><p>Class Declaration of Transformer’s Training Subprocess.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.training.CustomConverter">
@@ -15745,7 +15783,7 @@ used.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-decoder">
-<span id="id150"></span><h2>espnet.nets.chainer_backend.transformer.decoder<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id151"></span><h2>espnet.nets.chainer_backend.transformer.decoder<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.decoder"></span><p>Class Declaration of Transformer’s Decoder.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.decoder.Decoder">
@@ -15819,7 +15857,7 @@ used.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-layer-norm">
-<span id="id151"></span><h2>espnet.nets.chainer_backend.transformer.layer_norm<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-layer-norm" title="Permalink to this headline">¶</a></h2>
+<span id="id152"></span><h2>espnet.nets.chainer_backend.transformer.layer_norm<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-layer-norm" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.layer_norm"></span><p>Class Declaration of Transformer’s Label Smootion loss.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.layer_norm.LayerNorm">
@@ -15831,7 +15869,7 @@ used.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-ctc">
-<span id="id152"></span><h2>espnet.nets.chainer_backend.transformer.ctc<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-ctc" title="Permalink to this headline">¶</a></h2>
+<span id="id153"></span><h2>espnet.nets.chainer_backend.transformer.ctc<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-ctc" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.ctc"></span><p>Class Declaration of Transformer’s CTC.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.ctc.CTC">
@@ -15869,7 +15907,7 @@ used.</p></li>
 
 </section>
 <section id="espnet-nets-chainer-backend-transformer-encoder">
-<span id="id153"></span><h2>espnet.nets.chainer_backend.transformer.encoder<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id154"></span><h2>espnet.nets.chainer_backend.transformer.encoder<a class="headerlink" href="#espnet-nets-chainer-backend-transformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.transformer.encoder"></span><p>Class Declaration of Transformer’s Encoder.</p>
 <dl class="class">
 <dt id="espnet.nets.chainer_backend.transformer.encoder.Encoder">
@@ -15926,7 +15964,7 @@ chainer.Variable: Batch of lengths of each encoder outputs.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-rnn-attentions">
-<span id="id154"></span><h2>espnet.nets.chainer_backend.rnn.attentions<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-attentions" title="Permalink to this headline">¶</a></h2>
+<span id="id155"></span><h2>espnet.nets.chainer_backend.rnn.attentions<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-attentions" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.rnn.attentions"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.rnn.attentions.AttDot">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.rnn.attentions.</code><code class="sig-name descname">AttDot</code><span class="sig-paren">(</span><em class="sig-param">eprojs</em>, <em class="sig-param">dunits</em>, <em class="sig-param">att_dim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/rnn/attentions.html#AttDot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.rnn.attentions.AttDot" title="Permalink to this definition">¶</a></dt>
@@ -16007,7 +16045,7 @@ attention-based models.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-rnn-decoders">
-<span id="id155"></span><h2>espnet.nets.chainer_backend.rnn.decoders<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-decoders" title="Permalink to this headline">¶</a></h2>
+<span id="id156"></span><h2>espnet.nets.chainer_backend.rnn.decoders<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-decoders" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.rnn.decoders"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.rnn.decoders.Decoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.rnn.decoders.</code><code class="sig-name descname">Decoder</code><span class="sig-paren">(</span><em class="sig-param">eprojs</em>, <em class="sig-param">odim</em>, <em class="sig-param">dtype</em>, <em class="sig-param">dlayers</em>, <em class="sig-param">dunits</em>, <em class="sig-param">sos</em>, <em class="sig-param">eos</em>, <em class="sig-param">att</em>, <em class="sig-param">verbose=0</em>, <em class="sig-param">char_list=None</em>, <em class="sig-param">labeldist=None</em>, <em class="sig-param">lsm_weight=0.0</em>, <em class="sig-param">sampling_probability=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/rnn/decoders.html#Decoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.rnn.decoders.Decoder" title="Permalink to this definition">¶</a></dt>
@@ -16109,11 +16147,11 @@ attention-based models.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-rnn-init">
-<span id="id156"></span><h2>espnet.nets.chainer_backend.rnn.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-init" title="Permalink to this headline">¶</a></h2>
+<span id="id157"></span><h2>espnet.nets.chainer_backend.rnn.__init__<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.rnn.__init__"></span><p>Initialize sub package.</p>
 </section>
 <section id="espnet-nets-chainer-backend-rnn-training">
-<span id="id157"></span><h2>espnet.nets.chainer_backend.rnn.training<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-training" title="Permalink to this headline">¶</a></h2>
+<span id="id158"></span><h2>espnet.nets.chainer_backend.rnn.training<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-training" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.rnn.training"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.rnn.training.CustomConverter">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.rnn.training.</code><code class="sig-name descname">CustomConverter</code><span class="sig-paren">(</span><em class="sig-param">subsampling_factor=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/rnn/training.html#CustomConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.rnn.training.CustomConverter" title="Permalink to this definition">¶</a></dt>
@@ -16240,7 +16278,7 @@ updates of parameters.</p>
 
 </section>
 <section id="espnet-nets-chainer-backend-rnn-encoders">
-<span id="id158"></span><h2>espnet.nets.chainer_backend.rnn.encoders<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-encoders" title="Permalink to this headline">¶</a></h2>
+<span id="id159"></span><h2>espnet.nets.chainer_backend.rnn.encoders<a class="headerlink" href="#espnet-nets-chainer-backend-rnn-encoders" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.chainer_backend.rnn.encoders"></span><dl class="class">
 <dt id="espnet.nets.chainer_backend.rnn.encoders.Encoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.chainer_backend.rnn.encoders.</code><code class="sig-name descname">Encoder</code><span class="sig-paren">(</span><em class="sig-param">etype</em>, <em class="sig-param">idim</em>, <em class="sig-param">elayers</em>, <em class="sig-param">eunits</em>, <em class="sig-param">eprojs</em>, <em class="sig-param">subsample</em>, <em class="sig-param">dropout</em>, <em class="sig-param">in_channel=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/chainer_backend/rnn/encoders.html#Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.chainer_backend.rnn.encoders.Encoder" title="Permalink to this definition">¶</a></dt>

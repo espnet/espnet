@@ -124,6 +124,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -192,6 +193,7 @@
     <span class="n">IntRandomGenerateDataset</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">RandomTextReader</span><span class="p">,</span>
     <span class="n">load_num_sequence_text</span><span class="p">,</span>
     <span class="n">read_2column_text</span><span class="p">,</span>
     <span class="n">read_label</span><span class="p">,</span>
@@ -465,6 +467,16 @@
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_A hello world</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_B foo bar</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;random_text&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">RandomTextReader</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Return text as is. The text must be converted to ndarray &quot;</span>
+        <span class="s2">&quot;by &#39;preprocess&#39;.&quot;</span>
+        <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   hello world</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   foo bar</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="s2">&quot;hdf5&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>

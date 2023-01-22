@@ -1357,6 +1357,17 @@ espnet.nets.scorers.__init__
     :show-inheritance:
 
 
+.. _espnet.nets.scorers.uasr:
+
+espnet.nets.scorers.uasr
+------------------------
+
+.. automodule:: espnet.nets.scorers.uasr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.scorers.ctc:
 
 espnet.nets.scorers.ctc

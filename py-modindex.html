@@ -127,6 +127,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -1115,6 +1116,11 @@
      <tr class="cg-1">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet.nets.html#module-espnet.nets.scorers.uasr"><code class="xref">espnet.nets.scorers.uasr</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-1">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet.nets.html#module-espnet.nets.st_interface"><code class="xref">espnet.nets.st_interface</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-1">
@@ -1996,6 +2002,26 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.uasr_extract_feature"><code class="xref">espnet2.bin.uasr_extract_feature</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.uasr_inference"><code class="xref">espnet2.bin.uasr_inference</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.uasr_inference_k2"><code class="xref">espnet2.bin.uasr_inference_k2</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.uasr_train"><code class="xref">espnet2.bin.uasr_train</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.bin.html#module-espnet2.bin.whisper_export_vocabulary"><code class="xref">espnet2.bin.whisper_export_vocabulary</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -2462,6 +2488,16 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.fileio.html#module-espnet2.fileio.sound_scp"><code class="xref">espnet2.fileio.sound_scp</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.fileio.html#module-espnet2.fileio.vad_scp"><code class="xref">espnet2.fileio.vad_scp</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.fst.html#module-espnet2.fst.__init__"><code class="xref">espnet2.fst.__init__</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
@@ -3166,6 +3202,11 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.tasks.html#module-espnet2.tasks.uasr"><code class="xref">espnet2.tasks.uasr</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.text.html#module-espnet2.text.__init__"><code class="xref">espnet2.text.__init__</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -3346,6 +3387,11 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.train.html#module-espnet2.train.uasr_trainer"><code class="xref">espnet2.train.uasr_trainer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.tts.html#module-espnet2.tts.__init__"><code class="xref">espnet2.tts.__init__</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -3467,6 +3513,101 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.tts.html#module-espnet2.tts.utils.parallel_wavegan_pretrained_vocoder"><code class="xref">espnet2.tts.utils.parallel_wavegan_pretrained_vocoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.__init__"><code class="xref">espnet2.uasr.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.discriminator.__init__"><code class="xref">espnet2.uasr.discriminator.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.discriminator.abs_discriminator"><code class="xref">espnet2.uasr.discriminator.abs_discriminator</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.discriminator.conv_discriminator"><code class="xref">espnet2.uasr.discriminator.conv_discriminator</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.espnet_model"><code class="xref">espnet2.uasr.espnet_model</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.generator.__init__"><code class="xref">espnet2.uasr.generator.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.generator.abs_generator"><code class="xref">espnet2.uasr.generator.abs_generator</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.generator.conv_generator"><code class="xref">espnet2.uasr.generator.conv_generator</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.__init__"><code class="xref">espnet2.uasr.loss.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.abs_loss"><code class="xref">espnet2.uasr.loss.abs_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.discriminator_loss"><code class="xref">espnet2.uasr.loss.discriminator_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.gradient_penalty"><code class="xref">espnet2.uasr.loss.gradient_penalty</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.phoneme_diversity_loss"><code class="xref">espnet2.uasr.loss.phoneme_diversity_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.pseudo_label_loss"><code class="xref">espnet2.uasr.loss.pseudo_label_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.loss.smoothness_penalty"><code class="xref">espnet2.uasr.loss.smoothness_penalty</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.segmenter.__init__"><code class="xref">espnet2.uasr.segmenter.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.segmenter.abs_segmenter"><code class="xref">espnet2.uasr.segmenter.abs_segmenter</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.segmenter.join_segmenter"><code class="xref">espnet2.uasr.segmenter.join_segmenter</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.uasr.html#module-espnet2.uasr.segmenter.random_segmenter"><code class="xref">espnet2.uasr.segmenter.random_segmenter</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>

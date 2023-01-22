@@ -122,6 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rand-gen-dataset">espnet2.fileio.rand_gen_dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-datadir-writer">espnet2.fileio.datadir_writer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rttm">espnet2.fileio.rttm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-vad-scp">espnet2.fileio.vad_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-init">espnet2.fileio.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-read-text">espnet2.fileio.read_text</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-score-scp">espnet2.fileio.score_scp</a></li>
@@ -137,6 +138,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -423,12 +425,101 @@ The difference including:
 </dd></dl>
 
 </section>
+<section id="espnet2-fileio-vad-scp">
+<span id="id6"></span><h2>espnet2.fileio.vad_scp<a class="headerlink" href="#espnet2-fileio-vad-scp" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.fileio.vad_scp"></span><dl class="class">
+<dt id="espnet2.fileio.vad_scp.VADScpReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.vad_scp.</code><code class="sig-name descname">VADScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.float32'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/vad_scp.html#VADScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.vad_scp.VADScpReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for ‘vad.scp’.</p>
+<p>Different from <cite>segments</cite>, the <cite>vad.scp</cite> would focus on utterance-level,
+while the <cite>segments</cite> are expected to focus on a whole session. The major
+usage in ESPnet is to guide the silence trim for UASR.</p>
+<p class="rubric">Examples</p>
+<p>key1 0:1.2000
+key2 3.0000:4.5000 7.0000:9:0000
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">VADScpReader</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">array</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.vad_scp.VADScpReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/vad_scp.html#VADScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.vad_scp.VADScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.fileio.vad_scp.VADScpWriter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.vad_scp.</code><code class="sig-name descname">VADScpWriter</code><span class="sig-paren">(</span><em class="sig-param">scpfile: Union[pathlib.Path, str], dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/vad_scp.html#VADScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.vad_scp.VADScpWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Writer class for ‘vad.scp’</p>
+<p class="rubric">Examples</p>
+<p>key1 0:1.2000
+key2 3.0000:4.5000 7.0000:9:0000
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">VADScpWriter</span><span class="p">(</span><span class="s1">&#39;./data/vad.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">tuples</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;bb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">tuples</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.vad_scp.VADScpWriter.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/vad_scp.html#VADScpWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.vad_scp.VADScpWriter.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-fileio-init">
-<span id="id6"></span><h2>espnet2.fileio.__init__<a class="headerlink" href="#espnet2-fileio-init" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.fileio.__init__<a class="headerlink" href="#espnet2-fileio-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.__init__"></span></section>
 <section id="espnet2-fileio-read-text">
-<span id="id7"></span><h2>espnet2.fileio.read_text<a class="headerlink" href="#espnet2-fileio-read-text" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.fileio.read_text"></span><dl class="function">
+<span id="id8"></span><h2>espnet2.fileio.read_text<a class="headerlink" href="#espnet2-fileio-read-text" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.fileio.read_text"></span><dl class="class">
+<dt id="espnet2.fileio.read_text.RandomTextReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">RandomTextReader</code><span class="sig-paren">(</span><em class="sig-param">text_and_scp: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#RandomTextReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.RandomTextReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for random access to text.</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Simple text reader for non-pair text data (for unsupervised ASR)</dt><dd><p>Instead of loading the whole text into memory (often large for UASR),
+the reader consumes text which stores in byte-offset of each text file
+and randomly selected unpaired text from it for training using mmap.</p>
+</dd>
+<dt>Examples:</dt><dd><dl class="simple">
+<dt>text</dt><dd><p>text1line
+text2line
+text3line</p>
+</dd>
+<dt>scp</dt><dd><p>11
+00000000000000000010
+00000000110000000020
+00000000210000000030</p>
+</dd>
+<dt>scp explanation</dt><dd><p>(number of digits per int value)
+(text start at bytes 0 and end at bytes 10 (including “</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="simple">
+<dt>“))</dt><dd><p>(text start at bytes 11 and end at bytes 20 (including “</p>
+</dd>
+<dt>“))</dt><dd><p>(text start at bytes 21 and end at bytes 30 (including “</p>
+</dd>
+</dl>
+<p>“))</p>
+<dl class="method">
+<dt id="espnet2.fileio.read_text.RandomTextReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#RandomTextReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.RandomTextReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet2.fileio.read_text.load_num_sequence_text">
 <code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">load_num_sequence_text</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str], loader_type: str = 'csv_int'</em><span class="sig-paren">)</span> &#x2192; Dict[str, List[Union[float, int]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#load_num_sequence_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.load_num_sequence_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read a text file indicating sequences of number</p>
@@ -472,7 +563,7 @@ key2 /some/path/b.wav</p>
 
 </section>
 <section id="espnet2-fileio-score-scp">
-<span id="id8"></span><h2>espnet2.fileio.score_scp<a class="headerlink" href="#espnet2-fileio-score-scp" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.fileio.score_scp<a class="headerlink" href="#espnet2-fileio-score-scp" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.score_scp"></span><dl class="class">
 <dt id="espnet2.fileio.score_scp.NOTE">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">NOTE</code><span class="sig-paren">(</span><em class="sig-param">lyric</em>, <em class="sig-param">midi</em>, <em class="sig-param">st</em>, <em class="sig-param">et</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#NOTE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.NOTE" title="Permalink to this definition">¶</a></dt>

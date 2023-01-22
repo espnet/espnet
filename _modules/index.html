@@ -124,6 +124,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -327,6 +328,7 @@
 <li><a href="espnet/nets/scorers/ctc.html">espnet.nets.scorers.ctc</a></li>
 <li><a href="espnet/nets/scorers/length_bonus.html">espnet.nets.scorers.length_bonus</a></li>
 <li><a href="espnet/nets/scorers/ngram.html">espnet.nets.scorers.ngram</a></li>
+<li><a href="espnet/nets/scorers/uasr.html">espnet.nets.scorers.uasr</a></li>
 <li><a href="espnet/nets/st_interface.html">espnet.nets.st_interface</a></li>
 <li><a href="espnet/nets/transducer_decoder_interface.html">espnet.nets.transducer_decoder_interface</a></li>
 <li><a href="espnet/nets/tts_interface.html">espnet.nets.tts_interface</a></li>
@@ -476,6 +478,10 @@
 <li><a href="espnet2/bin/tokenize_text.html">espnet2.bin.tokenize_text</a></li>
 <li><a href="espnet2/bin/tts_inference.html">espnet2.bin.tts_inference</a></li>
 <li><a href="espnet2/bin/tts_train.html">espnet2.bin.tts_train</a></li>
+<li><a href="espnet2/bin/uasr_extract_feature.html">espnet2.bin.uasr_extract_feature</a></li>
+<li><a href="espnet2/bin/uasr_inference.html">espnet2.bin.uasr_inference</a></li>
+<li><a href="espnet2/bin/uasr_inference_k2.html">espnet2.bin.uasr_inference_k2</a></li>
+<li><a href="espnet2/bin/uasr_train.html">espnet2.bin.uasr_train</a></li>
 <li><a href="espnet2/bin/whisper_export_vocabulary.html">espnet2.bin.whisper_export_vocabulary</a></li>
 <li><a href="espnet2/diar/abs_diar.html">espnet2.diar.abs_diar</a></li>
 <li><a href="espnet2/diar/attractor/abs_attractor.html">espnet2.diar.attractor.abs_attractor</a></li>
@@ -555,6 +561,7 @@
 <li><a href="espnet2/fileio/rttm.html">espnet2.fileio.rttm</a></li>
 <li><a href="espnet2/fileio/score_scp.html">espnet2.fileio.score_scp</a></li>
 <li><a href="espnet2/fileio/sound_scp.html">espnet2.fileio.sound_scp</a></li>
+<li><a href="espnet2/fileio/vad_scp.html">espnet2.fileio.vad_scp</a></li>
 <li><a href="espnet2/gan_svs/abs_gan_svs.html">espnet2.gan_svs.abs_gan_svs</a></li>
 <li><a href="espnet2/gan_svs/espnet_model.html">espnet2.gan_svs.espnet_model</a></li>
 <li><a href="espnet2/gan_svs/vits/duration_predictor.html">espnet2.gan_svs.vits.duration_predictor</a></li>
@@ -664,6 +671,7 @@
 <li><a href="espnet2/tasks/st.html">espnet2.tasks.st</a></li>
 <li><a href="espnet2/tasks/svs.html">espnet2.tasks.svs</a></li>
 <li><a href="espnet2/tasks/tts.html">espnet2.tasks.tts</a></li>
+<li><a href="espnet2/tasks/uasr.html">espnet2.tasks.uasr</a></li>
 <li><a href="espnet2/text/abs_tokenizer.html">espnet2.text.abs_tokenizer</a></li>
 <li><a href="espnet2/text/build_tokenizer.html">espnet2.text.build_tokenizer</a></li>
 <li><a href="espnet2/text/char_tokenizer.html">espnet2.text.char_tokenizer</a></li>
@@ -697,6 +705,7 @@
 <li><a href="espnet2/train/preprocessor.html">espnet2.train.preprocessor</a></li>
 <li><a href="espnet2/train/reporter.html">espnet2.train.reporter</a></li>
 <li><a href="espnet2/train/trainer.html">espnet2.train.trainer</a></li>
+<li><a href="espnet2/train/uasr_trainer.html">espnet2.train.uasr_trainer</a></li>
 <li><a href="espnet2/tts/abs_tts.html">espnet2.tts.abs_tts</a></li>
 <li><a href="espnet2/tts/espnet_model.html">espnet2.tts.espnet_model</a></li>
 <li><a href="espnet2/tts/fastspeech/fastspeech.html">espnet2.tts.fastspeech.fastspeech</a></li>
@@ -714,6 +723,20 @@
 <li><a href="espnet2/tts/transformer/transformer.html">espnet2.tts.transformer.transformer</a></li>
 <li><a href="espnet2/tts/utils/duration_calculator.html">espnet2.tts.utils.duration_calculator</a></li>
 <li><a href="espnet2/tts/utils/parallel_wavegan_pretrained_vocoder.html">espnet2.tts.utils.parallel_wavegan_pretrained_vocoder</a></li>
+<li><a href="espnet2/uasr/discriminator/abs_discriminator.html">espnet2.uasr.discriminator.abs_discriminator</a></li>
+<li><a href="espnet2/uasr/discriminator/conv_discriminator.html">espnet2.uasr.discriminator.conv_discriminator</a></li>
+<li><a href="espnet2/uasr/espnet_model.html">espnet2.uasr.espnet_model</a></li>
+<li><a href="espnet2/uasr/generator/abs_generator.html">espnet2.uasr.generator.abs_generator</a></li>
+<li><a href="espnet2/uasr/generator/conv_generator.html">espnet2.uasr.generator.conv_generator</a></li>
+<li><a href="espnet2/uasr/loss/abs_loss.html">espnet2.uasr.loss.abs_loss</a></li>
+<li><a href="espnet2/uasr/loss/discriminator_loss.html">espnet2.uasr.loss.discriminator_loss</a></li>
+<li><a href="espnet2/uasr/loss/gradient_penalty.html">espnet2.uasr.loss.gradient_penalty</a></li>
+<li><a href="espnet2/uasr/loss/phoneme_diversity_loss.html">espnet2.uasr.loss.phoneme_diversity_loss</a></li>
+<li><a href="espnet2/uasr/loss/pseudo_label_loss.html">espnet2.uasr.loss.pseudo_label_loss</a></li>
+<li><a href="espnet2/uasr/loss/smoothness_penalty.html">espnet2.uasr.loss.smoothness_penalty</a></li>
+<li><a href="espnet2/uasr/segmenter/abs_segmenter.html">espnet2.uasr.segmenter.abs_segmenter</a></li>
+<li><a href="espnet2/uasr/segmenter/join_segmenter.html">espnet2.uasr.segmenter.join_segmenter</a></li>
+<li><a href="espnet2/uasr/segmenter/random_segmenter.html">espnet2.uasr.segmenter.random_segmenter</a></li>
 <li><a href="espnet2/utils/build_dataclass.html">espnet2.utils.build_dataclass</a></li>
 <li><a href="espnet2/utils/config_argparse.html">espnet2.utils.config_argparse</a></li>
 <li><a href="espnet2/utils/get_default_kwargs.html">espnet2.utils.get_default_kwargs</a></li>

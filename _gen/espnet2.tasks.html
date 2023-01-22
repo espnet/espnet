@@ -137,6 +137,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-asr-transducer">espnet2.tasks.asr_transducer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-init">espnet2.tasks.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-enh-tse">espnet2.tasks.enh_tse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-uasr">espnet2.tasks.uasr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-svs">espnet2.tasks.svs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-lm">espnet2.tasks.lm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-slu">espnet2.tasks.slu</a></li>
@@ -146,6 +147,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -1550,8 +1552,100 @@ If your model is defined as following,</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-tasks-uasr">
+<span id="id15"></span><h2>espnet2.tasks.uasr<a class="headerlink" href="#espnet2-tasks-uasr" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tasks.uasr"></span><dl class="class">
+<dt id="espnet2.tasks.uasr.UASRTask">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.uasr.</code><code class="sig-name descname">UASRTask</code><a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tasks.abs_task.AbsTask" title="espnet2.tasks.abs_task.AbsTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tasks.abs_task.AbsTask</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.add_task_arguments">
+<em class="property">classmethod </em><code class="sig-name descname">add_task_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.add_task_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.add_task_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.build_collate_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Callable[[Collection[Tuple[str, Dict[str, numpy.ndarray]]]], Tuple[List[str], Dict[str, torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.build_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.build_collate_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return “collate_fn”, which is a callable object and given to DataLoader.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">collate_fn</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In many cases, you can use our common collate_fn.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.build_model">
+<em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.uasr.espnet_model.ESPnetUASRModel<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.build_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.build_optimizers">
+<em class="property">classmethod </em><code class="sig-name descname">build_optimizers</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">model: espnet2.uasr.espnet_model.ESPnetUASRModel</em><span class="sig-paren">)</span> &#x2192; List[torch.optim.optimizer.Optimizer]<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.build_optimizers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.build_optimizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.build_preprocess_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_preprocess_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Optional[Callable[[str, Dict[str, numpy.array]], Dict[str, numpy.ndarray]]]<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.build_preprocess_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.build_preprocess_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.uasr.UASRTask.class_choices_list">
+<code class="sig-name descname">class_choices_list</code><em class="property"> = [&lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;]</em><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.class_choices_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.uasr.UASRTask.num_optimizers">
+<code class="sig-name descname">num_optimizers</code><em class="property"> = 2</em><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.num_optimizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.optional_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">optional_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.optional_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.optional_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the optional names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “optional_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optional_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;opt&#39;</span><span class="p">,)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.uasr.UASRTask.required_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">required_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/uasr.html#UASRTask.required_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.required_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the required names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as following,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “required_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">required_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.uasr.UASRTask.trainer">
+<code class="sig-name descname">trainer</code><a class="headerlink" href="#espnet2.tasks.uasr.UASRTask.trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="espnet2.train.html#espnet2.train.uasr_trainer.UASRTrainer" title="espnet2.train.uasr_trainer.UASRTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.uasr_trainer.UASRTrainer</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-tasks-svs">
-<span id="id15"></span><h2>espnet2.tasks.svs<a class="headerlink" href="#espnet2-tasks-svs" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.tasks.svs<a class="headerlink" href="#espnet2-tasks-svs" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.svs"></span><p>Singing-voice-synthesis task.</p>
 <dl class="class">
 <dt id="espnet2.tasks.svs.SVSTask">
@@ -1644,7 +1738,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-lm">
-<span id="id16"></span><h2>espnet2.tasks.lm<a class="headerlink" href="#espnet2-tasks-lm" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.tasks.lm<a class="headerlink" href="#espnet2-tasks-lm" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.lm"></span><dl class="class">
 <dt id="espnet2.tasks.lm.LMTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.lm.</code><code class="sig-name descname">LMTask</code><a class="reference internal" href="../_modules/espnet2/tasks/lm.html#LMTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.lm.LMTask" title="Permalink to this definition">¶</a></dt>
@@ -1731,7 +1825,7 @@ If your model is defined as following,</p>
 
 </section>
 <section id="espnet2-tasks-slu">
-<span id="id17"></span><h2>espnet2.tasks.slu<a class="headerlink" href="#espnet2-tasks-slu" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.tasks.slu<a class="headerlink" href="#espnet2-tasks-slu" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tasks.slu"></span><dl class="class">
 <dt id="espnet2.tasks.slu.SLUTask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.slu.</code><code class="sig-name descname">SLUTask</code><a class="reference internal" href="../_modules/espnet2/tasks/slu.html#SLUTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.slu.SLUTask" title="Permalink to this definition">¶</a></dt>

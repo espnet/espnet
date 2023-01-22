@@ -158,6 +158,17 @@ espnet2.tasks.enh_tse
     :show-inheritance:
 
 
+.. _espnet2.tasks.uasr:
+
+espnet2.tasks.uasr
+------------------
+
+.. automodule:: espnet2.tasks.uasr
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.svs:
 
 espnet2.tasks.svs

@@ -92,6 +92,17 @@ espnet2.train.__init__
     :show-inheritance:
 
 
+.. _espnet2.train.uasr_trainer:
+
+espnet2.train.uasr_trainer
+--------------------------
+
+.. automodule:: espnet2.train.uasr_trainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.train.class_choices:
 
 espnet2.train.class_choices

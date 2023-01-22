@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.uasr package &mdash; ESPnet 202211 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.lm package" href="espnet2.lm.html" />
+    <link rel="prev" title="espnet2.utils package" href="espnet2.utils.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202211
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.uasr package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-init">espnet2.uasr.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-espnet-model">espnet2.uasr.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-abs-segmenter">espnet2.uasr.segmenter.abs_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-join-segmenter">espnet2.uasr.segmenter.join_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-init">espnet2.uasr.segmenter.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-random-segmenter">espnet2.uasr.segmenter.random_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-abs-generator">espnet2.uasr.generator.abs_generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-conv-generator">espnet2.uasr.generator.conv_generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-init">espnet2.uasr.generator.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-conv-discriminator">espnet2.uasr.discriminator.conv_discriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-init">espnet2.uasr.discriminator.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-abs-discriminator">espnet2.uasr.discriminator.abs_discriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-phoneme-diversity-loss">espnet2.uasr.loss.phoneme_diversity_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-gradient-penalty">espnet2.uasr.loss.gradient_penalty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-abs-loss">espnet2.uasr.loss.abs_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-pseudo-label-loss">espnet2.uasr.loss.pseudo_label_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-discriminator-loss">espnet2.uasr.loss.discriminator_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-init">espnet2.uasr.loss.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-smoothness-penalty">espnet2.uasr.loss.smoothness_penalty</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">espnet2.uasr package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_gen/espnet2.uasr.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="espnet2-uasr-package">
+<h1>espnet2.uasr package<a class="headerlink" href="#espnet2-uasr-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-uasr-init">
+<span id="id1"></span><h2>espnet2.uasr.__init__<a class="headerlink" href="#espnet2-uasr-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.__init__"></span></section>
+<section id="espnet2-uasr-espnet-model">
+<span id="id2"></span><h2>espnet2.uasr.espnet_model<a class="headerlink" href="#espnet2-uasr-espnet-model" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.espnet_model"></span><dl class="class">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.espnet_model.</code><code class="sig-name descname">ESPnetUASRModel</code><span class="sig-paren">(</span><em class="sig-param">frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], segmenter: Optional[espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter], generator: espnet2.uasr.generator.abs_generator.AbsGenerator, discriminator: espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator, losses: Dict[str, espnet2.uasr.loss.abs_loss.AbsUASRLoss], kenlm_path: Optional[str], token_list: Optional[list], max_epoch: Optional[int], vocab_size: int, cfg: Optional[Dict] = None, pad: int = 1, sil_token: str = '&lt;SIL&gt;', sos_token: str = '&lt;s&gt;', eos_token: str = '&lt;/s&gt;', skip_softmax: espnet2.utils.types.str2bool = False, use_gumbel: espnet2.utils.types.str2bool = False, use_hard_gumbel: espnet2.utils.types.str2bool = True, min_temperature: float = 0.1, max_temperature: float = 2.0, decay_temperature: float = 0.99995, use_collected_training_feats: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
+<p>Unsupervised ASR model.</p>
+<p>The source code is from FAIRSEQ:
+<a class="reference external" href="https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised">https://github.com/facebookresearch/fairseq/tree/main/examples/wav2vec/unsupervised</a></p>
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.collect_feats">
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: Optional[torch.Tensor] = None</em>, <em class="sig-param">text_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.encode">
+<code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.encode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: Optional[torch.Tensor] = None</em>, <em class="sig-param">text_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pseudo_labels: Optional[torch.Tensor] = None</em>, <em class="sig-param">pseudo_labels_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">do_validation: Optional[espnet2.utils.types.str2bool] = False</em>, <em class="sig-param">print_hyp: Optional[espnet2.utils.types.str2bool] = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Frontend + Segmenter + Generator + Discriminator + Calc Loss</p>
+<p>Args:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.get_optim_index">
+<code class="sig-name descname">get_optim_index</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.get_optim_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.get_optim_index" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.is_discriminative_step">
+<code class="sig-name descname">is_discriminative_step</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel.is_discriminative_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.is_discriminative_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.espnet_model.ESPnetUASRModel.number_updates">
+<em class="property">property </em><code class="sig-name descname">number_updates</code><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel.number_updates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-segmenter-abs-segmenter">
+<span id="id3"></span><h2>espnet2.uasr.segmenter.abs_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-abs-segmenter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.segmenter.abs_segmenter"></span><p>Segmenter definition for UASR task</p>
+<p>Practially, the output of the generator (in frame-level) may
+predict the same phoneme for consecutive frames, which makes
+it too easy for the discriminator. So, the segmenter here is
+to merge frames with a similar prediction from the generator output.</p>
+<dl class="class">
+<dt id="espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.segmenter.abs_segmenter.</code><code class="sig-name descname">AbsSegmenter</code><a class="reference internal" href="../_modules/espnet2/uasr/segmenter/abs_segmenter.html#AbsSegmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter.logit_segment">
+<em class="property">abstract </em><code class="sig-name descname">logit_segment</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/abs_segmenter.html#AbsSegmenter.logit_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter.logit_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter.pre_segment">
+<em class="property">abstract </em><code class="sig-name descname">pre_segment</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/abs_segmenter.html#AbsSegmenter.pre_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter.pre_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-segmenter-join-segmenter">
+<span id="id4"></span><h2>espnet2.uasr.segmenter.join_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-join-segmenter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.segmenter.join_segmenter"></span><dl class="class">
+<dt id="espnet2.uasr.segmenter.join_segmenter.JoinSegmenter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.segmenter.join_segmenter.</code><code class="sig-name descname">JoinSegmenter</code><span class="sig-paren">(</span><em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">subsample_rate: float = 0.25</em>, <em class="sig-param">mean_pool: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">mean_join_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">remove_zeros: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/segmenter/join_segmenter.html#JoinSegmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter" title="espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.logit_segment">
+<code class="sig-name descname">logit_segment</code><span class="sig-paren">(</span><em class="sig-param">logits: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/join_segmenter.html#JoinSegmenter.logit_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.logit_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.pre_segment">
+<code class="sig-name descname">pre_segment</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/join_segmenter.html#JoinSegmenter.pre_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter.pre_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-segmenter-init">
+<span id="id5"></span><h2>espnet2.uasr.segmenter.__init__<a class="headerlink" href="#espnet2-uasr-segmenter-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.segmenter.__init__"></span></section>
+<section id="espnet2-uasr-segmenter-random-segmenter">
+<span id="id6"></span><h2>espnet2.uasr.segmenter.random_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-random-segmenter" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.segmenter.random_segmenter"></span><dl class="class">
+<dt id="espnet2.uasr.segmenter.random_segmenter.RandomSegmenter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.segmenter.random_segmenter.</code><code class="sig-name descname">RandomSegmenter</code><span class="sig-paren">(</span><em class="sig-param">subsample_rate: float = 0.25</em>, <em class="sig-param">mean_pool: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">mean_join_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">remove_zeros: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/segmenter/random_segmenter.html#RandomSegmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter" title="espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.random_segmenter.RandomSegmenter.logit_segment">
+<code class="sig-name descname">logit_segment</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/random_segmenter.html#RandomSegmenter.logit_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter.logit_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.segmenter.random_segmenter.RandomSegmenter.pre_segment">
+<code class="sig-name descname">pre_segment</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/segmenter/random_segmenter.html#RandomSegmenter.pre_segment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter.pre_segment" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-generator-abs-generator">
+<span id="id7"></span><h2>espnet2.uasr.generator.abs_generator<a class="headerlink" href="#espnet2-uasr-generator-abs-generator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.generator.abs_generator"></span><dl class="class">
+<dt id="espnet2.uasr.generator.abs_generator.AbsGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.abs_generator.</code><code class="sig-name descname">AbsGenerator</code><a class="reference internal" href="../_modules/espnet2/uasr/generator/abs_generator.html#AbsGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.abs_generator.AbsGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.uasr.generator.abs_generator.AbsGenerator.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/uasr/generator/abs_generator.html#AbsGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.abs_generator.AbsGenerator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.generator.abs_generator.AbsGenerator.output_size">
+<em class="property">abstract </em><code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/uasr/generator/abs_generator.html#AbsGenerator.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.abs_generator.AbsGenerator.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-generator-conv-generator">
+<span id="id8"></span><h2>espnet2.uasr.generator.conv_generator<a class="headerlink" href="#espnet2-uasr-generator-conv-generator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.generator.conv_generator"></span><dl class="class">
+<dt id="espnet2.uasr.generator.conv_generator.ConvGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.conv_generator.</code><code class="sig-name descname">ConvGenerator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">output_dim: int</em>, <em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">conv_kernel: int = 3</em>, <em class="sig-param">conv_dilation: int = 1</em>, <em class="sig-param">conv_stride: int = 9</em>, <em class="sig-param">pad: int = -1</em>, <em class="sig-param">bias: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">batch_norm: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">batch_norm_weight: float = 30.0</em>, <em class="sig-param">residual: espnet2.utils.types.str2bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#ConvGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.ConvGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.generator.abs_generator.AbsGenerator" title="espnet2.uasr.generator.abs_generator.AbsGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.generator.abs_generator.AbsGenerator</span></code></a></p>
+<p>convolutional generator for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.generator.conv_generator.ConvGenerator.bn_padded_data">
+<code class="sig-name descname">bn_padded_data</code><span class="sig-paren">(</span><em class="sig-param">feature: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#ConvGenerator.bn_padded_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.ConvGenerator.bn_padded_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.generator.conv_generator.ConvGenerator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">feats: torch.Tensor, text: Optional[torch.Tensor], feats_padding_mask: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#ConvGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.ConvGenerator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.generator.conv_generator.ConvGenerator.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#ConvGenerator.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.ConvGenerator.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.uasr.generator.conv_generator.SamePad">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.conv_generator.</code><code class="sig-name descname">SamePad</code><span class="sig-paren">(</span><em class="sig-param">kernel_size</em>, <em class="sig-param">causal=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#SamePad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.SamePad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.uasr.generator.conv_generator.SamePad.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#SamePad.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.SamePad.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.uasr.generator.conv_generator.TransposeLast">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.conv_generator.</code><code class="sig-name descname">TransposeLast</code><span class="sig-paren">(</span><em class="sig-param">deconstruct_idx=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#TransposeLast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.TransposeLast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.uasr.generator.conv_generator.TransposeLast.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#TransposeLast.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.TransposeLast.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-generator-init">
+<span id="id9"></span><h2>espnet2.uasr.generator.__init__<a class="headerlink" href="#espnet2-uasr-generator-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.generator.__init__"></span></section>
+<section id="espnet2-uasr-discriminator-conv-discriminator">
+<span id="id10"></span><h2>espnet2.uasr.discriminator.conv_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-conv-discriminator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.discriminator.conv_discriminator"></span><dl class="class">
+<dt id="espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.discriminator.conv_discriminator.</code><code class="sig-name descname">ConvDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">conv_channels: int = 384</em>, <em class="sig-param">conv_kernel: int = 8</em>, <em class="sig-param">conv_dilation: int = 1</em>, <em class="sig-param">conv_depth: int = 2</em>, <em class="sig-param">linear_emb: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">causal: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">max_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">act_after_linear: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">spectral_norm: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">weight_norm: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/conv_discriminator.html#ConvDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator" title="espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator</span></code></a></p>
+<p>convolutional discriminator for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor, padding_mask: Optional[torch.Tensor]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/conv_discriminator.html#ConvDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.uasr.discriminator.conv_discriminator.SamePad">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.discriminator.conv_discriminator.</code><code class="sig-name descname">SamePad</code><span class="sig-paren">(</span><em class="sig-param">kernel_size</em>, <em class="sig-param">causal=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/conv_discriminator.html#SamePad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.conv_discriminator.SamePad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.uasr.discriminator.conv_discriminator.SamePad.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/conv_discriminator.html#SamePad.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.conv_discriminator.SamePad.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-discriminator-init">
+<span id="id11"></span><h2>espnet2.uasr.discriminator.__init__<a class="headerlink" href="#espnet2-uasr-discriminator-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.discriminator.__init__"></span></section>
+<section id="espnet2-uasr-discriminator-abs-discriminator">
+<span id="id12"></span><h2>espnet2.uasr.discriminator.abs_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-abs-discriminator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.discriminator.abs_discriminator"></span><dl class="class">
+<dt id="espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.discriminator.abs_discriminator.</code><code class="sig-name descname">AbsDiscriminator</code><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/abs_discriminator.html#AbsDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/discriminator/abs_discriminator.html#AbsDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-phoneme-diversity-loss">
+<span id="id13"></span><h2>espnet2.uasr.loss.phoneme_diversity_loss<a class="headerlink" href="#espnet2-uasr-loss-phoneme-diversity-loss" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.phoneme_diversity_loss"></span><dl class="class">
+<dt id="espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.phoneme_diversity_loss.</code><code class="sig-name descname">UASRPhonemeDiversityLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/phoneme_diversity_loss.html#UASRPhonemeDiversityLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="espnet2.uasr.loss.abs_loss.AbsUASRLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.loss.abs_loss.AbsUASRLoss</span></code></a></p>
+<p>phoneme diversity loss for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_x: torch.Tensor</em>, <em class="sig-param">sample_size: int</em>, <em class="sig-param">is_discriminative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/phoneme_diversity_loss.html#UASRPhonemeDiversityLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dense_x</strong> – predicted logits of generated samples</p></li>
+<li><p><strong>sample_size</strong> – batch size</p></li>
+<li><p><strong>is_dicriminative_step</strong> – whether is training discriminator</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-gradient-penalty">
+<span id="id14"></span><h2>espnet2.uasr.loss.gradient_penalty<a class="headerlink" href="#espnet2-uasr-loss-gradient-penalty" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.gradient_penalty"></span><dl class="class">
+<dt id="espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.gradient_penalty.</code><code class="sig-name descname">UASRGradientPenalty</code><span class="sig-paren">(</span><em class="sig-param">discriminator: espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator</em>, <em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">probabilistic_grad_penalty_slicing: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">reduction: str = 'sum'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/gradient_penalty.html#UASRGradientPenalty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="espnet2.uasr.loss.abs_loss.AbsUASRLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.loss.abs_loss.AbsUASRLoss</span></code></a></p>
+<p>gradient penalty for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">fake_sample: torch.Tensor</em>, <em class="sig-param">real_sample: torch.Tensor</em>, <em class="sig-param">is_training: espnet2.utils.types.str2bool</em>, <em class="sig-param">is_discrimininative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/gradient_penalty.html#UASRGradientPenalty.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fake_sample</strong> – generated sample from generator</p></li>
+<li><p><strong>real_sample</strong> – real sample</p></li>
+<li><p><strong>is_training</strong> – whether is at training step</p></li>
+<li><p><strong>is_discriminative_step</strong> – whether is training discriminator</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-abs-loss">
+<span id="id15"></span><h2>espnet2.uasr.loss.abs_loss<a class="headerlink" href="#espnet2-uasr-loss-abs-loss" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.abs_loss"></span><dl class="class">
+<dt id="espnet2.uasr.loss.abs_loss.AbsUASRLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.abs_loss.</code><code class="sig-name descname">AbsUASRLoss</code><a class="reference internal" href="../_modules/espnet2/uasr/loss/abs_loss.html#AbsUASRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for all Diarization loss modules.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.abs_loss.AbsUASRLoss.forward">
+<em class="property">abstract </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/uasr/loss/abs_loss.html#AbsUASRLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.uasr.loss.abs_loss.AbsUASRLoss.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-pseudo-label-loss">
+<span id="id16"></span><h2>espnet2.uasr.loss.pseudo_label_loss<a class="headerlink" href="#espnet2-uasr-loss-pseudo-label-loss" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.pseudo_label_loss"></span><dl class="class">
+<dt id="espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.pseudo_label_loss.</code><code class="sig-name descname">UASRPseudoLabelLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">input_dim: int = 128</em>, <em class="sig-param">output_dim: int = 64</em>, <em class="sig-param">downsample_rate: int = 2</em>, <em class="sig-param">ignore_index: int = -1</em>, <em class="sig-param">reduction: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/pseudo_label_loss.html#UASRPseudoLabelLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="espnet2.uasr.loss.abs_loss.AbsUASRLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.loss.abs_loss.AbsUASRLoss</span></code></a></p>
+<p>auxiliary pseudo label loss for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">inter_x: torch.Tensor</em>, <em class="sig-param">pseudo_labels: torch.Tensor</em>, <em class="sig-param">is_discriminative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/pseudo_label_loss.html#UASRPseudoLabelLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<p>Args:</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-discriminator-loss">
+<span id="id17"></span><h2>espnet2.uasr.loss.discriminator_loss<a class="headerlink" href="#espnet2-uasr-loss-discriminator-loss" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.discriminator_loss"></span><dl class="class">
+<dt id="espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.discriminator_loss.</code><code class="sig-name descname">UASRDiscriminatorLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">smoothing: float = 0.0</em>, <em class="sig-param">smoothing_one_side: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">reduction: str = 'sum'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/discriminator_loss.html#UASRDiscriminatorLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="espnet2.uasr.loss.abs_loss.AbsUASRLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.loss.abs_loss.AbsUASRLoss</span></code></a></p>
+<p>discriminator loss for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_y: torch.Tensor</em>, <em class="sig-param">token_y: torch.Tensor</em>, <em class="sig-param">is_discriminative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/discriminator_loss.html#UASRDiscriminatorLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dense_y</strong> – predicted logits of generated samples</p></li>
+<li><p><strong>token_y</strong> – predicted logits of real samples</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-uasr-loss-init">
+<span id="id18"></span><h2>espnet2.uasr.loss.__init__<a class="headerlink" href="#espnet2-uasr-loss-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.__init__"></span></section>
+<section id="espnet2-uasr-loss-smoothness-penalty">
+<span id="id19"></span><h2>espnet2.uasr.loss.smoothness_penalty<a class="headerlink" href="#espnet2-uasr-loss-smoothness-penalty" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.uasr.loss.smoothness_penalty"></span><dl class="class">
+<dt id="espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.smoothness_penalty.</code><code class="sig-name descname">UASRSmoothnessPenalty</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">reduction: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/smoothness_penalty.html#UASRSmoothnessPenalty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="espnet2.uasr.loss.abs_loss.AbsUASRLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.uasr.loss.abs_loss.AbsUASRLoss</span></code></a></p>
+<p>smoothness penalty for UASR.</p>
+<dl class="method">
+<dt id="espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_logits: torch.Tensor</em>, <em class="sig-param">dense_padding_mask: torch.Tensor</em>, <em class="sig-param">sample_size: int</em>, <em class="sig-param">is_discriminative_step: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/smoothness_penalty.html#UASRSmoothnessPenalty.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dense_logits</strong> – output logits of generator</p></li>
+<li><p><strong>dense_padding_mask</strong> – padding mask of logits</p></li>
+<li><p><strong>sample_size</strong> – batch size</p></li>
+<li><p><strong>is_discriminative_step</strong> – Whether is training discriminator</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2.utils.html" class="btn btn-neutral float-left" title="espnet2.utils package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2.lm.html" class="btn btn-neutral float-right" title="espnet2.lm package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
