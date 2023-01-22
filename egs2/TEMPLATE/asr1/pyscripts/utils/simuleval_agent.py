@@ -96,6 +96,7 @@ class DummyAgent(SpeechToTextAgent):
                 minlenratio=kwargs['minlenratio'],
                 dtype=kwargs['dtype'],
                 beam_size=kwargs['beam_size'],
+                ctc_weight=kwargs['ctc_weight'],
                 lm_weight=kwargs['lm_weight'],
                 penalty=kwargs['penalty'],
                 nbest=kwargs['nbest'],
@@ -106,9 +107,8 @@ class DummyAgent(SpeechToTextAgent):
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
         
         self.sim_chunk_length = kwargs['sim_chunk_length']
-        self.processed_index = -1
-        self.maxlen = 0
         self.backend = kwargs['backend']
+        self.clean()
 
     @staticmethod
     def add_args(parser):
@@ -343,8 +343,12 @@ class DummyAgent(SpeechToTextAgent):
 
         return parser
 
+    def clean(self):
+        self.processed_index = -1
+        self.maxlen = 0
+
     def policy(self):
-        
+
         # dummy offline policy
         if self.backend == 'offline':
             if self.states.source_finished:
@@ -378,6 +382,8 @@ class DummyAgent(SpeechToTextAgent):
                 unwritten_length = len(prediction) - len("".join(self.states.target))
                 # if unwritten_length > 0:
                 print(self.processed_index, prediction[-unwritten_length:])
+                if self.states.source_finished:
+                    self.clean()
                 return WriteAction(prediction[-unwritten_length:], finished=self.states.source_finished)
 
             return ReadAction()
