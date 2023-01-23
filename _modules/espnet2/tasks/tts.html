@@ -203,6 +203,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.linear_spectrogram</span> <span class="kn">import</span> <span class="n">LinearSpectrogram</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.log_mel_fbank</span> <span class="kn">import</span> <span class="n">LogMelFbank</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.log_spectrogram</span> <span class="kn">import</span> <span class="n">LogSpectrogram</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.prodiff</span> <span class="kn">import</span> <span class="n">ProDiff</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.transformer</span> <span class="kn">import</span> <span class="n">Transformer</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.utils</span> <span class="kn">import</span> <span class="n">ParallelWaveGANPretrainedVocoder</span>
@@ -263,6 +264,7 @@
         <span class="n">transformer</span><span class="o">=</span><span class="n">Transformer</span><span class="p">,</span>
         <span class="n">fastspeech</span><span class="o">=</span><span class="n">FastSpeech</span><span class="p">,</span>
         <span class="n">fastspeech2</span><span class="o">=</span><span class="n">FastSpeech2</span><span class="p">,</span>
+        <span class="n">prodiff</span><span class="o">=</span><span class="n">ProDiff</span><span class="p">,</span>
         <span class="c1"># NOTE(kan-bayashi): available only for inference</span>
         <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
         <span class="n">joint_text2wav</span><span class="o">=</span><span class="n">JointText2Wav</span><span class="p">,</span>

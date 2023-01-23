@@ -136,6 +136,50 @@ espnet2.tts.tacotron2.tacotron2
     :show-inheritance:
 
 
+.. _espnet2.tts.prodiff.loss:
+
+espnet2.tts.prodiff.loss
+------------------------
+
+.. automodule:: espnet2.tts.prodiff.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.prodiff.prodiff:
+
+espnet2.tts.prodiff.prodiff
+---------------------------
+
+.. automodule:: espnet2.tts.prodiff.prodiff
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.prodiff.__init__:
+
+espnet2.tts.prodiff.__init__
+----------------------------
+
+.. automodule:: espnet2.tts.prodiff.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.prodiff.denoiser:
+
+espnet2.tts.prodiff.denoiser
+----------------------------
+
+.. automodule:: espnet2.tts.prodiff.denoiser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.fastspeech2.loss:
 
 espnet2.tts.fastspeech2.loss
