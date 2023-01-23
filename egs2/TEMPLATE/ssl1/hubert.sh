@@ -359,7 +359,7 @@ if ! "${skip_train}"; then
                 _opts+="--hubert_dir_path ${pretrained_ssl_exp}/${inference_ssl_model} "
             fi
 
-            ./local/perform_kmeans.sh \
+            ./pyscripts/feats/perform_kmeans.sh \
                 --stage 1 \
                 --stop_stage 5 \
                 --train_set "${train_set}" \

@@ -24,20 +24,25 @@ phn_sets="dev-other dev-clean"
 use_gpu=false
 
 nclusters=100
-feature_type=mfcc
+feature_type=mfcc # mfcc, hubert, s3prl
+clustering_method=sklearn # sklearn, cuml, faiss
 layer=
 
-# Extract intermediate Hubert embedding from official hubert model:
+# Extract intermediate embedding from official hubert model:
 hubert_type="espnet"  # fairseq or espnet
 hubert_url="https://dl.fbaipublicfiles.com/hubert/hubert_base_ls960.pt"
 hubert_dir_path="./downloads/hubert_pretrained_models/hubert_base_ls960.pt"
 
-# Extract intermediate Hubert embedding from espnet-trained model:
+# Extract intermediate embedding from espnet-trained model:
 # hubert_url="espnet"
 # hubert_dir_path="" # Pretrained Hubert model dir contains 'valid.acc.best.pth' and 'config.yaml'
 
+# Extract intermediate embedding from s3prl models
+s3prl_upstream_name=hubert_large_ll60k
+
 portion=0.1
 nj=16
+scp_prefix=          # add "tgt_" for s2st task
 python=python3       # Specify python to execute espnet commands.
 
 log "$0 $*"
@@ -55,7 +60,7 @@ fi
 
 km_tag=$(basename ${km_dir})
 
-if [ "${feature_type}" = "hubert" ]; then
+if [ "${feature_type}" = "hubert" || "${feature_type}" = "s3prl" ]; then
     suffix="layer${layer}/"
 else
     suffix=""
@@ -64,7 +69,7 @@ fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 1: Dump ${feature_type} feature"
+    log "Kmeans stage 1: Dump ${feature_type} feature"
 
     if ${use_gpu}; then
         _cmd="${cuda_cmd}"
@@ -75,42 +80,43 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 
     for dset in "${train_set}" "${dev_set}"; do
-        echo "${dset}"
+        echo "dump ${feature_type} features at ${dset}"
 
         # 1. Split the key file
         output_dir="${feat_dir}/${feature_type}/${suffix}${dset}/data"
         mkdir -p "${output_dir}"
         _logdir="${feat_dir}/${feature_type}/${suffix}${dset}/logdir"
         mkdir -p "${_logdir}"
-        nutt=$(<"${datadir}/${dset}"/wav.scp wc -l)
+        nutt=$(<"${datadir}/${dset}"/${scp_prefix}wav.scp wc -l)
         _nj=$((nj<nutt?nj:nutt))
 
-        key_file="${datadir}/${dset}"/wav.scp
+        key_file="${datadir}/${dset}"/${scp_prefix}wav.scp
         split_scps=""
         for n in $(seq ${_nj}); do
-            split_scps+=" ${_logdir}/wav.${n}.scp"
+            split_scps+=" ${_logdir}/${scp_prefix}wav.${n}.scp"
         done
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # shellcheck disableSC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/dump_feats.JOB.log \
-            ${python} local/dump_mfcc_or_hubert_features.py \
+            ${python} pyscripts/feats/dump_feats.py \
                 --in_filetype "sound" \
                 --out_filetype "mat" \
                 --feature_type "${feature_type}" \
                 --hubert_type "${hubert_type}" \
                 --hubert-model-url "${hubert_url}" \
                 --hubert-model-path "${hubert_dir_path}" \
+                --s3prl-upstream-name "${s3prl_upstream_name}" \
                 --layer "${layer}" \
                 --write_num_frames "ark,t:${_logdir}/utt2num_frames.JOB" \
-                "scp:${_logdir}/wav.JOB.scp" \
-                "ark,scp:${output_dir}/feats.JOB.ark,${output_dir}/feats.JOB.scp" || exit 1;
+                "scp:${_logdir}/${scp_prefix}wav.JOB.scp" \
+                "ark,scp:${output_dir}/${scp_prefix}feats.JOB.ark,${output_dir}/${scp_prefix}feats.JOB.scp" || exit 1;
 
         # concatenate scp files
         for n in $(seq ${_nj}); do
-            cat ${output_dir}/feats.${n}.scp || exit 1;
-        done > ${output_dir}/../feats.scp || exit 1
+            cat ${output_dir}/${scp_prefix}feats.${n}.scp || exit 1;
+        done > ${output_dir}/../${scp_prefix}feats.scp || exit 1
 
         for n in $(seq ${_nj}); do
             cat ${_logdir}/utt2num_frames.$n || exit 1;
@@ -122,31 +128,51 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Learn K-means with ${feature_type} feature based on scikit-learn"
+    log "KMeans stage 2: Learn K-means with ${feature_type} feature based on scikit-learn/cuml/faiss"
 
     _logdir="${km_dir}/logdir"
     mkdir -p ${_logdir}
 
     # select portion of data
-    nutt=$(<"${feat_dir}/${feature_type}/${suffix}${train_set}"/feats.scp wc -l)
+    nutt=$(<"${feat_dir}/${feature_type}/${suffix}${train_set}"/${scp_prefix}feats.scp wc -l)
     portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2 + 0.9))}')  # get ceil value
     subset_scp.pl \
-        ${portion_nutt} ${feat_dir}/${feature_type}/${suffix}${train_set}/feats.scp \
+        ${portion_nutt} ${feat_dir}/${feature_type}/${suffix}${train_set}/${scp_prefix}feats.scp \
         > "${km_dir}/train.scp" || exit 1;
     log "Subsampling ${portion_nutt} utterances for Kmeans training."
 
-    ${train_cmd} ${_logdir}/learn_kmeans.log \
-        ${python} local/learn_kmeans.py \
-            --in_filetype mat \
-            --km_path ${km_dir}/km_${nclusters}.mdl \
-            --n_clusters ${nclusters} \
-            --percent -1 \
-            "scp:${km_dir}/train.scp" || exit 1;
+    if [ "${clustering_method}" = "sklearn" ]; then
+        ${train_cmd} ${_logdir}/learn_kmeans.log \
+            ${python} pyscripts/feats/learn_kmeans_sklearn.py \
+                --in_filetype mat \
+                --km_path ${km_dir}/km_${nclusters}.mdl \
+                --n_clusters ${nclusters} \
+                --percent -1 \
+                "scp:${km_dir}/train.scp" || exit 1;
+    elif [ "${clustering_method}" = "faiss" ]; then
+        ${train_cmd} ${_logdir}/learn_kmeans.log \
+            ${python} pyscripts/feats/learn_kmeans_faiss.py \
+                --in_filetype mat \
+                --km_path ${km_dir}/km_${nclusters}.mdl \
+                --n_clusters ${nclusters} \
+                --percent -1 \
+                "scp:${km_dir}/train.scp" || exit 1;
+    elif [ "${clustering_method}" = "cuml" ]; then
+        ${train_cmd} ${_logdir}/learn_kmeans.log \
+            ${python} pyscripts/feats/learn_kmeans_cuml.py \
+                --in_filetype mat \
+                --km_path ${km_dir}/km_${nclusters}.mdl \
+                --n_clusters ${nclusters} \
+                --percent -1 \
+                "scp:${km_dir}/train.scp" || exit 1;
+    else
+        log "Unsupported clustering method: ${clustering_method}" && exit(1)
+    fi
 
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: Generate K-means pseudo-labels"
+    log "KMeans stage 3: Generate K-means pseudo-labels"
 
     for dset in ${train_set} ${dev_set}; do
         echo ${dset}
@@ -156,7 +182,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         _nj=$((nj<nutt?nj:nutt))
 
         ${train_cmd} JOB=1:${_nj} ${label_dir}/logdir/dump_km_label.JOB.log \
-            ${python} local/dump_km_label.py \
+            ${python} pyscripts/feats/dump_km_label.py \
                 --km_path "${km_dir}/km_${nclusters}.mdl" \
                 --in_filetype "mat" \
                 --out_filetype "mat" \
@@ -175,7 +201,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 4: Generate char-based fairseq style dictionary: <token> <count>"
+    log "KMeans stage 4: Generate char-based fairseq style dictionary: <token> <count>"
     # generate dictionaries
     oov="<unk>"         # Out of vocabulary symbol.
     blank="<blank>"     # CTC blank symbol
@@ -197,15 +223,15 @@ fi
 
 if [ -n "${alignment_phoneme_dir}" ]; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        log "Stage 5: Measure qualities of pseudo labels"
+        log "KMeans stage 5: Measure qualities of pseudo labels"
 
-        if [ "${feature_type}" = "hubert" ]; then
+        if [ "${feature_type}" = "hubert" || "${feature_type}" = "s3prl" ]; then
             upsample=2
         else
             upsample=1
         fi
 
-        ${python} local/measure_teacher_quality.py \
+        ${python} pyscripts/feats/measure_teacher_quality.py \
             --lab_dir ${datadir} \
             --lab_name "text.km.${km_tag}" \
             --lab_sets "${dev_set}" \

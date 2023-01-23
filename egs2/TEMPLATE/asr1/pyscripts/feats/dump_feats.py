@@ -14,6 +14,7 @@ from hubert_feature_loader import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
+    S3PRLFeatureReader,
 )
 
 from espnet.utils.cli_readers import file_reader_helper
@@ -30,10 +31,11 @@ logger = logging.getLogger("sklearn_kmeans")
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--feature_type", type=str, default="mfcc", choices=["mfcc", "hubert"]
+        "--feature_type", type=str, default="mfcc", choices=["mfcc", "hubert", "s3prl"]
     )
     parser.add_argument("--hubert-model-url", type=str, default=None)
     parser.add_argument("--hubert-model-path", type=str, default=None)
+    parser.add_argument("--s3prl-upstream-name", type=str, default=None)
     parser.add_argument("--layer", type=int, default=None)
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--max_chunk", type=int, default=1600000)
@@ -120,6 +122,10 @@ def main(args):
             )
         else:
             raise ValueError(f"Unknown hubert type {args.hubert_type}")
+    elif args.feature_type == "s3prl":
+        reader = S3PRLFeatureReader(
+            s3prl_upstream_name=args.s3prl_upstream_name, layer=args.layer, sample_rate=16000, max_chunk=1600000
+        )
     else:
         raise ValueError(f"Unknown feature type {args.feature_type}.")
 

@@ -14,9 +14,15 @@ import sys
 
 import joblib
 import numpy as np
-from sklearn.cluster import MiniBatchKMeans
 
 from espnet.utils.cli_readers import file_reader_helper
+
+try:
+    from cuml.cluster import KMeans
+except ModuleNotFoundError:
+    raise RuntimeError(
+        "cuml not found. please follow guide at tools/installers to install"
+    )
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -24,7 +30,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
-logger = logging.getLogger("learn_kmeans")
+logger = logging.getLogger("learn_kmeans_cuml")
 
 
 def get_parser():
@@ -35,13 +41,11 @@ def get_parser():
     parser.add_argument(
         "--percent", default=-1, type=float, help="sample a subset; -1 for all"
     )
-    parser.add_argument("--init", default="k-means++")
+    parser.add_argument("--init", default="scalable-k-means++")
     parser.add_argument("--max_iter", default=100, type=int)
     parser.add_argument("--batch_size", default=10000, type=int)
     parser.add_argument("--tol", default=0.0, type=float)
-    parser.add_argument("--max_no_improvement", default=100, type=int)
     parser.add_argument("--n_init", default=20, type=int)
-    parser.add_argument("--reassignment_ratio", default=0.0, type=float)
 
     parser.add_argument(
         "--in_filetype",
@@ -66,22 +70,18 @@ def get_km_model(
     max_iter,
     batch_size,
     tol,
-    max_no_improvement,
     n_init,
-    reassignment_ratio,
+    seed,
 ):
-    return MiniBatchKMeans(
+    return KMeans(
         n_clusters=n_clusters,
         init=init,
         max_iter=max_iter,
         batch_size=batch_size,
         verbose=1,
-        compute_labels=False,
         tol=tol,
-        max_no_improvement=max_no_improvement,
-        init_size=None,
         n_init=n_init,
-        reassignment_ratio=reassignment_ratio,
+        random_state=seed,
     )
 
 
@@ -135,8 +135,6 @@ def learn_kmeans(
     batch_size,
     tol,
     n_init,
-    reassignment_ratio,
-    max_no_improvement,
 ):
     np.random.seed(seed)
     feat = load_feature(rspecifier, in_filetype, percent)
@@ -146,9 +144,8 @@ def learn_kmeans(
         max_iter,
         batch_size,
         tol,
-        max_no_improvement,
         n_init,
-        reassignment_ratio,
+        seed,
     )
     km_model.fit(feat)
     joblib.dump(km_model, km_path)

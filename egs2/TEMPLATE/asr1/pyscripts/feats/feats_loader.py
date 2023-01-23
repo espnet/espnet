@@ -7,8 +7,6 @@
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
-"""Extract MFCC & intermediate embedding from the Hubert model for k-means clustering"""
-
 import logging
 
 import numpy as np
@@ -144,4 +142,41 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
             ][
                 0
             ]  # (time, feat_dim)
+        return feat.cpu()
+
+
+class S3PRLFeatureReader(BaseFeatureReader):
+    def __init__(self, s3prl_upstream_name, layer, sample_rate=16000, max_chunk=1600000):
+        sefl.sample_rate = sample_rate
+        
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        try:
+            from s3prl.nn import S3PRLUpstream
+        except ModuleNotFoundError:
+            S3PRLUpstream = None
+            raise RuntimeError(
+                "cannot find s3prl, please install s3prl via tools/installers"
+            )
+        
+        self.model = S3PRLUpstream(s3prl_upstream_name)
+        self.model.eval()
+
+        self.layer = layer
+        self.max_chunk = max_chunk
+        logger.info(f" max_chunk = {self.max_chunk}")
+
+    def get_feats(self, data, ref_len=None):
+        if isinstance(data, str):
+            x = self.load_audio(data, ref_len=ref_len)
+        elif isinstance(data, np.ndarray):
+            x = data
+        else:
+            raise TypeError(f"Unexpected data type of argument 1: {type(data)}.")
+        with torch.inference_mode():
+            x = torch.from_numpy(x).float().to(self.device)
+            x = x.view(-1)
+
+            all_hs, all_hs_lens = self.model(x)
+            feat = all_hs[self.layer]
+
         return feat.cpu()

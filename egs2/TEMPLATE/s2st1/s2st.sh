@@ -52,7 +52,6 @@ use_sid=false           # Whether to use speaker id as the inputs (Need utt2spk 
 feats_extract=fbank     # Type of feature extractor
 use_sid=false           # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false           # Whether to use language id as the inputs (Need utt2lang in data directory).
-use_discrete_unit=false # Whether to use discrete unit （TODO: jiatong)
 
 # X-vector related
 use_xvector=false
@@ -76,6 +75,11 @@ tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
 tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
 tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
 tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
+
+# Discrette unit-related
+use_discrete_unit=false         # Whether to use discrete unit
+feature_clustering_tool="faiss" # Tool for feature clustering (faiss or cuml)
+feature_num_clusters=500        # Number of feature clusters
 
 # S2ST model related
 s2st_tag=        # Suffix to the result dir for s2st model training.
@@ -161,7 +165,6 @@ Options:
     --feats_extract    # Type of feature extractor (default="${feats_extract}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
-    --use_discrete_unit # Whether to use discrete unit （TODO: jiatong) (default="${use_discrete_unit}").
 
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
@@ -181,6 +184,12 @@ Options:
     --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
     --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
     --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
+
+    # Discrete unit related
+    --use_discrete_unit # Whether to use discrete unit(default="${use_discrete_unit}").
+    --feature_clustering_tool # Tool to do feature clustering (default="${feature_clustering_tool}")
+    --feature_num_clusters   # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
+
 
     # S2ST model related
     --s2st_tag           # Suffix to the result dir for s2st model training (default="${s2st_tag}").
@@ -796,6 +805,15 @@ if ! "${skip_data_prep}"; then
             fi
         fi
     fi
+
+    if ${use_discrete_unit}
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        _s2st_train_dir="${data_feats}/${train_set}"
+        _s2st_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 5: S2ST discrete unit extraction: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+
+        
+    fi
 else
     log "Skip the stages for data preparation"
 fi
@@ -805,10 +823,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _s2st_train_dir="${data_feats}/${train_set}"
         _s2st_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: S2ST collect stats: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+        log "Stage 6: S2ST collect stats: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
 
         _opts=
         if [ -n "${s2st_config}" ]; then
@@ -931,10 +949,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _s2st_train_dir="${data_feats}/${train_set}"
         _s2st_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: S2ST Training: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+        log "Stage 7: S2ST Training: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
 
         _opts=
         if [ -n "${s2st_config}" ]; then
@@ -1270,14 +1288,12 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-        log "Stage 13: Scoring"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Scoring"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${s2st_exp}/${inference_tag}/${dset}"
-
-            # TODO(jiatong): add asr scoring and inference
 
             _scoredir="${_dir}/score_bleu"
             mkdir -p "${_scoredir}"
@@ -1375,8 +1391,8 @@ fi
 
 packed_model="${s2st_exp}/${s2st_exp##*/}_${inference_s2st_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-        log "Stage 14: Pack model: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack model: ${packed_model}"
 
         _opts=
         if [ "${feats_normalize}" = global_mvn ]; then
@@ -1401,8 +1417,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
-        log "Stage 15: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1460,11 +1476,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
