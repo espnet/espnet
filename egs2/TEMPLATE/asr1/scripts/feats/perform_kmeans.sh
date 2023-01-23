@@ -17,6 +17,7 @@ train_set=
 dev_set=
 datadir=dump/raw
 feat_dir=dump/hubert_feats
+km_tag=
 km_dir=
 dictdir=
 alignment_phoneme_dir=
@@ -57,8 +58,9 @@ if [ $# -ne 0 ]; then
     exit 0
 fi
 
-
-km_tag=$(basename ${km_dir})
+if [ -z "${km_tag}" ]; then
+    km_tag=$(basename ${km_dir})
+fi
 
 if [ "${feature_type}" = "hubert" || "${feature_type}" = "s3prl" ]; then
     suffix="layer${layer}/"
@@ -175,7 +177,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "KMeans stage 3: Generate K-means pseudo-labels"
 
     for dset in ${train_set} ${dev_set}; do
-        echo ${dset}
         label_dir="${feat_dir}/${feature_type}/${suffix}${dset}/pseudo_labels"
 
         nutt=$(<"${feat_dir}/${feature_type}/${suffix}${dset}/"feats.scp wc -l)

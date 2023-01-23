@@ -78,8 +78,14 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 
 # Discrette unit-related
 use_discrete_unit=false         # Whether to use discrete unit
-feature_clustering_tool="faiss" # Tool for feature clustering (faiss or cuml)
+feature_dir="dump/feats"        # Feature directory for dumped feature
+km_tag=                         # KMeans tagging
+use_gpu_for_extraction=true     # Whether to use gpu for feature extraction
+feature_layer=6                # Layers for feature extraction
+s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
+feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
 feature_num_clusters=500        # Number of feature clusters
+
 
 # S2ST model related
 s2st_tag=        # Suffix to the result dir for s2st model training.
@@ -357,6 +363,11 @@ else
     exit 2
 fi
 
+# Set tag for KMeans direcotry
+if [ -z "${km_tag}" ]; then
+    km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
+    km_dir="dump/${km_tag}"
+fi
 
 # Set tag for naming of model directory
 if [ -z "${s2st_tag}" ]; then
@@ -806,13 +817,35 @@ if ! "${skip_data_prep}"; then
         fi
     fi
 
-    if ${use_discrete_unit}
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        _s2st_train_dir="${data_feats}/${train_set}"
-        _s2st_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: S2ST discrete unit extraction: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+    if "${use_discrete_unit}"; then
+        if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+            log "Stage 5: S2ST discrete unit extraction"
 
-        
+            scripts/feats/perform_kmeans.sh \
+                --stage 1 \
+                --stop_stage 3 \
+                --nj ${nj} \
+                --scp_prefix "tgt_" \
+                --feature_type "s3prl" \
+                --train_set "${train_set}" \
+                --dev_set "${valid_set}" \
+                --datadir "${data_feats}" \
+                --feat_dir "${feature_dir}" \
+                --km_dir "${km_dir}" \
+                --km_tag "${km_tag}" \
+                --s3prl_upstream_name "${s3prl_upstream_name}" \
+                --use_gpu "${use_gpu_for_extraction}" \
+                --feature_layer "${feature_layer}" \
+                --portion "${clustering_portion}" \
+                --clustering_method "${feature_clustering_tool}" \
+                --nclusters "${feature_num_clusters}"
+            
+            log "Saving pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
+
+            pyscripts/text/
+        fi
+    else
+        log "Skip discrete unit extraction for data preparation"
     fi
 else
     log "Skip the stages for data preparation"
