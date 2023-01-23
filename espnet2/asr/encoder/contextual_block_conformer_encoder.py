@@ -501,7 +501,8 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
-            return xs_pad, None, None
+            return xs_pad, xs_pad.new_zeros(bsize), None
+            # return xs_pad, None, None
 
         # start block processing
         xs_chunk = xs_pad.new_zeros(
@@ -587,4 +588,5 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                 "past_encoder_ctx": past_encoder_ctx,
             }
 
-        return ys_pad, None, next_states
+        return ys_pad, torch.tensor([y_length], dtype=xs_pad.dtype, device=ys_pad.device), next_states
+        # return ys_pad, None, next_states

@@ -35,6 +35,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         disable_repetition_detection=False,
         encoded_feat_length_limit=0,
         decoder_text_length_limit=0,
+        incremental_decode=False,
         **kwargs,
     ):
         """Initialize beam search."""
@@ -45,6 +46,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.disable_repetition_detection = disable_repetition_detection
         self.encoded_feat_length_limit = encoded_feat_length_limit
         self.decoder_text_length_limit = decoder_text_length_limit
+        self.incremental_decode = incremental_decode
 
         self.reset()
 
@@ -164,6 +166,14 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
             logging.debug("Finished processing block: %d", self.processed_block)
             self.processed_block += 1
+            
+            # prune running_hyps, taking top as an incremental decoding
+            if self.incremental_decode:
+                logging.debug("Hyps befor  e incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                if self.running_hyps.yseq.shape[0] > 0:
+                    self.running_hyps = self._batch_select(self.running_hyps, [0])
+                logging.debug("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
+
             if block_is_final:
                 return ret
         if ret is None:

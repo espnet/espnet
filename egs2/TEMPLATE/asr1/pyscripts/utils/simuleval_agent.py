@@ -103,6 +103,7 @@ class DummyAgent(SpeechToTextAgent):
                 disable_repetition_detection=kwargs['disable_repetition_detection'],
                 decoder_text_length_limit=kwargs['decoder_text_length_limit'],
                 encoded_feat_length_limit=kwargs['encoded_feat_length_limit'],
+                incremental_decode=kwargs['incremental_decode'],
             )
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
         
@@ -339,6 +340,11 @@ class DummyAgent(SpeechToTextAgent):
             type=str,
             default="offline",
             help="Limit the lengths of the text" "to input to the decoder.",
+        )
+        group.add_argument(
+            "--incremental_decode",
+            type=str2bool,
+            default=False,
         )
 
         return parser
