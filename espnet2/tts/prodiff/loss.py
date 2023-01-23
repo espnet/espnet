@@ -38,7 +38,7 @@ def gaussian(window_size: int, sigma: float) -> torch.Tensor:
 
 class SSimLoss(torch.nn.Module):
     """SSimLoss.
-    
+
     This is an implementation of structural similarity (SSIM) loss.
     This code is modified from https://github.com/Po-Hsun-Su/pytorch-ssim.
 

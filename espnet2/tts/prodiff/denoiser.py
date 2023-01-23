@@ -78,7 +78,7 @@ class Mish(nn.Module):
     """Mish Activation Function.
 
     Introduced in `Mish: A Self Regularized Non-Monotonic Activation Function`_.
-    
+
     .. _Mish: A Self Regularized Non-Monotonic Activation Function:
        https://arxiv.org/abs/1908.08681
 
