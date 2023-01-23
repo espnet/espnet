@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
 def _vpsde_beta_t(t: int, T: int, min_beta: float, max_beta: float) -> float:
-    """Beta Scheduler
+    """Beta Scheduler.
 
     Args:
         t (int): current step.
@@ -24,6 +24,7 @@ def _vpsde_beta_t(t: int, T: int, min_beta: float, max_beta: float) -> float:
 
     Returns:
         float: current beta.
+
     """
     t_coef = (2 * t - 1) / (T**2)
     return 1.0 - np.exp(-min_beta / T - 0.5 * (max_beta - min_beta) * t_coef)
@@ -47,6 +48,7 @@ def noise_scheduler(
 
     Returns:
         tensor: Noise.
+
     """
     if sched_type == "linear":
         scheduler = np.linspace(1e-6, 0.01, timesteps)
@@ -75,7 +77,11 @@ def noise_scheduler(
 class Mish(nn.Module):
     """Mish Activation Function.
 
-    Ref: https://arxiv.org/abs/1908.08681.
+    Introduced in `Mish: A Self Regularized Non-Monotonic Activation Function`_.
+    
+    .. _Mish: A Self Regularized Non-Monotonic Activation Function:
+       https://arxiv.org/abs/1908.08681
+
     """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -85,7 +91,8 @@ class Mish(nn.Module):
             x (torch.Tensor): Input tensor.
 
         Returns:
-            torch.Tensor: Output tensor.s
+            torch.Tensor: Output tensor.
+
         """
         return x * torch.tanh(F.softplus(x))
 
@@ -99,12 +106,13 @@ class ResidualBlock(nn.Module):
         channels: int,
         dilation: int,
     ) -> None:
-        """Initialization
+        """Initialization.
 
         Args:
-            adim (int): size of dimensions.
+            adim (int): Size of dimensions.
             channels (int): Number of channels.
-            dilation (int): size of dilations.
+            dilation (int): Size of dilations.
+
         """
         super().__init__()
         self.conv = nn.Conv1d(
@@ -126,6 +134,7 @@ class ResidualBlock(nn.Module):
 
         Returns:
             Union[torch.Tensor, torch.Tensor]: Output tensor.
+
         """
         step = self.diff_proj(step).unsqueeze(-1)
         condition = self.cond_proj(condition)
@@ -172,6 +181,7 @@ class SpectogramDenoiser(nn.Module):
                 Defaults to 40.
             scheduler (str, optional): Type of noise scheduler. Defaults to "vpsde".
             dropout_rate (float, optional): Dropout rate. Defaults to 0.05.
+
         """
         super().__init__()
         self.idim = idim
@@ -222,6 +232,7 @@ class SpectogramDenoiser(nn.Module):
 
         Returns:
             torch.Tensor: Output tensor (#batch, time, dims).
+
         """
         if is_inference:
             return self.inference(xs)
@@ -252,6 +263,7 @@ class SpectogramDenoiser(nn.Module):
 
         Returns:
             torch.Tensor: Denoised tensor.
+
         """
         xs_noisy = xs_noisy.squeeze(1)
         condition = condition.transpose(1, 2)
@@ -288,6 +300,7 @@ class SpectogramDenoiser(nn.Module):
 
         Returns:
             torch.Tensor: Output tensor.
+
         """
         # here goes norm_spec if does something
         batch_size = xs_ref.shape[0]
@@ -313,6 +326,7 @@ class SpectogramDenoiser(nn.Module):
 
         Returns:
             torch.Tensor: Output tensor.
+
         """
         batch = condition.shape[0]
         device = condition.device

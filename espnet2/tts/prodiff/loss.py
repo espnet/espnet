@@ -24,7 +24,8 @@ def gaussian(window_size: int, sigma: float) -> torch.Tensor:
         sigma (float): Noise sigma.
 
     Returns:
-        torch.Tensor: noise.
+        torch.Tensor: Noise.
+
     """
     gauss = torch.Tensor(
         [
@@ -37,8 +38,10 @@ def gaussian(window_size: int, sigma: float) -> torch.Tensor:
 
 class SSimLoss(torch.nn.Module):
     """SSimLoss.
+    
+    This is an implementation of structural similarity (SSIM) loss.
+    This code is modified from https://github.com/Po-Hsun-Su/pytorch-ssim.
 
-    Ref: https://github.com/Po-Hsun-Su/pytorch-ssim.
     """
 
     def __init__(
@@ -56,6 +59,7 @@ class SSimLoss(torch.nn.Module):
             channels (int, optional): Number of channels. Defaults to 1.
             reduction (str, optional): Type of reduction during the loss
                 calculation. Defaults to "none".
+
         """
         super().__init__()
         self.bias = bias
@@ -82,6 +86,7 @@ class SSimLoss(torch.nn.Module):
 
         Returns:
             Tensor: Loss scalar value.
+
         """
         with torch.no_grad():
             dim = target.size(-1)
@@ -101,6 +106,7 @@ class SSimLoss(torch.nn.Module):
 
         Returns:
             Tensor: Loss scalar value.
+
         """
         window = self.window.to(tensor1.device)
         mu1 = F.conv2d(tensor1, window, padding=self.win_len // 2, groups=self.channels)
@@ -152,10 +158,7 @@ class SSimLoss(torch.nn.Module):
 
 
 class ProDiffLoss(torch.nn.Module):
-    """Loss function module for ProDiffLoss.
-
-    Includes also SSimLoss from https://github.com/Po-Hsun-Su/pytorch-ssim.
-    """
+    """Loss function module for ProDiffLoss."""
 
     def __init__(
         self,

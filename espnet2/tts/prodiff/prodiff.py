@@ -822,9 +822,6 @@ class ProDiff(AbsTTS):
             init_enc_alpha (float): Value of the initialization for the encoder.
             init_dec_alpha (float): Value of the initialization for the decoder.
 
-        Returns:
-            None
-
         """
         # initialize parameters
         if init_type != "pytorch":
