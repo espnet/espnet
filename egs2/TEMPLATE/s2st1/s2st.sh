@@ -828,7 +828,7 @@ if ! "${skip_data_prep}"; then
             log "Stage 5: S2ST discrete unit extraction"
 
             scripts/feats/perform_kmeans.sh \
-                --stage 1 \
+                --stage 2 \
                 --stop_stage 3 \
                 --nj ${nj} \
                 --scp_suffix ".${tgt_lang}" \
@@ -846,9 +846,16 @@ if ! "${skip_data_prep}"; then
                 --clustering_method "${feature_clustering_tool}" \
                 --nclusters "${feature_num_clusters}"
             
-            log "Saving pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
+            # NOTE(jiatong): use the pseudo label without unique to train the vocoder
+            log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
+            log "Saving dev pseudo_labels at ${data_feats}/${dev_set}/text.km.${km_tag}"
 
-            pyscripts/text/
+            # NOTE(jiatong): use the pseudo label with unique to train s2st
+            for dset in ${train_set} ${dev_set}; do
+                pyscripts/feats/unique_pseudo_labels.py \
+                    --input_label ${data_feats}/${dset}/text.km.${km_tag} \
+                    --output_label ${data_feats}/${dset}/text.km.${km_tag}.unique
+            done
         fi
     else
         log "Skip discrete unit extraction for data preparation"
@@ -876,15 +883,29 @@ if ! "${skip_train}"; then
 
         _feats_type="$(<${_s2st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            _tgt_scp=wav.scp.${tgt_lang}
+            # src related
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
+                _src_type=kaldi_ark
             else
                 # "sound" supports "wav", "flac", etc.
-                _type=sound
+                _src_type=sound
             fi
             _opts+="--frontend_conf fs=${fs} "
+
+            # tgt related
+            if "${use_discrete_unit}"; then
+                _tgt_scp=text.km.${km_tag}.unique
+                _tgt_type=text_int
+            else
+                _tgt_scp=wav.scp.${tgt_lang}
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _tgt_type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _tgt_type=sound
+                fi
+            fi
         else
             log "Error: not supported feature type '${_feats_type}'"
             exit 2
@@ -947,10 +968,10 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --tgt_g2p "${tgt_g2p}" \
                 --src_g2p "${src_g2p}" \
-                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_src_scp},src_speech,${_type}" \
-                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_type}" \
+                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_src_scp},src_speech,${_src_type}" \
+                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_tgt_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1002,23 +1023,32 @@ if ! "${skip_train}"; then
 
         _feats_type="$(<${_s2st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            _tgt_scp=wav.scp.${tgt_lang}
+            # src related
             _src_scp=wav.scp.${src_lang}
-            # "sound" supports "wav", "flac", etc.
             if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
+                _src_type=kaldi_ark
             else
-                _type=sound
+                # "sound" supports "wav", "flac", etc.
+                _src_type=sound
             fi
-            _fold_length="$((s2st_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-            _fold_length="${s2st_speech_fold_length}"
-            _input_size="$(<${_s2st_train_dir}/feats_dim)"
-            _opts+="--input_size=${_input_size} "
 
+            # tgt related
+            if "${use_discrete_unit}"; then
+                _tgt_scp=text.km.${km_tag}.unique
+                _tgt_type=text_int
+            else
+                _tgt_scp=wav.scp.${tgt_lang}
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _tgt_type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _tgt_type=sound
+                fi
+            fi
+        else
+            log "Error: not supported feature type '${_feats_type}'"
+            exit 2
         fi
 
         if "${use_xvector}"; then
@@ -1076,8 +1106,8 @@ if ! "${skip_train}"; then
                 log "${_split_dir}/.done exists. Spliting is skipped"
             fi
 
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_tgt_scp},tgt_speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_src_scp},src_speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_tgt_scp},tgt_speech,${_tgt_type} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_src_scp},src_speech,${_src_type} "
             _opts+="--train_shape_file ${_split_dir}/tgt_speech_shape "
             _opts+="--train_shape_file ${_split_dir}/src_speech_shape "
             _opts+="--multiple_iterator true "
@@ -1090,8 +1120,8 @@ if ! "${skip_train}"; then
                 _opts+="--train_shape_file ${_split_dir}/tgt_text_shape.${tgt_token_type} "
             fi 
         else
-            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_src_scp},src_speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type} "
+            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_src_scp},src_speech,${_src_type} "
             _opts+="--train_shape_file ${s2st_stats_dir}/train/tgt_speech_shape "
             _opts+="--train_shape_file ${s2st_stats_dir}/train/src_speech_shape "
             if [ $use_src_lang = true ]; then
@@ -1147,8 +1177,8 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --tgt_g2p "${tgt_g2p}" \
                 --src_g2p "${src_g2p}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_src_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                 --valid_shape_file "${s2st_stats_dir}/valid/src_speech_shape" \
                 --valid_shape_file "${s2st_stats_dir}/valid/tgt_speech_shape" \
                 --resume true \

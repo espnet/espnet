@@ -168,7 +168,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --percent -1 \
                 "scp:${km_dir}/train.scp" || exit 1;
     else
-        log "Unsupported clustering method: ${clustering_method}" && exit(1)
+        log "Unsupported clustering method: ${clustering_method}" && exit 1
     fi
 
 fi
