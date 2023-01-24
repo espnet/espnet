@@ -195,7 +195,8 @@ config: conf/tuning/train_enh_dptnet.yaml
 
 ## TF-GridNet
 
-config: conf/tuning/train_enh_tfgridnet_tf_lr-patience3_patience5.yaml
+ - config: conf/tuning/train_enh_tfgridnet_tf_lr-patience3_patience5.yaml
+ - Pretrained model: https://zenodo.org/record/7565926#.Y8_6MOyZPPs
 
 |dataset|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|
