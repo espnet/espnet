@@ -1,7 +1,7 @@
 import pytest
-import torch
 from packaging.version import parse as V
 
+import torch
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
@@ -9,7 +9,8 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1, FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainL1,
+                                                   FrequencyDomainMSE)
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
@@ -20,11 +21,11 @@ from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.ineube_separator import iNeuBe
-from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
@@ -366,7 +367,6 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     separator = iNeuBe(
         2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
     )
-
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
         separator=separator,
