@@ -23,6 +23,7 @@ DSING=downloads
 WSJ0=
 WSJ1=
 WSJCAM0=
+REAZONSPEECH=downloads
 REVERB=
 REVERB_OUT="${PWD}/REVERB"  # Output file path
 CHIME3=
