@@ -9,6 +9,8 @@ from typeguard import check_argument_types
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
@@ -118,6 +120,16 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
+        if self.s2st_type == "discrete_unit":
+            assert isinstance(self.encoder, ConformerEncoder) or isinstance(
+                self.encoder, TransformerEncoder
+            ), "only support conformer or transformer-based encoder because the model needs to return all hiddens, which is not supported by other encoders"
+
+        # synthesizer
+        assert (
+            "synthesis" in self.losses
+        ), "must have synthesis loss in the losses for S2ST"
+
     def forward(
         self,
         src_speech: torch.Tensor,
@@ -185,7 +197,12 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
+        if self.s2st_type == "discrete_unit":
+            (encoder_out, inter_encoder_out), encoder_out_lens = self.encode(
+                src_speech, src_speech_lengths, return_all_hiddens=True
+            )
+        else:
+            encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
 
         loss_record = []
 
@@ -236,11 +253,6 @@ class ESPnetS2STModel(AbsESPnetModel):
                 loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
             else:
                 tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn = None, None, None
-
-            # synthesizer
-            assert (
-                "synthesis" in self.losses
-            ), "must have synthesis loss in the losses for S2ST"
 
             # NOTE(jiatong): the tgt_feats is also updated based on the reduction_factor
             (
@@ -357,7 +369,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                     encoder_out_lens,
                     tgt_text,
                     tgt_text_lengths,
-                    return_hidden=True,
+                    return_last_hidden=True,
                 )
                 loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
             else:
@@ -430,9 +442,176 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         elif self.s2st_type == "discrete_unit":
             # discrete unit-based synthesis
+            # Reference: https://arxiv.org/pdf/2107.05604.pdf
 
-            # TODO(jiatong): add calculation
-            pass
+            encoder_layer_for_asr = len(inter_encoder_out) // 2
+            encoder_layer_for_st = len(inter_encoder_out) * 2 // 3
+
+            # asr_ctc
+            if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
+                    inter_encoder_out[encoder_layer_for_asr],
+                    encoder_out_lens,
+                    src_text,
+                    src_text_lengths,
+                    ctc_type="asr",
+                )
+                loss_record.append(asr_ctc_loss * self.losses["asr_ctc"].weight)
+            else:
+                asr_ctc_loss, cer_asr_ctc = None, None
+
+            # asr decoder
+            if self.asr_decoder is not None and "src_attn" in self.losses:
+                (
+                    src_attn_loss,
+                    acc_src_attn,
+                    cer_src_attn,
+                    wer_src_attn,
+                ) = self._calc_asr_att_loss(
+                    encoder_out, encoder_out_lens, src_text, src_text_lengths
+                )
+                loss_record.append(src_attn_loss * self.losses["src_attn"].weight)
+            else:
+                src_attn_loss, acc_src_attn, cer_src_attn, wer_src_attn = (
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+
+            # st decoder
+            if self.st_decoder is not None and "tgt_attn" in self.losses:
+                (tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn,) = self._calc_st_att_loss(
+                    inter_encoder_out[encoder_layer_for_st],
+                    encoder_out_lens,
+                    tgt_text,
+                    tgt_text_lengths,
+                )
+                loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
+            else:
+                tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn, decoder_out = (
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+
+            # synthesizer
+            (
+                unit_attn_loss,
+                acc_unit_attn,
+                syn_hidden,
+                syn_hidden_lengths,
+            ) = self._calc_unit_att_loss(
+                encoder_out,
+                encoder_out_lens,
+                tgt_speech,
+                tgt_speech_lengths,
+            )
+
+            loss_record.append(unit_attn_loss * self.losses["synthesis"].weight)
+
+            unit_decoder_layer_for_st = len(syn_hidden) // 2
+
+            # st_ctc
+            if self.st_ctc is not None and "st_ctc" in self.losses:
+                st_ctc_loss, cer_st_ctc = self._calc_ctc_loss(
+                    syn_hidden[unit_decoder_layer_for_st],
+                    tgt_speech_lengths + 1,
+                    tgt_text,
+                    tgt_text_lengths,
+                    ctc_type="st",
+                )
+                loss_record.append(st_ctc_loss * self.losses["st_ctc"].weight)
+            else:
+                st_ctc_loss, cer_st_ctc = None, None
+
+            loss = sum(loss_record)
+
+            stats = dict(
+                loss=loss.item(),
+                asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
+                cer_asr_ctc=cer_asr_ctc,
+                src_attn_loss=src_attn_loss.item()
+                if src_attn_loss is not None
+                else None,
+                acc_src_attn=acc_src_attn,
+                cer_src_attn=cer_src_attn,
+                wer_src_attn=wer_src_attn,
+                tgt_attn_loss=tgt_attn_loss.item()
+                if tgt_attn_loss is not None
+                else None,
+                acc_tgt_attn=acc_tgt_attn,
+                bleu_tgt_attn=bleu_tgt_attn,
+                st_ctc_loss=st_ctc_loss.item() if st_ctc_loss is not None else None,
+                cer_st_ctc=cer_st_ctc,
+                unit_attn_loss=unit_attn_loss.item()
+                if unit_attn_loss is not None
+                else None,
+                acc_unit_attn=acc_unit_attn.item()
+                if acc_unit_attn is not None
+                else None,
+            )
+
+        elif self.s2st_type == "unity":
+            # unity
+            # Reference: https://arxiv.org/pdf/2212.08055.pdf
+
+            # asr_ctc
+            if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out,
+                    encoder_out_lens,
+                    src_text,
+                    src_text_lengths,
+                    ctc_type="asr",
+                )
+                loss_record.append(asr_ctc_loss * self.losses["asr_ctc"].weight)
+            else:
+                asr_ctc_loss, cer_asr_ctc = None, None
+
+            # st decoder
+            assert (
+                self.st_decoder is not None and "tgt_attn" in self.losses
+            ), "st_decoder is necessary for unity-based model"
+            (
+                tgt_attn_loss,
+                acc_tgt_attn,
+                bleu_tgt_attn,
+                decoder_out,
+                _,
+            ) = self._calc_st_att_loss(
+                encoder_out,
+                encoder_out_lens,
+                tgt_text,
+                tgt_text_lengths,
+                return_last_hidden=True,
+            )
+            loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
+
+            # synthesizer
+            unit_attn_loss, acc_unit_attn = self._calc_unit_att_loss(
+                decoder_out, tgt_text_lengths + 1, tgt_speech, tgt_speech_lengths
+            )
+
+            stats = dict(
+                loss=loss.item(),
+                asr_ctc_loss=asr_ctc_loss.item() if asr_ctc_loss is not None else None,
+                cer_asr_ctc=cer_asr_ctc,
+                tgt_attn_loss=tgt_attn_loss.item()
+                if tgt_attn_loss is not None
+                else None,
+                acc_tgt_attn=acc_tgt_attn,
+                bleu_tgt_attn=bleu_tgt_attn,
+                st_ctc_loss=st_ctc_loss.item() if st_ctc_loss is not None else None,
+                cer_st_ctc=cer_st_ctc,
+                unit_attn_loss=unit_attn_loss.item()
+                if unit_attn_loss is not None
+                else None,
+                acc_unit_attn=acc_unit_attn.item()
+                if acc_unit_attn is not None
+                else None,
+            )
 
         else:
             raise ValueError(
@@ -513,20 +692,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
         elif self.s2st_type == "discrete_unit":
             assert encoder_out.size(0) == 1
-            output_dict = self.synthesizer.inference(
-                encoder_out[0],
-                tgt_feats[0],
-                spembs,
-                sids,
-                lids,
-                threshold,
-                minlenratio,
-                maxlenratio,
-                use_att_constraint,
-                backward_window,
-                forward_window,
-                use_teacher_forcing,
-            )
+            # TODO (use beam search decoder)
         else:
             raise ValueError(
                 "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
@@ -643,25 +809,68 @@ class ESPnetS2STModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def _calc_unit_att_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+        return_last_hidden: bool = False,
+        return_all_hiddens: bool = False,
+    ):
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_lens = ys_pad_lens + 1
+
+        # 1. Forward decoder
+        decoder_outs, decoder_out_lengths, = self.synthesizer(
+            encoder_out,
+            encoder_out_lens,
+            ys_in_pad,
+            ys_in_lens,
+            return_last_hidden=return_last_hidden,
+            return_all_hiddens=return_all_hiddens,
+        )
+
+        if return_last_hidden or return_all_hiddens:
+            (decoder_out, decoder_hidden) = decoder_outs
+
+        # 2. Compute attention loss
+        loss_att = self.losses["tgt_attn"](decoder_out, ys_out_pad)
+        acc_att = th_accuracy(
+            decoder_out.view(-1, self.tgt_vocab_size),
+            ys_out_pad,
+            ignore_label=self.ignore_id,
+        )
+
+        if return_last_hidden:
+            return loss_att, acc_att, decoder_hidden, decoder_out_lengths
+        else:
+            return loss_att, acc_att
+
     def _calc_st_att_loss(
         self,
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
-        return_hidden: bool = False,
+        return_last_hidden: bool = False,
+        return_all_hiddens: bool = False,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, decoder_out_lengths, decoder_hidden = self.st_decoder(
+        decoder_outs, decoder_out_lengths, = self.st_decoder(
             encoder_out,
             encoder_out_lens,
             ys_in_pad,
             ys_in_lens,
-            return_hidden=return_hidden,
+            return_last_hidden=return_last_hidden,
+            return_all_hiddens=return_all_hiddens,
         )
+
+        if return_last_hidden or return_all_hiddens:
+            (decoder_out, decoder_hidden) = decoder_outs
 
         # 2. Compute attention loss
         loss_att = self.losses["tgt_attn"](decoder_out, ys_out_pad)
@@ -678,7 +887,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ys_hat = decoder_out.argmax(dim=-1)
             bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        if return_hidden:
+        if return_last_hidden:
             return loss_att, acc_att, bleu_att, decoder_hidden, decoder_out_lengths
         else:
             return loss_att, acc_att, bleu_att

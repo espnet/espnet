@@ -95,7 +95,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         hlens: torch.Tensor,
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
-        return_hidden: torch.Tensor,
+        return_last_hidden: bool = False,
+        return_all_hiddens: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
@@ -107,8 +108,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
-            return_hidden: (bool) whether to return the last hidden output
+            return_last_hidden: (bool) whether to return the last hidden output
                                   before output layer
+            return_all_hiddens: (bool) whether to return all the hidden intermediates
         Returns:
             (tuple): tuple containing:
 
@@ -136,19 +138,25 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             )
 
         x = self.embed(tgt)
-        x, tgt_mask, memory, memory_mask = self.decoders(
-            x, tgt_mask, memory, memory_mask
-        )
+        intermediate_outs = []
+        for layer_idx, decoder_layer in enumerate(self.decoders):
+            x, tgt_mask, memory, memory_mask = decoder_layer(
+                x, tgt_mask, memory, memory_mask
+            )
+            if return_all_hiddens:
+                intermediate_outs.append(xs_pad)
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
-            if return_hidden:
+            if return_last_hidden:
                 hidden = x
             x = self.output_layer(x)
 
         olens = tgt_mask.sum(1)
-        if return_hidden:
-            return x, olens, hidden
+        if return_last_hidden:
+            return (x, hidden), olens, hidden
+        elif return_all_hiddens:
+            return (x, intermediate_outs), olens
         return x, olens
 
     def forward_one_step(
