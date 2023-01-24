@@ -146,9 +146,11 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
 
 
 class S3PRLFeatureReader(BaseFeatureReader):
-    def __init__(self, s3prl_upstream_name, layer, sample_rate=16000, max_chunk=1600000):
+    def __init__(
+        self, s3prl_upstream_name, layer, sample_rate=16000, max_chunk=1600000
+    ):
         self.sample_rate = sample_rate
-        
+
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         try:
             from s3prl.nn import S3PRLUpstream
@@ -157,7 +159,7 @@ class S3PRLFeatureReader(BaseFeatureReader):
             raise RuntimeError(
                 "cannot find s3prl, please install s3prl via tools/installers"
             )
-        
+
         self.model = S3PRLUpstream(s3prl_upstream_name).to(self.device)
         self.model.eval()
 

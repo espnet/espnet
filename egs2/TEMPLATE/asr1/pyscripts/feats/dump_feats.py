@@ -124,7 +124,10 @@ def main(args):
             raise ValueError(f"Unknown hubert type {args.hubert_type}")
     elif args.feature_type == "s3prl":
         reader = S3PRLFeatureReader(
-            s3prl_upstream_name=args.s3prl_upstream_name, layer=args.layer, sample_rate=16000, max_chunk=1600000
+            s3prl_upstream_name=args.s3prl_upstream_name,
+            layer=args.layer,
+            sample_rate=16000,
+            max_chunk=1600000,
         )
     else:
         raise ValueError(f"Unknown feature type {args.feature_type}.")
