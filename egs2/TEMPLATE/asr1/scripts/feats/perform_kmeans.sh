@@ -43,7 +43,7 @@ s3prl_upstream_name=hubert_large_ll60k
 
 portion=0.1
 nj=16
-scp_prefix=          # add "tgt_" for s2st task
+scp_suffix=          # add ".${tgt_lang}" for s2st task
 python=python3       # Specify python to execute espnet commands.
 
 log "$0 $*"
@@ -62,7 +62,7 @@ if [ -z "${km_tag}" ]; then
     km_tag=$(basename ${km_dir})
 fi
 
-if [ "${feature_type}" = "hubert" || "${feature_type}" = "s3prl" ]; then
+if [ "${feature_type}" = "hubert" ] || [ "${feature_type}" = "s3prl" ]; then
     suffix="layer${layer}/"
 else
     suffix=""
@@ -89,13 +89,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         mkdir -p "${output_dir}"
         _logdir="${feat_dir}/${feature_type}/${suffix}${dset}/logdir"
         mkdir -p "${_logdir}"
-        nutt=$(<"${datadir}/${dset}"/${scp_prefix}wav.scp wc -l)
+        nutt=$(<"${datadir}/${dset}"/wav.scp${scp_suffix} wc -l)
         _nj=$((nj<nutt?nj:nutt))
 
-        key_file="${datadir}/${dset}"/${scp_prefix}wav.scp
+        key_file="${datadir}/${dset}"/wav.scp${scp_suffix}
         split_scps=""
         for n in $(seq ${_nj}); do
-            split_scps+=" ${_logdir}/${scp_prefix}wav.${n}.scp"
+            split_scps+=" ${_logdir}/wav.${n}.scp${scp_suffix}"
         done
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
@@ -112,13 +112,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 --s3prl-upstream-name "${s3prl_upstream_name}" \
                 --layer "${layer}" \
                 --write_num_frames "ark,t:${_logdir}/utt2num_frames.JOB" \
-                "scp:${_logdir}/${scp_prefix}wav.JOB.scp" \
-                "ark,scp:${output_dir}/${scp_prefix}feats.JOB.ark,${output_dir}/${scp_prefix}feats.JOB.scp" || exit 1;
+                "scp:${_logdir}/wav.JOB.scp${scp_suffix}" \
+                "ark,scp:${output_dir}/feats.JOB.ark${scp_suffix},${output_dir}/feats.JOB.scp${scp_suffix}" || exit 1;
 
         # concatenate scp files
         for n in $(seq ${_nj}); do
-            cat ${output_dir}/${scp_prefix}feats.${n}.scp || exit 1;
-        done > ${output_dir}/../${scp_prefix}feats.scp || exit 1
+            cat ${output_dir}/feats.${n}.scp${scp_suffix} || exit 1;
+        done > ${output_dir}/../feats.scp${scp_suffix} || exit 1
 
         for n in $(seq ${_nj}); do
             cat ${_logdir}/utt2num_frames.$n || exit 1;
@@ -136,10 +136,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p ${_logdir}
 
     # select portion of data
-    nutt=$(<"${feat_dir}/${feature_type}/${suffix}${train_set}"/${scp_prefix}feats.scp wc -l)
+    nutt=$(<"${feat_dir}/${feature_type}/${suffix}${train_set}"/feats.scp${scp_suffix} wc -l)
     portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2 + 0.9))}')  # get ceil value
     subset_scp.pl \
-        ${portion_nutt} ${feat_dir}/${feature_type}/${suffix}${train_set}/${scp_prefix}feats.scp \
+        ${portion_nutt} ${feat_dir}/${feature_type}/${suffix}${train_set}/feats.scp${scp_suffix} \
         > "${km_dir}/train.scp" || exit 1;
     log "Subsampling ${portion_nutt} utterances for Kmeans training."
 
@@ -179,7 +179,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for dset in ${train_set} ${dev_set}; do
         label_dir="${feat_dir}/${feature_type}/${suffix}${dset}/pseudo_labels"
 
-        nutt=$(<"${feat_dir}/${feature_type}/${suffix}${dset}/"feats.scp wc -l)
+        nutt=$(<"${feat_dir}/${feature_type}/${suffix}${dset}/"feats.scp${scp_suffix} wc -l)
         _nj=$((nj<nutt?nj:nutt))
 
         ${train_cmd} JOB=1:${_nj} ${label_dir}/logdir/dump_km_label.JOB.log \
@@ -187,17 +187,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                 --km_path "${km_dir}/km_${nclusters}.mdl" \
                 --in_filetype "mat" \
                 --out_filetype "mat" \
-                "scp:${feat_dir}/${feature_type}/${suffix}${dset}/data/feats.JOB.scp" \
-                "ark,t:${label_dir}/logdir/pseudo_labels.JOB.txt" || exit 1;
+                "scp:${feat_dir}/${feature_type}/${suffix}${dset}/data/feats.JOB.scp${scp_suffix}" \
+                "ark,t:${label_dir}/logdir/pseudo_labels.JOB.txt${scp_suffix}" || exit 1;
 
         # concatenate scp files
         for n in $(seq ${_nj}); do
-            cat ${label_dir}/logdir/pseudo_labels.${n}.txt || exit 1;
-        done | sed 's/ \[ \| \]//g' > "${label_dir}"/pseudo_labels.txt || exit 1;
+            cat ${label_dir}/logdir/pseudo_labels.${n}.txt${scp_suffix} || exit 1;
+        done | sed 's/ \[ \| \]//g' > "${label_dir}"/pseudo_labels.txt${scp_suffix} || exit 1;
 
-        cp "${label_dir}"/pseudo_labels.txt ${datadir}/${dset}/text.km.${km_tag}
+        cp "${label_dir}"/pseudo_labels.txt${scp_suffix} ${datadir}/${dset}/text.km.${km_tag}${scp_suffix}
 
-        utils/fix_data_dir.sh --utt_extra_files "text.km.${km_tag}" ${datadir}/${dset}
+        utils/fix_data_dir.sh --utt_extra_files "text.km.${km_tag}${scp_suffix}" ${datadir}/${dset}
     done
 fi
 
@@ -211,7 +211,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     mkdir -p ${dictdir}
 
-    <${datadir}/${dset}/text.km.${km_tag} cut -d" " -f2- | \
+    <${datadir}/${dset}/text.km.${km_tag}${scp_suffix} cut -d" " -f2- | \
         awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
             sort -n -r -k 2  | \
             awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
@@ -226,7 +226,7 @@ if [ -n "${alignment_phoneme_dir}" ]; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         log "KMeans stage 5: Measure qualities of pseudo labels"
 
-        if [ "${feature_type}" = "hubert" || "${feature_type}" = "s3prl" ]; then
+        if [ "${feature_type}" = "hubert" ] || [ "${feature_type}" = "s3prl" ]; then
             upsample=2
         else
             upsample=1
@@ -234,7 +234,7 @@ if [ -n "${alignment_phoneme_dir}" ]; then
 
         ${python} pyscripts/feats/measure_teacher_quality.py \
             --lab_dir ${datadir} \
-            --lab_name "text.km.${km_tag}" \
+            --lab_name "text.km.${km_tag}${scp_suffix}" \
             --lab_sets "${dev_set}" \
             --phn_dir "${alignment_phoneme_dir}" \
             --phn_sets ${phn_sets} \

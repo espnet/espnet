@@ -80,10 +80,11 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 use_discrete_unit=false         # Whether to use discrete unit
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
-use_gpu_for_extraction=true     # Whether to use gpu for feature extraction
-feature_layer=6                # Layers for feature extraction
+use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
+feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
+clustering_portion=0.2
 feature_num_clusters=500        # Number of feature clusters
 
 
@@ -192,9 +193,14 @@ Options:
     --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
 
     # Discrete unit related
-    --use_discrete_unit # Whether to use discrete unit(default="${use_discrete_unit}").
-    --feature_clustering_tool # Tool to do feature clustering (default="${feature_clustering_tool}")
-    --feature_num_clusters   # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
+    --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
+    --km_tag=                  # KMeans tagging (default="${km_tag}")
+    --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
+    --feature_layer            # Layers for feature extraction (default="${feature_layer}")
+    --s3prl_upstream_name      # S3PRL upstream name for feature extraction (default="${s3prl_upstream_name}")
+    --feature_clustering_tool  # Tool to do feature clustering (default="${feature_clustering_tool}")
+    --feature_num_clusters     # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
 
 
     # S2ST model related
@@ -825,7 +831,7 @@ if ! "${skip_data_prep}"; then
                 --stage 1 \
                 --stop_stage 3 \
                 --nj ${nj} \
-                --scp_prefix "tgt_" \
+                --scp_suffix ".${tgt_lang}" \
                 --feature_type "s3prl" \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
@@ -834,8 +840,8 @@ if ! "${skip_data_prep}"; then
                 --km_dir "${km_dir}" \
                 --km_tag "${km_tag}" \
                 --s3prl_upstream_name "${s3prl_upstream_name}" \
-                --use_gpu "${use_gpu_for_extraction}" \
-                --feature_layer "${feature_layer}" \
+                --use_gpu "${use_gpu_feat_extract}" \
+                --layer "${feature_layer}" \
                 --portion "${clustering_portion}" \
                 --clustering_method "${feature_clustering_tool}" \
                 --nclusters "${feature_num_clusters}"
