@@ -7,11 +7,12 @@ import logging
 import os
 import sys
 from pathlib import Path
-
+import subprocess
 import kaldiio
 import numpy as np
 import torch
 from tqdm.contrib import tqdm
+import git
 
 from espnet2.fileio.sound_scp import SoundScpReader
 
@@ -27,7 +28,7 @@ def get_parser():
         "--toolkit",
         type=str,
         help="Toolkit for Extracting X-vectors.",
-        choices=["espnet", "speechbrain"],
+        choices=["espnet", "speechbrain", "rawnet"],
     )
     parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
@@ -40,6 +41,82 @@ def get_parser():
         help="Output folder to save the xvectors.",
     )
     return parser
+
+
+class XVExtractor:
+    def __init__(self, args, device):
+        self.toolkit = args.toolkit
+        self.device = device
+        from speechbrain.dataio.preprocess import AudioNormalizer
+
+        self.audio_norm = AudioNormalizer()
+        if self.toolkit == "speechbrain":
+            from speechbrain.pretrained import EncoderClassifier
+
+            self.model = EncoderClassifier.from_hparams(
+                source=args.pretrained_model, run_opts={"device": device}
+            )
+        elif self.toolkit == "rawnet":
+            if not os.path.exists("RawNet"):
+                git.Repo.clone_from("https://github.com/Jungjee/RawNet", "RawNet")
+            repo = git.Repo("RawNet")
+            repo.git.submodule("update", "--init", "--recursive")
+            sys.path.append("RawNet/python/RawNet3/models")
+            sys.path.append("RawNet/python/RawNet3")
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "asteroid-filterbanks==0.4.0"]
+            )
+            from RawNet3 import RawNet3
+            from RawNetBasicBlock import Bottle2neck
+
+            self.model = RawNet3(
+                Bottle2neck,
+                model_scale=8,
+                context=True,
+                summed=True,
+                encoder_type="ECA",
+                nOut=256,
+                out_bn=False,
+                sinc_stride=10,
+                log_sinc=True,
+                norm_sinc="mean",
+                grad_mult=1,
+            )
+
+            self.model.load_state_dict(
+                torch.load(
+                    "RawNet/python/RawNet3/models/weights/model.pt",
+                    map_location=lambda storage, loc: storage,
+                )["model"]
+            )
+            self.model.to(device).eval()
+
+    def rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
+        if len(audio.shape) > 1:
+            raise ValueError(
+                f"RawNet3 supports mono input only. Input data has a shape of {audio.shape}."
+            )
+        if len(audio) < n_samples:  # RawNet3 was trained using utterances of 3 seconds
+            shortage = n_samples - len(audio) + 1
+            audio = np.pad(audio, (0, shortage), "wrap")
+        audios = []
+        startframe = np.linspace(0, len(audio) - n_samples, num=n_segments)
+        for asf in startframe:
+            audios.append(audio[int(asf) : int(asf) + n_samples])
+        audios = torch.from_numpy(np.stack(audios, axis=0).astype(np.float32)).to(
+            self.device
+        )
+        with torch.no_grad():
+            output = self.model(audios)
+        return output.mean(0).detach().cpu().numpy()
+
+    def __call__(self, wav, in_sr):
+        wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
+        if self.toolkit == "speechbrain":
+            embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
+        elif self.toolkit == "rawnet":
+            embeds = self.rawnet_extract_embd(wav.detach().cpu().numpy())
+        return embeds
 
 
 def main(argv):
@@ -64,9 +141,7 @@ def main(argv):
     else:
         device = "cpu"
 
-    if args.toolkit == "speechbrain":
-        from speechbrain.dataio.preprocess import AudioNormalizer
-        from speechbrain.pretrained import EncoderClassifier
+    if args.toolkit in ("speechbrain", "rawnet"):
 
         # Prepare spk2utt for mean x-vector
         spk2utt = dict()
@@ -74,12 +149,6 @@ def main(argv):
             for line in reader:
                 details = line.split()
                 spk2utt[details[0]] = details[1:]
-
-        # TODO(nelson): The model inference can be moved into functon.
-        classifier = EncoderClassifier.from_hparams(
-            source=args.pretrained_model, run_opts={"device": device}
-        )
-        audio_norm = AudioNormalizer()
 
         wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"))
         os.makedirs(args.out_folder, exist_ok=True)
@@ -90,6 +159,8 @@ def main(argv):
             "ark,scp:{0}/spk_xvector.ark,{0}/spk_xvector.scp".format(args.out_folder)
         )
 
+        xv_extractor = XVExtractor(args, device)
+
         for speaker in tqdm(spk2utt):
             xvectors = list()
             for utt in spk2utt[speaker]:
@@ -97,10 +168,8 @@ def main(argv):
                 # Amp Normalization -1 ~ 1
                 amax = np.amax(np.absolute(wav))
                 wav = wav.astype(np.float32) / amax
-                # Freq Norm
-                wav = audio_norm(torch.from_numpy(wav), in_sr).to(device)
                 # X-vector Embedding
-                embeds = classifier.encode_batch(wav).detach().cpu().numpy()[0]
+                embeds = xv_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)
                 xvectors.append(embeds)
 
@@ -116,7 +185,7 @@ def main(argv):
         )
     else:
         raise ValueError(
-            f"Unkown type of toolkit. Only supported: speechbrain, espnet, kaldi"
+            f"Unkown type of toolkit. Only supported: speechbrain, rawnet, espnet, kaldi"
         )
 
 
