@@ -5,14 +5,15 @@
 import argparse
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
+
+import git
 import kaldiio
 import numpy as np
 import torch
 from tqdm.contrib import tqdm
-import git
 
 from espnet2.fileio.sound_scp import SoundScpReader
 
