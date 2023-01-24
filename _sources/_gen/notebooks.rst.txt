@@ -4,6 +4,7 @@
 
    ./notebook/asr_cli.ipynb
    ./notebook/asr_library.ipynb
+   ./notebook/espnet2_2pass_slu_demo.ipynb
    ./notebook/espnet2_asr_realtime_demo.ipynb
    ./notebook/espnet2_asr_transfer_learning_demo.ipynb
    ./notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.ipynb
