@@ -1,7 +1,7 @@
 import pytest
+import torch
 from packaging.version import parse as V
 
-import torch
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
@@ -9,8 +9,7 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1, FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver

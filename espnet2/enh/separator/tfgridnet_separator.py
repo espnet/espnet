@@ -1,19 +1,18 @@
+import math
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
-import math
 
 import torch
-from torch.nn.parameter import Parameter
-from torch.nn import init
 import torch.nn as nn
 import torch.nn.functional as F
+from packaging.version import parse as V
+from torch.nn import init
+from torch.nn.parameter import Parameter
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
-
-from packaging.version import parse as V
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
@@ -157,11 +156,7 @@ class TFGridNet(AbsSeparator):
         batch = batch.view([n_batch, self.n_srcs, 2, n_frames, n_freqs])
         batch = torch.complex(batch[:, :, 0], batch[:, :, 1])  # [B, n_srcs, T, F]
 
-        batch = self.dec(
-            batch.view([n_batch * self.num_spk, n_frames, n_freqs]), ilens
-        )[
-            0
-        ]  # [B, n_srcs, -1]
+        batch = self.dec(batch.view(-1, n_frames, n_freqs), ilens)[0]  # [B, n_srcs, -1]
 
         batch = self.pad2(batch.view([n_batch, self.num_spk, -1]), n_samples)
 
@@ -199,7 +194,7 @@ class GridNetBlock(nn.Module):
         activation="prelu",
         eps=1e-5,
     ):
-        super(GridNetBlock, self).__init__()
+        super().__init__()
 
         in_channels = emb_dim * emb_ks
 
@@ -268,14 +263,8 @@ class GridNetBlock(nn.Module):
         out: [B, C, T, Q]
         """
         B, C, old_T, old_Q = x.shape
-        T = (
-            math.ceil((old_T - self.emb_ks) * 1.0 / self.emb_hs) * self.emb_hs
-            + self.emb_ks
-        )
-        Q = (
-            math.ceil((old_Q - self.emb_ks) * 1.0 / self.emb_hs) * self.emb_hs
-            + self.emb_ks
-        )
+        T = math.ceil((old_T - self.emb_ks) / self.emb_hs) * self.emb_hs + self.emb_ks
+        Q = math.ceil((old_Q - self.emb_ks) / self.emb_hs) * self.emb_hs + self.emb_ks
         x = F.pad(x, (0, Q - old_Q, 0, T - old_T))
 
         # intra RNN
@@ -356,7 +345,7 @@ class GridNetBlock(nn.Module):
 
 class LayerNormalization4D(nn.Module):
     def __init__(self, input_dimension, eps=1e-5):
-        super(LayerNormalization4D, self).__init__()
+        super().__init__()
         param_size = [1, input_dimension, 1, 1]
         self.gamma = Parameter(torch.Tensor(*param_size).to(torch.float32))
         self.beta = Parameter(torch.Tensor(*param_size).to(torch.float32))
@@ -369,7 +358,7 @@ class LayerNormalization4D(nn.Module):
             _, C, _, _ = x.shape
             stat_dim = (1,)
         else:
-            raise
+            raise ValueError("Expect x to have 4 dimensions, but got {}".format(x.ndim))
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,1,T,F]
         std_ = torch.sqrt(
             x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
@@ -380,7 +369,7 @@ class LayerNormalization4D(nn.Module):
 
 class LayerNormalization4DCF(nn.Module):
     def __init__(self, input_dimension, eps=1e-5):
-        super(LayerNormalization4DCF, self).__init__()
+        super().__init__()
         assert len(input_dimension) == 2
         param_size = [1, input_dimension[0], 1, input_dimension[1]]
         self.gamma = Parameter(torch.Tensor(*param_size).to(torch.float32))
@@ -393,7 +382,7 @@ class LayerNormalization4DCF(nn.Module):
         if x.ndim == 4:
             stat_dim = (1, 3)
         else:
-            raise
+            raise ValueError("Expect x to have 4 dimensions, but got {}".format(x.ndim))
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,1,T,1]
         std_ = torch.sqrt(
             x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
