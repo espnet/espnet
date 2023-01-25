@@ -446,28 +446,25 @@ The architecture is composed of three modules: encoder, decoder and joint networ
 
 #### Encoder
 
-For the encoder, we propose a unique encoder type encapsulating the following blocks: Conformer and Conv 1D (other X-former such as Branchformer or Enformer will be supported soon).
+For the encoder, we propose a unique encoder type encapsulating the following blocks: Branchformer, Conformer and Conv 1D (other X-former such as Squeezeformer or Enformer will be supported later).
 It is similar to the custom encoder in ESPnet1, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three configurations passed to `encoder_conf`:
 
   1. `input_conf` (**Dict**): The configuration for the input block.
   2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
   3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
 
-The first and second configurations are optional. If needed, fhe following parameters can be modified in each configuration:
+The first and second configurations are optional. If needed, the following parameters can be modified in each configuration:
 
     main_conf:
-      pos_wise_act_type: Position-wise activation type. (str, default = "swish")
-      conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      pos_wise_act_type: Conformer position-wise feed-forward activation type. (str, default = "swish")
+      conv_mod_act_type: Conformer convolution module activation type. (str, default = "swish")
       pos_enc_dropout_rate: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
       pos_enc_max_len: Positional encoding maximum length. (int, default = 5000)
       simplified_att_score: Whether to use simplified attention score computation. (bool, default = False)
-      after_norm_type: Final normalization type. (str, default = "layer_norm")
-      after_norm_eps: Epsilon value for the final normalization. (float, default = None)
-      after_norm_partial: Value for the final normalization with RMSNorm. (float, default = None)
-      dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
-      short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
-      short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
-      left_chunk_size: Number of frames in left context. (int, default = 0)
+      norm_type: X-former normalization module type. (str, default = "layer_norm")
+      conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
+      after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
       # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
@@ -483,14 +480,14 @@ The first and second configurations are optional. If needed, fhe following param
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
       conv_size: Convolution output size. For "vgg", the two convolution outputs can be controlled by passing a tuple. (int, default = 256)
-      subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
+      subsampling_factor: Subsampling factor of the input block, either 2 (only conv2d), 4 or 6. (int, default = 4)
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
     # Conv 1D
     - block_type: conv1d
       output_size: Output size. (int)
-      kernel_size: Size of the context window. (int or Tuple)
+      kernel_size: Size of the convolving kernel. (int or Tuple)
       stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
       dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
       groups (optional): Number of blocked connections from input channels to output channels. (int, default = 1)
@@ -499,18 +496,32 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       batch_norm: Whether to use batch normalization after convolution. (bool, default = False)
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
+    # Branchformer
+    - block_type: branchformer
+      hidden_size: Hidden (and output) dimension. (int)
+      linear_size: Dimension of the Linear layers. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
+      heads (optional): Number of heads in multi-head attention. (int, default = 4)
+      norm_eps (optional): Epsilon value for the normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
+      conv_mod_norm_partial (optional): Partial value for the convolutional module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
+      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+
     # Conformer
     - block_type: conformer
       hidden_size: Hidden (and output) dimension. (int)
       linear_size: Dimension of feed-forward module. (int)
-      conv_mod_kernel_size: Number of kernel in convolutional module. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      norm_eps (optional): Epsilon value for Conformer normalization. (float, default = None)
-      norm_partial (optional): Value for the Conformer normalization with RMSNorm. (float, default = None)
-      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = None)
+      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in the convolutional module. (float, default = 1e-05)
+      conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the convolutional module. (float, default = 0.1)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
-      pos_wise_dropout_rate (optional): Dropout rate for the position-wise module. (float, default = 0.0)
+      pos_wise_dropout_rate (optional): Dropout rate for the position-wise feed-forward module. (float, default = 0.0)
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
@@ -548,7 +559,7 @@ encoder_conf:
 
 The type can be defined through `decoder` parameter by passing a string (either `rnn` or `stateless`) and the internal parts can be configured
 
-For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared accross the blocks, meaning we only define define only one block here.
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
 The type of the stack of blocks is by passing a string (either `rnn` or `stateless`) to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following (optional) parameters:
 
     decoder_conf:
@@ -622,9 +633,14 @@ For a complete explanation on the different procedure and parameters, we refer t
 
 #### Training
 
-To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`.
+To train a streaming model, the parameter `dynamic_chunk_training` should be set to `True` in the encoder `main_conf`. From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`).
 
-From here, the user has access to two parameters in order to control the dynamic chunk selection (`short_chunk_threshold` and `short_chunk_size`) and another one to control the left context in the causal convolution and the attention module (`left_chunk_size`). All these parameters can be configured through the `main_conf`. The Encoder section provides a short description of the parameters.
+All these parameters can be configured through `main_conf`, introduced in the Encoder section:
+
+    dynamic_chunk_training: Whether to train streaming model with dynamic chunks. (bool, default = False)
+    short_chunk_threshold: Chunk length threshold (in percent) for dynamic chunk selection. (int, default = 0.75)
+    short_chunk_size: Minimum number of frames during dynamic chunk training. (int, default = 25)
+    left_chunk_size: Number of frames in left context. (int, default = 0)
 
 #### Decoding
 
@@ -637,6 +653,7 @@ To perform chunk-by-chunk inference, the parameter `streaming` should be set to 
 For each parameter, the number of frames is defined AFTER subsampling, meaning the input chunk will be bigger than the one provided. The input size is determined by the frontend and the input block's subsampling, given `chunk_size + right_context` defining the decoding window.
 
 ***Note:*** Because the training part does not consider the right context, relying on `right_context` during decoding may result in a mismatch and performance degration.
+
 ***Note 2:*** All search algorithms but ALSD are available with chunk-by-chunk inference.
 
 ### FAQ

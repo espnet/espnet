@@ -1,0 +1,46 @@
+optim: adam
+max_epoch: 10
+
+model_conf:
+    num_spk: 1
+    share_encoder: true
+
+train_spk2enroll: null
+enroll_segment: 48000
+load_spk_embedding: false
+load_all_speakers: false
+
+encoder: conv
+encoder_conf:
+    channel: 256
+    kernel_size: 32
+    stride: 16
+decoder: conv
+decoder_conf:
+    channel: 256
+    kernel_size: 32
+    stride: 16
+extractor: td_speakerbeam
+extractor_conf:
+    layer: 4
+    stack: 2
+    bottleneck_dim: 8
+    hidden_dim: 16
+    skip_dim: 8
+    kernel: 3
+    causal: false
+    norm_type: gLN
+    nonlinear: relu
+    # enrollment related
+    i_adapt_layer: 3
+    adapt_layer_type: mul
+    adapt_enroll_dim: 8
+
+criterions: 
+  # The first criterion
+  - name: snr 
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

@@ -41,5 +41,5 @@ word_vocab_size=65000
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "data/${train_set}/text" \
-    --lm_train_text "data/${train_set}/text data/local/other_text/text" "$@"
+    --bpe_train_text "data/${train_set}/text_spk1" \
+    --lm_train_text "data/${train_set}/text_spk1 data/local/other_text/text" "$@"

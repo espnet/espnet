@@ -83,3 +83,7 @@ tools/anaconda
 tools/ice-g2p
 tools/fairseq
 tools/._*
+tools/anaconda
+tools/ice-g2p*
+tools/fairseq*
+tools/featbin*

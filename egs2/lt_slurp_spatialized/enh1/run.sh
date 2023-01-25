@@ -17,7 +17,7 @@ sample_rate=16000
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 3 \
-    --spk_num 1 \
+    --ref_num 1 \
     --ref_channel 0 \
     --audio_format wav \
     --enh_config conf/tuning/train_enh_dprnntac_fasnet.yaml \

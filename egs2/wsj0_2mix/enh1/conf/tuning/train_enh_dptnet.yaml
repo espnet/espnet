@@ -49,7 +49,6 @@ separator_conf:
     layer: 6
     rnn_type: lstm
     bidirectional: True  # this is for the inter-block transformer
-    feature_dim: 64
     unit: 128
     att_heads: 4
     dropout: 0.0

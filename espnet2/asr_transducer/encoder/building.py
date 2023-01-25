@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Optional, Union
 
 from espnet2.asr_transducer.activation import get_activation
+from espnet2.asr_transducer.encoder.blocks.branchformer import Branchformer
 from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
@@ -11,6 +12,7 @@ from espnet2.asr_transducer.encoder.modules.attention import (  # noqa: H301
 )
 from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
     ConformerConvolution,
+    ConvolutionalSpatialGatingUnit,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
 from espnet2.asr_transducer.encoder.modules.normalization import get_normalization
@@ -29,7 +31,7 @@ def build_main_parameters(
     pos_enc_max_len: int = 5000,
     simplified_att_score: bool = False,
     norm_type: str = "layer_norm",
-    conv_mod_norm_type: str = "batch_norm",
+    conv_mod_norm_type: str = "layer_norm",
     after_norm_eps: Optional[float] = None,
     after_norm_partial: Optional[float] = None,
     dynamic_chunk_training: bool = False,
@@ -41,13 +43,13 @@ def build_main_parameters(
     """Build encoder main parameters.
 
     Args:
-        pos_wise_act_type: Position-wise activation type.
-        conv_mod_act_type: Convolutional module activation type.
+        pos_wise_act_type: Conformer position-wise feed-forward activation type.
+        conv_mod_act_type: Conformer convolution module activation type.
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
         simplified_att_score: Whether to use simplified attention score computation.
-        norm_type: Normalization module type for X-former.
-        conv_mod_norm_type: Normalization module type for convolution modules.
+        norm_type: X-former normalization module type.
+        conv_mod_norm_type: Conformer convolution module normalization type.
         after_norm_eps: Epsilon value for the final normalization.
         after_norm_partial: Value for the final normalization with RMSNorm.
         dynamic_chunk_training: Whether to use dynamic chunk training.
@@ -135,6 +137,64 @@ def build_input_block(
     )
 
 
+def build_branchformer_block(
+    configuration: List[Dict[str, Any]],
+    main_params: Dict[str, Any],
+) -> Conformer:
+    """Build Branchformer block.
+
+    Args:
+        configuration: Branchformer block configuration.
+        main_params: Encoder main parameters.
+
+    Returns:
+        : Branchformer block function.
+
+    """
+    hidden_size = configuration["hidden_size"]
+    linear_size = configuration["linear_size"]
+
+    dropout_rate = configuration.get("dropout_rate", 0.0)
+
+    conv_mod_norm_class, conv_mod_norm_args = get_normalization(
+        main_params["conv_mod_norm_type"],
+        eps=configuration.get("conv_mod_norm_eps"),
+        partial=configuration.get("conv_mod_norm_partial"),
+    )
+
+    conv_mod_args = (
+        linear_size,
+        configuration["conv_mod_kernel_size"],
+        conv_mod_norm_class,
+        conv_mod_norm_args,
+        dropout_rate,
+        main_params["dynamic_chunk_training"],
+    )
+
+    mult_att_args = (
+        configuration.get("heads", 4),
+        hidden_size,
+        configuration.get("att_dropout_rate", 0.0),
+        main_params["simplified_att_score"],
+    )
+
+    norm_class, norm_args = get_normalization(
+        main_params["norm_type"],
+        eps=configuration.get("norm_eps"),
+        partial=configuration.get("norm_partial"),
+    )
+
+    return lambda: Branchformer(
+        hidden_size,
+        linear_size,
+        RelPositionMultiHeadedAttention(*mult_att_args),
+        ConvolutionalSpatialGatingUnit(*conv_mod_args),
+        norm_class=norm_class,
+        norm_args=norm_args,
+        dropout_rate=dropout_rate,
+    )
+
+
 def build_conformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
@@ -159,18 +219,15 @@ def build_conformer_block(
         main_params["pos_wise_act"],
     )
 
-    conv_mod_norm_class, conv_mod_norm_args = get_normalization(
-        main_params["conv_mod_norm_type"],
-        eps=configuration.get("conv_mod_norm_eps"),
-        momentum=configuration.get("conv_mod_norm_momentum"),
-        partial=configuration.get("conv_mod_norm_partial"),
-    )
+    conv_mod_norm_args = {
+        "eps": configuration.get("conv_mod_norm_eps", 1e-05),
+        "momentum": configuration.get("conv_mod_norm_momentum", 0.1),
+    }
 
     conv_mod_args = (
         hidden_size,
         configuration["conv_mod_kernel_size"],
         main_params["conv_mod_act"],
-        conv_mod_norm_class,
         conv_mod_norm_args,
         main_params["dynamic_chunk_training"],
     )
@@ -258,10 +315,12 @@ def build_body_blocks(
     for i, c in enumerate(extended_conf):
         block_type = c["block_type"]
 
-        if block_type == "conv1d":
-            module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
+        if block_type == "branchformer":
+            module = build_branchformer_block(c, main_params)
         elif block_type == "conformer":
             module = build_conformer_block(c, main_params)
+        elif block_type == "conv1d":
+            module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
         else:
             raise NotImplementedError
 

@@ -35,12 +35,13 @@ class RNNDecoder(AbsDecoder):
         embed_dropout_rate: float = 0.0,
         embed_pad: int = 0,
     ) -> None:
+        """Construct a RNNDecoder object."""
+        super().__init__()
+
         assert check_argument_types()
 
         if rnn_type not in ("lstm", "gru"):
             raise ValueError(f"Not supported: rnn_type={rnn_type}")
-
-        super().__init__()
 
         self.embed = torch.nn.Embedding(vocab_size, embed_size, padding_idx=embed_pad)
         self.dropout_embed = torch.nn.Dropout(p=embed_dropout_rate)

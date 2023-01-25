@@ -10,7 +10,7 @@
   - Commit date: `Mon Mar 14 22:32:17 2022 -0400`
 - Pretrained model: [espnet/chai_microsoft_indian_langs_te](https://huggingface.co/espnet/chai_microsoft_indian_langs_te)
 
-## Self-supervised learning features [wav2vec2_xlsr, Conformer, utt_mvn](conf/tuning/train_asr_xlsr53_conformer.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml) and [RNN-LM](conf/tuning/train_lm_rnn.yaml). During inference, all below models use the same [decoding parameters](conf/tuning/decode_asr_transformer.yaml).
+## Self-supervised learning features [wav2vec2_xlsr_53, Conformer, utt_mvn](conf/tuning/train_asr_xlsr53_conformer.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml) and [RNN-LM](conf/tuning/train_lm_rnn.yaml). During inference, all below models use the same [decoding parameters](conf/tuning/decode_asr_transformer.yaml).
 
 ### WER
 

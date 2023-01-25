@@ -20,10 +20,11 @@ test_sets="test_eval92"
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 2 \
-    --spk_num 2 \
+    --ref_num 2 \
     --local_data_opts "--sample_rate ${sample_rate} --nj ${nj} --num_spk ${num_spk}" \
     --enh_config ./conf/tuning/train_enh_beamformer_no_wpe.yaml \
     --use_dereverb_ref false \
     --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
+    --audio_format wav \
     "$@"

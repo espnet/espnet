@@ -20,8 +20,14 @@ from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
 )
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
+from espnet2.fileio.read_text import (
+    RandomTextReader,
+    load_num_sequence_text,
+    read_2column_text,
+    read_label,
+)
 from espnet2.fileio.rttm import RttmReader
+from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 
@@ -98,6 +104,62 @@ class H5FileWrapper:
         return value[()]
 
 
+class AdapterForSingingScoreScpReader(collections.abc.Mapping):
+    def __init__(self, loader):
+        assert check_argument_types()
+        self.loader = loader
+
+    def keys(self):
+        return self.loader.keys()
+
+    def __len__(self):
+        return len(self.loader)
+
+    def __iter__(self):
+        return iter(self.loader)
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        retval = self.loader[key]
+        assert (
+            len(retval) == 3
+            and isinstance(retval["tempo"], int)
+            and isinstance(retval["note"], list)
+        )
+        tempo = retval["tempo"]
+
+        return tempo, retval["note"]
+
+
+class AdapterForLabelScpReader(collections.abc.Mapping):
+    def __init__(self, loader):
+        assert check_argument_types()
+        self.loader = loader
+
+    def keys(self):
+        return self.loader.keys()
+
+    def __len__(self):
+        return len(self.loader)
+
+    def __iter__(self):
+        return iter(self.loader)
+
+    def __getitem__(self, key: str) -> np.ndarray:
+        retval = self.loader[key]
+
+        assert isinstance(retval, list)
+        seq_len = len(retval)
+        sample_time = np.zeros((seq_len, 2))
+        sample_label = []
+        for i in range(seq_len):
+            sample_time[i, 0] = np.float32(retval[i][0])
+            sample_time[i, 1] = np.float32(retval[i][1])
+            sample_label.append(retval[i][2])
+
+        assert isinstance(sample_time, np.ndarray) and isinstance(sample_label, list)
+        return sample_time, sample_label
+
+
 def sound_loader(path, float_dtype=None):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
@@ -111,6 +173,16 @@ def sound_loader(path, float_dtype=None):
     # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
     # but ndarray is desired, so Adapter class is inserted here
     return AdapterForSoundScpReader(loader, float_dtype)
+
+
+def score_loader(path, float_dtype=None):
+    loader = SingingScoreReader(fname=path)
+    return AdapterForSingingScoreScpReader(loader)
+
+
+def label_loader(path, float_dtype=None):
+    loader = read_label(path)
+    return AdapterForLabelScpReader(loader)
 
 
 def kaldi_loader(path, float_dtype=None, max_cache_fd: int = 0):
@@ -135,6 +207,26 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_a a.wav\n"
         "   utterance_id_b b.wav\n"
+        "   ...",
+    ),
+    "score": dict(
+        func=score_loader,
+        kwargs=["float_dtype"],
+        help="Return text as is. The text contains tempo and note info.\n"
+        "For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. "
+        "\n\n"
+        "   utterance_id_A tempo_a start_1 end_1 syllable_1 midi_1 phones_1 ...\n"
+        "   utterance_id_B tempo_b start_1 end_1 syllable_1 midi_1 phones_1 ...\n"
+        "   ...",
+    ),
+    "duration": dict(
+        func=label_loader,
+        kwargs=[],
+        help="Return text as is. The text must be converted to ndarray "
+        "by 'preprocess'."
+        "\n\n"
+        "   utterance_id_A start_1 end_1 phone_1 start_2 end_2 phone_2 ...\n"
+        "   utterance_id_B start_1 end_1 phone_1 start_2 end_2 phone_2 ...\n"
         "   ...",
     ),
     "kaldi_ark": dict(
@@ -203,6 +295,16 @@ DATA_TYPES = {
         "\n\n"
         "   utterance_id_A hello world\n"
         "   utterance_id_B foo bar\n"
+        "   ...",
+    ),
+    "random_text": dict(
+        func=RandomTextReader,
+        kwargs=[],
+        help="Return text as is. The text must be converted to ndarray "
+        "by 'preprocess'."
+        "\n\n"
+        "   hello world\n"
+        "   foo bar\n"
         "   ...",
     ),
     "hdf5": dict(
@@ -393,13 +495,16 @@ class ESPnetDataset(AbsDataset):
         for name, loader in self.loader_dict.items():
             try:
                 value = loader[uid]
-                if isinstance(value, (list, tuple)):
+                if isinstance(value, (list)):
                     value = np.array(value)
                 if not isinstance(
-                    value, (np.ndarray, torch.Tensor, str, numbers.Number)
+                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple)
                 ):
                     raise TypeError(
-                        f"Must be ndarray, torch.Tensor, str or Number: {type(value)}"
+                        (
+                            "Must be ndarray, torch.Tensor, "
+                            "str,  Number or tuple: {}".format(type(value))
+                        )
                     )
             except Exception:
                 path, _type = self.debug_info[name]
