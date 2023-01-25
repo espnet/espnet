@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 import kaldiio
+import librosa
 import numpy as np
 import torch
 from tqdm.contrib import tqdm
@@ -101,11 +102,12 @@ class XVExtractor:
         return output.mean(0).detach().cpu().numpy()
 
     def __call__(self, wav, in_sr):
-        wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
         if self.toolkit == "speechbrain":
+            wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
             embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
         elif self.toolkit == "rawnet":
-            embeds = self.rawnet_extract_embd(wav.detach().cpu().numpy())
+            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
+            embeds = self.rawnet_extract_embd(wav)
         return embeds
 
 
