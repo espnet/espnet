@@ -1,8 +1,5 @@
 import copy
 import logging
-import os
-from argparse import Namespace
-from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import humanfriendly
@@ -12,18 +9,6 @@ from typeguard import check_argument_types
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-
-
-def base_s3prl_setup(args):
-    args.upstream_feature_selection = getattr(args, "upstream_feature_selection", None)
-    args.upstream_model_config = getattr(args, "upstream_model_config", None)
-    args.upstream_refresh = getattr(args, "upstream_refresh", False)
-    args.upstream_ckpt = getattr(args, "upstream_ckpt", None)
-    args.init_ckpt = getattr(args, "init_ckpt", None)
-    args.verbose = getattr(args, "verbose", False)
-    args.tile_factor = getattr(args, "tile_factor", 1)
-    return args
 
 
 class S3prlFrontend(AbsFrontend):
@@ -35,76 +20,61 @@ class S3prlFrontend(AbsFrontend):
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         download_dir: str = None,
         multilayer_feature: bool = False,
+        layer: int = -1,
     ):
+        try:
+            import s3prl
+            from s3prl.nn import Featurizer, S3PRLUpstream
+        except Exception as e:
+            print("Error: S3PRL is not properly installed.")
+            print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
+            raise e
+
         assert check_argument_types()
         super().__init__()
+
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
+        if fs != 16000:
+            logging.warning(
+                "All the upstream models in S3PRL now only support 16 kHz audio."
+            )
 
         if download_dir is not None:
-            torch.hub.set_dir(download_dir)
+            s3prl.util.download.set_dir(download_dir)
 
-        self.multilayer_feature = multilayer_feature
-        self.upstream, self.featurizer = self._get_upstream(frontend_conf)
-        self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
-        self.output_dim = self.featurizer.output_dim
-        self.frontend_type = "s3prl"
-        self.hop_length = self.upstream.get_downsample_rates("key")
-
-    def _get_upstream(self, frontend_conf):
-        """Get S3PRL upstream model."""
-        s3prl_args = base_s3prl_setup(
-            Namespace(**frontend_conf, device="cpu"),
+        assert frontend_conf.get("upstream", None) in S3PRLUpstream.available_names()
+        upstream = S3PRLUpstream(
+            frontend_conf.get("upstream"),
+            path_or_url=frontend_conf.get("path_or_url", None),
+            normalize=frontend_conf.get("normalize", False),
+            extra_conf=frontend_conf.get("extra_conf", None),
         )
-        self.args = s3prl_args
-
-        try:
-            import s3prl  # noqa
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "s3prl is not installed, please git clone s3prl"
-                " (DO NOT USE PIP or CONDA) "
-                "and install it from Github repo, "
-                "by cloning it locally."
-            )
-        s3prl_path = Path(os.path.abspath(s3prl.__file__)).parent.parent
-        if not os.path.exists(os.path.join(s3prl_path, "hubconf.py")):
-            raise RuntimeError(
-                "You probably have s3prl installed as a pip"
-                "package, please uninstall it and then install it from "
-                "the GitHub repo, by cloning it locally."
-            )
-
-        s3prl_upstream = torch.hub.load(
-            s3prl_path,
-            s3prl_args.upstream,
-            ckpt=s3prl_args.upstream_ckpt,
-            model_config=s3prl_args.upstream_model_config,
-            refresh=s3prl_args.upstream_refresh,
-            source="local",
-        ).to("cpu")
-
+        upstream.eval()
         if getattr(
-            s3prl_upstream, "model", None
-        ) is not None and s3prl_upstream.model.__class__.__name__ in [
+            upstream, "model", None
+        ) is not None and upstream.model.__class__.__name__ in [
             "Wav2Vec2Model",
             "HubertModel",
         ]:
-            s3prl_upstream.model.encoder.layerdrop = 0.0
+            upstream.model.encoder.layerdrop = 0.0
 
-        from s3prl.upstream.interfaces import Featurizer
-
-        if self.multilayer_feature:
-            feature_selection = "hidden_states"
+        if layer != -1:
+            layer_selections = [layer]
+            assert (
+                not multilayer_feature
+            ), "multilayer feature will be deactivated, when specific layer used"
         else:
-            feature_selection = "last_hidden_state"
-        s3prl_featurizer = Featurizer(
-            upstream=s3prl_upstream,
-            feature_selection=feature_selection,
-            upstream_device="cpu",
-        )
+            layer_selections = None
+        featurizer = Featurizer(upstream, layer_selections=layer_selections)
 
-        return s3prl_upstream, s3prl_featurizer
+        self.multilayer_feature = multilayer_feature
+        self.layer = layer
+        self.upstream, self.featurizer = upstream, featurizer
+        self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
+        self.frontend_type = "s3prl"
+        self.hop_length = self.featurizer.downsample_rate
+        self.tile_factor = frontend_conf.get("tile_factor", 1)
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -118,33 +88,33 @@ class S3prlFrontend(AbsFrontend):
         assert (
             len(feature.shape) == 3
         ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
-        tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
+        tiled_feature = feature.repeat(1, 1, self.tile_factor)
         tiled_feature = tiled_feature.reshape(
-            feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
+            feature.size(0), feature.size(1) * self.tile_factor, feature.size(2)
         )
         return tiled_feature
 
     def output_size(self) -> int:
-        return self.output_dim
+        return self.featurizer.output_size
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        wavs = [wav[: input_lengths[i]] for i, wav in enumerate(input)]
-        self.upstream.eval()
-        feats = self.upstream(wavs)
-        feats = self.featurizer(wavs, feats)
+        feats, feats_lens = self.upstream(input, input_lengths)
+        if self.layer != -1:
+            layer = self.layer
+            feats, feats_lens = feats[layer], feats_lens[layer]
+            return feats, feats_lens
 
-        if self.args.tile_factor != 1:
+        if self.multilayer_feature:
+            feats, feats_lens = self.featurizer(feats, feats_lens)
+        else:
+            feats, feats_lens = self.featurizer(feats[-1:], feats_lens[-1:])
+
+        if self.tile_factor != 1:
             feats = self._tile_representations(feats)
 
-        input_feats = pad_list(feats, 0.0)
-        feats_lens = torch.tensor([f.shape[0] for f in feats], dtype=torch.long)
-
-        # Saving CUDA Memory
-        del feats
-
-        return input_feats, feats_lens
+        return feats, feats_lens
 
     def reload_pretrained_parameters(self):
         self.upstream.load_state_dict(self.pretrained_params)

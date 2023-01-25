@@ -84,10 +84,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             espnet2/iterators/chunk_iter_factory.py
             kwargs: "utt_id" is among the input.
         """
-
-        # clean speech signal of each speaker
+        # reference speech signal of each speaker
+        assert "speech_ref1" in kwargs, "At least 1 reference signal input is required."
         speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
+            kwargs.get(
+                f"speech_ref{spk + 1}",
+                torch.zeros_like(kwargs["speech_ref1"]),
+            )
+            for spk in range(self.num_spk)
         ]
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
@@ -159,7 +163,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # loss computation
-        loss, stats, weight = self.forward_loss(
+        loss, stats, weight, perm = self.forward_loss(
             speech_pre,
             speech_lengths,
             feature_mix,
@@ -236,6 +240,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         loss = 0.0
         stats = {}
         o = {}
+        perm = None
         for loss_wrapper in self.loss_wrappers:
             criterion = loss_wrapper.criterion
             if getattr(criterion, "only_for_test", False) and self.training:
@@ -324,6 +329,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss += l * loss_wrapper.weight
             stats.update(s)
 
+            if perm is None and "perm" in o:
+                perm = o["perm"]
+
         if self.training and isinstance(loss, float):
             raise AttributeError(
                 "At least one criterion must satisfy: only_for_test=False"
@@ -333,7 +341,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         batch_size = speech_ref[0].shape[0]
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        return loss, stats, weight, perm
 
     def _align_ref_pre_channels(self, ref, pre, ch_dim=2, force_1ch=False):
         if ref is None or pre is None:
@@ -447,6 +455,31 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 noise_spec=noise_spec,
             )
         return masks_ref, masks_pre
+
+    @staticmethod
+    def sort_by_perm(nn_output, perm):
+        """Sort the input list of tensors by the specified permutation.
+
+        Args:
+            nn_output: List[torch.Tensor(Batch, ...)], len(nn_output) == num_spk
+            perm: (Batch, num_spk) or List[torch.Tensor(num_spk)]
+        Returns:
+            nn_output_new: List[torch.Tensor(Batch, ...)]
+        """
+        if len(nn_output) == 1:
+            return nn_output
+        # (Batch, num_spk, ...)
+        nn_output = torch.stack(nn_output, dim=1)
+        if not isinstance(perm, torch.Tensor):
+            # perm is a list or tuple
+            perm = torch.stack(perm, dim=0)
+        assert nn_output.size(1) == perm.size(1), (nn_output.shape, perm.shape)
+        diff_dim = nn_output.dim() - perm.dim()
+        if diff_dim > 0:
+            perm = perm.view(*perm.shape, *[1 for _ in range(diff_dim)]).expand_as(
+                nn_output
+            )
+        return torch.gather(nn_output, 1, perm).unbind(dim=1)
 
     def collect_feats(
         self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs

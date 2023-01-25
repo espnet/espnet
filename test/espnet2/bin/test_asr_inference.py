@@ -227,10 +227,118 @@ def test_EnhS2T_Speech2Text(enh_asr_config_file, lm_config_file):
         beam_size=1,
         enh_s2t_task=True,
     )
-    speech = np.random.randn(48000)
+    speech = np.random.randn(10240)
+    results = speech2text(speech)
+    for ret in results:
+        for text, token, token_int, hyp in ret:
+            assert isinstance(text, str)
+            assert isinstance(token[0], str)
+            assert isinstance(token_int[0], int)
+            assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def token_list_hugging_face(tmp_path: Path):
+    with (tmp_path / "tokens_hugging_face.txt").open("w") as f:
+        f.write("<s>\n")
+        f.write("<pad>\n")
+        f.write("</s>\n")
+        f.write("<unk>\n")
+        for c in range(95):
+            f.write(f"{c}\n")
+    return tmp_path / "tokens_hugging_face.txt"
+
+
+@pytest.mark.parametrize(
+    "model_name_or_path",
+    [
+        "akreal/tiny-random-t5",
+        "akreal/tiny-random-mbart",
+    ],
+)
+@pytest.mark.execution_timeout(10)
+def test_Speech2Text_hugging_face(
+    asr_config_file, token_list_hugging_face, model_name_or_path
+):
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "hugging_face"
+    asr_train_config["bpemodel"] = "facebook/mbart-large-50-many-to-many-mmt"
+    asr_train_config["token_list"] = str(token_list_hugging_face)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    asr_train_config["decoder"] = "hugging_face_transformers"
+    asr_train_config["decoder_conf"] = {
+        "model_name_or_path": model_name_or_path,
+    }
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        hugging_face_decoder=True,
+        hugging_face_decoder_max_length=10,
+        ctc_weight=0.0,
+        beam_size=2,
+    )
+    speech = np.random.randn(100000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def asr_config_file_pit(tmp_path: Path, token_list):
+    # Write default configuration file
+    ASRTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "asr_pit"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+            "--decoder",
+            "transformer",
+            "--encoder",
+            "transformer_multispkr",
+        ]
+    )
+    return tmp_path / "asr_pit" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(20)
+def test_Speech2Text_pit(asr_config_file_pit, lm_config_file):
+    file = open(asr_config_file_pit, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["frontend"] = "default"
+    asr_train_config["encoder_conf"] = {"num_inf": 2}
+    asr_train_config["ctc_conf"] = {"reduce": False}
+    asr_train_config["model"] = "pit_espnet"
+    asr_train_config["model_conf"] = {"num_inf": 2, "num_ref": 2}
+    # Change the configuration file
+    with open(asr_config_file_pit, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file_pit,
+        lm_train_config=lm_config_file,
+        beam_size=1,
+        multi_asr=True,
+    )
+    speech = np.random.randn(10000)
+    results = speech2text(speech)
+    for ret in results:
+        for text, token, token_int, hyp in ret:
+            assert isinstance(text, str)
+            assert isinstance(token[0], str)
+            assert isinstance(token_int[0], int)
+            assert isinstance(hyp, Hypothesis)

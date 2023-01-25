@@ -113,12 +113,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/fix_data_dir.sh data/${x}
     done
 
-    for x in ${train_set} ${recog_set}; do
-      # Remove features with too long frames in training data
-      max_len=3000
-      remove_longshortdata.sh  --maxframes $max_len data/${x} data/${x}_temp
-      mv data/${x}_temp data/${x}
-    done
+    # Remove features with too long frames in training data
+    mv data/${train_set} data/${train_set}_org
+    max_len=3000
+    remove_longshortdata.sh  --maxframes $max_len data/${train_set}_org data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark

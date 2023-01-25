@@ -417,6 +417,13 @@ class EnhS2TTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
+        group.add_argument(
+            "--text_name",
+            nargs="+",
+            default=["text"],
+            type=str,
+            help="Specify the text_name attribute used in the preprocessor",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -479,7 +486,7 @@ class EnhS2TTask(AbsTask):
                     token_list=args.token_list,
                     bpemodel=args.bpemodel,
                     non_linguistic_symbols=args.non_linguistic_symbols,
-                    text_name=["text"],
+                    text_name=getattr(args, "text_name", ["text"]),
                     text_cleaner=args.cleaner,
                     g2p_type=args.g2p,
                 )
@@ -493,7 +500,7 @@ class EnhS2TTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech", "speech_ref1", "text")
+            retval = ("speech", "speech_ref1")
         else:
             # Recognition mode
             retval = ("speech",)
@@ -503,9 +510,11 @@ class EnhS2TTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref1"]
-        retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = ["text", "dereverb_ref1"]
+        st = 2 if "speech_ref1" in retval else 1
+        retval += ["speech_ref{}".format(n) for n in range(st, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
+        retval += ["text_spk{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["src_text"]
         retval = tuple(retval)
         assert check_return_type(retval)

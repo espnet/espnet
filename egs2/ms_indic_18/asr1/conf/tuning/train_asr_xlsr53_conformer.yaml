@@ -43,7 +43,7 @@ frontend_conf:
 
     - frontend_type: s3prl
       frontend_conf:
-        upstream: wav2vec2_xlsr
+        upstream: xlsr_53
       download_dir: ./hub
       multilayer_feature: True
 

@@ -128,6 +128,7 @@ inference_enh_config=   # Config for enhancement.
 # Enh Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+use_speech_ref=true
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -141,7 +142,6 @@ nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
-score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
 enh_asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 enh_asr_text_fold_length=150   # fold_length for text data during ASR training.
@@ -236,6 +236,8 @@ Options:
                          for training a dereverberation model (default="${use_dereverb_ref}")
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
+    --use_speech_ref   # Whether or not to use clean speech signals for training the enh model
+                         (default="${use_speech_ref}")
     # Enhancement Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
     --ref_channel         # Reference channel of the reference speech will be used if the model
@@ -254,7 +256,6 @@ Options:
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
     --lang          # The language type of corpus (default=${lang}).
-    --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --enh_asr_speech_fold_length # fold_length for speech data during ASR training (default="${enh_asr_speech_fold_length}").
     --enh_asr_text_fold_length   # fold_length for text data during ASR training (default="${enh_asr_text_fold_length}").
@@ -282,8 +283,6 @@ fi
 [ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
-[ ${spk_num} -gt 1 ] && { log "${help_message}"; log "Error: --spk_num only 1 is supported"; exit 2; };
-
 # Check feature type
 if [ "${feats_type}" = raw ]; then
     data_feats=${dumpdir}/raw
@@ -300,7 +299,16 @@ else
 fi
 
 # Extra files for enhancement process
-utt_extra_files="utt2category text utt2lang"
+utt_extra_files="utt2category utt2lang"
+for n in $(seq "${spk_num}"); do
+    utt_extra_files+=" text_spk${n}"
+done
+
+# Preprocessor related
+text_names=""
+for n in $(seq ${spk_num}); do
+    text_names+="text_spk${n} "
+done
 
 # Use the same text as ASR for bpe training if not specified.
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
@@ -477,9 +485,11 @@ if ! "${skip_data_prep}"; then
            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
 
             _scp_list="wav.scp "
-            for i in $(seq ${spk_num}); do
-                _scp_list+="spk${i}.scp "
-            done
+            if ${use_speech_ref}; then
+                for i in $(seq ${spk_num}); do
+                    _scp_list+="spk${i}.scp "
+                done
+            fi
 
            for factor in ${speed_perturb_factors}; do
                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
@@ -550,9 +560,11 @@ if ! "${skip_data_prep}"; then
                 fi
 
                 _spk_list=" "
-                for i in $(seq ${spk_num}); do
-                    _spk_list+="spk${i} "
-                done
+                if ${use_speech_ref}; then
+                    for i in $(seq ${spk_num}); do
+                        _spk_list+="spk${i} "
+                    done
+                fi
                 if $use_noise_ref && [ -n "${_suf}" ]; then
                     # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                     _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
@@ -566,7 +578,6 @@ if ! "${skip_data_prep}"; then
                     # shellcheck disable=SC2086
                     scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                         --out-filename "${spk}.scp" \
-                        --ref_channels "${ref_channel}" \
                         --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                         "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}" \
                         "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
@@ -592,10 +603,12 @@ if ! "${skip_data_prep}"; then
 
             _spk_list=" "
             _scp_list=" "
-            for i in $(seq ${spk_num}); do
-                _spk_list+="spk${i} "
-                _scp_list+="spk${i}.scp "
-            done
+            if ${use_speech_ref}; then
+                for i in $(seq ${spk_num}); do
+                    _spk_list+="spk${i} "
+                    _scp_list+="spk${i}.scp "
+                done
+            fi
             if $use_noise_ref; then
                 # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
                 _spk_list+=$(for n in $(seq $noise_type_num); do echo -n "noise$n "; done)
@@ -661,15 +674,41 @@ if ! "${skip_data_prep}"; then
             fi
 
             # Remove empty text
-            <"${data_feats}/org/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
-
+            for n in $(seq "${spk_num}"); do
+                <"${data_feats}/org/${dset}/text_spk${n}" \
+                    awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text_spk${n}"
+                # filter utt2spk to match the filtered text files
+                <"${data_feats}/${dset}/utt2spk" \
+                    utils/filter_scp.pl "${data_feats}/${dset}/text_spk${n}" \
+                    >"${data_feats}/${dset}/tmp"
+                mv "${data_feats}/${dset}/tmp" "${data_feats}/${dset}/utt2spk"
+            done
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
         done
 
-        # shellcheck disable=SC2002
-        cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+        if [ "$lm_train_text" = "${data_feats}/${train_set}/text" ]; then
+            for n in $(seq ${spk_num}); do
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${train_set}/text_spk${n}"
+            done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+        else
+            # in case that text_spk1, text_spk2 files are manully specified
+            read -ra train_texts <<<"${lm_train_text}"
+            for f in "${train_texts[@]}"; do
+                fname="$(basename ${f})"
+                if [[ "$fname" =~ text_spk[[:digit:]]+ ]]; then
+                    awk -v spk=${fname#text_spk} '{$1=$1 "_spk" spk; print $0}' ${f}
+                else
+                    cat ${f}
+                fi
+            done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+        fi
+        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
+            for n in $(seq ${spk_num}); do
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
+            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
+            lm_dev_text="${data_feats}/lm_dev.txt"
+        fi
     fi
 
 
@@ -678,8 +717,14 @@ if ! "${skip_data_prep}"; then
             log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
 
             mkdir -p "${bpedir}"
-            # shellcheck disable=SC2002
-            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+            if [ "$bpe_train_text" = "${data_feats}/${train_set}/text" ]; then
+                for n in $(seq ${spk_num}); do
+                    cat "${data_feats}/${train_set}/text_spk${n}"
+                done | cut -f 2- -d" "  > "${bpedir}"/train.txt
+            else
+                # shellcheck disable=SC2002
+                cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+            fi
 
             if [ -n "${bpe_nlsyms}" ]; then
                 _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
@@ -1006,23 +1051,48 @@ if ! "${skip_train}"; then
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
 
+        # prepare train and valid data parameters
+        _train_data_param="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/${_scp},speech,${_type} "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/${_scp},speech,${_type} "
+        for n in $(seq "${spk_num}"); do
+            if ${use_speech_ref}; then
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/spk${n}.scp,speech_ref${n},${_type} "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/spk${n}.scp,speech_ref${n},${_type} "
+            fi
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/text_spk${n},text_spk${n},text "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/text_spk${n},text_spk${n},text "
+        done
+
+        if $use_dereverb_ref; then
+            # references for dereverberation
+            _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--train_data_path_and_name_and_type ${_enh_asr_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+            _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+        fi
+
+        if $use_noise_ref; then
+            # references for denoising
+            _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
+                "--train_data_path_and_name_and_type ${_enh_asr_train_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
+            _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
+        fi
+
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_s2t_train \
                 --collect_stats true \
                 --use_preprocessor true \
+                --text_name ${text_names} \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --train_data_path_and_name_and_type "${_enh_asr_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_enh_asr_train_dir}/${_scp},speech_ref1,${_type}" \
-                --train_data_path_and_name_and_type "${_enh_asr_train_dir}/text,text,text" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/${_scp},speech_ref1,${_type}" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/text,text,text" \
+                ${_train_data_param} \
+                ${_valid_data_param} \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1037,13 +1107,15 @@ if ! "${skip_train}"; then
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_asr_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${enh_asr_stats_dir}/train/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${enh_asr_stats_dir}/train/text_shape.${token_type}"
+        for i in $(seq "${spk_num}"); do
+            <"${enh_asr_stats_dir}/train/text_spk${i}_shape" \
+                awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+                >"${enh_asr_stats_dir}/train/text_spk${i}_shape.${token_type}"
 
-        <"${enh_asr_stats_dir}/valid/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${enh_asr_stats_dir}/valid/text_shape.${token_type}"
+            <"${enh_asr_stats_dir}/valid/text_spk${i}_shape" \
+                awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+                >"${enh_asr_stats_dir}/valid/text_spk${i}_shape.${token_type}"
+        done
     fi
 
 
@@ -1091,13 +1163,45 @@ if ! "${skip_train}"; then
             _split_dir="${enh_asr_stats_dir}/splits${num_splits_asr}"
             if [ ! -f "${_split_dir}/.done" ]; then
                 rm -f "${_split_dir}/.done"
+                _scp_list="${_enh_asr_train_dir}/${_scp} "
+                if ${use_speech_ref}; then
+                    for i in $(seq ${spk_num}); do
+                        _scp_list+=" ${_enh_asr_train_dir}/spk${i}.scp"
+                        _scp_list+=" ${_enh_asr_train_dir}/text_spk${i}"
+                    done
+                fi
+                if $use_dereverb_ref; then
+                    # references for dereverberation
+                    _scp_list+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                        " ${_enh_asr_train_dir}/dereverb${n}.scp"; done)
+                fi
+                if $use_noise_ref; then
+                    # references for denoising
+                    _scp_list+=$(for n in $(seq $noise_type_num); do echo -n \
+                        " ${_enh_asr_train_dir}/noise${n}.scp"; done)
+                fi
+
+                _scp_list+=" ${enh_asr_stats_dir}/train/speech_shape"
+                for i in $(seq ${spk_num}); do
+                    if ${use_speech_ref}; then
+                        _scp_list+=" ${enh_asr_stats_dir}/train/speech_ref${i}_shape"
+                    fi
+                    _scp_list+=" ${enh_asr_stats_dir}/train/text_spk${i}_shape.${token_type}"
+                done
+                if $use_dereverb_ref; then
+                    # references for dereverberation
+                    _scp_list+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                        " ${enh_asr_stats_dir}/train/dereverb_ref${n}_shape"; done)
+                fi
+                if $use_noise_ref; then
+                    # references for denoising
+                    _scp_list+=$(for n in $(seq $noise_type_num); do echo -n \
+                        " ${enh_asr_stats_dir}/train/noise_ref${n}_shape"; done)
+                fi
+
+
                 ${python} -m espnet2.bin.split_scps \
-                  --scps \
-                      "${_enh_asr_train_dir}/${_scp}" \
-                      "${_enh_asr_train_dir}/text" \
-                      "${enh_asr_stats_dir}/train/speech_shape" \
-                      "${enh_asr_stats_dir}/train/speech_ref1_shape" \
-                      "${enh_asr_stats_dir}/train/text_shape.${token_type}" \
+                  --scps "${_scp_list}" \
                   --num_splits "${num_splits_asr}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
@@ -1105,21 +1209,101 @@ if ! "${skip_train}"; then
                 log "${_split_dir}/.done exists. Spliting is skipped"
             fi
 
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/spk1.scp,speech_ref1,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
-            _opts+="--train_shape_file ${_split_dir}/speech_shape "
-            _opts+="--train_shape_file ${_split_dir}/speech_ref1_shape "
-            _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+            _train_param+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+            _train_param+="--train_shape_file ${_split_dir}/speech_shape "
+            for i in $(seq ${spk_num}); do
+                if ${use_speech_ref}; then
+                    _opts+="--train_data_path_and_name_and_type ${_split_dir}/spk${i}.scp,speech_ref${i},${_type} "
+                    _opts+="--train_shape_file ${_split_dir}/speech_ref${i}_shape "
+                fi
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text_spk${i},text_spk${i},text "
+                _opts+="--train_shape_file ${_split_dir}/text_spk${i}_shape.${token_type} "
+            done
+            if $use_dereverb_ref; then
+                # references for dereverberation
+                _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                    "--train_data_path_and_name_and_type ${_split_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+                _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                    "--train_shape_file ${_split_dir}/dereverb_ref${n}_shape "; done)
+            fi
+
+            if $use_noise_ref; then
+                # references for denoising
+                _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                    "--train_data_path_and_name_and_type ${_split_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
+                _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                    "--train_shape_file ${_split_dir}/noise_ref${n}_shape "; done)
+            fi
             _opts+="--multiple_iterator true "
 
         else
             _opts+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/spk1.scp,speech_ref1,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/text,text,text "
             _opts+="--train_shape_file ${enh_asr_stats_dir}/train/speech_shape "
-            _opts+="--train_shape_file ${enh_asr_stats_dir}/train/speech_ref1_shape "
-            _opts+="--train_shape_file ${enh_asr_stats_dir}/train/text_shape.${token_type} "
+            for i in $(seq ${spk_num}); do
+                if ${use_speech_ref}; then
+                    _opts+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/spk${i}.scp,speech_ref${i},${_type} "
+                    _opts+="--train_shape_file ${enh_asr_stats_dir}/train/speech_ref${i}_shape "
+                fi
+                _opts+="--train_data_path_and_name_and_type ${_enh_asr_train_dir}/text_spk${i},text_spk${i},text "
+                _opts+="--train_shape_file ${enh_asr_stats_dir}/train/text_spk${i}_shape.${token_type} "
+            done
+
+            if $use_dereverb_ref; then
+                # references for dereverberation
+                _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                    "--train_data_path_and_name_and_type ${_enh_asr_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+                _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                    "--train_shape_file ${enh_asr_stats_dir}/train/dereverb_ref${n}_shape "; done)
+            fi
+
+            if $use_noise_ref; then
+                # references for denoising
+                _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                    "--train_data_path_and_name_and_type ${_enh_asr_train_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
+                _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                    "--train_shape_file ${enh_asr_stats_dir}/train/noise_ref${n}_shape "; done)
+            fi
+        fi
+        _opts+="--fold_length ${_fold_length} "
+        if ${use_speech_ref}; then
+            for i in $(seq ${spk_num}); do
+                _opts+="--fold_length ${_fold_length} "
+                _opts+="--fold_length ${enh_asr_text_fold_length} "
+            done
+        fi
+        if $use_dereverb_ref; then
+            _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--fold_length ${_fold_length} "; done)
+        fi
+        if $use_noise_ref; then
+            _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                "--fold_length ${_fold_length} "; done)
+        fi
+
+        # Prepare _opts for the valid set
+        _opts+="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_shape_file ${enh_asr_stats_dir}/valid/speech_shape "
+        for i in $(seq ${spk_num}); do
+            if ${use_speech_ref}; then
+                _opts+="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/spk${i}.scp,speech_ref${i},${_type} "
+                _opts+="--valid_shape_file ${enh_asr_stats_dir}/valid/speech_ref${i}_shape "
+            fi
+            _opts+="--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/text_spk${i},text_spk${i},text "
+            _opts+="--valid_shape_file ${enh_asr_stats_dir}/valid/text_spk${i}_shape.${token_type} "
+        done
+        if $use_dereverb_ref; then
+            # references for dereverberation
+            _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+            _opts+=$(for n in $(seq $dereverb_ref_num); do echo -n \
+                "--valid_shape_file ${enh_asr_stats_dir}/valid/dereverb_ref${n}_shape "; done)
+        fi
+        if $use_noise_ref; then
+            # references for denoising
+            _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                "--valid_data_path_and_name_and_type ${_enh_asr_valid_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
+            _opts+=$(for n in $(seq $noise_type_num); do echo -n \
+                "--valid_shape_file ${enh_asr_stats_dir}/valid/noise_ref${n}_shape "; done)
         fi
 
         log "Generate '${enh_asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
@@ -1144,24 +1328,16 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.enh_s2t_train \
                 --use_preprocessor true \
+                --text_name ${text_names} \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/spk1.scp,speech_ref1,${_type}" \
-                --valid_data_path_and_name_and_type "${_enh_asr_valid_dir}/text,text,text" \
-                --valid_shape_file "${enh_asr_stats_dir}/valid/speech_shape" \
-                --valid_shape_file "${enh_asr_stats_dir}/valid/speech_ref1_shape" \
-                --valid_shape_file "${enh_asr_stats_dir}/valid/text_shape.${token_type}" \
                 --resume true \
-                --init_param ${pretrained_model} \
+                ${pretrained_model:+--init_param $pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
-                --fold_length "${_fold_length}" \
-                --fold_length "${_fold_length}" \
-                --fold_length "${enh_asr_text_fold_length}" \
                 --output_dir "${enh_asr_exp}" \
                 ${_opts} ${enh_asr_args}
 
@@ -1283,10 +1459,12 @@ if ! "${skip_eval}"; then
                     ${_opts} ${asr_inference_args}
 
             # 3. Concatenates the output files from each jobs
-            for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+            for spk in $(seq "${spk_num}"); do
+                for f in token token_int score text; do
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/1best_recog/${f}_spk${spk}"
+                    done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
+                done
             done
 
         done
@@ -1380,93 +1558,108 @@ if ! "${skip_eval}"; then
                 _scoredir="${_dir}/score_${_type}"
                 mkdir -p "${_scoredir}"
 
-                if [ "${_type}" = wer ]; then
-                    # Tokenize text to word level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                for i in $(seq "${spk_num}"); do
+                    if [ "${_type}" = wer ]; then
+                        # Tokenize text to word level
+                        paste \
+                            <(<"${_data}/text_spk${i}" \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type word \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/ref_spk${i}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${i}"  \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type word \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/hyp_spk${i}.trn"
 
 
-                elif [ "${_type}" = cer ]; then
-                    # Tokenize text to char level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                    elif [ "${_type}" = cer ]; then
+                        # Tokenize text to char level
+                        paste \
+                            <(<"${_data}/text_spk${i}" \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type char \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/ref_spk${i}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${i}"  \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type char \
+                                    --non_linguistic_symbols "${nlsyms_txt}" \
+                                    --remove_non_linguistic_symbols true \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/hyp_spk${i}.trn"
 
-                elif [ "${_type}" = ter ]; then
-                    # Tokenize text using BPE
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                    elif [ "${_type}" = ter ]; then
+                        # Tokenize text using BPE
+                        paste \
+                            <(<"${_data}/text_spk${i}" \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type bpe \
+                                    --bpemodel "${bpemodel}" \
+                                    --cleaner "${cleaner}" \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/ref_spk${i}.trn"
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
+                        # NOTE(kamo): Don't use cleaner for hyp
+                        paste \
+                            <(<"${_dir}/text_spk${i}" \
+                                ${python} -m espnet2.bin.tokenize_text  \
+                                    -f 2- --input - --output - \
+                                    --token_type bpe \
+                                    --bpemodel "${bpemodel}" \
+                                    ) \
+                            <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                                >"${_scoredir}/hyp_spk${i}.trn"
 
-                fi
+                    fi
+                done
+
+                # PIT scoring
+                for r_spk in $(seq "${spk_num}"); do
+                    for h_spk in $(seq "${spk_num}"); do
+                        sclite \
+                            -r "${_scoredir}/ref_spk${r_spk}.trn" trn \
+                            -h "${_scoredir}/hyp_spk${h_spk}.trn" trn \
+                            -i rm -o all stdout > "${_scoredir}/result_r${r_spk}h${h_spk}.txt"
+                    done
+                done
+
+                scripts/utils/eval_perm_free_error.py --num-spkrs ${spk_num} \
+                    --results-dir ${_scoredir}
 
                 sclite \
-            ${score_opts} \
                     -r "${_scoredir}/ref.trn" trn \
                     -h "${_scoredir}/hyp.trn" trn \
                     -i rm -o all stdout > "${_scoredir}/result.txt"
 
                 log "Write ${_type} result in ${_scoredir}/result.txt"
                 grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+
             done
         done
 
@@ -1480,11 +1673,15 @@ if ! "${skip_eval}"; then
 
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Scoring Enhancement"
+        if ! ${use_speech_ref}; then
+            log "Error: --use_speech_ref must be true for evaluating enhancement performance"
+            exit 1
+        fi
+
         _cmd=${decode_cmd}
 
         # score_obs=true: Scoring for observation signal
         # score_obs=false: Scoring for enhanced signal
-        # for score_obs in true false; do
         for score_obs in true false; do
             # Peform only at the first time for observation
             if "${score_obs}" && [ -e "${data_feats}/RESULTS_enh.md" ]; then

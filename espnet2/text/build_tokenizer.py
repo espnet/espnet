@@ -5,8 +5,10 @@ from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 from espnet2.text.char_tokenizer import CharTokenizer
+from espnet2.text.hugging_face_tokenizer import HuggingFaceTokenizer
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 from espnet2.text.word_tokenizer import WordTokenizer
 
 
@@ -30,6 +32,17 @@ def build_tokenizer(
                 "remove_non_linguistic_symbols is not implemented for token_type=bpe"
             )
         return SentencepiecesTokenizer(bpemodel)
+
+    if token_type == "hugging_face":
+        if bpemodel is None:
+            raise ValueError('bpemodel is required if token_type = "hugging_face"')
+
+        if remove_non_linguistic_symbols:
+            raise RuntimeError(
+                "remove_non_linguistic_symbols is not "
+                + "implemented for token_type=hugging_face"
+            )
+        return HuggingFaceTokenizer(bpemodel)
 
     elif token_type == "word":
         if remove_non_linguistic_symbols and non_linguistic_symbols is not None:
@@ -55,6 +68,9 @@ def build_tokenizer(
             space_symbol=space_symbol,
             remove_non_linguistic_symbols=remove_non_linguistic_symbols,
         )
+
+    elif "whisper" in token_type:
+        return OpenAIWhisperTokenizer(bpemodel)
 
     else:
         raise ValueError(
