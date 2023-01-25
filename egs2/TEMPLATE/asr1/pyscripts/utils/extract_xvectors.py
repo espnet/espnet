@@ -5,11 +5,9 @@
 import argparse
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
 
-import git
 import kaldiio
 import numpy as np
 import torch
@@ -58,15 +56,6 @@ class XVExtractor:
                 source=args.pretrained_model, run_opts={"device": device}
             )
         elif self.toolkit == "rawnet":
-            if not os.path.exists("RawNet"):
-                git.Repo.clone_from("https://github.com/Jungjee/RawNet", "RawNet")
-            repo = git.Repo("RawNet")
-            repo.git.submodule("update", "--init", "--recursive")
-            sys.path.append("RawNet/python/RawNet3/models")
-            sys.path.append("RawNet/python/RawNet3")
-            subprocess.check_call(
-                [sys.executable, "-m", "pip", "install", "asteroid-filterbanks==0.4.0"]
-            )
             from RawNet3 import RawNet3
             from RawNetBasicBlock import Bottle2neck
 
@@ -83,10 +72,10 @@ class XVExtractor:
                 norm_sinc="mean",
                 grad_mult=1,
             )
-
+            tools_dir = Path(os.getcwd()).parent.parent.parent / "tools"
             self.model.load_state_dict(
                 torch.load(
-                    "RawNet/python/RawNet3/models/weights/model.pt",
+                    tools_dir / "RawNet/python/RawNet3/models/weights/model.pt",
                     map_location=lambda storage, loc: storage,
                 )["model"]
             )
