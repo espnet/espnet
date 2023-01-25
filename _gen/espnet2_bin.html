@@ -506,6 +506,7 @@ Text converter related:
                     [--noise_apply_prob NOISE_APPLY_PROB]
                     [--noise_db_range NOISE_DB_RANGE]
                     [--short_noise_thres SHORT_NOISE_THRES]
+                    [--aux_ctc_tasks AUX_CTC_TASKS [AUX_CTC_TASKS ...]]
                     [--frontend {default,sliding_window,s3prl,fused,whisper}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
@@ -903,6 +904,8 @@ Optimizer related:
                         The range of noise decibel level. (default: 13_15)
   --short_noise_thres SHORT_NOISE_THRES
                         If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
+  --aux_ctc_tasks AUX_CTC_TASKS [AUX_CTC_TASKS ...]
+                        Auxillary tasks to train on using CTC loss.  (default: [])
   --frontend {default,sliding_window,s3prl,fused,whisper}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
@@ -2710,7 +2713,7 @@ Optimizer related:
   --enh_model_conf ENH_MODEL_CONF
                         The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
   --asr_model_conf ASR_MODEL_CONF
-                        The keyword arguments for asr submodel class. (default: {&#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;lang_token_id&#39;: -1})
+                        The keyword arguments for asr submodel class. (default: {&#39;aux_ctc&#39;: None, &#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;lang_token_id&#39;: -1})
   --st_model_conf ST_MODEL_CONF
                         The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
   --diar_model_conf DIAR_MODEL_CONF

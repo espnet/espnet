@@ -320,6 +320,7 @@ asr_train.py
                         [--noise_apply_prob NOISE_APPLY_PROB]
                         [--noise_db_range NOISE_DB_RANGE]
                         [--short_noise_thres SHORT_NOISE_THRES]
+                        [--aux_ctc_tasks AUX_CTC_TASKS [AUX_CTC_TASKS ...]]
                         [--frontend {default,sliding_window,s3prl,fused,whisper}]
                         [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                         [--specaug_conf SPECAUG_CONF]
@@ -717,6 +718,8 @@ asr_train.py
                             The range of noise decibel level. (default: 13_15)
       --short_noise_thres SHORT_NOISE_THRES
                             If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
+      --aux_ctc_tasks AUX_CTC_TASKS [AUX_CTC_TASKS ...]
+                            Auxillary tasks to train on using CTC loss.  (default: [])
       --frontend {default,sliding_window,s3prl,fused,whisper}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
@@ -2536,7 +2539,7 @@ enh_s2t_train.py
       --enh_model_conf ENH_MODEL_CONF
                             The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
       --asr_model_conf ASR_MODEL_CONF
-                            The keyword arguments for asr submodel class. (default: {'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
+                            The keyword arguments for asr submodel class. (default: {'aux_ctc': None, 'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
       --st_model_conf ST_MODEL_CONF
                             The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
       --diar_model_conf DIAR_MODEL_CONF
