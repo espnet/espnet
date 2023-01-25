@@ -380,7 +380,7 @@ class LayerNormalization4D(nn.Module):
 
 class LayerNormalization4DCF(nn.Module):
     def __init__(self, input_dimension, eps=1e-5):
-        super(LayerNormalization4DCF, self).__init__()
+        super().__init__()
         assert len(input_dimension) == 2
         param_size = [1, input_dimension[0], 1, input_dimension[1]]
         self.gamma = Parameter(torch.Tensor(*param_size).to(torch.float32))
