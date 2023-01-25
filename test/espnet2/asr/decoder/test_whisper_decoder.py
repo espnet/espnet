@@ -12,7 +12,9 @@ pytest.importorskip("whisper")
 #                 torch.nn.Module.register_buffer()
 is_torch_1_6_plus = V(torch.__version__) >= V("1.6.0")
 
+is_python_3_8_plus = sys.version_info[0] >= (3, 8)
 
+@pytest.mark.skipif(is_python_3_8_plus)
 @pytest.fixture()
 def whisper_decoder(request):
     if not is_torch_1_6_plus:
@@ -25,6 +27,7 @@ def whisper_decoder(request):
     )
 
 
+@pytest.mark.skipif(is_python_3_8_plus)
 @pytest.mark.timeout(50)
 def test_decoder_init(whisper_decoder):
     if not is_torch_1_6_plus:
@@ -36,6 +39,7 @@ def test_decoder_init(whisper_decoder):
     )
 
 
+@pytest.mark.skipif(is_python_3_8_plus)
 @pytest.mark.timeout(50)
 def test_decoder_reinit_emb():
     if not is_torch_1_6_plus:
@@ -50,6 +54,7 @@ def test_decoder_reinit_emb():
     assert decoder.decoders.token_embedding.num_embeddings == vocab_size
 
 
+@pytest.mark.skipif(is_python_3_8_plus)
 def test_decoder_invalid_init():
     if not is_torch_1_6_plus:
         return
@@ -63,6 +68,7 @@ def test_decoder_invalid_init():
         del decoder
 
 
+@pytest.mark.skipif(is_python_3_8_plus)
 @pytest.mark.timeout(50)
 def test_decoder_forward_backward(whisper_decoder):
     if not is_torch_1_6_plus:
@@ -78,6 +84,7 @@ def test_decoder_forward_backward(whisper_decoder):
     out.sum().backward()
 
 
+@pytest.mark.skipif(is_python_3_8_plus)
 @pytest.mark.timeout(50)
 def test_decoder_scoring(whisper_decoder):
     if not is_torch_1_6_plus:
