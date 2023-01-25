@@ -393,7 +393,7 @@ class LayerNormalization4DCF(nn.Module):
         if x.ndim == 4:
             stat_dim = (1, 3)
         else:
-            raise
+            raise ValueError("Expect x to have 4 dimensions, but got {}".format(x.ndim))
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,1,T,1]
         std_ = torch.sqrt(
             x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
