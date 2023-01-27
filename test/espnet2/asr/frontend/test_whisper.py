@@ -16,36 +16,27 @@ is_python_3_8_plus = sys.version_info >= (3, 8)
 @pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.fixture()
 def whisper_frontend(request):
-    if not is_torch_1_7_plus:
-        return None
-
     with torch.no_grad():
         return WhisperFrontend("tiny")
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_frontend_init():
-    if not is_torch_1_7_plus:
-        return
-
     frontend = WhisperFrontend("tiny")
     assert frontend.output_size() == 384
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 def test_frontend_invalid_init():
-    if not is_torch_1_7_plus:
-        return
-
     with pytest.raises(AssertionError):
         frontend = WhisperFrontend("aaa")
         del frontend
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_frontend_forward_no_ilens(whisper_frontend):
-    if not is_torch_1_7_plus:
-        return
-
     input_tensor = torch.randn(
         4, 3200, device=next(whisper_frontend.parameters()).device
     )
@@ -54,11 +45,9 @@ def test_frontend_forward_no_ilens(whisper_frontend):
     assert feats.size() == torch.Size([4, 10, 384])
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_frontend_forward_ilens(whisper_frontend):
-    if not is_torch_1_7_plus:
-        return
-
     input_tensor = torch.randn(
         4, 3200, device=next(whisper_frontend.parameters()).device
     )

@@ -26,6 +26,7 @@ def whisper_decoder(request):
     )
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_6_plus)
 @pytest.mark.timeout(50)
 def test_decoder_init(whisper_decoder):
     assert (
@@ -34,6 +35,7 @@ def test_decoder_init(whisper_decoder):
     )
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_6_plus)
 @pytest.mark.timeout(50)
 def test_decoder_reinit_emb():
     vocab_size = 1000
@@ -45,6 +47,7 @@ def test_decoder_reinit_emb():
     assert decoder.decoders.token_embedding.num_embeddings == vocab_size
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_6_plus)
 def test_decoder_invalid_init():
     with pytest.raises(AssertionError):
         decoder = OpenAIWhisperDecoder(
@@ -55,6 +58,7 @@ def test_decoder_invalid_init():
         del decoder
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_6_plus)
 @pytest.mark.timeout(50)
 def test_decoder_forward_backward(whisper_decoder):
     hs_pad = torch.randn(4, 100, 384, device=next(whisper_decoder.parameters()).device)
@@ -67,6 +71,7 @@ def test_decoder_forward_backward(whisper_decoder):
     out.sum().backward()
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_6_plus)
 @pytest.mark.timeout(50)
 def test_decoder_scoring(whisper_decoder):
     hs_pad = torch.randn(4, 100, 384, device=next(whisper_decoder.parameters()).device)

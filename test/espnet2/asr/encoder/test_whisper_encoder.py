@@ -16,36 +16,27 @@ is_python_3_8_plus = sys.version_info >= (3, 8)
 @pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.fixture()
 def whisper_encoder(request):
-    if not is_torch_1_7_plus:
-        return None
-
     encoder = OpenAIWhisperEncoder(whisper_model="tiny")
 
     return encoder
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_encoder_init(whisper_encoder):
-    if not is_torch_1_7_plus:
-        return
-
     assert whisper_encoder.output_size() == 384
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 def test_encoder_invalid_init():
-    if not is_torch_1_7_plus:
-        return
-
     with pytest.raises(AssertionError):
         encoder = OpenAIWhisperEncoder(whisper_model="aaa")
         del encoder
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_encoder_forward_no_ilens(whisper_encoder):
-    if not is_torch_1_7_plus:
-        return
-
     input_tensor = torch.randn(
         4, 3200, device=next(whisper_encoder.parameters()).device
     )
@@ -54,11 +45,9 @@ def test_encoder_forward_no_ilens(whisper_encoder):
     assert xs_pad.size() == torch.Size([4, 10, 384])
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_encoder_forward_ilens(whisper_encoder):
-    if not is_torch_1_7_plus:
-        return
-
     input_tensor = torch.randn(
         4, 3200, device=next(whisper_encoder.parameters()).device
     )
@@ -71,11 +60,9 @@ def test_encoder_forward_ilens(whisper_encoder):
     assert torch.equal(olens.cpu(), torch.tensor([2, 3, 5, 10]))
 
 
+@pytest.mark.skipif(not is_python_3_8_plus or not is_torch_1_7_plus)
 @pytest.mark.timeout(50)
 def test_encoder_backward(whisper_encoder):
-    if not is_torch_1_7_plus:
-        return
-
     whisper_encoder.train()
     input_tensor = torch.randn(
         4, 3200, device=next(whisper_encoder.parameters()).device
