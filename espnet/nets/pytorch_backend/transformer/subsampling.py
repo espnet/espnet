@@ -101,6 +101,7 @@ class Conv2dSubsampling(torch.nn.Module):
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
         return self.out[key]
 
+
 class Conv2dSubsampling1(torch.nn.Module):
     """Convolutional 2D subsampling (to the same length).
 
