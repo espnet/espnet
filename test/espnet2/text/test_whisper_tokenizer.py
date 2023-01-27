@@ -1,10 +1,15 @@
+import sys
+
 import pytest
 
 from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
 pytest.importorskip("whisper")
 
+is_python_3_8_plus = sys.version_info >= (3, 8)
 
+
+@pytest.mark.skipif(not is_python_3_8_plus)
 @pytest.fixture(params=["whisper_multilingual"])
 def whisper_tokenizer(request):
     return OpenAIWhisperTokenizer(request.param)
