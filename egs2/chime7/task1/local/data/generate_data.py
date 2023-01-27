@@ -272,7 +272,6 @@ def prep_mixer6(root_dir, out_dir, eval_gt=False, eval_only=False,
              for x in sess2audio[sess_name]]
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Data generation script for CHiME-7 Task 1 data.",
                                      add_help=True, usage='%(prog)s [options]')
@@ -288,7 +287,7 @@ if __name__ == "__main__":
     parser.add_argument("-o,--output_root", type=str, metavar='STR', dest="output_root",
                         help="Path where the new CHiME-7 Task 1 dataset will be saved."
                              "Note that for audio files symbolic links are used.")
-    parser.add_argument("--eval_gt", type=str, default=0, metavar='STR',
+    parser.add_argument("--eval_gt", type=int, default=0, metavar='INT',
                         help="Choose between 0 and 1, 1 will create mixer6 eval annotation also for mixer6 speech, "
                              "it will be released later, ignore for now.")
     parser.add_argument("--txt_norm_scoring", type=str, default="chime6", metavar='STR',
@@ -296,8 +295,8 @@ if __name__ == "__main__":
                              "the scoring annotation.")
     args = parser.parse_args()
     prep_chime6(args.chime6_root, os.path.join(args.output_root, "chime6"), args.txt_norm_scoring)
-    prep_chime6(args.dipco_root, os.path.join(args.output_root, "dipco"), args.txt_norm_scoring)
+    prep_dipco(args.dipco_root, os.path.join(args.output_root, "dipco"), args.txt_norm_scoring)
     prep_mixer6(args.mixer6_root, os.path.join(args.output_root, "mixer6"),
-                eval_gt=args.eval_gt,
+                eval_gt=bool(args.eval_gt),
                 scoring_txt_normalization=args.txt_norm_scoring)
 
