@@ -41,6 +41,8 @@ python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
+post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
+auxiliary_data_tags= # the names of training data for auxiliary tasks
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -710,6 +712,11 @@ if ! "${skip_data_prep}"; then
                 "${data_feats}/${dset}"
         done
 
+        if [ -n "${post_process_local_data_opts}" ]; then
+            # Do any additional local data post-processing here
+            local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
+        fi 
+
         # shellcheck disable=SC2002,SC2068,SC2005
         for lm_txt in ${lm_train_text[@]}; do
             suffix=$(echo "$(basename ${lm_txt})" | sed 's/text//')
@@ -1186,6 +1193,14 @@ if ! "${skip_train}"; then
         else
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
+
+            read -r -a aux_list <<< "$auxiliary_data_tags"
+            if [ ${#aux_list[@]} != 0 ]; then
+                _opts+="--allow_variable_data_keys True "
+                for aux_dset in "${aux_list[@]}"; do
+                     _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
+                done
+            fi
             # shellcheck disable=SC2068
             for i in ${!ref_text_names[@]}; do
                 _opts+="--fold_length ${asr_text_fold_length} "

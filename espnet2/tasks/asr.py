@@ -373,6 +373,13 @@ class ASRTask(AbsTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--aux_ctc_tasks",
+            type=str,
+            nargs="+",
+            default=[],
+            help="Auxillary tasks to train on using CTC loss. ",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -432,6 +439,9 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
+                aux_task_names=args.aux_ctc_tasks
+                if hasattr(args, "aux_ctc_tasks")
+                else None,
                 **args.preprocessor_conf,
             )
         else:
@@ -455,9 +465,11 @@ class ASRTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         MAX_REFERENCE_NUM = 4
-        retval = []
-        retval += ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+
+        retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
+
+        logging.info(f"Optional Data Names: {retval }")
         assert check_return_type(retval)
         return retval
 
