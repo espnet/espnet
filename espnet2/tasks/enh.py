@@ -53,12 +53,12 @@ from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.ineube_separator import iNeuBe
-from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
