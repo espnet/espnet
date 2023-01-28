@@ -11,8 +11,9 @@
 
 ## asr_train_asr_ebranchformer_small_wavlm_large1
 
-- [train_asr_ebranchformer_small_wavlm_large.yaml](conf/tuning/train_asr_ebranchformer_small_wavlm_large.yaml)
+- [train_asr_ebranchformer_small_wavlm_large1.yaml](conf/tuning/train_asr_ebranchformer_small_wavlm_large1.yaml)
 - Control group data is included
+- Downsampling rate = 2 = 2 (WavLM) * 1 (`Conv2dSubsampling1`)
 - [Hugging Face](https://huggingface.co/espnet/jiyang_tang_aphsiabank_english_asr_ebranchformer_small_wavlm_large1)
 
 ### WER
@@ -31,6 +32,7 @@
 
 - [train_asr_ebranchformer_small_wavlm_large.yaml](conf/tuning/train_asr_ebranchformer_small_wavlm_large.yaml)
 - Control group data is included
+- Downsampling rate = 4 = 2 (WavLM) * 2 (`Conv2dSubsampling2`)
 - [Hugging Face](https://huggingface.co/espnet/jiyang_tang_aphsiabank_english_asr_ebranchformer_small_wavlm_large)
 
 ### WER
