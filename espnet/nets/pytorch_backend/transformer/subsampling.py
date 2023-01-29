@@ -103,7 +103,7 @@ class Conv2dSubsampling(torch.nn.Module):
 
 
 class Conv2dSubsampling1(torch.nn.Module):
-    """Convolutional 2D subsampling (to the same length).
+    """Similar to Conv2dSubsampling module, but without any subsampling performed.
 
     Args:
         idim (int): Input dimension.
@@ -128,15 +128,17 @@ class Conv2dSubsampling1(torch.nn.Module):
         )
 
     def forward(self, x, x_mask):
-        """Subsample x with a ratio of 1.
+        """Pass x through 2 Conv2d layers without subsampling.
 
         Args:
             x (torch.Tensor): Input tensor (#batch, time, idim).
             x_mask (torch.Tensor): Input mask (#batch, 1, time).
 
         Returns:
-            torch.Tensor: Subsampled tensor (#batch, time, odim).
-            torch.Tensor: Subsampled mask (#batch, 1, time).
+            torch.Tensor: Subsampled tensor (#batch, time', odim).
+                where time' = time - 4.
+            torch.Tensor: Subsampled mask (#batch, 1, time').
+                where time' = time - 4.
 
         """
         x = x.unsqueeze(1)  # (b, c, t, f)
