@@ -36,6 +36,7 @@ module_list = [
     ("pykeops", None, "installers/install_cauchy_mult.sh"),
     ("whisper", None, "installers/install_whisper.sh"),
     ("RawNet3", None, "installers/install_rawnet.sh"),
+    ("reazonspeech", None, "installers/install_reazonspeech.sh"),
 ]
 
 executable_list = [

@@ -1,11 +1,13 @@
 if ! python3 -c 'import datasets' > /dev/null; then
-    echo "ERR: Module 'datasets' is not installed." >&2
-    echo "ERR: See 'https://huggingface.co/docs/datasets/quickstart'" >&2
+    echo "Error: it seems that datasets is not installed." >&2
+    echo "Error: please install datasets as follows." >&2
+    echo "Error: cd ${MAIN_ROOT}/tools/installers && ./install_datasets.sh" >&2
     return 1
 fi
 
 if ! python3 -c 'import reazonspeech' > /dev/null; then
-    echo "ERR: Module 'reazonspeech' is not installed." >&2
-    echo "ERR: See 'https://github.com/reazon-research/ReazonSpeech'" >&2
+    echo "Error: it seems that reazonspeech is not installed." >&2
+    echo "Error: please install reazonspeech as follows." >&2
+    echo "Error: cd ${MAIN_ROOT}/tools/installers && ./install_reazonspeech.sh" >&2
     return 1
 fi
