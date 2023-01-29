@@ -17,9 +17,14 @@ stage=0
 stop_stage=1
 SECONDS=0
 
+if [ -z "${REAZONSPEECH}" ]; then
+    log "Fill the value of 'REAZONSPEECH' of db.sh"
+    exit 1
+fi
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage1: Download dataset into downloads/"
-    python3 local/data.py
+    log "stage1: Download data to ${REAZONSPEECH}"
+    python3 local/data.py ${REAZONSPEECH}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -1,4 +1,5 @@
 import os
+import sys
 from datasets import load_dataset
 from reazonspeech.text import normalize
 
@@ -25,7 +26,11 @@ def save_kaldi_format(outdir, ds):
             print(spkid, uttid, file=fp_spk2utt)
 
 def main():
-    ds = load_dataset("reazon-research/reazonspeech", "all", cache_dir="downloads/cache")["train"]
+    if len(sys.argv) != 2:
+        print("Usage: %s <download_dir>" % sys.argv[0], file=sys.stderr)
+        return 1
+    download_dir = sys.argv[1]
+    ds = load_dataset("reazon-research/reazonspeech", "all", cache_dir=download_dir)["train"]
     save_kaldi_format('data/dev', ds.select(range(1000)))
     save_kaldi_format('data/test', ds.select(range(1000, 2000)))
     save_kaldi_format('data/train', ds.select(range(2000, ds.num_rows)))
