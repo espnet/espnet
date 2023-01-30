@@ -26,12 +26,10 @@ fi
 . ./cmd.sh || exit 1;
 
 nlsyms=data/nlsyms.txt
-
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    # create a dummy non-linguistic symbols file, these should be already removed in data prep
     log "stage 2: Create DUMMY non linguistic symbols file: ${nlsyms}"
-    touch ${nlsyms}
-    #cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms}
-    #cat ${nlsyms}
+    touch ${nlsyms} # dummy empty file
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
