@@ -34,7 +34,7 @@ encoder_conf:
   positional_dropout_rate: 0.1
   attention_dropout_rate: 0.1
   layer_drop_rate: 0.1
-  input_layer: conv2d2 # subsampling rate = 2 (WavLM) * 2 (conv2d2)
+  input_layer: conv2d1 # subsampling rate = 2 (WavLM) * 1 (conv2d1)
   macaron_ffn: true
   pos_enc_layer_type: rel_pos
   attention_layer_type: rel_selfattn
@@ -65,10 +65,10 @@ num_workers: 4
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel
-batch_bins: 5000000
-accum_grad: 9
+batch_bins: 3000000
+accum_grad: 16
 grad_clip: 5
-max_epoch: 40
+max_epoch: 30
 patience: none
 init: none
 best_model_criterion:

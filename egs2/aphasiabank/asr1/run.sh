@@ -10,7 +10,7 @@ valid_set="val"
 test_sets="test"
 include_control=true
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_ebranchformer_small_wavlm_large.yaml
 
 feats_normalize=global_mvn
 if [[ ${asr_config} == *"hubert"* ]] || [[ ${asr_config} == *"wavlm"* ]]; then
