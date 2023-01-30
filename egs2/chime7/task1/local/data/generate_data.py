@@ -194,7 +194,10 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7"):
             # create symlinks too but swap names for the sessions too
             for x in sess2audio[sess_name]:
                 filename = new_sess_name + "_" + "_".join(Path(x).stem.split("_")[1:])
-                os.symlink(x, os.path.join(out_dir, "audio", filename + ".wav"))
+                if filename.split("_")[1].startswith("P"):
+                    speaker_id = filename.split("_")[1]
+                    filename = filename.split("_")[0] + "_P{:02d}".format(dipco_offset + int(speaker_id.strip("P")))
+                os.symlink(x, os.path.join(out_dir, "audio", split, filename + ".wav"))
 
 
 def prep_mixer6(root_dir, out_dir, eval_gt=False, eval_only=False,
@@ -268,7 +271,7 @@ def prep_mixer6(root_dir, out_dir, eval_gt=False, eval_only=False,
             with open(os.path.join(out_dir, "transcriptions_scoring", c_split, sess_name + ".json"), "w") as f:
                 json.dump(annotation_scoring, f, indent=4)
             # create symlinks too
-            [os.symlink(x, os.path.join(out_dir, "audio", c_split, Path(x).stem + ".wav")) \
+            [os.symlink(x, os.path.join(out_dir, "audio", c_split, Path(x).stem + ".flac")) \
              for x in sess2audio[sess_name]]
 
 
