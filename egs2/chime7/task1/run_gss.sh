@@ -41,7 +41,7 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
 fi
 
 if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
-  echo "Stage 4: Enhance segments using GSS (outer array mics)"
+  echo "Stage 4: Enhance segments using GSS"
   $cmd JOB=1:$nj  ${exp_dir}/${dset_name}/${dset_part}/log/enhance.JOB.log \
     gss enhance cuts \
       ${exp_dir}/${dset_name}/${dset_part}/cuts.jsonl.gz  ${exp_dir}/${dset_name}/${dset_part}/split$nj/cuts_per_segment.JOB.jsonl.gz \
