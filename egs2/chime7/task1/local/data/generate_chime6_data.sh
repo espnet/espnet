@@ -56,7 +56,7 @@ sessions1="S01 S02 S03 S04 S05 S06 S07"
 sessions2="S08 S09 S12 S13 S16 S17 S18"
 sessions3="S19 S20 S21 S22 S23 S24"
 
-CONDA_PATH=${HOME}/miniconda3/bin
+CONDA_PATH=${MAIN_ROOT}/tools/venv/bin
 IN_PATH=${sdir}/audio
 OUT_PATH=${odir}/audio
 TMP_PATH=${odir}/audio_tmp
