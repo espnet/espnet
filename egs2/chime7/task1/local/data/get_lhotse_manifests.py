@@ -2,7 +2,7 @@
 Slighly modified versions of lhotse recipes scripts in
 https://github.com/lhotse-speech/lhotse/blob/master/lhotse/recipes/
 """
-
+import lhotse
 import glob
 import os.path
 import tarfile
@@ -12,7 +12,6 @@ from typing import Dict, Optional, Union
 import argparse
 import json
 import soundfile as sf
-
 from lhotse import fix_manifests, validate_recordings_and_supervisions
 from lhotse.audio import AudioSource, Recording, RecordingSet
 from lhotse.supervision import SupervisionSegment, SupervisionSet
@@ -26,6 +25,8 @@ def prepare_chime6(
     dset_part: str ="dev",
     mic: str = "mdm",
     normalize_text: str = "chime6",
+    json_dir: Optional[Pathlike] = None, # alternative annotation e.g. from non-oracle diarization
+    ignore_shorter: Optional[float] = 0.2
 ) -> Dict[str, Dict[str, Union[RecordingSet, SupervisionSet]]]:
     """
     Returns the manifests which consist of the Recordings and Supervisions
@@ -39,19 +40,19 @@ def prepare_chime6(
     import soundfile as sf
     assert mic in ["ihm", "mdm"], "mic must be either 'ihm' or 'mdm'."
     txt_normalization = choose_txt_normalization(normalize_text)
+    transcriptions_dir = os.path.join(corpus_dir, "transcriptions_scoring") if json_dir is None else json_dir
 
     if output_dir:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-    all_sessions = [Path(x).stem for x in glob.glob(os.path.join(corpus_dir, "transcriptions", dset_part, "*.json"))]
+    all_sessions = [Path(x).stem for x in glob.glob(os.path.join(transcriptions_dir, dset_part, "*.json"))]
     manifests = defaultdict(dict)
     recordings = []
     supervisions = []
 
     # First we create the recordings
     if mic == "ihm":
-        global_spk_channel_map = {}
         for session in all_sessions:
             audio_paths = [Path(x) for x in glob.glob(os.path.join(corpus_dir, "audio", dset_part, f"{session}_P*.wav"))]
             if len(audio_paths) == 0:
@@ -63,14 +64,13 @@ def prepare_chime6(
                 sources.append(
                     AudioSource(
                         type="file",
-                        channels=[2 * idx, 2 * idx + 1],
+                        channels=[0, 1],
                         source=str(audio_path)))
                 spk_id = audio_path.stem.split("_")[1]
-                global_spk_channel_map[(session, spk_id)] = [2 * idx, 2 * idx + 1]
-            audio_sf = sf.SoundFile(str(audio_paths[0]))
-            recordings.append(
-                Recording(
-                    id=session,
+                audio_sf = sf.SoundFile(str(audio_paths[0]))
+                recordings.append(
+                    Recording(
+                    id=session + f"_{spk_id}",
                     sources=sources,
                     sampling_rate=int(audio_sf.samplerate),
                     num_samples=audio_sf.frames,
@@ -80,6 +80,13 @@ def prepare_chime6(
     else:
         for session in all_sessions:
             audio_paths = [Path(x) for x in glob.glob(os.path.join(corpus_dir, "audio", dset_part, f"{session}_U*.wav"))]
+            # discard some arrays because their files length is a lot different and causes GSS to fail
+            if session == "S12":
+                audio_paths = [x for x in audio_paths if not Path(x).stem.startswith("S12_U05")]
+            elif session == "S24":
+                audio_paths = [x for x in audio_paths if not Path(x).stem.startswith("S24_U06")]
+            elif session == "S18":
+                audio_paths = [x for x in audio_paths if not Path(x).stem.startswith("S18_U06")]
             sources = []
             for idx, audio_path in enumerate(sorted(audio_paths)):
                 sources.append(
@@ -87,7 +94,6 @@ def prepare_chime6(
                 )
 
             audio_sf = sf.SoundFile(str(audio_paths[0]))
-
             recordings.append(
                 Recording(
                     id=session,
@@ -97,12 +103,10 @@ def prepare_chime6(
                     duration=audio_sf.frames / audio_sf.samplerate,
                 )
             )
-
     recordings = RecordingSet.from_recordings(recordings)
-
     def _get_channel(spk_id, session, ref=None):
         if mic == "ihm":
-            return global_spk_channel_map[(session, spk_id)]
+            return [0, 1]
         else:
             recording = recordings[session]
             return (
@@ -113,7 +117,7 @@ def prepare_chime6(
 
     # Then we create the supervisions
     for session in all_sessions:
-        with open(os.path.join(corpus_dir, "transcriptions", dset_part, f"{session}.json")) as f:
+        with open(os.path.join(transcriptions_dir, dset_part, f"{session}.json")) as f:
             transcript = json.load(f)
             for idx, segment in enumerate(transcript):
                 spk_id = segment["speaker"]
@@ -124,12 +128,16 @@ def prepare_chime6(
                 )
                 start = float(segment["start_time"])
                 end = float(segment["end_time"])
+                if ignore_shorter is not None and (end - start) < ignore_shorter:
+                    print("Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                                  "".format(session, spk_id, start, end, ignore_shorter))
+                    continue
                 if start >= end:  # some segments may have negative duration
                     continue
                 supervisions.append(
                     SupervisionSegment(
                         id=f"{session}-{idx}",
-                        recording_id=session,
+                        recording_id=session if mic == "mdm" else session + f"_{spk_id}",
                         start=start,
                         duration=add_durations(end, -start, sampling_rate=16000),
                         channel=channel,
@@ -149,9 +157,9 @@ def prepare_chime6(
     validate_recordings_and_supervisions(recording_set, supervision_set)
 
     supervision_set.to_file(
-        output_dir / f"CHiME6-{mic}_supervisions_{dset_part}.jsonl.gz")
+        output_dir / f"chime6-{mic}_supervisions_{dset_part}.jsonl.gz")
     recording_set.to_file(
-        output_dir / f"CHiME6-{mic}_recordings_{dset_part}.jsonl.gz")
+        output_dir / f"chime6-{mic}_recordings_{dset_part}.jsonl.gz")
 
     manifests[dset_part] = {
         "recordings": recording_set,
@@ -162,10 +170,11 @@ def prepare_chime6(
 def prepare_dipco(
     corpus_dir: Pathlike,
     output_dir: Optional[Pathlike] = None,
-    dset_part="dev",
+    dset_part: Optional[str] ="dev",
     mic: Optional[str] = "mdm",
     normalize_text: Optional[str] = "chime6",
-    json_dir: Optional[Pathlike] = None, # alternative annotation e.g. from non-oracle diarization  #TODO
+    json_dir: Optional[Pathlike] = None, # alternative annotation e.g. from non-oracle diarization
+    ignore_shorter: Optional[float] = 0.2
 ) -> Dict[str, Dict[str, Union[RecordingSet, SupervisionSet]]]:
     """
     Returns the manifests which consist of the Recordings and Supervisions
@@ -176,10 +185,9 @@ def prepare_dipco(
         channels each, so the resulting recordings will have 35 channels.
     :param normalize_text: str, the text normalization method, choose from "chime6" or "chime7".
     """
-
     assert mic in ["ihm", "mdm"], "mic must be one of 'ihm' or 'mdm'"
     normalize_text_func = choose_txt_normalization(normalize_text)
-
+    transcriptions_dir = os.path.join(corpus_dir, "transcriptions_scoring") if json_dir is None else json_dir
     corpus_dir = Path(corpus_dir)
     assert corpus_dir.is_dir(), f"No such directory: {corpus_dir}"
     manifests = defaultdict(dict)
@@ -187,43 +195,35 @@ def prepare_dipco(
     if output_dir is not None:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-    all_sessions = glob.glob(os.path.join(corpus_dir,
-                                          "transcriptions",
+    all_sessions = glob.glob(os.path.join(transcriptions_dir,
                                           dset_part,
                                           "*.json"))
     all_sessions = [Path(x).stem for x in all_sessions]
     recordings = []
     supervisions = []
-
     # First we create the recordings
     if mic == "ihm":
-        global_spk_channel_map = {}
         for session in all_sessions:
             audio_paths = [Path(x) for x in glob.glob(os.path.join(corpus_dir, "audio", dset_part,
                                                                    f"{session}_P*.wav"))]
-            sources = []
+            #sources = []
             for idx, audio_path in enumerate(audio_paths):
-                sources.append(
-                    AudioSource(type="file", channels=[idx], source=str(audio_path))
-                )
+                sources = [
+                    AudioSource(type="file", channels=[0], source=str(audio_path))
+                ]
                 spk_id = audio_path.stem.split("_")[1]
-                global_spk_channel_map[(session, spk_id)] = idx
-
-            audio_sf = sf.SoundFile(str(audio_paths[0]))
-            recordings.append(
-                Recording(
-                    id=session,
-                    sources=sources,
-                    sampling_rate=int(audio_sf.samplerate),
-                    num_samples=audio_sf.frames,
-                    duration=audio_sf.frames / audio_sf.samplerate,
-                )
-            )
+                audio_sf = sf.SoundFile(str(audio_path))
+                recordings.append(
+                    Recording(
+                        id=session + "_{}".format(spk_id),
+                        sources=sources,
+                        sampling_rate=int(audio_sf.samplerate),
+                        num_samples=audio_sf.frames,
+                        duration=audio_sf.frames / audio_sf.samplerate,
+                    ))
     else:
         for session in all_sessions:
-            audio_paths = [
-                p for p in (corpus_dir / "audio" / dset_part).rglob(f"{session}_U*.wav")
-            ]
+            audio_paths = [Path(x) for x in glob.glob(os.path.join(corpus_dir, "audio", dset_part, f"{session}_U*.wav"))]
             sources = []
             for idx, audio_path in enumerate(sorted(audio_paths)):
                 sources.append(
@@ -243,21 +243,26 @@ def prepare_dipco(
 
     # Then we create the supervisions
     for session in all_sessions:
-        with open(corpus_dir / "transcriptions" / dset_part / f"{session}.json") as f:
+        with open(os.path.join(transcriptions_dir, dset_part, f"{session}.json")) as f:
             transcript = json.load(f)
             for idx, segment in enumerate(transcript):
                 spk_id = segment["speaker"]
                 channel = (
-                    global_spk_channel_map[(session, spk_id)]
+                    [0]
                     if mic == "ihm"
                     else list(range(35))
                 )
                 start = float(segment["start_time"])
                 end = float(segment["end_time"])
+                if ignore_shorter is not None and (end - start) < ignore_shorter:
+                    print("Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                                  "".format(session, spk_id, start, end, ignore_shorter))
+                    continue
+
                 supervisions.append(
                     SupervisionSegment(
                         id=f"{session}-{idx}",
-                        recording_id=session,
+                        recording_id=session if mic =="mdm" else session + "_{}".format(spk_id),
                         start=start,
                         duration=add_durations(end, -start, sampling_rate=16000),
                         channel=channel,
@@ -275,10 +280,10 @@ def prepare_dipco(
     validate_recordings_and_supervisions(recording_set, supervision_set)
 
     supervision_set.to_file(
-            output_dir / f"DiPCo-{mic}_supervisions_{dset_part}.jsonl.gz"
+            output_dir / f"dipco-{mic}_supervisions_{dset_part}.jsonl.gz"
         )
     recording_set.to_file(
-            output_dir / f"DiPCo-{mic}_recordings_{dset_part}.jsonl.gz"
+            output_dir / f"dipco-{mic}_recordings_{dset_part}.jsonl.gz"
         )
 
     manifests[dset_part] = {
@@ -288,41 +293,193 @@ def prepare_dipco(
     return manifests
 
 
+def prepare_mixer6(corpus_dir: Pathlike,
+    output_dir: Optional[Pathlike] = None,
+    dset_part="dev",
+    mic: Optional[str] = "mdm",
+    normalize_text: Optional[str] = "chime6",
+    json_dir: Optional[Pathlike] = None, # alternative annotation e.g. from non-oracle diarization  #TODO
+    ignore_shorter: Optional[float] = 0.2
+) -> Dict[str, Dict[str, Union[RecordingSet, SupervisionSet]]]:
+
+    assert mic in ["ihm", "mdm"], "mic must be one of 'ihm' or 'mdm'"
+    if mic == "ihm":
+        assert dset_part in ["train_intv", "train_call"], "No close-talk microphones on evaluation set."
+
+    normalize_text_func = choose_txt_normalization(normalize_text)
+    transcriptions_dir = os.path.join(corpus_dir, "transcriptions_scoring") if json_dir is None else json_dir
+    corpus_dir = Path(corpus_dir)
+    assert corpus_dir.is_dir(), f"No such directory: {corpus_dir}"
+    manifests = defaultdict(dict)
+    if output_dir is not None:
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    all_sessions = glob.glob(os.path.join(transcriptions_dir,
+                                          dset_part,
+                                          "*.json"))
+    all_sessions = [Path(x).stem for x in all_sessions]
+    audio_files = glob.glob(os.path.join(corpus_dir, "audio",
+                                          dset_part,
+                                          "*.flac"))
+    assert len(audio_files) > 0, "Can't parse mixer6 audio files, is the path correct ?"
+    sess2audio = {}
+    for audio_f in audio_files:
+        sess_name = "_".join(Path(audio_f).stem.split("_")[:-1])
+        if sess_name not in sess2audio.keys():
+            sess2audio[sess_name] = [audio_f]
+        else:
+            sess2audio[sess_name].append(audio_f)
+
+    if mic == "ihm":
+        raise NotImplementedError("We may add this later.")
+    else:
+        recordings = []
+        supervisions = []
+        for sess in all_sessions:
+            with open(os.path.join(transcriptions_dir, dset_part, f"{sess}.json")) as f:
+                transcript = json.load(f)
+            # recordings here
+            sources = [
+                    AudioSource(type="file", channels=[idx], source=str(audio_path))
+                    for idx, audio_path in enumerate(sess2audio[sess])
+                ]
+            audio_sf = sf.SoundFile(str(sess2audio[sess][0]))
+            recordings.append(
+                    Recording(
+                        id=f"{sess}" if not dset_part.startswith("train") else "{}-{}".format(sess, dset_part.split("_")[-1]),
+                        sources=sources,
+                        sampling_rate=int(audio_sf.samplerate),
+                        num_samples=audio_sf.frames,
+                        duration=audio_sf.frames / audio_sf.samplerate,
+                    ))
+
+            for idx, segment in enumerate(transcript):
+                spk_id = segment["speaker"]
+                channel = (
+                    list(range(len(sess2audio[sess]))))
+                start = float(segment["start_time"])
+                end = float(segment["end_time"])
+                if ignore_shorter is not None and (end - start) < ignore_shorter:
+                    print("Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                                  "".format(sess, spk_id, start, end, ignore_shorter))
+                    continue
+
+                supervisions.append(
+                    SupervisionSegment(
+                        id=f"{sess}-{idx}" if not dset_part.startswith("train") else "{}-{}-{}".format(sess, dset_part.split("_")[-1], idx),
+                        recording_id=f"{sess}" if not dset_part.startswith("train") else "{}-{}".format(sess, dset_part.split("_")[-1]),
+                        start=start,
+                        duration=add_durations(end, -start, sampling_rate=16000),
+                        channel=channel,
+                        text=normalize_text_func(
+                            segment["words"]),
+                        speaker=spk_id,
+                    )
+                )
+
+        recording_set, supervision_set = fix_manifests(
+                RecordingSet.from_recordings(recordings),
+                SupervisionSet.from_segments(supervisions),
+            )
+            # Fix manifests
+        validate_recordings_and_supervisions(recording_set, supervision_set)
+
+        if output_dir is not None:
+            supervision_set.to_file(
+                output_dir / f"mixer6-{mic}_supervisions_{dset_part}.jsonl.gz"
+            )
+            recording_set.to_file(
+                output_dir / f"mixer6-{mic}_recordings_{dset_part}.jsonl.gz"
+            )
+
+        manifests[dset_part] = {
+                "recordings": recording_set,
+                "supervisions": supervision_set,
+            }
+        return manifests
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Lhotse manifests generation scripts for CHiME-7 Task 1 data.",
                                      add_help=True, usage='%(prog)s [options]')
     parser.add_argument("-c,--chime7task1_root", type=str, metavar='STR', dest="chime7_root",
                         help="Path to CHiME-7 Task 1 dataset main directory, as generated by the create_dataset.sh script."
                              "It should contain chime6, dipco and mixer6 as sub-folders.")
-    parser.add_argument("-d,--dset_part", type=str, metavar='STR', dest="dset_part",
+    parser.add_argument("-d,--d", type=str, metavar='STR', dest="dset_name",
+                        help="Name of the dataset: chime6, dipco or mixer6.")
+    parser.add_argument("-p,--partition", type=str, metavar='STR', dest="dset_part",
                         help="Which part of the dataset you want for the manifests? 'train', 'dev' or 'eval' ?")
     parser.add_argument("-o,--output_root", type=str, metavar='STR', dest="output_root",
                         help="Path where the new CHiME-7 Task 1 dataset will be saved."
                              "Note that for audio files symbolic links are used.")
-    parser.add_argument("--txt_norm", type=str, default="chime6", metavar='STR',
+    parser.add_argument("--txt_norm", type=str, default="chime6", metavar='STR', required=False,
                         help="Choose between chime6 and chime7, this select the text normalization applied when creating" \
                              "the scoring annotation.")
-    parser.add_argument("-c,--diar_jsons_root", type=str, metavar='STR', dest="diar_json",
+    parser.add_argument("--diar_jsons_root", type=str, metavar='STR', dest="diar_json", default="", required=False,
                         help="Path to a directory with same structure as CHiME-7 Task 1 transcription directory, containing JSON files"
                              "with the same structure but from a diarization system (words field could be missing and will be ignored).")
+    parser.add_argument("--ignore_shorter", type=float, metavar='FLOAT', dest="ignore_shorter", default=0.0, required=False,
+                        help="Ignore segments that are shorter than this value in the supervision.")
+
     args = parser.parse_args()
+    assert args.dset_name in ["chime6", "dipco", "mixer6"], "Datasets supported in this script " \
+                                                            "are chime6, dipco and mixer6"
     assert args.dset_part in ["train", "dev", "eval"], "Option --dset_part should be 'train', 'dev' or 'eval'"
+
+    if args.dset_part == "train" and args.dset_name == "dipco":
+        raise NotImplementedError("DiPCo has no training set. Exiting.")
+
     if args.dset_part in ["train", "dev"]:
         valid_mics = ["mdm", "ihm"]
     elif args.dset_part == "eval":
         valid_mics = ["mdm"]
-        for mic in valid_mics:
-            prepare_chime6(os.path.join(args.chime7_root, "chime6"),
-                           os.path.join(args.output_root, "chime6",
-                                        args.dset_part), args.dset_part, mic=mic)
-            if args.dset_part != "train":
-                # dipco has no training set.
-                prepare_dipco(os.path.join(args.chime7_root, "dipco"),
-                          os.path.join(args.output_root, "dipco",
-                                        args.dset_part), args.dset_part, mic=mic)
-            prepare_mixer6(os.path.join(args.chime7_root, "mixer6"),
-                          os.path.join(args.output_root, "mixer6",
-                                        args.dset_part), args.dset_part, mic=mic)
+    for mic in valid_mics:
+        if args.dset_name == "chime6":
+            prepare_chime6(os.path.join(args.chime7_root, args.dset_name),
+                           os.path.join(args.output_root, args.dset_name,
+                                        args.dset_part), args.dset_part, mic=mic, ignore_shorter=args.ignore_shorter)
+        elif args.dset_name == "dipco":
+            prepare_dipco(os.path.join(args.chime7_root, args.dset_name),
+                           os.path.join(args.output_root, args.dset_name,
+                                        args.dset_part), args.dset_part, mic=mic, ignore_shorter=args.ignore_shorter)
+
+        elif args.dset_name == "mixer6":
+            if mic == "ihm":
+                continue
+            if args.dset_part.startswith("train"):
+                supervisions = []
+                recordings = []
+                for dset_part in ["train_intv", "train_calls"]:
+                    c_manifest = prepare_mixer6(os.path.join(args.chime7_root, args.dset_name), None, dset_part,
+                                                mic=mic, ignore_shorter=args.ignore_shorter)
+
+
+                    supervisions.append(c_manifest[dset_part]["supervisions"])
+                    recordings.append(c_manifest[dset_part]["recordings"])
+
+                supervision_set = lhotse.combine(*supervisions)
+                recording_set = lhotse.combine(*recordings)
+                recording_set, supervision_set = fix_manifests(
+                    RecordingSet.from_recordings(recording_set),
+                    SupervisionSet.from_segments(supervision_set),
+                )
+                # Fix manifests
+                validate_recordings_and_supervisions(recording_set, supervision_set)
+                output_dir = Path(os.path.join(args.output_root, args.dset_name, args.dset_part))
+                output_dir.mkdir(parents=True, exist_ok=True)
+                supervision_set.to_file(
+                    os.path.join(output_dir,  f"mixer6-{mic}_supervisions_train.jsonl.gz"
+                ))
+                recording_set.to_file(
+                   os.path.join(output_dir,  f"mixer6-{mic}_recordings_train.jsonl.gz"
+                ))
+            else:
+                prepare_mixer6(os.path.join(args.chime7_root, args.dset_name),
+                               os.path.join(args.output_root, args.dset_name, args.dset_part),
+                               args.dset_part, mic=mic, ignore_shorter=args.ignore_shorter)
+
 
 
 
