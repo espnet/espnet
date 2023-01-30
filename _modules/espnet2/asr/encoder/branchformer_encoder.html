@@ -210,6 +210,7 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.repeat</span> <span class="kn">import</span> <span class="n">repeat</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Conv2dSubsampling</span><span class="p">,</span>
+    <span class="n">Conv2dSubsampling1</span><span class="p">,</span>
     <span class="n">Conv2dSubsampling2</span><span class="p">,</span>
     <span class="n">Conv2dSubsampling6</span><span class="p">,</span>
     <span class="n">Conv2dSubsampling8</span><span class="p">,</span>
@@ -539,6 +540,13 @@
                 <span class="n">dropout_rate</span><span class="p">,</span>
                 <span class="n">pos_enc_class</span><span class="p">(</span><span class="n">output_size</span><span class="p">,</span> <span class="n">positional_dropout_rate</span><span class="p">),</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">input_layer</span> <span class="o">==</span> <span class="s2">&quot;conv2d1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">Conv2dSubsampling1</span><span class="p">(</span>
+                <span class="n">input_size</span><span class="p">,</span>
+                <span class="n">output_size</span><span class="p">,</span>
+                <span class="n">dropout_rate</span><span class="p">,</span>
+                <span class="n">pos_enc_class</span><span class="p">(</span><span class="n">output_size</span><span class="p">,</span> <span class="n">positional_dropout_rate</span><span class="p">),</span>
+            <span class="p">)</span>
         <span class="k">elif</span> <span class="n">input_layer</span> <span class="o">==</span> <span class="s2">&quot;conv2d2&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">Conv2dSubsampling2</span><span class="p">(</span>
                 <span class="n">input_size</span><span class="p">,</span>
@@ -694,6 +702,7 @@
 
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="n">Conv2dSubsampling</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="n">Conv2dSubsampling1</span><span class="p">)</span>
             <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="n">Conv2dSubsampling2</span><span class="p">)</span>
             <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="n">Conv2dSubsampling6</span><span class="p">)</span>
             <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="n">Conv2dSubsampling8</span><span class="p">)</span>

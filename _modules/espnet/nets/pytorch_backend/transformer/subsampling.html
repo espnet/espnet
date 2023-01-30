@@ -203,6 +203,8 @@
 
 <div class="viewcode-block" id="check_short_utt"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.check_short_utt">[docs]</a><span class="k">def</span> <span class="nf">check_short_utt</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the utterance is too short for subsampling.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">Conv2dSubsampling1</span><span class="p">)</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">5</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">Conv2dSubsampling2</span><span class="p">)</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
         <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">7</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ins</span><span class="p">,</span> <span class="n">Conv2dSubsampling</span><span class="p">)</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
@@ -260,6 +262,65 @@
         <span class="k">if</span> <span class="n">x_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get item.</span>
+
+<span class="sd">        When reset_parameters() is called, if use_scaled_pos_enc is used,</span>
+<span class="sd">            return the positioning encoding.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Support only `-1` (for `reset_parameters`).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Conv2dSubsampling1"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1">[docs]</a><span class="k">class</span> <span class="nc">Conv2dSubsampling1</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Similar to Conv2dSubsampling module, but without any subsampling performed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        idim (int): Input dimension.</span>
+<span class="sd">        odim (int): Output dimension.</span>
+<span class="sd">        dropout_rate (float): Dropout rate.</span>
+<span class="sd">        pos_enc (torch.nn.Module): Custom position encoding layer.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">,</span> <span class="n">pos_enc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct an Conv2dSubsampling1 object.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Conv2dSubsampling1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">odim</span> <span class="o">*</span> <span class="p">(</span><span class="n">idim</span> <span class="o">-</span> <span class="mi">4</span><span class="p">),</span> <span class="n">odim</span><span class="p">),</span>
+            <span class="n">pos_enc</span> <span class="k">if</span> <span class="n">pos_enc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">PositionalEncoding</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">),</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Conv2dSubsampling1.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pass x through 2 Conv2d layers without subsampling.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Input tensor (#batch, time, idim).</span>
+<span class="sd">            x_mask (torch.Tensor): Input mask (#batch, 1, time).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Subsampled tensor (#batch, time&#39;, odim).</span>
+<span class="sd">                where time&#39; = time - 4.</span>
+<span class="sd">            torch.Tensor: Subsampled mask (#batch, 1, time&#39;).</span>
+<span class="sd">                where time&#39; = time - 4.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (b, c, t, f)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span> <span class="o">*</span> <span class="n">f</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">x_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Get item.</span>

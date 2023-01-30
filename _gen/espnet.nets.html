@@ -11725,6 +11725,50 @@ This is just for compatibility with self-attention layer (attention.py)</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.subsampling.</code><code class="sig-name descname">Conv2dSubsampling1</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">odim</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">pos_enc=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/subsampling.html#Conv2dSubsampling1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Similar to Conv2dSubsampling module, but without any subsampling performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Output dimension.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>pos_enc</strong> (<em>torch.nn.Module</em>) – Custom position encoding layer.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Construct an Conv2dSubsampling1 object.</p>
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">x_mask</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/subsampling.html#Conv2dSubsampling1.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling1.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass x through 2 Conv2d layers without subsampling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, time, idim).</p></li>
+<li><p><strong>x_mask</strong> (<em>torch.Tensor</em>) – Input mask (#batch, 1, time).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Subsampled tensor (#batch, time’, odim).</dt><dd><p>where time’ = time - 4.</p>
+</dd>
+<dt>torch.Tensor: Subsampled mask (#batch, 1, time’).</dt><dd><p>where time’ = time - 4.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling2">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.subsampling.</code><code class="sig-name descname">Conv2dSubsampling2</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">odim</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">pos_enc=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/subsampling.html#Conv2dSubsampling2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.subsampling.Conv2dSubsampling2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
