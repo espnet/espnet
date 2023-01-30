@@ -154,7 +154,7 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 1.12.2); then
+if $(pytorch_plus 1.13.2); then
     log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
 
