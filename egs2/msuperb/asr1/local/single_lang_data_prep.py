@@ -21,7 +21,22 @@ DATA = [
     "voxpopuli",
 ]
 
-SINGLE_LANG = ["eng", "deu", "rus", "pol", "swe", "jpn", "cmn", "sat", "nob", "xty"]
+SINGLE_LANG = ["eng1", "eng2", "eng3", "fra1", "fra2", "deu", "rus", "swa", "swe", "jpn", "cmn", "sat", "xty"]
+LANG_TO_SELECTED_DATASET = {
+    "eng1":"mls",
+    "eng2":"nchlt",
+    "eng3":"voxpopuli",
+    "fra1":"voxforge",
+    "fra2":"voxpopuli",
+    "deu":"swc",
+    "rus":"M-AILABS",
+    "swa":"ALFFA",
+    "swe": "NST",
+    "jpn":"commonvoice",
+    "cmn":"fleurs",
+    "sat":"commonvoice",
+    "xty":"mexico-el"
+}
 
 
 def process_text(text):
@@ -36,7 +51,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     assert args.duration in ["10min", "1h"], "we only support 10min or 1h setting"
-    assert args.lang in SINGLE_LANG, "the language {} is not in our recommend set"
+    assert args.lang in SINGLE_LANG, "the language {} is not in our recommend set".format(args.lang)
 
     langs_info = {}
 
@@ -91,7 +106,7 @@ if __name__ == "__main__":
 
     # iterate through dataset
     for dataset in DATA:
-        langs = [args.lang]
+        langs = [args.lang[:3]]
         for lang in langs:
             if not os.path.exists(os.path.join(args.source, dataset, lang)):
                 continue
@@ -100,51 +115,52 @@ if __name__ == "__main__":
             langs_info[lang].append(dataset)
 
             # process train
-            train_transcript = open(
-                os.path.join(
-                    args.source,
-                    dataset,
-                    lang,
-                    "transcript_{}_train.txt".format(args.duration),
-                ),
-                "r",
-                encoding="utf-8",
-            )
-            for line in train_transcript.readlines():
-                line = line.strip().split(maxsplit=2)
-                utt_id, _, text = line
-                train_wavscp.write(
-                    "{} sox {} -c 1 -t wavpcm -|\n".format(
-                        utt_id,
-                        os.path.join(
-                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
-                        ),
-                    )
+            if dataset == LANG_TO_SELECTED_DATASET[args.lang]:
+                train_transcript = open(
+                    os.path.join(
+                        args.source,
+                        dataset,
+                        lang,
+                        "transcript_{}_train.txt".format(args.duration),
+                    ),
+                    "r",
+                    encoding="utf-8",
                 )
-                train_text.write("{} {}\n".format(utt_id, process_text(text)))
-                train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
-            train_transcript.close()
+                for line in train_transcript.readlines():
+                    line = line.strip().split(maxsplit=2)
+                    utt_id, _, text = line
+                    train_wavscp.write(
+                        "{} sox {} -c 1 -t wavpcm -|\n".format(
+                            utt_id,
+                            os.path.join(
+                                args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                            ),
+                        )
+                    )
+                    train_text.write("{} {}\n".format(utt_id, process_text(text)))
+                    train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
+                train_transcript.close()
 
-            # process dev
-            dev_transcript = open(
-                os.path.join(args.source, dataset, lang, "transcript_10min_dev.txt"),
-                "r",
-                encoding="utf-8",
-            )
-            for line in dev_transcript.readlines():
-                line = line.strip().split(maxsplit=2)
-                utt_id, _, text = line
-                dev_wavscp.write(
-                    "{} sox {} -c 1 -t wavpcm -|\n".format(
-                        utt_id,
-                        os.path.join(
-                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
-                        ),
-                    )
+                # process dev
+                dev_transcript = open(
+                    os.path.join(args.source, dataset, lang, "transcript_10min_dev.txt"),
+                    "r",
+                    encoding="utf-8",
                 )
-                dev_text.write("{} {}\n".format(utt_id, process_text(text)))
-                dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
-            dev_transcript.close()
+                for line in dev_transcript.readlines():
+                    line = line.strip().split(maxsplit=2)
+                    utt_id, _, text = line
+                    dev_wavscp.write(
+                        "{} sox {} -c 1 -t wavpcm -|\n".format(
+                            utt_id,
+                            os.path.join(
+                                args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                            ),
+                        )
+                    )
+                    dev_text.write("{} {}\n".format(utt_id, process_text(text)))
+                    dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
+                dev_transcript.close()
 
             # process test
             test_transcript = open(
