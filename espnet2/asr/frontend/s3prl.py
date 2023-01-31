@@ -89,11 +89,6 @@ class S3prlFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         feats, feats_lens = self.upstream(input, input_lengths)
-        if self.layer != -1:
-            layer = self.layer
-            feats, feats_lens = feats[layer], feats_lens[layer]
-            return feats, feats_lens
-
         if self.multilayer_feature:
             feats, feats_lens = self.featurizer(feats, feats_lens)
         else:
