@@ -85,7 +85,8 @@ class XVExtractor:
     def rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
         if len(audio.shape) > 1:
             raise ValueError(
-                f"RawNet3 supports mono input only. Input data has a shape of {audio.shape}."
+                "RawNet3 supports mono input only."
+                f"Input data has a shape of {audio.shape}."
             )
         if len(audio) < n_samples:  # RawNet3 was trained using utterances of 3 seconds
             shortage = n_samples - len(audio) + 1
@@ -177,7 +178,7 @@ def main(argv):
         )
     else:
         raise ValueError(
-            f"Unkown type of toolkit. Only supported: speechbrain, rawnet, espnet, kaldi"
+            "Unkown type of toolkit. Only supported: speechbrain, rawnet, espnet, kaldi"
         )
 
 
