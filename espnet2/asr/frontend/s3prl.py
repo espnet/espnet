@@ -20,7 +20,6 @@ class S3prlFrontend(AbsFrontend):
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         download_dir: str = None,
         multilayer_feature: bool = False,
-        layer: int = -1,
     ):
         try:
             import s3prl
@@ -47,8 +46,6 @@ class S3prlFrontend(AbsFrontend):
         upstream = S3PRLUpstream(
             frontend_conf.get("upstream"),
             path_or_url=frontend_conf.get("path_or_url", None),
-            normalize=frontend_conf.get("normalize", False),
-            extra_conf=frontend_conf.get("extra_conf", None),
         )
         upstream.eval()
         if getattr(
@@ -58,18 +55,9 @@ class S3prlFrontend(AbsFrontend):
             "HubertModel",
         ]:
             upstream.model.encoder.layerdrop = 0.0
-
-        if layer != -1:
-            layer_selections = [layer]
-            assert (
-                not multilayer_feature
-            ), "multilayer feature will be deactivated, when specific layer used"
-        else:
-            layer_selections = None
-        featurizer = Featurizer(upstream, layer_selections=layer_selections)
+        featurizer = Featurizer(upstream)
 
         self.multilayer_feature = multilayer_feature
-        self.layer = layer
         self.upstream, self.featurizer = upstream, featurizer
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.frontend_type = "s3prl"
@@ -78,8 +66,10 @@ class S3prlFrontend(AbsFrontend):
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
+
         Input - sequence of representations
                 shape: (batch_size, seq_len, feature_dim)
+
         Output - sequence of tiled representations
                  shape: (batch_size, seq_len * factor, feature_dim)
         """

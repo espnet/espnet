@@ -61,7 +61,6 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
         else:
             std = torch.tensor(std).float()
 
-
         self.register_buffer("mean", mean)
         self.register_buffer("std", std)
 

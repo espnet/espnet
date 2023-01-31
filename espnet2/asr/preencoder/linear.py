@@ -8,18 +8,14 @@ from typing import Tuple
 
 import torch
 from typeguard import check_argument_types
+
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 
 
 class LinearProjection(AbsPreEncoder):
     """Linear Projection Preencoder."""
 
-    def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-        dropout: float = 0.0
-    ):
+    def __init__(self, input_size: int, output_size: int, dropout: float = 0.0):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()

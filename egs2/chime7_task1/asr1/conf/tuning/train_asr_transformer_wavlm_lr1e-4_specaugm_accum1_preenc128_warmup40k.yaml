@@ -1,6 +1,6 @@
 # minibatch related
 batch_type: folded
-batch_size: 128
+batch_size: 48
 accum_grad: 1
 grad_clip: 5
 max_epoch: 8
@@ -69,7 +69,7 @@ optim_conf:
     lr: 0.0001
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 20000
+    warmup_steps: 40000
 
 specaug: specaug
 specaug_conf:

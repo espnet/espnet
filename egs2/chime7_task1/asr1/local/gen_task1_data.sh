@@ -26,27 +26,22 @@ fi
 
 if [ ${stage} -le 0 ] && ! contains $skip_stages 0 ; then
   # download DiPCO
-  if [ -d "${dipco_root}" ]; then
-    echo "${dipco_root} already exists,
-    exiting as I am assuming it has already been downloaded."
-    exit
-  fi
+  if ! [ -d "${dipco_root}" ]; then
+    mkdir -p ${dipco_root}
+    if ! [ -f "${dipco_root}/dipco.tgz" ]; then
+      wget https://s3.amazonaws.com/dipco/DiPCo.tgz -O ${dipco_root}/dipco.tgz
+    fi
 
-  mkdir -p ${dipco_root}
-
-  if ! [ -f "${dipco_root}/dipco.tgz" ]; then
-    wget https://s3.amazonaws.com/dipco/DiPCo.tgz -O ${dipco_root}/dipco.tgz
-  fi
-
-  if ! [-d "${dipco_root}/audio"]; then
-  tar -xf ${dipco_root}/dipco.tgz -C ${dipco_root} --strip-components=1
+    if ! [-d "${dipco_root}/audio"]; then
+      tar -xf ${dipco_root}/dipco.tgz -C ${dipco_root} --strip-components=1
+    fi
   fi
 fi
 
 
 if [ ${stage} -le 1 ] && ! contains $skip_stages 1; then
   # from CHiME5 create CHiME6
-  local/data/generate_chime6_data.sh --cmd "$cmd" \
+  ./generate_chime6_data.sh --cmd "$cmd" \
     $chime5_root \
     $chime6_root
 fi
@@ -57,6 +52,6 @@ if [ ${stage} -le 2 ] && ! contains $skip_stages 2; then
     echo "${chime7_root} already exists, exiting"
     exit
   fi
-  python local/data/generate_data.py -c $chime6_root \
+  python data/generate_data.py -c $chime6_root \
       -d $dipco_root -m $mixer6_root -o $chime7_root
 fi

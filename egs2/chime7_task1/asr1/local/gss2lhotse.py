@@ -1,18 +1,23 @@
+import argparse
 import glob
 import os
+from copy import deepcopy
 from pathlib import Path
+
 import lhotse
 import soundfile as sf
-from copy import deepcopy
-import argparse
+
 
 def get_new_manifests(input_dir, output_filename):
 
-    assert os.path.exists(os.path.join(input_dir, "enhanced")), f"{input_dir} does not contain a sub-folder named enhanced, is it the correct path ?"
+    assert os.path.exists(
+        os.path.join(input_dir, "enhanced")
+    ), f"{input_dir} does not contain a sub-folder named enhanced, is it the correct path ?"
 
-    wavs = glob.glob(os.path.join(input_dir, "enhanced/**/*.flac"),
-        recursive=True)
-    segcuts = lhotse.CutSet.from_jsonl(os.path.join(input_dir, "cuts_per_segment.jsonl.gz"))
+    wavs = glob.glob(os.path.join(input_dir, "enhanced/**/*.flac"), recursive=True)
+    segcuts = lhotse.CutSet.from_jsonl(
+        os.path.join(input_dir, "cuts_per_segment.jsonl.gz")
+    )
     id2wav = {Path(w).stem: w for w in wavs}
     recordings = []
     supervisions = []
@@ -28,13 +33,15 @@ def get_new_manifests(input_dir, output_filename):
         audio_sf = sf.SoundFile(enhanced_audio)
         duration = audio_sf.frames / audio_sf.samplerate
         assert abs(duration - (c_cut.end - c_cut.start)) < 0.1
-        recordings.append(lhotse.Recording(
-            id=gss_id,
-            sources=sources,
-            sampling_rate=audio_sf.samplerate,
-            num_samples=audio_sf.frames,
-            duration=duration,
-        ))
+        recordings.append(
+            lhotse.Recording(
+                id=gss_id,
+                sources=sources,
+                sampling_rate=audio_sf.samplerate,
+                num_samples=audio_sf.frames,
+                duration=duration,
+            )
+        )
 
         new_sup = deepcopy(c_cut.supervisions[0])
         new_sup.id = gss_id
@@ -64,7 +71,6 @@ def get_new_manifests(input_dir, output_filename):
     )
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         "Lhotse manifests generation scripts for CHiME-7 Task 1 data.",
@@ -84,7 +90,8 @@ if __name__ == "__main__":
         metavar="STR",
         dest="output_name",
         help="Path and filename for the new manifest, e.g. /tmp/chime6_gss will create in /tmp /tmp/chime6_gss-recordings.jsonl.gz "
-             "and /tmp/chime6_gss-supervisions.jsonl.gz.")
+        "and /tmp/chime6_gss-supervisions.jsonl.gz.",
+    )
 
     args = parser.parse_args()
     get_new_manifests(args.gss_dir, args.output_name)
