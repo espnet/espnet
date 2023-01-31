@@ -21,7 +21,7 @@ DATA = [
     "voxpopuli",
 ]
 
-SINGLE_LANG = ["eng1", "eng2", "eng3", "fra1", "fra2", "deu", "rus", "swa", "swe", "jpn", "cmn", "sat", "xty"]
+SINGLE_LANG = ["eng1", "eng2", "eng3", "fra1", "fra2", "deu1", "deu2", "rus", "swa", "swe", "jpn", "cmn", "xty"]
 LANG_TO_SELECTED_DATASET = {
     "eng1":"mls",
     "eng2":"nchlt",
@@ -29,12 +29,12 @@ LANG_TO_SELECTED_DATASET = {
     "fra1":"voxforge",
     "fra2":"voxpopuli",
     "deu":"swc",
+    "deu2":"voxpopuli",
     "rus":"M-AILABS",
     "swa":"ALFFA",
     "swe": "NST",
     "jpn":"commonvoice",
     "cmn":"fleurs",
-    "sat":"commonvoice",
     "xty":"mexico-el"
 }
 
