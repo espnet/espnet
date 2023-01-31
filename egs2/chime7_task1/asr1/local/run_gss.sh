@@ -10,7 +10,9 @@ dset_name=
 dset_part=
 exp_dir=
 cmd=run.pl #if you use gridengine: "queue-freegpu.pl --gpu 1 --mem 8G --config conf/gpu.conf"
-max_batch_dur= # adjust based on your GPU VRAM, here 40GB
+max_batch_duration=90 # adjust based on your GPU VRAM, here 40GB
+max_segment_length=200
+channels=
 
 . ./path.sh
 . parse_options.sh
@@ -40,8 +42,15 @@ if [ $stage -le 3 ] && [ $stop_stage -ge 3 ]; then
   done
 fi
 
+
 if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
   echo "Stage 4: Enhance segments using GSS"
+
+  affix=()
+  if ! [ $channels == all  ]; then
+    affix+=("--channels=$channels")
+  fi
+
   $cmd JOB=1:$nj  ${exp_dir}/${dset_name}/${dset_part}/log/enhance.JOB.log \
     gss enhance cuts \
       ${exp_dir}/${dset_name}/${dset_part}/cuts.jsonl.gz  ${exp_dir}/${dset_name}/${dset_part}/split$nj/cuts_per_segment.JOB.jsonl.gz \
@@ -50,11 +59,12 @@ if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
       --context-duration 15.0 \
       --use-garbage-class \
       --min-segment-length 0.0 \
-      --max-segment-length 20.0 \
-      --max-batch-duration $max_batch_dur \
+      --max-segment-length $max_segment_length \
+      --max-batch-duration $max_batch_duration \
       --max-batch-cuts 1 \
       --num-buckets 4 \
       --num-workers 4 \
       --force-overwrite \
-      --duration-tolerance 3.0 || exit 1
+      --duration-tolerance 3.0 \
+       "${affix[@]}" || exit 1
 fi
