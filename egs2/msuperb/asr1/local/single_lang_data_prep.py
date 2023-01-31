@@ -21,21 +21,35 @@ DATA = [
     "voxpopuli",
 ]
 
-SINGLE_LANG = ["eng1", "eng2", "eng3", "fra1", "fra2", "deu1", "deu2", "rus", "swa", "swe", "jpn", "cmn", "xty"]
+SINGLE_LANG = [
+    "eng1",
+    "eng2",
+    "eng3",
+    "fra1",
+    "fra2",
+    "deu1",
+    "deu2",
+    "rus",
+    "swa",
+    "swe",
+    "jpn",
+    "cmn",
+    "xty",
+]
 LANG_TO_SELECTED_DATASET = {
-    "eng1":"mls",
-    "eng2":"nchlt",
-    "eng3":"voxpopuli",
-    "fra1":"voxforge",
-    "fra2":"voxpopuli",
-    "deu":"swc",
-    "deu2":"voxpopuli",
-    "rus":"M-AILABS",
-    "swa":"ALFFA",
+    "eng1": "mls",
+    "eng2": "nchlt",
+    "eng3": "voxpopuli",
+    "fra1": "voxforge",
+    "fra2": "voxpopuli",
+    "deu": "swc",
+    "deu2": "voxpopuli",
+    "rus": "M-AILABS",
+    "swa": "ALFFA",
     "swe": "NST",
-    "jpn":"commonvoice",
-    "cmn":"fleurs",
-    "xty":"mexico-el"
+    "jpn": "commonvoice",
+    "cmn": "fleurs",
+    "xty": "mexico-el",
 }
 
 
@@ -51,7 +65,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     assert args.duration in ["10min", "1h"], "we only support 10min or 1h setting"
-    assert args.lang in SINGLE_LANG, "the language {} is not in our recommend set".format(args.lang)
+    assert (
+        args.lang in SINGLE_LANG
+    ), "the language {} is not in our recommend set".format(args.lang)
 
     langs_info = {}
 
@@ -133,7 +149,11 @@ if __name__ == "__main__":
                         "{} sox {} -c 1 -t wavpcm -|\n".format(
                             utt_id,
                             os.path.join(
-                                args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                                args.source,
+                                dataset,
+                                lang,
+                                "wav",
+                                "{}.wav".format(utt_id),
                             ),
                         )
                     )
@@ -143,7 +163,9 @@ if __name__ == "__main__":
 
                 # process dev
                 dev_transcript = open(
-                    os.path.join(args.source, dataset, lang, "transcript_10min_dev.txt"),
+                    os.path.join(
+                        args.source, dataset, lang, "transcript_10min_dev.txt"
+                    ),
                     "r",
                     encoding="utf-8",
                 )
@@ -154,7 +176,11 @@ if __name__ == "__main__":
                         "{} sox {} -c 1 -t wavpcm -|\n".format(
                             utt_id,
                             os.path.join(
-                                args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
+                                args.source,
+                                dataset,
+                                lang,
+                                "wav",
+                                "{}.wav".format(utt_id),
                             ),
                         )
                     )
