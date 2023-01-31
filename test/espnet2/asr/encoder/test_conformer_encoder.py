@@ -6,7 +6,8 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
 @pytest.mark.parametrize(
-    "input_layer", ["linear", "conv2d", "conv2d2", "conv2d6", "conv2d8", "embed"]
+    "input_layer",
+    ["linear", "conv2d", "conv2d1", "conv2d2", "conv2d6", "conv2d8", "embed"],
 )
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
