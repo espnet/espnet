@@ -39,7 +39,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     if [ -d ${data_how2} ]; then
         log "$0: HowTo directory or archive already exists in ${data_how2}. Skipping download."
     else
-        #wget ${data_url} -O out.tar.bz2
+        wget ${data_url} -O out.tar.bz2
         mkdir -p ${data_how2}	
         tar -xvf out.tar.bz2 -C ${data_how2}/
         log "$0: Successfully downloaded and un-tarred how2_feats"
