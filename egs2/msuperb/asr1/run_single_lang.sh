@@ -47,9 +47,3 @@ for duration in 10min 1h; do
             --lm_train_text "data/${train_set}/text" "$@"
     done
 done
-
-
-
-
-
-
