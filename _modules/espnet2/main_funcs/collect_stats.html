@@ -174,7 +174,7 @@
 <span></span><span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -191,7 +191,7 @@
 
 <div class="viewcode-block" id="collect_stats"><a class="viewcode-back" href="../../../_gen/espnet2.main_funcs.html#espnet2.main_funcs.collect_stats.collect_stats">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
 <span class="k">def</span> <span class="nf">collect_stats</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">AbsESPnetModel</span><span class="p">,</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">AbsESPnetModel</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
     <span class="n">train_iter</span><span class="p">:</span> <span class="n">DataLoader</span> <span class="ow">and</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
     <span class="n">valid_iter</span><span class="p">:</span> <span class="n">DataLoader</span> <span class="ow">and</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
@@ -236,44 +236,45 @@
                             <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
                         <span class="p">)</span>
 
-                <span class="c1"># 2. Extract feats</span>
-                <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
-                    <span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">collect_feats</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># Note that data_parallel can parallelize only &quot;forward()&quot;</span>
-                    <span class="n">data</span> <span class="o">=</span> <span class="n">data_parallel</span><span class="p">(</span>
-                        <span class="n">ForwardAdaptor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;collect_feats&quot;</span><span class="p">),</span>
-                        <span class="p">(),</span>
-                        <span class="nb">range</span><span class="p">(</span><span class="n">ngpu</span><span class="p">),</span>
-                        <span class="n">module_kwargs</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
-                    <span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># 2. Extract feats</span>
+                    <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">collect_feats</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Note that data_parallel can parallelize only &quot;forward()&quot;</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">data_parallel</span><span class="p">(</span>
+                            <span class="n">ForwardAdaptor</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;collect_feats&quot;</span><span class="p">),</span>
+                            <span class="p">(),</span>
+                            <span class="nb">range</span><span class="p">(</span><span class="n">ngpu</span><span class="p">),</span>
+                            <span class="n">module_kwargs</span><span class="o">=</span><span class="n">batch</span><span class="p">,</span>
+                        <span class="p">)</span>
 
-                <span class="c1"># 3. Calculate sum and square sum</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">uttid</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())):</span>
-                        <span class="c1"># Truncate zero-padding region</span>
-                        <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_lengths&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-                            <span class="n">length</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_lengths&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-                            <span class="c1"># seq: (Length, Dim, ...)</span>
-                            <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[:</span><span class="n">length</span><span class="p">]</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="c1"># seq: (Dim, ...) -&gt; (1, Dim, ...)</span>
-                            <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
-                        <span class="c1"># Accumulate value, its square, and count</span>
-                        <span class="n">sum_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                        <span class="n">sq_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">seq</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                        <span class="n">count_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
+                    <span class="c1"># 3. Calculate sum and square sum</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">uttid</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())):</span>
+                            <span class="c1"># Truncate zero-padding region</span>
+                            <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_lengths&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                                <span class="n">length</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">_lengths&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                                <span class="c1"># seq: (Length, Dim, ...)</span>
+                                <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[:</span><span class="n">length</span><span class="p">]</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="c1"># seq: (Dim, ...) -&gt; (1, Dim, ...)</span>
+                                <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+                            <span class="c1"># Accumulate value, its square, and count</span>
+                            <span class="n">sum_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">sq_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">seq</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">count_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
 
-                        <span class="c1"># 4. [Option] Write derived features as npy format file.</span>
-                        <span class="k">if</span> <span class="n">write_collected_feats</span><span class="p">:</span>
-                            <span class="c1"># Instantiate NpyScpWriter for the first iteration</span>
-                            <span class="k">if</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">npy_scp_writers</span><span class="p">:</span>
-                                <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">mode</span> <span class="o">/</span> <span class="s2">&quot;collect_feats&quot;</span>
-                                <span class="n">npy_scp_writers</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)]</span> <span class="o">=</span> <span class="n">NpyScpWriter</span><span class="p">(</span>
-                                    <span class="n">p</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;data_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.scp&quot;</span>
-                                <span class="p">)</span>
-                            <span class="c1"># Save array as npy file</span>
-                            <span class="n">npy_scp_writers</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)][</span><span class="n">uttid</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span>
+                            <span class="c1"># 4. [Option] Write derived features as npy format file.</span>
+                            <span class="k">if</span> <span class="n">write_collected_feats</span><span class="p">:</span>
+                                <span class="c1"># Instantiate NpyScpWriter for the first iteration</span>
+                                <span class="k">if</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">npy_scp_writers</span><span class="p">:</span>
+                                    <span class="n">p</span> <span class="o">=</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">mode</span> <span class="o">/</span> <span class="s2">&quot;collect_feats&quot;</span>
+                                    <span class="n">npy_scp_writers</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)]</span> <span class="o">=</span> <span class="n">NpyScpWriter</span><span class="p">(</span>
+                                        <span class="n">p</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;data_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">p</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.scp&quot;</span>
+                                    <span class="p">)</span>
+                                <span class="c1"># Save array as npy file</span>
+                                <span class="n">npy_scp_writers</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">mode</span><span class="p">)][</span><span class="n">uttid</span><span class="p">]</span> <span class="o">=</span> <span class="n">seq</span>
 
                 <span class="k">if</span> <span class="n">iiter</span> <span class="o">%</span> <span class="n">log_interval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Niter: </span><span class="si">{</span><span class="n">iiter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
