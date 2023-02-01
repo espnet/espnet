@@ -133,16 +133,12 @@ def prepare_chime6(
             )
     recordings = RecordingSet.from_recordings(recordings)
 
-    def _get_channel(spk_id, session, ref=None):
+    def _get_channel(session):
         if mic == "ihm":
             return [0, 1]
         else:
             recording = recordings[session]
-            return (
-                list(range(recording.num_channels))
-                if not ref
-                else [i for i, s in enumerate(recording.sources) if ref in s.source]
-            )
+            return list(range(recording.num_channels))
 
     # Then we create the supervisions
     for session in all_sessions:
@@ -150,11 +146,7 @@ def prepare_chime6(
             transcript = json.load(f)
             for idx, segment in enumerate(transcript):
                 spk_id = segment["speaker"]
-                channel = _get_channel(
-                    spk_id,
-                    session,
-                    ref=None,
-                )
+                channel = _get_channel(session)
                 start = float(segment["start_time"])
                 end = float(segment["end_time"])
                 if ignore_shorter is not None and (end - start) < ignore_shorter:
@@ -358,7 +350,8 @@ def prepare_mixer6(
     if mic == "ihm":
         assert dset_part in [
             "train_intv",
-            "train_call",
+            "train_calls",
+            "dev",
         ], "No close-talk microphones on evaluation set."
 
     normalize_text_func = choose_txt_normalization(normalize_text)
@@ -386,19 +379,27 @@ def prepare_mixer6(
         else:
             sess2audio[sess_name].append(audio_f)
 
-    if mic == "ihm":
-        raise NotImplementedError("We may add this later.")
-    else:
-        recordings = []
-        supervisions = []
-        for sess in all_sessions:
-            with open(os.path.join(transcriptions_dir, dset_part, f"{sess}.json")) as f:
-                transcript = json.load(f)
-            current_sess_audio = [
-                x
-                for x in sess2audio[sess]
-                if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
-            ]
+    recordings = []
+    supervisions = []
+    for sess in all_sessions:
+        with open(os.path.join(transcriptions_dir, dset_part, f"{sess}.json")) as f:
+            transcript = json.load(f)
+        if mic == "ihm" and dset_part == "dev":
+            raise NotImplementedError
+        else:
+            if mic == "ihm" and dset_part.startswith("train"):
+                current_sess_audio = [
+                    x
+                    for x in sess2audio[sess]
+                    if Path(x).stem.split("_")[-1] in ["CH02"]
+                ]  # only interview and call
+            else:
+                current_sess_audio = [
+                    x
+                    for x in sess2audio[sess]
+                    if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
+                ]
+
             # recordings here
             sources = [
                 AudioSource(type="file", channels=[idx], source=str(audio_path))
@@ -407,9 +408,9 @@ def prepare_mixer6(
             audio_sf = sf.SoundFile(str(current_sess_audio[0]))
             recordings.append(
                 Recording(
-                    id=f"{sess}"
-                    if not dset_part.startswith("train")
-                    else "{}-{}".format(sess, dset_part.split("_")[-1]),
+                    id=f"{sess}-{dset_part}-{mic}"
+                    if mic == "mdm"
+                    else f"{sess}-{dset_part}-{mic}-SUBJECT",
                     sources=sources,
                     sampling_rate=int(audio_sf.samplerate),
                     num_samples=audio_sf.frames,
@@ -417,59 +418,60 @@ def prepare_mixer6(
                 )
             )
 
-            for idx, segment in enumerate(transcript):
-                spk_id = segment["speaker"]
+        for idx, segment in enumerate(transcript):
+            spk_id = segment["speaker"]
+            if mic == "mdm":
                 channel = list(range(len(current_sess_audio)))
-                start = float(segment["start_time"])
-                end = float(segment["end_time"])
-                if ignore_shorter is not None and (end - start) < ignore_shorter:
-                    print(
-                        "Ignored segment session {} speaker"
-                        " {} seconds {} to {}, because shorter than {}"
-                        "".format(sess, spk_id, start, end, ignore_shorter)
-                    )
-                    continue
-
-                supervisions.append(
-                    SupervisionSegment(
-                        id=f"{sess}-{idx}"
-                        if not dset_part.startswith("train")
-                        else "{}-{}-{}".format(sess, dset_part.split("_")[-1], idx),
-                        recording_id=f"{sess}"
-                        if not dset_part.startswith("train")
-                        else "{}-{}".format(sess, dset_part.split("_")[-1]),
-                        start=start,
-                        duration=add_durations(end, -start, sampling_rate=16000),
-                        channel=channel,
-                        text=normalize_text_func(segment["words"]),
-                        speaker=spk_id,
-                    )
+            else:
+                channel = 0
+            start = float(segment["start_time"])
+            end = float(segment["end_time"])
+            if ignore_shorter is not None and (end - start) < ignore_shorter:
+                print(
+                    "Ignored segment session {} speaker"
+                    " {} seconds {} to {}, because shorter than {}"
+                    "".format(sess, spk_id, start, end, ignore_shorter)
                 )
+                continue
 
-        recording_set, supervision_set = fix_manifests(
-            RecordingSet.from_recordings(recordings),
-            SupervisionSet.from_segments(supervisions),
+            if mic == "ihm" and dset_part.startswith("train"):
+                rec_id = f"{sess}-{dset_part}-{mic}-SUBJECT"
+            elif mic == "ihm" and dset_part == "dev":
+                raise NotImplementedError
+            else:
+                rec_id = f"{sess}-{dset_part}-{mic}"
+            supervisions.append(
+                SupervisionSegment(
+                    id=f"{sess}-{dset_part}-{mic}-{idx}",
+                    recording_id=rec_id,
+                    start=start,
+                    duration=add_durations(end, -start, sampling_rate=16000),
+                    channel=channel,
+                    text=normalize_text_func(segment["words"]),
+                    speaker=spk_id,
+                )
+            )
+
+    recording_set, supervision_set = fix_manifests(
+        RecordingSet.from_recordings(recordings),
+        SupervisionSet.from_segments(supervisions),
+    )
+    # Fix manifests
+    validate_recordings_and_supervisions(recording_set, supervision_set)
+
+    if output_dir is not None:
+        supervision_set.to_file(
+            os.path.join(output_dir, f"mixer6-{mic}_supervisions_{dset_part}.jsonl.gz")
         )
-        # Fix manifests
-        validate_recordings_and_supervisions(recording_set, supervision_set)
+        recording_set.to_file(
+            os.path.join(output_dir, f"mixer6-{mic}_recordings_{dset_part}.jsonl.gz")
+        )
 
-        if output_dir is not None:
-            supervision_set.to_file(
-                os.path.join(
-                    output_dir, f"mixer6-{mic}_supervisions_{dset_part}.jsonl.gz"
-                )
-            )
-            recording_set.to_file(
-                os.path.join(
-                    output_dir, f"mixer6-{mic}_recordings_{dset_part}.jsonl.gz"
-                )
-            )
-
-        manifests[dset_part] = {
-            "recordings": recording_set,
-            "supervisions": supervision_set,
-        }
-        return manifests
+    manifests[dset_part] = {
+        "recordings": recording_set,
+        "supervisions": supervision_set,
+    }
+    return manifests
 
 
 if __name__ == "__main__":
@@ -579,8 +581,10 @@ if __name__ == "__main__":
             )
 
         elif args.dset_name == "mixer6":
-            if mic == "ihm":
+
+            if args.dset_part in ["dev", "eval"] and mic == "ihm":
                 continue
+
             if args.dset_part.startswith("train"):
                 supervisions = []
                 recordings = []

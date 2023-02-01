@@ -1,9 +1,10 @@
 import argparse
 import glob
 import os
+import warnings
 from copy import deepcopy
 from pathlib import Path
-import warnings
+
 import lhotse
 import soundfile as sf
 
@@ -33,10 +34,14 @@ def get_new_manifests(input_dir, output_filename):
         try:
             enhanced_audio = id2wav[gss_id]
         except:
-            warnings.warn("Skipped example {}, it was not found in GSS input. "
-                          "This may lead to significant errors for ASR if this is inference."
-                          "It could be that it was discarded by GSS because the segment was too long, "
-                          "check GSS max-segment-length argument.".format(gss_id))
+            warnings.warn(
+                "Skipped example {}, of length {:.2f}, it was not found in GSS input. "
+                "This may lead to significant errors for ASR if this is inference."
+                "It could be that it was discarded by GSS because the segment was too long, "
+                "check GSS max-segment-length argument.".format(
+                    gss_id, c_cut.end - c_cut.start
+                )
+            )
             continue
 
         # recording id is unique for this example we add a gss postfix

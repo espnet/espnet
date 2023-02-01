@@ -48,10 +48,6 @@ fi
 
 
 if [ ${stage} -le 2 ] && ! contains $skip_stages 2; then
-  if [ -d "${chime7_root}" ]; then
-    echo "${chime7_root} already exists, exiting"
-    exit
-  fi
-  python data/generate_data.py -c $chime6_root \
-      -d $dipco_root -m $mixer6_root -o $chime7_root
+  python local/gen_task1_data.py -c $chime6_root \
+      -d $dipco_root -m $mixer6_root -o $chime7_root --eval_opt 0
 fi

@@ -82,35 +82,36 @@ def choose_txt_normalization(scoring_txt_normalization="chime7"):
     return scoring_txt_normalization
 
 
-def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7"):
+def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
-    if Path(out_dir).exists():
-        raise FileExistsError(
-            "{} appears to have been created already, "
-            "exiting. Please delete/move/rename "
-            "it if you want to re-generate CHiME7 Task 1 data".format(out_dir)
-        )
 
-    def normalize_chime6(annotation, txt_normalizer, is_eval=False):
+    def normalize_chime6(annotation, txt_normalizer, eval_opt=False):
         annotation_scoring = []
         for ex in annotation:
-            ex["start_time"] = str(TimeFormatConverter.hms_to_seconds(ex["start_time"]))
-            ex["end_time"] = str(TimeFormatConverter.hms_to_seconds(ex["end_time"]))
-            if is_eval and "ref" in ex.keys():
+            ex["start_time"] = "{:.3f}".format(TimeFormatConverter.hms_to_seconds(ex["start_time"]))
+            ex["end_time"] = "{:.3f}".format(TimeFormatConverter.hms_to_seconds(ex["end_time"]))
+            if eval_opt > 0 and "ref" in ex.keys():
                 del ex["ref"]
                 del ex["location"]
                 # cannot be used in inference
             ex_scoring = deepcopy(ex)
             ex_scoring["words"] = txt_normalizer(ex["words"])
+            if eval_opt == 1:
+                ex["words"] = "placeholder"
             if len(ex_scoring["words"]) > 0:
+                if eval_opt == 1:
+                    ex_scoring["words"] = "placeholder"
                 annotation_scoring.append(ex_scoring)
             # if empty remove segment from scoring
         return annotation, annotation_scoring
 
+
+    splits = ["train", "dev", "eval"]
     # pre-create all destination folders
-    for split in ["train", "dev", "eval"]:
-        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True, exist_ok=True)
+    for split in splits:
+        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True,
+                                                           exist_ok=True)
         Path(os.path.join(out_dir, "transcriptions", split)).mkdir(
             parents=True, exist_ok=True
         )
@@ -118,7 +119,7 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7"):
             parents=True, exist_ok=True
         )
 
-    for split in ["train", "dev", "eval"]:
+    for split in splits:
         json_dir = os.path.join(root_dir, "transcriptions", split)
         ann_json = glob.glob(os.path.join(json_dir, "*.json"))
         assert len(ann_json) > 0, (
@@ -131,6 +132,8 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7"):
         sess2audio = {}
         for x in audio_files:
             session_name = Path(x).stem.split("_")[0]
+            if Path(x).stem.split("_")[-1].startswith("P") and eval_opt > 0:
+                continue
             if session_name not in sess2audio:
                 sess2audio[session_name] = [x]
             else:
@@ -141,19 +144,28 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7"):
             with open(j_file, "r") as f:
                 annotation = json.load(f)
             sess_name = Path(j_file).stem
-            if sess_name in chime6_map["eval"]:
-                annotation, scoring_annotation = normalize_chime6(
-                    annotation, scoring_txt_normalization, is_eval=True
-                )
-            else:
-                annotation, scoring_annotation = normalize_chime6(
-                    annotation, scoring_txt_normalization
+
+            annotation, scoring_annotation = normalize_chime6(
+                    annotation, scoring_txt_normalization, eval_opt
                 )
 
             tsplit = None  # find chime7 destination split
             for k in ["train", "dev", "eval"]:
                 if sess_name in chime6_map[k]:
                     tsplit = k
+
+            # create symlinks too
+            if eval_opt == 0 and tsplit == "eval":
+                continue
+            if eval_opt > 0 and tsplit != "eval":
+                continue
+
+            [
+                os.symlink(
+                    x, os.path.join(out_dir, "audio", tsplit, Path(x).stem) + ".wav"
+                )
+                for x in sess2audio[sess_name]
+            ]
 
             with open(
                 os.path.join(out_dir, "transcriptions", tsplit, sess_name + ".json"),
@@ -169,26 +181,14 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7"):
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
 
-            # create symlinks too
-            [
-                os.symlink(
-                    x, os.path.join(out_dir, "audio", tsplit, Path(x).stem) + ".wav"
-                )
-                for x in sess2audio[sess_name]
-            ]
-
 
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
-    if Path(out_dir).exists():
-        raise FileExistsError(
-            "{} appears to have been created already, "
-            "exiting. Please delete/move/rename "
-            "it if you want to re-generate CHiME7 Task 1 data".format(out_dir)
-        )
 
-    def normalize_dipco(annotation, txt_normalizer, is_eval=False):
+
+    def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
+
         annotation_scoring = []
         _get_time = lambda x: (
             dt.strptime(x, "%H:%M:%S.%f") - dt(1900, 1, 1)
@@ -198,13 +198,13 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
             ex["session_id"] = "S{:02d}".format(
                 dipco_offset + int(ex["session_id"].strip("S"))
             )
-            ex["start_time"] = str(_get_time(ex["start_time"]["U01"]))
-            ex["end_time"] = str(_get_time(ex["end_time"]["U01"]))
+            ex["start_time"] = "{:.3f}".format(_get_time(ex["start_time"]["U01"]))
+            ex["end_time"] = "{:.3f}".format(_get_time(ex["end_time"]["U01"]))
             ex["speaker"] = "P{:02d}".format(
                 dipco_offset + int(ex["speaker_id"].strip("P"))
             )
             del ex["speaker_id"]
-            if is_eval:
+            if eval_opt > 0:
                 new_ex = {}
                 for k in ex.keys():
                     if k in [
@@ -220,16 +220,26 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 # cannot be used in inference
             ex_scoring = deepcopy(ex)
             ex_scoring["words"] = txt_normalizer(ex["words"])
+            if eval_opt == 1:
+                ex["words"] = "placeholder"  # diarization only annotation
             if len(ex_scoring["words"]) > 0:
+                if eval_opt == 1:
+                    ex_scoring["words"] = "placeholder"  # diarization only annotation
                 annotation_scoring.append(ex_scoring)
             # if empty remove segment from scoring
+
         return annotation, annotation_scoring
 
-    for split in ["dev", "eval"]:
+    if eval_opt > 0:
+        splits = ["eval"]
+    else:
+        splits = ["dev"]
+
+    for split in splits:
         # here same splits no need to remap
-        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True, exist_ok=True)
+        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True, exist_ok=False)
         Path(os.path.join(out_dir, "transcriptions", split)).mkdir(
-            parents=True, exist_ok=True
+            parents=True, exist_ok=False
         )
         Path(os.path.join(out_dir, "transcriptions_scoring", split)).mkdir(
             parents=True, exist_ok=True
@@ -247,6 +257,8 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
         sess2audio = {}
         for x in audio_files:
             session_name = Path(x).stem.split("_")[0]
+            if Path(x).stem.split("_")[-1].startswith("P") and eval_opt !=2:
+                continue
             if session_name not in sess2audio:
                 sess2audio[session_name] = [x]
             else:
@@ -257,15 +269,22 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
             with open(j_file, "r") as f:
                 annotation = json.load(f)
             sess_name = Path(j_file).stem
-            if sess_name in dipco_tt:
-                annotation, scoring_annotation = normalize_dipco(
-                    annotation, scoring_txt_normalization, is_eval=True
-                )
-            else:
-                annotation, scoring_annotation = normalize_dipco(
-                    annotation, scoring_txt_normalization
-                )
+
+            annotation, scoring_annotation = normalize_dipco(
+                annotation, scoring_txt_normalization, eval_opt
+            )
+
             new_sess_name = "S{:02d}".format(dipco_offset + int(sess_name.strip("S")))
+            # create symlinks too but swap names for the sessions too
+            for x in sess2audio[sess_name]:
+                filename = new_sess_name + "_" + "_".join(Path(x).stem.split("_")[1:])
+                if filename.split("_")[1].startswith("P"):
+                    speaker_id = filename.split("_")[1]
+                    filename = filename.split("_")[0] + "_P{:02d}".format(
+                        dipco_offset + int(speaker_id.strip("P"))
+                    )
+                os.symlink(x, os.path.join(out_dir, "audio", split, filename + ".wav"))
+
             with open(
                 os.path.join(out_dir, "transcriptions", split, new_sess_name + ".json"),
                 "w",
@@ -278,42 +297,29 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 "w",
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
-            # create symlinks too but swap names for the sessions too
-            for x in sess2audio[sess_name]:
-                filename = new_sess_name + "_" + "_".join(Path(x).stem.split("_")[1:])
-                if filename.split("_")[1].startswith("P"):
-                    speaker_id = filename.split("_")[1]
-                    filename = filename.split("_")[0] + "_P{:02d}".format(
-                        dipco_offset + int(speaker_id.strip("P"))
-                    )
-                os.symlink(x, os.path.join(out_dir, "audio", split, filename + ".wav"))
 
 
 def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
-    # if Path(out_dir).exists():
-    #    raise FileExistsError(
-    #        "{} appears to have been created already, "
-    #        "exiting. Please delete/move/rename "
-    #        "it if you want to re-generate CHiME7 Task 1 data".format(out_dir)
-    #    )
 
-    def normalize_mixer6(annotation, txt_normalizer, is_eval=False):
+    def normalize_mixer6(annotation, txt_normalizer, eval_opt=0):
         annotation_scoring = []
         for indx in range(len(annotation)):
             ex = annotation[indx]
             ex_scoring = deepcopy(ex)
             ex_scoring["words"] = txt_normalizer(ex["words"])
+            if eval_opt == 1:
+                ex["words"] = "placeholder"
             if len(ex_scoring["words"]) > 0:
                 annotation_scoring.append(ex_scoring)
             # if empty remove segment from scoring
         return annotation, annotation_scoring
 
-    if eval_only:
+    if eval_opt > 0:
         splits = ["eval"]
     else:
-        splits = ["train_calls", "train_intv", "dev", "eval"]
+        splits = ["train_calls", "train_intv", "dev"]
     audio_files = glob.glob(
         os.path.join(
             root_dir,
@@ -330,9 +336,9 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
         else:
             sess2audio[session_name].append(x)
     for c_split in splits:
-        Path(os.path.join(out_dir, "audio", c_split)).mkdir(parents=True, exist_ok=True)
+        Path(os.path.join(out_dir, "audio", c_split)).mkdir(parents=True, exist_ok=False)
         Path(os.path.join(out_dir, "transcriptions", c_split)).mkdir(
-            parents=True, exist_ok=True
+            parents=True, exist_ok=False
         )
         Path(os.path.join(out_dir, "transcriptions_scoring", c_split)).mkdir(
             parents=True, exist_ok=True
@@ -345,7 +351,7 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 os.path.join(root_dir, "splits", "dev" + use_version, "*.json")
             )
         elif c_split == "eval":
-            if eval_gt == True:
+            if eval_opt > 0:
                 ann_json = glob.glob(os.path.join(root_dir, "splits", "test", "*.json"))
             else:
                 with open(os.path.join(root_dir, "splits", "test.list"), "r") as f:
@@ -369,12 +375,20 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             sess_name = Path(j_file).stem
             if c_split == "eval":
                 annotation, annotation_scoring = normalize_mixer6(
-                    annotation, scoring_txt_normalization, is_eval=True
+                    annotation, scoring_txt_normalization, eval_opt
                 )
             else:
                 annotation, annotation_scoring = normalize_mixer6(
                     annotation, scoring_txt_normalization
                 )
+            # create symlinks too
+            [
+                os.symlink(
+                    x, os.path.join(out_dir, "audio", c_split, Path(x).stem + ".flac")
+                )
+                for x in sess2audio[sess_name]
+            ]
+
             with open(
                 os.path.join(out_dir, "transcriptions", c_split, sess_name + ".json"),
                 "w",
@@ -387,13 +401,6 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "w",
             ) as f:
                 json.dump(annotation_scoring, f, indent=4)
-            # create symlinks too
-            [
-                os.symlink(
-                    x, os.path.join(out_dir, "audio", c_split, Path(x).stem + ".flac")
-                )
-                for x in sess2audio[sess_name]
-            ]
 
 
 if __name__ == "__main__":
@@ -434,12 +441,12 @@ if __name__ == "__main__":
         "Note that for audio files symbolic links are used.",
     )
     parser.add_argument(
-        "--eval_gt",
+        "--eval_opt",
         type=int,
         default=0,
         metavar="INT",
-        help="Choose between 0, do not create eval annotation,"
-        "1 create eval annotation for sub-track1"
+        help="Choose between 0, do not create eval annotation."
+        "1 creates ONLY eval annotation for sub-track1 (skip the other splits)"
         "(oracle diarization, no words field in JSONs)."
         "Note that for using 1 Mixer6 evaluation set needs to be released."
         "Option 2 is for Organizers only "
@@ -460,13 +467,17 @@ if __name__ == "__main__":
         args.chime6_root,
         os.path.join(args.output_root, "chime6"),
         args.txt_norm_scoring,
+        args.eval_opt,
     )
     prep_dipco(
-        args.dipco_root, os.path.join(args.output_root, "dipco"), args.txt_norm_scoring
+        args.dipco_root,
+        os.path.join(args.output_root, "dipco"),
+        args.txt_norm_scoring,
+        args.eval_opt,
     )
     prep_mixer6(
         args.mixer6_root,
         os.path.join(args.output_root, "mixer6"),
-        eval_opt=bool(args.eval_gt),
+        eval_opt=args.eval_opt,
         scoring_txt_normalization=args.txt_norm_scoring,
     )
