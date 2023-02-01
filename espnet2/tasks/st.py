@@ -19,12 +19,14 @@ from espnet2.asr.decoder.transformer_decoder import (
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
     ContextualBlockConformerEncoder,
 )
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
@@ -110,6 +112,8 @@ encoder_choices = ClassChoices(
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -189,6 +193,8 @@ hier_encoder_choices = ClassChoices(
         contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default=None,
