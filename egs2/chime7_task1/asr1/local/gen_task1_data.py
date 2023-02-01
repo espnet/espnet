@@ -7,7 +7,7 @@ from datetime import datetime as dt
 from pathlib import Path
 
 import jiwer
-from jiwer.transforms import BaseRemoveTransform, RemoveKaldiNonWords
+from jiwer.transforms import RemoveKaldiNonWords
 from lhotse.recipes.chime6 import TimeFormatConverter, normalize_text_chime6
 
 chime6_map = {
@@ -438,8 +438,12 @@ if __name__ == "__main__":
         type=int,
         default=0,
         metavar="INT",
-        help="Choose between 0, do not create eval annotation, 1 create eval annotation for sub-track1 (oracle diarization, no words field in JSONs). Note"
-        "that for using 1 Mixer6 evaluation set needs to be released. Option 2 is for Organizers only (full annotation on eval used for scoring).",
+        help="Choose between 0, do not create eval annotation,"
+        "1 create eval annotation for sub-track1"
+        "(oracle diarization, no words field in JSONs)."
+        "Note that for using 1 Mixer6 evaluation set needs to be released."
+        "Option 2 is for Organizers only "
+        "(full annotation on eval used for scoring).",
     )
 
     parser.add_argument(
@@ -447,7 +451,8 @@ if __name__ == "__main__":
         type=str,
         default="chime7",
         metavar="STR",
-        help="Choose between chime6 and chime7, this select the text normalization applied when creating"
+        help="Choose between chime6 and chime7, "
+        "this select the text normalization applied when creating"
         "the scoring annotation.",
     )
     args = parser.parse_args()

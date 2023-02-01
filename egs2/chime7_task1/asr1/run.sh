@@ -28,7 +28,7 @@ ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR trainin
 # GSS CONFIG
 max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl
-gss_dsets="chime6_dev dipco_dev mixer6_dev"
+gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev"
 gss_max_wav_duration=30
 gss_ngpus=$ngpu
 
@@ -108,7 +108,7 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
     fi
 
     echo "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
-    ./run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
+    local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
           --cmd $cmd_gss \

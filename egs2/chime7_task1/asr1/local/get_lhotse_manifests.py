@@ -34,10 +34,13 @@ def prepare_chime6(
     Returns the manifests which consist of the Recordings and Supervisions
     :param corpus_dir: Pathlike, the path of CHiME-6 main directory.
     :param output_dir: Pathlike, the path where to write the manifests.
-    :param mic: str, the microphone type to use, choose from "ihm" (close-talk) or "mdm"
-        (multi-microphone array) settings. For MDM, there are 6 array devices with 4
+    :param mic: str, the microphone type to use,
+    choose from "ihm" (close-talk) or "mdm"
+        (multi-microphone array) settings.
+        For MDM, there are 6 array devices with 4
         channels each, so the resulting recordings will have 24 channels.
-    :param normalize_text: str, the text normalization method, choose from "chime6" or "chime7".
+    :param normalize_text: str, the text normalization method,
+    choose from "chime6" or "chime7".
     """
     import soundfile as sf
 
@@ -57,7 +60,7 @@ def prepare_chime6(
         Path(x).stem
         for x in glob.glob(os.path.join(transcriptions_dir, dset_part, "*.json"))
     ]
-
+    manifests = defaultdict(dict)
     recordings = []
     supervisions = []
     # First we create the recordings
@@ -98,7 +101,8 @@ def prepare_chime6(
                     os.path.join(corpus_dir, "audio", dset_part, f"{session}_U*.wav")
                 )
             ]
-            # discard some arrays because their files length is a lot different and causes GSS to fail
+            # discard some arrays because their
+            # files length is a lot different and causes GSS to fail
             if session == "S12":
                 audio_paths = [
                     x for x in audio_paths if not Path(x).stem.startswith("S12_U05")
@@ -155,7 +159,8 @@ def prepare_chime6(
                 end = float(segment["end_time"])
                 if ignore_shorter is not None and (end - start) < ignore_shorter:
                     print(
-                        "Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                        "Ignored segment session {} speaker "
+                        "{} seconds {} to {}, because shorter than {}"
                         "".format(session, spk_id, start, end, ignore_shorter)
                     )
                     continue
@@ -211,10 +216,13 @@ def prepare_dipco(
     Returns the manifests which consist of the Recordings and Supervisions
     :param corpus_dir: Pathlike, the path of DiPCo main directory.
     :param output_dir: Pathlike, the path where to write the manifests.
-    :param mic: str, the microphone type to use, choose from "ihm" (close-talk) or "mdm"
-        (multi-microphone array) settings. For MDM, there are 5 array devices with 7
+    :param mic: str, the microphone type to use,
+    choose from "ihm" (close-talk) or "mdm"
+        (multi-microphone array) settings.
+        For MDM, there are 5 array devices with 7
         channels each, so the resulting recordings will have 35 channels.
-    :param normalize_text: str, the text normalization method, choose from "chime6" or "chime7".
+    :param normalize_text: str, the text normalization method,
+     choose from "chime6" or "chime7".
     """
     assert mic in ["ihm", "mdm"], "mic must be one of 'ihm' or 'mdm'"
     normalize_text_func = choose_txt_normalization(normalize_text)
@@ -295,7 +303,8 @@ def prepare_dipco(
                 end = float(segment["end_time"])
                 if ignore_shorter is not None and (end - start) < ignore_shorter:
                     print(
-                        "Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                        "Ignored segment session {} speaker {} "
+                        "seconds {} to {}, because shorter than {}"
                         "".format(session, spk_id, start, end, ignore_shorter)
                     )
                     continue
@@ -341,7 +350,7 @@ def prepare_mixer6(
     normalize_text: Optional[str] = "chime6",
     json_dir: Optional[
         Pathlike
-    ] = None,  # alternative annotation e.g. from non-oracle diarization  #TODO
+    ] = None,  # alternative annotation e.g. from non-oracle diarization
     ignore_shorter: Optional[float] = 0.2,
 ) -> Dict[str, Dict[str, Union[RecordingSet, SupervisionSet]]]:
 
@@ -415,7 +424,8 @@ def prepare_mixer6(
                 end = float(segment["end_time"])
                 if ignore_shorter is not None and (end - start) < ignore_shorter:
                     print(
-                        "Ignored segment session {} speaker {} seconds {} to {}, because shorter than {}"
+                        "Ignored segment session {} speaker"
+                        " {} seconds {} to {}, because shorter than {}"
                         "".format(sess, spk_id, start, end, ignore_shorter)
                     )
                     continue
@@ -473,7 +483,8 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="chime7_root",
-        help="Path to CHiME-7 Task 1 dataset main directory, as generated by the create_dataset.sh script."
+        help="Path to CHiME-7 Task 1 dataset main directory,"
+        " as generated by the create_dataset.sh script."
         "It should contain chime6, dipco and mixer6 as sub-folders.",
     )
     parser.add_argument(
@@ -488,7 +499,8 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="dset_part",
-        help="Which part of the dataset you want for the manifests? 'train', 'dev' or 'eval' ?",
+        help="Which part of the dataset you want for "
+        "the manifests? 'train', 'dev' or 'eval' ?",
     )
     parser.add_argument(
         "-o,--output_root",
@@ -504,7 +516,8 @@ if __name__ == "__main__":
         default="chime7",
         metavar="STR",
         required=False,
-        help="Choose between chime6 and chime7, this select the text normalization applied when creating"
+        help="Choose between chime6 and chime7, this"
+        " select the text normalization applied when creating"
         "the scoring annotation.",
     )
     parser.add_argument(
@@ -514,8 +527,11 @@ if __name__ == "__main__":
         dest="diar_json",
         default="",
         required=False,
-        help="Path to a directory with same structure as CHiME-7 Task 1 transcription directory, containing JSON files"
-        "with the same structure but from a diarization system (words field could be missing and will be ignored).",
+        help="Path to a directory with same structure "
+        "as CHiME-7 Task 1 transcription directory, "
+        "containing JSON files"
+        "with the same structure but from a diarization "
+        "system (words field could be missing and will be ignored).",
     )
     parser.add_argument(
         "--ignore_shorter",
@@ -524,7 +540,7 @@ if __name__ == "__main__":
         dest="ignore_shorter",
         default=0.0,
         required=False,
-        help="Ignore segments that are shorter than this value in the supervision.",
+        help="Ignore segments that are shorter than" " this value in the supervision.",
     )
 
     args = parser.parse_args()

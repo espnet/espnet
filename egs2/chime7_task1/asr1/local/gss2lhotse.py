@@ -10,9 +10,10 @@ import soundfile as sf
 
 def get_new_manifests(input_dir, output_filename):
 
-    assert os.path.exists(
-        os.path.join(input_dir, "enhanced")
-    ), f"{input_dir} does not contain a sub-folder named enhanced, is it the correct path ?"
+    assert os.path.exists(os.path.join(input_dir, "enhanced")), (
+        f"{input_dir} does not contain a sub-folder "
+        f"named enhanced, is it the correct path ?"
+    )
 
     wavs = glob.glob(os.path.join(input_dir, "enhanced/**/*.flac"), recursive=True)
     segcuts = lhotse.CutSet.from_jsonl(
@@ -25,7 +26,10 @@ def get_new_manifests(input_dir, output_filename):
         c_cut = segcuts.data[c_k]
         recording_id = c_cut.id.split("-")[0]
         speaker = c_cut.supervisions[0].speaker
-        gss_id = f"{recording_id}-{speaker}-{int(100*c_cut.start):06d}_{int(100*c_cut.end):06d}"
+        gss_id = (
+            f"{recording_id}-{speaker}-"
+            f"{int(100*c_cut.start):06d}_{int(100*c_cut.end):06d}"
+        )
         enhanced_audio = id2wav[gss_id]
 
         # recording id is unique for this example we add a gss postfix
@@ -61,14 +65,10 @@ def get_new_manifests(input_dir, output_filename):
     Path(output_filename).parent.mkdir(exist_ok=True, parents=True)
     filename = Path(output_filename).stem
     supervision_set.to_file(
-        os.path.join(
-            Path(output_filename).parent, f"{filename}_supervisions.jsonl.gz"
-        )
+        os.path.join(Path(output_filename).parent, f"{filename}_supervisions.jsonl.gz")
     )
     recording_set.to_file(
-        os.path.join(
-            Path(output_filename).parent, f"{filename}_recordings.jsonl.gz"
-        )
+        os.path.join(Path(output_filename).parent, f"{filename}_recordings.jsonl.gz")
     )
 
 
@@ -83,14 +83,18 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="gss_dir",
-        help="Path to the GPU-GSS dir containing ./enhanced/*.flac enhanced files and a cuts_per_segment.json.gz manifest.",
+        help="Path to the GPU-GSS dir "
+        "containing ./enhanced/*.flac enhanced files and "
+        "a cuts_per_segment.json.gz manifest.",
     )
     parser.add_argument(
         "-o,--output_name",
         type=str,
         metavar="STR",
         dest="output_name",
-        help="Path and filename for the new manifest, e.g. /tmp/chime6_gss will create in /tmp /tmp/chime6_gss-recordings.jsonl.gz "
+        help="Path and filename for the new manifest, "
+        "e.g. /tmp/chime6_gss will create in /tmp "
+        "/tmp/chime6_gss-recordings.jsonl.gz "
         "and /tmp/chime6_gss-supervisions.jsonl.gz.",
     )
 
