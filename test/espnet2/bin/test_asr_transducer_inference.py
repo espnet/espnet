@@ -206,19 +206,19 @@ def test_streaming_Speech2Text(
 
     speech = np.random.randn(10000)
 
-    decoding_window = speech2text.audio_processor.decoding_window
-    decoding_steps = len(speech) // decoding_window
+    decoding_samples = speech2text.audio_processor.decoding_samples
+    decoding_steps = len(speech) // decoding_samples
 
     for i in range(0, decoding_steps + 1, 1):
-        _start = i * decoding_window
+        _start = i * decoding_samples
 
         if i == decoding_steps:
             hyps = speech2text.streaming_decode(
-                speech[i * decoding_window : len(speech)], is_final=True
+                speech[i * decoding_samples : len(speech)], is_final=True
             )
         else:
             speech2text.streaming_decode(
-                speech[(i * decoding_window) : _start + decoding_window - 1],
+                speech[(i * decoding_samples) : _start + decoding_samples - 1],
                 is_final=False,
             )
 

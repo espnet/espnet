@@ -38,8 +38,8 @@ class OnlineAudioProcessor:
         self.win_hop_sz = self.win_sz - self.hop_sz
         self.trim_val = (self.win_sz // -self.hop_sz) // -2
 
-        self.decoding_window = int(decoding_window * audio_sampling_rate / 1000)
-        self.offset = lambda x: 2 * encoder_sub_factor + x % encoder_sub_factor
+        self.decoding_samples = round(decoding_window * audio_sampling_rate / 1000)
+        self.offset_frames = 2 * encoder_sub_factor + 3
 
         self.feature_extractor = feature_extractor
         self.normalization_module = normalization_module
@@ -59,11 +59,13 @@ class OnlineAudioProcessor:
 
         """
         self.samples = None
+        self.samples_length = torch.zeros([1], dtype=torch.long, device=self.device)
+
         self.feats = None
 
     def get_current_samples(
         self, samples: torch.Tensor, is_final: bool
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """Get samples for feature computation.
 
         Args:
@@ -71,47 +73,43 @@ class OnlineAudioProcessor:
             is_final: Whether speech corresponds to the final chunk of data.
 
         Returns:
-            samples: New speech data. (1, decoding_window)
-            samples_length: New speech length. (1,)
+            samples: New speech data. (1, decoding_samples)
 
         """
         if self.samples is not None:
-            new_samples = torch.cat([self.samples, samples], dim=0)
-        else:
-            new_samples = samples
+            samples = torch.cat([self.samples, samples], dim=0)
 
-        samples_sz = new_samples.size(0)
+        samples_sz = samples.size(0)
 
         if is_final:
             waveform_buffer = None
 
-            if samples_sz < self.decoding_window:
+            if samples_sz < self.decoding_samples:
                 samples = torch.nn.functional.pad(
-                    new_samples,
-                    (0, self.decoding_window - samples_sz),
+                    samples,
+                    (0, self.decoding_samples - samples_sz),
                     mode="constant",
                     value=0.0,
                 )
-            else:
-                samples = new_samples
         else:
             n_frames = (samples_sz - self.win_hop_sz) // self.hop_sz
             n_residual = (samples_sz - self.win_hop_sz) % self.hop_sz
 
-            samples = new_samples.narrow(0, 0, self.win_hop_sz + n_frames * self.hop_sz)
-
-            waveform_buffer = new_samples.narrow(
+            waveform_buffer = samples.narrow(
                 0,
                 samples_sz - self.win_hop_sz - n_residual,
                 self.win_hop_sz + n_residual,
-            ).clone()
+            )
+
+            samples = samples.narrow(0, 0, self.win_hop_sz + n_frames * self.hop_sz)
 
         self.samples = waveform_buffer
 
         samples = samples.unsqueeze(0).to(device=self.device)
-        lengths = samples.new_full([1], dtype=torch.long, fill_value=samples.size(1))
 
-        return samples, lengths
+        self.samples_length.fill_(samples.size(1))
+
+        return samples
 
     def get_current_feats(
         self, feats: torch.Tensor, feats_length: torch.Tensor, is_final: bool
@@ -128,27 +126,19 @@ class OnlineAudioProcessor:
             feats_length: Decoding window features length sequence. (1,)
 
         """
-        if is_final:
-            _feats = feats.narrow(1, self.trim_val, feats.size(1) - self.trim_val)
-        else:
-            if self.feats is None:
-                _feats = feats.narrow(1, 0, feats.size(1) - self.trim_val)
+        if self.feats is not None:
+            if is_final:
+                feats = feats.narrow(1, self.trim_val, feats.size(1) - self.trim_val)
             else:
-                _feats = feats.narrow(
+                feats = feats.narrow(
                     1, self.trim_val, feats.size(1) - 2 * self.trim_val
                 )
 
-        if self.feats is not None:
-            feats = torch.cat((self.feats, _feats), dim=1)
+            feats = torch.cat((self.feats, feats), dim=1)
         else:
-            feats = torch.nn.functional.pad(
-                _feats,
-                (0, 0, self.offset(feats.size(1)), 0, 0, 0),
-                mode="constant",
-                value=0.0,
-            )
+            feats = feats.narrow(1, 0, feats.size(1) - self.trim_val)
 
-        self.feats = feats[:, -self.offset(feats.size(1)) :, :]
+        self.feats = feats[:, -self.offset_frames :, :]
 
         feats_length.fill_(feats.size(1))
 
@@ -166,9 +156,9 @@ class OnlineAudioProcessor:
             feats_length: Features length sequence. (1,)
 
         """
-        samples, samples_length = self.get_current_samples(samples, is_final)
+        samples = self.get_current_samples(samples, is_final)
 
-        feats, feats_length = self.feature_extractor(samples, samples_length)
+        feats, feats_length = self.feature_extractor(samples, self.samples_length)
 
         if self.normalization_module is not None:
             feats, feats_length = self.normalization_module(feats, feats_length)

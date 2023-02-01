@@ -343,7 +343,7 @@ def inference(
     streaming: bool,
     decoding_window: int,
     left_context: int,
-    display_partial_hypotheses: bool,
+    display_hypotheses: bool,
 ) -> None:
     """Transducer model inference.
 
@@ -376,7 +376,7 @@ def inference(
         decoding_window: Audio length (in milliseconds) to process during decoding.
         left_context: Number of previous frames the attention module can see
                       in current chunk (used by Conformer and Branchformer block).
-        display_partial_hypotheses: Whether to display partial hypotheses.
+        display_hypotheses: Whether to display (partial and full) hypotheses.
 
     """
     assert check_argument_types()
@@ -425,6 +425,9 @@ def inference(
         **speech2text_kwargs,
     )
 
+    if speech2text.streaming:
+        decoding_samples = speech2text.audio_processor.decoding_samples
+
     # 3. Build data-iterator
     loader = ASRTransducerTask.build_streaming_iterator(
         data_path_and_name_and_type,
@@ -457,36 +460,39 @@ def inference(
                 if speech2text.streaming:
                     speech = batch["speech"]
 
-                    decoding_window_ms = decoding_window
-                    decoding_window = speech2text.audio_processor.decoding_window
-                    decoding_steps = len(speech) // decoding_window
+                    decoding_steps = len(speech) // decoding_samples
 
                     for i in range(0, decoding_steps + 1, 1):
-                        _start = i * decoding_window
+                        _start = i * decoding_samples
 
                         if i == decoding_steps:
                             final_hyps = speech2text.streaming_decode(
-                                speech[i * decoding_window : len(speech)], is_final=True
+                                speech[i * decoding_samples : len(speech)],
+                                is_final=True,
                             )
                         else:
                             part_hyps = speech2text.streaming_decode(
                                 speech[
-                                    (i * decoding_window) : _start + decoding_window
+                                    (i * decoding_samples) : _start + decoding_samples
                                 ],
                                 is_final=False,
                             )
 
-                            if display_partial_hypotheses:
+                            if display_hypotheses:
                                 _result = speech2text.hypotheses_to_results(part_hyps)
-                                _length = (i + 1) * decoding_window_ms
+                                _length = (i + 1) * decoding_window
 
                                 logging.info(
-                                    f"Curr. hypothesis (0-{_length}ms): {_result[0][0]}"
+                                    f"Current best hypothesis (0-{_length}ms): "
+                                    f"{keys}: {_result[0][0]}"
                                 )
                 else:
                     final_hyps = speech2text(**batch)
 
                 results = speech2text.hypotheses_to_results(final_hyps)
+
+                if display_hypotheses:
+                    logging.info(f"Final best hypothesis: {keys}: {results[0][0]}")
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, yseq=[], dec_state=None)
@@ -658,10 +664,11 @@ def get_parser():
         can see in current chunk (used by Conformer and Branchformer block).""",
     )
     parser.add_argument(
-        "--display_partial_hypotheses",
+        "--display_hypotheses",
         type=bool,
         default=False,
-        help="Whether to display partial hypotheses during chunk-by-chunk inference.",
+        help="""Whether to display hypotheses during inference. If streaming=True,
+        partial hypotheses will also be shown.""",
     )
 
     return parser
