@@ -42,7 +42,7 @@ LANG_TO_SELECTED_DATASET = {
     "eng3": "voxpopuli",
     "fra1": "voxforge",
     "fra2": "voxpopuli",
-    "deu": "swc",
+    "deu1": "swc",
     "deu2": "voxpopuli",
     "rus": "M-AILABS",
     "swa": "ALFFA",
