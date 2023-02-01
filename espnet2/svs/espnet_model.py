@@ -578,7 +578,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         lids: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
+        """Calculate features and return them as a dict.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
@@ -1049,12 +1049,13 @@ class ESPnetSVSModel(AbsESPnetModel):
         if lids is not None:
             input_dict.update(lids=lids)
 
-        outs, probs, att_ws = self.svs.inference(**input_dict)
+        output_dict = self.svs.inference(**input_dict, **decode_config)
 
-        if self.normalize is not None:
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
-        else:
-            outs_denorm = outs
+            feat_gen_denorm = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+            output_dict.update(feat_gen_denorm=feat_gen_denorm)
 
-        return outs, outs_denorm, probs, att_ws
+        return output_dict

@@ -3,7 +3,7 @@ import argparse
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import humanfriendly
 import kaldiio
@@ -15,6 +15,7 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2column_text
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.fileio.vad_scp import VADScpReader
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -35,6 +36,30 @@ def str2int_tuple(integers: str) -> Optional[Tuple[int, ...]]:
     if integers.strip() in ("none", "None", "NONE", "null", "Null", "NULL"):
         return None
     return tuple(map(int, integers.strip().split(",")))
+
+
+def vad_trim(vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int) -> np.array:
+    # Conduct trim wtih vad information
+
+    assert check_argument_types()
+    assert uttid in vad_reader
+
+    vad_info = vad_reader[uttid]
+    total_length = sum(int((time[1] - time[0]) * fs) for time in vad_info)
+    new_wav = np.zeros((total_length,), dtype=wav.dtype)
+    start_frame = 0
+    for time in vad_info:
+        # Note: we regard vad as [xxx, yyy)
+        duration = int((time[1] - time[0]) * fs)
+        orig_start_frame = int(time[0] * fs)
+        orig_end_frame = orig_start_frame + duration
+
+        end_frame = start_frame + duration
+        new_wav[start_frame:end_frame] = wav[orig_start_frame:orig_end_frame]
+
+        start_frame = end_frame
+
+    return new_wav
 
 
 def main():
@@ -61,6 +86,7 @@ def main():
         help="If the sampling rate specified, " "Change the sampling rate.",
     )
     parser.add_argument("--audio-format", default="wav")
+    parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--ref-channels", default=None, type=str2int_tuple)
     group.add_argument("--utt2ref-channels", default=None, type=str)
@@ -86,6 +112,10 @@ def main():
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     out_wavscp = Path(args.outdir) / f"{args.name}.scp"
     if args.segments is not None:
+        if args.vad_based_trim is not None:
+            raise NotImplementedError(
+                "VAD based trim for data with segments is not supported"
+            )
         # Note: kaldiio supports only wav-pcm-int16le file.
         loader = kaldiio.load_scp_sequential(args.scp, segments=args.segments)
         if args.audio_format.endswith("ark"):
@@ -139,6 +169,11 @@ def main():
             wavdir = Path(args.outdir) / f"data_{args.name}"
             wavdir.mkdir(parents=True, exist_ok=True)
 
+        do_vad = False
+        if args.vad_based_trim is not None:
+            vad_reader = VADScpReader(args.vad_based_trim)
+            do_vad = True
+
         with Path(args.scp).open("r") as fscp, out_wavscp.open(
             "w"
         ) as fout, out_num_samples.open("w") as fnum_samples:
@@ -160,6 +195,11 @@ def main():
                             )
                             wave = wave.astype(np.int16)
                             rate = args.fs
+
+                        if do_vad:
+                            logging.info("conduct triming from {}".format(wave.shape))
+                            wave = vad_trim(vad_reader, uttid, wave, rate)
+                            logging.info("conduct triming into {}".format(wave.shape))
 
                         if args.audio_format.endswith("ark"):
                             if "flac" in args.audio_format:
@@ -191,6 +231,9 @@ def main():
                     elif args.audio_format.endswith("ark"):
                         save_asis = False
 
+                    elif do_vad:
+                        save_asis = False
+
                     elif Path(wavpath).suffix == "." + args.audio_format and (
                         args.fs is None or args.fs == rate
                     ):
@@ -214,6 +257,9 @@ def main():
                             )
                             wave = wave.astype(np.int16)
                             rate = args.fs
+
+                        if do_vad:
+                            wave = vad_trim(vad_reader, uttid, wave, rate)
 
                         if args.audio_format.endswith("ark"):
                             if "flac" in args.audio_format:

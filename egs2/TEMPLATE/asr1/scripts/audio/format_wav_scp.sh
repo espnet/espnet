@@ -38,6 +38,7 @@ utt2ref_channels=
 
 audio_format=wav
 write_utt2num_samples=true
+vad_based_trim=
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -85,6 +86,9 @@ elif [ -n "${ref_channels}" ]; then
     opts="--ref-channels ${ref_channels} "
 fi
 
+if [ -n "${vad_based_trim}" ]; then
+    opts="--vad_based_trim ${vad_based_trim} "
+fi
 
 if [ -n "${segments}" ]; then
     log "[info]: using ${segments}"
@@ -95,7 +99,6 @@ if [ -n "${segments}" ]; then
     for n in $(seq ${nj}); do
         split_segments="${split_segments} ${logdir}/segments.${n}"
     done
-
     utils/split_scp.pl "${segments}" ${split_segments}
 
     ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
@@ -105,7 +108,6 @@ if [ -n "${segments}" ]; then
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
             "${scp}" "${outdir}/format.JOB"
-
 else
     log "[info]: without segments"
     nutt=$(<${scp} wc -l)

@@ -26,6 +26,8 @@ class FrameScoreFeats(AbsFeatsExtract):
         window: str = "hann",
         center: bool = True,
     ):
+        if win_length is None:
+            win_length = n_fft
         assert check_argument_types()
         super().__init__()
 
@@ -166,6 +168,8 @@ class SyllableScoreFeats(AbsFeatsExtract):
         window: str = "hann",
         center: bool = True,
     ):
+        if win_length is None:
+            win_length = n_fft
         assert check_argument_types()
         super().__init__()
 

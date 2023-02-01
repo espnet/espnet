@@ -82,6 +82,7 @@ tools/py3mmseg
 tools/anaconda
 tools/ice-g2p
 tools/fairseq
+tools/RawNet
 tools/._*
 tools/anaconda
 tools/ice-g2p*

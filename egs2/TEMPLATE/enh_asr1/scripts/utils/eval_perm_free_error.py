@@ -62,9 +62,7 @@ def compute_permutation(old_dic, num_spkrs=2):
         all_scores.append(convert_score(scores, num_spkrs))
     all_scores = np.array(all_scores)  # (B, n_ref, n_hyp, 4)
 
-    all_error_rates = np.sum(
-        all_scores[:, :, :, 1:4], axis=-1, dtype=float
-    ) / np.sum(
+    all_error_rates = np.sum(all_scores[:, :, :, 1:4], axis=-1, dtype=float) / np.sum(
         all_scores[:, :, :, 0:3], axis=-1, dtype=float
     )  # (s+d+i) / (c+s+d), (B, n_ref, n_hyp)
 
@@ -138,7 +136,7 @@ def read_trn(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.rstrip()
-            text, utt_id = line.rsplit('\t', maxsplit=1)
+            text, utt_id = line.rsplit("\t", maxsplit=1)
             if utt_id[0] == "(" and utt_id[-1] == ")":
                 utt_id = utt_id[1:-1]
             ret_dict[utt_id] = text
