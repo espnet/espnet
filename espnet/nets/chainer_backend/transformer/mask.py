@@ -12,6 +12,6 @@ def make_history_mask(xp, block):
     """
     batch, length = block.shape
     arange = xp.arange(length)
-    history_mask = (arange[None] <= arange[:, None])[None,]
+    history_mask = (arange[None] <= arange[:, None])[None, ]
     history_mask = xp.broadcast_to(history_mask, (batch, length, length))
     return history_mask
