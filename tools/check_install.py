@@ -33,6 +33,10 @@ module_list = [
     ("longformer", None, "installers/install_longformer.sh"),
     ("nlg-eval", None, "installers/install_longformer.sh"),
     ("datasets", None, "installers/install_longformer.sh"),
+    ("pykeops", None, "installers/install_cauchy_mult.sh"),
+    ("whisper", None, "installers/install_whisper.sh"),
+    ("RawNet3", None, "installers/install_rawnet.sh"),
+    ("reazonspeech", None, "installers/install_reazonspeech.sh"),
 ]
 
 executable_list = [
@@ -129,12 +133,12 @@ def main():
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
 
-    # check muskit install
-    if os.path.exists("muskit.done"):
-        print(f"[x] muskit")
+    # check muskits install
+    if os.path.exists("muskits.done"):
+        print(f"[x] muskits")
     else:
-        print(f"[ ] muskit")
-        to_install.append(f"Use 'installers/install_muskit.sh' to install muskit")
+        print(f"[ ] muskits")
+        to_install.append(f"Use 'installers/install_muskits.sh' to install muskits")
 
     print()
     print("Executables:")

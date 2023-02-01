@@ -37,10 +37,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data download"
 
     if [ -d ${data_how2} ]; then
-        log "$0: HowTo directory or archive already exists in ${data_how2}. Skipping download."
+        log "$0: How2 directory or archive already exists in ${data_how2}. Skipping download."
     else
-        wget ${data_url} -o out.tar.bz2 
-        tar -xvf out.tar.bz2 -C ${data_how2}
+        wget ${data_url} -O out.tar.bz2 
+        tar -xvf out.tar.bz2 -C ${data_how2}/
         log "$0: Successfully downloaded and un-tarred how2_feats"
     fi
 fi
@@ -51,9 +51,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p data 
     for dir in tr_2000h_sum cv05_sum dev5_test_sum; do  
-        [ -f data/${dir} ] || mv ${data_how2}/data/${dir} data/${dir}
-        [ -f "data/${dir}/feats.scp" ] || awk -F ' ' -v x="$(realpath $data_how2)" '{print $1,x"/audio/fbank_pitch/"$2}' < "${data_how2}/audio/fbank_pitch/${dir}.scp"  > "data/${dir}/feats.scp"
-        [ -f "data/${dir}/wav.scp" ] || cut -d ' ' -f1 "data/${dir}/utt2spk" | sort | uniq | awk -F ' ' '{print $1,"<DUMMY>"}' > "data/${dir}/wav.scp"
+        [ -f data/${dir}/text ] || mv ${data_how2}/how2_release/data/${dir} data/${dir}
+        [ -f "data/${dir}/feats.scp" ] || awk -F ' ' -v x="$(realpath ${data_how2}/how2_release/)" '{print $1,x"/audio/fbank_pitch/"$2}' < "${data_how2}/how2_release/audio/fbank_pitch/${dir}.scp"  > "data/${dir}/feats.scp"
+        [ -f "data/${dir}/wav.scp" ] || cut -d ' ' -f1 "data/${dir}/text" | awk -F ' ' '{print $1,"<DUMMY>"}' > "data/${dir}/wav.scp"
         utils/fix_data_dir.sh data/${dir}
     done 
    

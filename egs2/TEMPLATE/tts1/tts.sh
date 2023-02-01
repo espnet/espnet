@@ -67,8 +67,8 @@ f0max=400 # Minimum f0 for pitch extraction.
 
 # X-Vector related
 use_xvector=false   # Whether to use x-vector.
-xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, espnet, kaldi)
-xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet or speechbrain
+xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi)
+xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet, speechbrain, or rawnet
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -405,6 +405,9 @@ if ! "${skip_data_prep}"; then
                         _suf="/org"
                     else
                         _suf=""
+                    fi
+                    if [ "${xvector_tool}" = "rawnet" ]; then
+                        xvector_model="RawNet"
                     fi
                     pyscripts/utils/extract_xvectors.py \
                         --pretrained_model ${xvector_model} \
