@@ -454,7 +454,7 @@ class ASRTask(AbsTask):
         if args.model_conf.get('transducer_multi_blank_durations', None) is not None:
             sym_blank = args.model_conf.get('sym_blank', '<blank>')
             blank_idx = token_list.index(sym_blank)
-            for dur in args.model_conf.get('transducer_multi_blank_durations')[::-1]:
+            for dur in args.model_conf.get('transducer_multi_blank_durations'):
                 if f"<blank{dur}>" not in token_list: # avoid this during inference
                     token_list.insert(blank_idx, f"<blank{dur}>")
             args.token_list = token_list

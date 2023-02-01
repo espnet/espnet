@@ -148,7 +148,6 @@ class BeamSearchTransducer:
             assert beam_size == 1, "In multi_blank_greedy search, beam size should be 1 (%d)" % beam_size
             self.multi_blank_durations, self.multi_blank_index = multi_blank_durations, multi_blank_index
             self.search_algorithm = self.multi_blank_greedy_search
-            print(multi_blank_durations, multi_blank_index)
         
         else:
             raise NotImplementedError
@@ -906,7 +905,7 @@ class BeamSearchTransducer:
         1. the index of standard blank is the last entry of self.multi_blank_index
            rather than self.blank_id (to avoid too much change on original transducer)
         2. other entries in self.multi_blank_index are big blanks that account for
-           multiple frames. Their lengths are in self.multi_blank_durations
+           multiple frames.
 
         Based on https://arxiv.org/abs/2211.03541
 
@@ -928,7 +927,6 @@ class BeamSearchTransducer:
             # case 1: skip frames until big_blank_duration == 1
             if big_blank_duration > 1:
                 big_blank_duration -= 1
-                print(f"frame: {t} | count: {big_blank_duration} | skip this frame", flush=True)
                 continue
 
             symbols_added = 0
@@ -941,14 +939,13 @@ class BeamSearchTransducer:
                 if blank_start <= k <= blank_end:
                     big_blank_duration = self.multi_blank_durations[k - blank_start]
                     hyp.score += top_logp
-                    print(f't: {t}, predict non-blank token: {k} with length duration {big_blank_duration}, confidence: {top_logp.exp()}')
                     break
 
+                # case 3: predict a non-blank token
                 else:
                     symbols_added += 1
                     hyp.yseq.append(int(k))
                     hyp.score += float(top_logp)
                     hyp.dec_state = state
-                    print(f't: {t}, predict non-blank token: {k} {self.token_list[k]}, confidence: {top_logp.exp()}')
 
         return [hyp]
