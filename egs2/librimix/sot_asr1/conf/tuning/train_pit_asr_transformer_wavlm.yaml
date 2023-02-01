@@ -9,8 +9,7 @@ freeze_param: [
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: wavlm_local
-        path_or_url: "/home/work_nfs6/pcguo/asr/librimix/hub/wavlm_large.pt"
+        upstream: wavlm_large
     download_dir: ./hub
     multilayer_feature: True
 
@@ -65,10 +64,9 @@ preprocessor_conf:
         - "text_spk2"
 
 # minibatch related
-use_amp: true
 num_workers: 8
 batch_type: numel
-batch_bins: 6000000
+batch_bins: 3000000
 accum_grad: 4
 max_epoch: 60
 patience: none

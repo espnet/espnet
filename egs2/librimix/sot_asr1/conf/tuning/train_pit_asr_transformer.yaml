@@ -1,42 +1,19 @@
 # network architecture
-# wavlm
-# unused_parameters: true
-freeze_param: [
-    "frontend.upstream"
-]
-
-# network architecture
-frontend: s3prl
-frontend_conf:
-    frontend_conf:
-        upstream: wavlm_large
-    download_dir: ./hub
-    multilayer_feature: True
-
-preencoder: linear
-preencoder_conf:
-    input_size: 1024
-    output_size: 128
 
 # encoder related
-encoder: conformer
+encoder: transformer_multispkr
 encoder_conf:
     output_size: 256
     attention_heads: 4
     linear_units: 2048
-    num_blocks: 12
+    num_blocks: 8
+    num_blocks_sd: 4
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d2
+    input_layer: conv2d
     normalize_before: true
-    macaron_style: true
-    rel_pos_type: latest
-    pos_enc_layer_type: rel_pos
-    selfattention_layer_type: rel_selfattn
-    activation_type: swish
-    use_cnn_module: true
-    cnn_module_kernel: 31
+    num_inf: 2
 
 # decoder related
 decoder: transformer
@@ -49,23 +26,29 @@ decoder_conf:
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
 
-# hybrid CTC/attention
+# ctc related
+ctc_conf:
+    reduce: false
+
+model: pit_espnet
 model_conf:
-    ctc_weight: 0.0
+    ctc_weight: 0.2
     lsm_weight: 0.1
     length_normalized_loss: false
+    num_inf: 2
+    num_ref: 2
 
 # preprocessor related
 preprocessor: multi
 preprocessor_conf:
-    speaker_change_symbol:
-        - "<sc>"
+    text_name:
+        - "text"           # no suffix for the first text
+        - "text_spk2"
 
 # minibatch related
-use_amp: true
 num_workers: 8
 batch_type: numel
-batch_bins: 6000000
+batch_bins: 4000000
 accum_grad: 4
 max_epoch: 60
 patience: none

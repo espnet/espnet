@@ -24,6 +24,7 @@ inference_config=conf/tuning/decode_pit.yaml
     --max_wav_duration 30 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --feats_normalize utterance_mvn \
+    --use_lm false \
     --asr_config "${asr_config}" \
     --lm_config "${lm_config}" \
     --inference_config "${inference_config}" \
