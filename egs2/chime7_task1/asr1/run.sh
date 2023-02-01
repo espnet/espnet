@@ -2,7 +2,7 @@
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -euo pipefail
-
+calc() { awk "BEGIN{ printf \"%.12f\n\", $* }"; }
 ######################################################################################
 # CHiME-7 Task 1 SUB-TASK 1 baseline system script: GSS + ASR using oracle diarization
 ######################################################################################
@@ -28,7 +28,7 @@ ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR trainin
 # GSS CONFIG
 max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl
-gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev"
+gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev" # no mixer6 train in baseline
 gss_max_wav_duration=30
 gss_ngpus=$ngpu
 
@@ -43,8 +43,14 @@ use_lm=false
 use_word_lm=false
 word_vocab_size=65000
 nbpe=500
+
 max_wav_duration=$gss_max_wav_duration # also reduce if you get OOM, here A100 40GB
 asr_ngpus=$ngpu
+# ESPNet does not scale parameters with num of GPUs by default, doing it
+# here for you
+asr_batch_size=$(calc 128*$asr_ngpus) # reduce 128 bsz if you get OOMs errors
+asr_max_lr=$(calc $asr_ngpus/10000.0)
+asr_warmup=$(calc 40000/$asr_ngpus)
 
 . ./path.sh
 . ./cmd.sh
@@ -80,13 +86,9 @@ fi
 
 if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
   # check if GSS is installed, if not stop, user must manually install it
-  if [ ! command -v gss &> /dev/null ];
-    then
-      echo "GPU-based Guided Source Separation (GSS) could not be found,
-      please refer to the README for how to install it. \n
-      See also https://github.com/desh2608/gss for more informations."
-      exit
-  fi
+  ! command -v gss &>/dev/null && echo "GPU-based Guided Source Separation (GSS) could not be found,
+  #    please refer to the README for how to install it. \n
+  #    See also https://github.com/desh2608/gss for more informations." && exit 1;
 
   for dset in $gss_dsets; do
     # for each dataset get the name and part (dev or train)
@@ -148,15 +150,14 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       fi
     done
 
-    ./utils/combine_data.sh data/kaldi/dev_gss_all ${cv_kaldi_manifests_gss[@]}
-    ./utils/fix_data_dir.sh data/kaldi/dev_gss_all
-      # not empty
-
-
+    if (( ${#cv_kaldi_manifests_gss[@]} )); then
+      ./utils/combine_data.sh data/kaldi/dev_gss_all "${cv_kaldi_manifests_gss[@]}"
+      ./utils/fix_data_dir.sh data/kaldi/dev_gss_all
+    fi
+    # not empty
     # Preparing all the ASR data, dumping to Kaldi manifests and then merging all the data
     # train set
     echo "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
-    #tr_kaldi_manifests=()
     dset_part=train
     mic=ihm
     for dset in chime6 mixer6; do
@@ -171,7 +172,7 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       done
     done
 
-    ./utils/combine_data.sh data/kaldi/train_all ${tr_kaldi_manifests[@]}
+    ./utils/combine_data.sh data/kaldi/train_all "${tr_kaldi_manifests[@]}"
     ./utils/fix_data_dir.sh data/kaldi/train_all
 
     # dev set ihm, useful for debugging and testing how well ASR performs in best conditions
@@ -185,13 +186,13 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
       cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/$mic" )
     done
-    echo ${cv_kaldi_manifests_ihm[@]}
-    ./utils/combine_data.sh data/kaldi/dev_ihm_all ${cv_kaldi_manifests_ihm[@]}
+    # shellcheck disable=2043
+    ./utils/combine_data.sh data/kaldi/dev_ihm_all "${cv_kaldi_manifests_ihm[@]}"
     ./utils/fix_data_dir.sh data/kaldi/dev_ihm_all
 fi
 
 
-if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   asr_train_set=kaldi/train_all
   asr_cv_set=kaldi/dev_gss_all
   # Decoding on dev set because test is blind for now
@@ -201,6 +202,9 @@ if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
     --local_data_opts "--train-set ${asr_train_set}" \
     --stage $asr_stage \
     --ngpu $asr_ngpus \
+    --batch_size $asr_batch_size \
+    --optim_conf_lr $asr_max_lr \
+    --scheduler_conf_warmup_steps $asr_warmup \
     --token_type bpe \
     --nbpe $nbpe \
     --bpe_nlsyms "${bpe_nlsyms}" \

@@ -3,7 +3,7 @@ import glob
 import os
 from copy import deepcopy
 from pathlib import Path
-
+import warnings
 import lhotse
 import soundfile as sf
 
@@ -30,7 +30,14 @@ def get_new_manifests(input_dir, output_filename):
             f"{recording_id}-{speaker}-"
             f"{int(100*c_cut.start):06d}_{int(100*c_cut.end):06d}"
         )
-        enhanced_audio = id2wav[gss_id]
+        try:
+            enhanced_audio = id2wav[gss_id]
+        except:
+            warnings.warn("Skipped example {}, it was not found in GSS input. "
+                          "This may lead to significant errors for ASR if this is inference."
+                          "It could be that it was discarded by GSS because the segment was too long, "
+                          "check GSS max-segment-length argument.".format(gss_id))
+            continue
 
         # recording id is unique for this example we add a gss postfix
         sources = [lhotse.AudioSource(type="file", channels=[0], source=enhanced_audio)]
