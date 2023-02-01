@@ -3,6 +3,10 @@
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -euo pipefail
 calc() { awk "BEGIN{ printf \"%.12f\n\", $* }"; }
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
 ######################################################################################
 # CHiME-7 Task 1 SUB-TASK 1 baseline system script: GSS + ASR using oracle diarization
 ######################################################################################
@@ -73,7 +77,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
-      echo "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
+      log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
            -p $dset_part \
@@ -86,7 +90,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
   # check if GSS is installed, if not stop, user must manually install it
-  ! command -v gss &>/dev/null && echo "GPU-based Guided Source Separation (GSS) could not be found,
+  ! command -v gss &>/dev/null && log "GPU-based Guided Source Separation (GSS) could not be found,
   #    please refer to the README for how to install it. \n
   #    See also https://github.com/desh2608/gss for more informations." && exit 1;
 
@@ -97,7 +101,7 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
     max_segment_length=2000 # enhance all in inference, training we can drop longer ones
     channels=all # do not set for the other datasets, use all
     if [ ${dset_name} == dipco ] && [ ${dset_part} == train ]; then
-      echo "DiPCo has no training set! Exiting !"
+      log "DiPCo has no training set! Exiting !"
       exit
     fi
 
@@ -109,7 +113,7 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
       max_segment_length=${max_wav_duration} # we can discard utterances too long based on asr training
     fi
 
-    echo "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
+    log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
@@ -118,13 +122,13 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
           --max-segment-length $gss_max_wav_duration \
           --max-batch-duration $max_batch_dur \
           --channels $channels
-    echo "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
+    log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
 
 if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
     # Preparing ASR training and validation data;
-    echo "Parsing the GSS output to lhotse manifests"
+    log "Parsing the GSS output to lhotse manifests"
     cv_kaldi_manifests_gss=()
     tr_kaldi_manifests=()
     for dset in $gss_dsets; do
@@ -157,7 +161,7 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
     # not empty
     # Preparing all the ASR data, dumping to Kaldi manifests and then merging all the data
     # train set
-    echo "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
+    log "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
     dset_part=train
     mic=ihm
     for dset in chime6 mixer6; do
@@ -176,7 +180,7 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
     ./utils/fix_data_dir.sh data/kaldi/train_all
 
     # dev set ihm, useful for debugging and testing how well ASR performs in best conditions
-    echo "Dumping all lhotse manifests to kaldi manifests for dev set with close-talk microphones."
+    log "Dumping all lhotse manifests to kaldi manifests for dev set with close-talk microphones."
     cv_kaldi_manifests_ihm=()
     dset_part=dev
     mic=ihm
