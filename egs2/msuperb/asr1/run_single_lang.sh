@@ -15,9 +15,9 @@ inference_config=conf/decode_asr.yaml
 
 
 
-for duration in 10min 1h ; do
+for duration in 10min 1h; do
     echo ${duration}
-    for single_lang in xty eng1 eng2 eng3 fra1 fra2 deu1 deu2 rus swa swe jpn cmn xty ; do
+    for single_lang in eng1 eng2 eng3 fra1 fra2 deu1 deu2 rus swa swe jpn cmn xty ; do
         echo ${single_lang}
         train_set=train_${duration}_${single_lang}
         train_dev=dev_10min_${single_lang}
