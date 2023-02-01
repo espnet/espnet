@@ -5,7 +5,7 @@ import os
 from copy import deepcopy
 from datetime import datetime as dt
 from pathlib import Path
-
+import soundfile as sf
 import jiwer
 from jiwer.transforms import RemoveKaldiNonWords
 from lhotse.recipes.chime6 import TimeFormatConverter, normalize_text_chime6
@@ -118,6 +118,9 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
         Path(os.path.join(out_dir, "transcriptions_scoring", split)).mkdir(
             parents=True, exist_ok=True
         )
+        Path(os.path.join(out_dir, "uem", split)).mkdir(
+            parents=True, exist_ok=True
+        )
 
     for split in splits:
         json_dir = os.path.join(root_dir, "transcriptions", split)
@@ -140,6 +143,7 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 sess2audio[session_name].append(x)
 
         # for each json file
+        all_uem = []
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
@@ -180,6 +184,16 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "w",
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
+
+            first = sorted([x["start_time"] for x in annotation])[0]
+            end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
+            c_uem = "{} 1 {} {}\n".format(sess_name,
+                                          "{:.3f}".format(float(first)),
+                                          "{:.3f}".format(end/16000))
+
+            with open(os.path.join(out_dir, "uem", tsplit, "all.uem"), "a+") as f:
+                f.write(c_uem)
+
 
 
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
