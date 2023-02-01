@@ -57,25 +57,42 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
     echo "==== [ESPnet2] ASR Transducer (standalone) ==="
 
     for t in ${token_types}; do
-	asr_tag="transducer_${t}"
+        asr_tag="transducer_${t}"
 
-	echo "==== [Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
-		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
-		 --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
-		 --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
-		 --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30"
+        echo "==== [Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+        ./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
+            --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
+            --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
+                --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+                --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30"
 
-	echo "==== [Streaming Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
-		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
-		 --asr-tag "${asr_tag}_conformer_streaming" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
-		 --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
-		 --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
-		 --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
-		 --inference-args "--streaming true --chunk_size 2 --left_context 2 --right_context 0"
+        echo "==== [Streaming Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+        ./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
+            --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
+            --asr-tag "${asr_tag}_conformer_streaming" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
+                --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
+                --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+                --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
+            --inference-args "--streaming true --chunk_size 2 --left_context 2 --right_context 0"
     done
 fi
+
+echo "==== [PIT_ASR] feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+for i in $(seq 2); do
+    cp dump/raw/train_nodev/text dump/raw/train_nodev/text_spk${i}
+    cp dump/raw/train_dev/text dump/raw/train_dev/text_spk${i}
+    cp dump/raw/test/text dump/raw/test/text_spk${i}
+    cp dump/raw/test_seg/text dump/raw/test_seg/text_spk${i}
+done
+./run_multispkr.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --feats_normalize "utterance_mvn" --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr_tag "train_multispkr_raw_en_bpe30" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
+        --ctc_conf reduce=False --encoder transformer_multispkr \
+        --encoder_conf num_blocks=2 --encoder_conf num_blocks_sd=2 --encoder_conf num_inf=2 \
+        --model pit_espnet --model_conf num_inf=2 --model_conf num_ref=2 \
+        --preprocessor multi --preprocessor_conf text_name='['text', 'text_spk2']'" \
+    --inference-args "--multi_asr true"
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -110,6 +127,21 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}"
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --extra_wav_list "rirs.scp noises.scp" --enh_config ./conf/train_with_preprocessor.yaml
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --enh_config conf/train_with_dynamic_mixing.yaml --ref-num 2
+    done
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
+# [ESPnet2] test enh_tse recipe
+if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/tse1
+    echo "==== [ESPnet2] ENH_TSE ==="
+    feats_types="raw"
+    for t in ${feats_types}; do
+        echo "==== feats_type=${t} ==="
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}"
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment.yaml
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data

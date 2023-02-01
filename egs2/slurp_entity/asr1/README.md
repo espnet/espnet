@@ -50,8 +50,8 @@
 
 # Using XLS-R pretrained speech Encoder and mBART-50 Large pretrained text Encoder-Decoder
 
-- ASR config: [conf/tuning/train_asr_branchformer_xlsr_mbart.yaml](conf/tuning/train_asr_branchformer_xlsr_mbart.yaml)
-- #Params: 1.21 B
+- Recipe shell script: [local/run_hf.sh](local/run_hf.sh)
+- Model link: [https://zenodo.org/record/7377716#.Y4YlX9LMJp8](https://zenodo.org/record/7377716#.Y4YlX9LMJp8)
 
 ## Environments
 - date: `Wed Sep  7 01:16:08 CEST 2022`

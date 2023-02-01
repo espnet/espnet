@@ -35,10 +35,10 @@ class NaiveRNNDP(AbsSVS):
         self,
         # network structure related
         idim: int,
-        midi_dim: int,
-        tempo_dim: int,
         odim: int,
+        midi_dim: int = 129,
         embed_dim: int = 512,
+        tempo_dim: int = 500,
         eprenet_conv_layers: int = 3,
         eprenet_conv_chans: int = 256,
         eprenet_conv_filts: int = 5,
@@ -279,23 +279,17 @@ class NaiveRNNDP(AbsSVS):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
-        ds: torch.Tensor,
-        label_lab: Optional[torch.Tensor] = None,
-        label_lab_lengths: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        label_xml_lengths: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_lab_lengths: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        midi_xml_lengths: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_lab_lengths: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        tempo_xml_lengths: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_lab_lengths: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
-        beat_xml_lengths: Optional[torch.Tensor] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        pitch: Optional[torch.Tensor] = None,
+        pitch_lengths: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -308,29 +302,46 @@ class NaiveRNNDP(AbsSVS):
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             feats (Tensor): Batch of padded target features (B, Lmax, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
-            label: (B, Tmax)
-            label_lengths: (B,)
-            midi: (B, Tmax)
-            midi_lengths: (B,)
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (B, Tmax).
+            label_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded label ids (B, ).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (B, Tmax).
+            melody_lengths (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded melody (B, ).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (B, Tmax).
+            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
+                value (LongTensor): Batch of the lengths of padded tempo (B, ).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         GS Fix:
-            arguements from forward func. V.S. **batch from muskit_model.py
-            label == durations ｜ phone sequence
-            midi -> pitch sequence
+            arguements from forward func. V.S. **batch from espnet_model.py
+            label == durations | phone sequence
+            melody -> pitch sequence
 
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
         """
-        label = label_xml
-        midi = midi_xml
-        tempo = beat_xml
-        label_lengths = label_xml_lengths
-        midi_lengths = midi_xml_lengths
+        label = label["score"]
+        midi = melody["score"]
+        tempo = beat["score_phn"]
+        label_lengths = label_lengths["score"]
+        midi_lengths = melody_lengths["score"]
+        ds = duration["phn"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -440,27 +451,34 @@ class NaiveRNNDP(AbsSVS):
     def inference(
         self,
         text: torch.Tensor,
-        ds: Optional[torch.Tensor] = None,
         feats: Optional[torch.Tensor] = None,
-        label_lab: Optional[torch.Tensor] = None,
-        label_xml: Optional[torch.Tensor] = None,
-        midi_lab: Optional[torch.Tensor] = None,
-        midi_xml: Optional[torch.Tensor] = None,
-        tempo_lab: Optional[torch.Tensor] = None,
-        tempo_xml: Optional[torch.Tensor] = None,
-        beat_lab: Optional[torch.Tensor] = None,
-        beat_xml: Optional[torch.Tensor] = None,
+        label: Optional[Dict[str, torch.Tensor]] = None,
+        melody: Optional[Dict[str, torch.Tensor]] = None,
+        tempo: Optional[Dict[str, torch.Tensor]] = None,
+        beat: Optional[Dict[str, torch.Tensor]] = None,
+        pitch: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
             text (LongTensor): Batch of padded character ids (Tmax).
-            label (Tensor)
-            midi (Tensor)
             feats (Tensor): Batch of padded target features (Lmax, odim).
+            label (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded label ids (Tmax).
+            melody (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded melody (Tmax).
+            tempo (Optional[Dict]): key is "lab" or "score";
+                value (LongTensor): Batch of padded tempo (Tmax).
+            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded beat (Tmax).
+            pitch (FloatTensor): Batch of padded f0 (Tmax).
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
@@ -469,9 +487,9 @@ class NaiveRNNDP(AbsSVS):
             Dict[str, Tensor]: Output dict including the following items:
                 * feat_gen (Tensor): Output sequence of features (T_feats, odim).
         """
-        label = label_xml
-        midi = midi_xml
-        tempo = beat_xml
+        label = label["score"]
+        midi = melody["score"]
+        tempo = beat["score_phn"]
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
@@ -520,7 +538,9 @@ class NaiveRNNDP(AbsSVS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        return after_outs, None, None  # outs, probs, att_ws
+        return dict(
+            feat_gen=after_outs[0], prob=None, att_w=None
+        )  # outs, probs, att_ws
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
