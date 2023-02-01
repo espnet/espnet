@@ -58,15 +58,16 @@ def get_new_manifests(input_dir, output_filename):
     # Fix manifests
     lhotse.validate_recordings_and_supervisions(recording_set, supervision_set)
 
-    Path(output_filename).parent.mkdir(exist_ok=True)
+    Path(output_filename).parent.mkdir(exist_ok=True, parents=True)
+    filename = Path(output_filename).stem
     supervision_set.to_file(
         os.path.join(
-            Path(output_filename).parent, f"{output_filename}_supervisions.jsonl.gz"
+            Path(output_filename).parent, f"{filename}_supervisions.jsonl.gz"
         )
     )
     recording_set.to_file(
         os.path.join(
-            Path(output_filename).parent, f"{output_filename}_recordings.jsonl.gz"
+            Path(output_filename).parent, f"{filename}_recordings.jsonl.gz"
         )
     )
 
