@@ -200,7 +200,6 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
 
-
     def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
 
         annotation_scoring = []
