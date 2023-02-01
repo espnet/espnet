@@ -587,7 +587,7 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${enh_stats_dir}"
 
     fi
 
@@ -1118,7 +1118,6 @@ if [ -z "${download_model}" ]; then
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.md \
-            --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi

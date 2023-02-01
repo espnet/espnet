@@ -1,4 +1,3 @@
-import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -309,16 +308,7 @@ class ESPnetSLUModel(ESPnetASRModel):
         transcript_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        if self.extract_feats_in_collect_stats:
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        else:
-            # Generate dummy stats if extract_feats_in_collect_stats is False
-            logging.warning(
-                "Generating dummy stats for feats and feats_lengths, "
-                "because encoder_conf.extract_feats_in_collect_stats is "
-                f"{self.extract_feats_in_collect_stats}"
-            )
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
