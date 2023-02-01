@@ -17,7 +17,7 @@ stop_stage=1
 . ./path.sh
 . ./cmd.sh
 
-data_url="http://islpc21.is.cs.cmu.edu/tmp_audio_2000_667b98c3-89d9-4862-93de-cc61cd460b65.tar.bz2"
+data_url=""
 data_how2=${HOW2_2kH}
 
 
