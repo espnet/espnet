@@ -38,8 +38,16 @@ from espnet2.utils.kwargs2args import kwargs2args
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
+autocast_args = dict()
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import GradScaler, autocast
+
+    if (
+        V(torch.__version__) >= V("1.10.0")
+        and torch.cuda.is_available()
+        and torch.cuda.is_bf16_supported()
+    ):
+        autocast_args = dict(dtype=torch.bfloat16)
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
@@ -551,7 +559,10 @@ class Trainer:
                         )
                 del _model
 
-            with autocast(scaler is not None):
+            with autocast(
+                scaler is not None,
+                **autocast_args,
+            ):
                 with reporter.measure_time("forward_time"):
                     retval = model(**batch)
 
