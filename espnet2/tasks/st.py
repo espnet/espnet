@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -9,6 +9,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
     DynamicConvolutionTransformerDecoder,
@@ -16,15 +17,19 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
     TransformerMDDecoder,
+    TransformerMDDecoderTriple,
+
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
     ContextualBlockConformerEncoder,
 )
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
@@ -46,10 +51,14 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
+from espnet2.st.espnet_model_seqattn2 import ESPnetSTModelSA2
+from espnet2.st.espnet_model_seqattn3 import ESPnetSTModelSA3
+from espnet2.st.espnet_model_seqattn4 import ESPnetSTModelSA4
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -110,6 +119,8 @@ encoder_choices = ClassChoices(
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -128,11 +139,13 @@ decoder_choices = ClassChoices(
     classes=dict(
         transformer=TransformerDecoder,
         transformer_md=TransformerMDDecoder,
+        transformer_md_triple=TransformerMDDecoderTriple,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        transducer=TransducerDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -189,6 +202,8 @@ hier_encoder_choices = ClassChoices(
         contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default=None,
@@ -277,6 +292,12 @@ class STTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
+        )
+        group.add_argument(
+            "--st_joint_net_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for joint network class.",
         )
         group.add_argument(
             "--model_conf",
@@ -380,6 +401,12 @@ class STTask(AbsTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--ctc_sample_rate",
+            type=float,
+            default=0.0,
+            help="Sample greedy CTC output as AR decoder target.",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -462,7 +489,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTModelSA2, ESPnetSTModelSA3, ESPnetSTModelSA4]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -554,11 +581,27 @@ class STTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+        if args.decoder == "transducer":
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
+
+            st_joint_network = JointNetwork(
+                vocab_size,
+                encoder_output_size,
+                decoder.dunits,
+                **args.st_joint_net_conf,
+            )
+        else:
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+
+            st_joint_network = None
 
         # 6. CTC
         if src_token_list is not None:
@@ -627,6 +670,7 @@ class STTask(AbsTask):
             decoder=decoder,
             ctc=ctc,
             st_ctc=st_ctc,
+            st_joint_network=st_joint_network,
             extra_asr_decoder=extra_asr_decoder,
             extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,
