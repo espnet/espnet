@@ -5,8 +5,9 @@ import os
 from copy import deepcopy
 from datetime import datetime as dt
 from pathlib import Path
-import soundfile as sf
+
 import jiwer
+import soundfile as sf
 from jiwer.transforms import RemoveKaldiNonWords
 from lhotse.recipes.chime6 import TimeFormatConverter, normalize_text_chime6
 
@@ -89,8 +90,12 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
     def normalize_chime6(annotation, txt_normalizer, eval_opt=False):
         annotation_scoring = []
         for ex in annotation:
-            ex["start_time"] = "{:.3f}".format(TimeFormatConverter.hms_to_seconds(ex["start_time"]))
-            ex["end_time"] = "{:.3f}".format(TimeFormatConverter.hms_to_seconds(ex["end_time"]))
+            ex["start_time"] = "{:.3f}".format(
+                TimeFormatConverter.hms_to_seconds(ex["start_time"])
+            )
+            ex["end_time"] = "{:.3f}".format(
+                TimeFormatConverter.hms_to_seconds(ex["end_time"])
+            )
             if eval_opt > 0 and "ref" in ex.keys():
                 del ex["ref"]
                 del ex["location"]
@@ -106,21 +111,17 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             # if empty remove segment from scoring
         return annotation, annotation_scoring
 
-
     splits = ["train", "dev", "eval"]
     # pre-create all destination folders
     for split in splits:
-        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True,
-                                                           exist_ok=True)
+        Path(os.path.join(out_dir, "audio", split)).mkdir(parents=True, exist_ok=True)
         Path(os.path.join(out_dir, "transcriptions", split)).mkdir(
             parents=True, exist_ok=True
         )
         Path(os.path.join(out_dir, "transcriptions_scoring", split)).mkdir(
             parents=True, exist_ok=True
         )
-        Path(os.path.join(out_dir, "uem", split)).mkdir(
-            parents=True, exist_ok=True
-        )
+        Path(os.path.join(out_dir, "uem", split)).mkdir(parents=True, exist_ok=True)
 
     for split in splits:
         json_dir = os.path.join(root_dir, "transcriptions", split)
@@ -150,8 +151,8 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             sess_name = Path(j_file).stem
 
             annotation, scoring_annotation = normalize_chime6(
-                    annotation, scoring_txt_normalization, eval_opt
-                )
+                annotation, scoring_txt_normalization, eval_opt
+            )
 
             tsplit = None  # find chime7 destination split
             for k in ["train", "dev", "eval"]:
@@ -185,21 +186,20 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
 
-
             first = sorted([float(x["start_time"]) for x in annotation])[0]
             end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
-            c_uem = "{} 1 {} {}\n".format(sess_name,
-                                          "{:.3f}".format(float(first)),
-                                          "{:.3f}".format(end/16000))
+            c_uem = "{} 1 {} {}\n".format(
+                sess_name, "{:.3f}".format(float(first)), "{:.3f}".format(end / 16000)
+            )
 
             with open(os.path.join(out_dir, "uem", tsplit, "all.uem"), "a+") as f:
                 f.write(c_uem)
 
 
-
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
+
     def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
 
         annotation_scoring = []
@@ -270,7 +270,7 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
         sess2audio = {}
         for x in audio_files:
             session_name = Path(x).stem.split("_")[0]
-            if Path(x).stem.split("_")[-1].startswith("P") and eval_opt !=2:
+            if Path(x).stem.split("_")[-1].startswith("P") and eval_opt != 2:
                 continue
             if session_name not in sess2audio:
                 sess2audio[session_name] = [x]
@@ -349,7 +349,9 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
         else:
             sess2audio[session_name].append(x)
     for c_split in splits:
-        Path(os.path.join(out_dir, "audio", c_split)).mkdir(parents=True, exist_ok=False)
+        Path(os.path.join(out_dir, "audio", c_split)).mkdir(
+            parents=True, exist_ok=False
+        )
         Path(os.path.join(out_dir, "transcriptions", c_split)).mkdir(
             parents=True, exist_ok=False
         )
