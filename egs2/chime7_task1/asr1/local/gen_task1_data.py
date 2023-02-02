@@ -185,7 +185,8 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
 
-            first = sorted([x["start_time"] for x in annotation])[0]
+
+            first = sorted([float(x["start_time"]) for x in annotation])[0]
             end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
             c_uem = "{} 1 {} {}\n".format(sess_name,
                                           "{:.3f}".format(float(first)),
@@ -199,7 +200,6 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
 
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
-
     def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
 
         annotation_scoring = []

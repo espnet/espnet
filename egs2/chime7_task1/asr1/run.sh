@@ -15,16 +15,18 @@ stage=3
 stop_stage=100
 
 # NOTE, use absolute paths !
-chime7_root=${PWD}/../../chime7/task1/chime7_task1
+chime7_root=${PWD}/chime7_task1
 chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
 # but if you have it already it will be skipped
-dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
+dipco_root=${PWD}/../../chime7/task1/datasets/dipco # this will be automatically downloaded
 mixer6_root=/raid/users/popcornell/mixer6/
 
 # DATAPREP CONFIG
 manifests_root=./data/lhotse # dir where to save lhotse manifests
 cmd_dprep=run.pl
+# note with run.pl your GPUs need to be in exclusive mode otherwise it fails
+# to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 dprep_stage=0
 gss_dump_root=./exp/gss
 ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
@@ -33,7 +35,7 @@ ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR trainin
 max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl
 gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev" # no mixer6 train in baseline
-gss_max_wav_duration=30
+gss_max_wav_duration=20
 gss_ngpus=$ngpu
 
 # ASR CONFIG
@@ -48,8 +50,11 @@ use_word_lm=false
 word_vocab_size=65000
 nbpe=500
 
-max_wav_duration=$gss_max_wav_duration # also reduce if you get OOM, here A100 40GB
+asr_max_segment_length=$gss_max_wav_duration # also reduce if you get OOM, here A100 40GB
+asr_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
+# and not contribute much (but you may use all)
 asr_ngpus=$ngpu
+asr_max_epochs=8
 # ESPNet does not scale parameters with num of GPUs by default, doing it
 # here for you
 asr_batch_size=$(calc 128*$asr_ngpus) # reduce 128 bsz if you get OOMs errors
@@ -62,7 +67,7 @@ asr_warmup=$(calc 40000/$asr_ngpus)
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
-  local/create_task1_data.sh --chime6-root $chime6_root --stage $dprep_stage  --chime7-root $chime7_root \
+  local/gen_task1_data.sh --chime6-root $chime6_root --stage $dprep_stage  --chime7-root $chime7_root \
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
@@ -88,7 +93,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
 fi
 
 
-if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # check if GSS is installed, if not stop, user must manually install it
   ! command -v gss &>/dev/null && log "GPU-based Guided Source Separation (GSS) could not be found,
   #    please refer to the README for how to install it. \n
@@ -166,9 +171,9 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
     mic=ihm
     for dset in chime6 mixer6; do
       for mic in ihm mdm; do
-        if [ $dset == mixer6 ] && [ $mic == ihm ]; then
-          continue # not used right now
-        fi
+        #if [ $dset == mixer6 ] && [ $mic == ihm ]; then
+        #  continue # not used right now
+        #fi
       lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
@@ -188,7 +193,7 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
-      cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/$mic" )
+      cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/${mic}")
     done
     # shellcheck disable=2043
     ./utils/combine_data.sh data/kaldi/dev_ihm_all "${cv_kaldi_manifests_ihm[@]}"
@@ -200,15 +205,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   asr_train_set=kaldi/train_all
   asr_cv_set=kaldi/dev_gss_all
   # Decoding on dev set because test is blind for now
-  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss"
+  asr_tt_set="kaldi/chime6_dev/dev/gss/ kaldi/dipco_dev/dev/gss/ kaldi/mixer6_dev/dev/gss/"
   ./asr.sh \
     --lang en \
     --local_data_opts "--train-set ${asr_train_set}" \
     --stage $asr_stage \
     --ngpu $asr_ngpus \
-    --batch_size $asr_batch_size \
-    --optim_conf_lr $asr_max_lr \
-    --scheduler_conf_warmup_steps $asr_warmup \
+    --asr_args "--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup} --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}" \
     --token_type bpe \
     --nbpe $nbpe \
     --bpe_nlsyms "${bpe_nlsyms}" \
@@ -216,7 +219,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     --feats_type raw \
     --feats_normalize utterance_mvn \
     --audio_format "flac" \
-    --max_wav_duration $max_wav_duration \
+    --min_wav_duration $asr_min_segment_length \
+    --max_wav_duration $asr_max_segment_length \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \

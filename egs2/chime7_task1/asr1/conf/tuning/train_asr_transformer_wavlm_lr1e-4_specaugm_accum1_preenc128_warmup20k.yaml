@@ -1,6 +1,6 @@
 # minibatch related
 batch_type: folded
-batch_size: 512
+batch_size: 48
 accum_grad: 1
 grad_clip: 5
 max_epoch: 8
