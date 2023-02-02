@@ -576,7 +576,6 @@
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-
             <span class="c1"># Normal ASR</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">enc</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -843,7 +842,6 @@
                             <span class="n">ibest_writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;text_spk</span><span class="si">{</span><span class="n">spk</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
 
             <span class="k">else</span><span class="p">:</span>
-
                 <span class="c1"># Normal ASR</span>
                 <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
                     <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span>

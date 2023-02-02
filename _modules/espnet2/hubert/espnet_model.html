@@ -633,7 +633,6 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">):</span>
-
         <span class="c1"># 1. Compute hubert loss</span>
         <span class="n">loss</span><span class="p">,</span> <span class="n">logp_m_list</span><span class="p">,</span> <span class="n">logp_u_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_hubert</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">encoder_out</span>

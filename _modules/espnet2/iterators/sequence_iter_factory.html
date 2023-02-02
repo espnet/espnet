@@ -286,7 +286,6 @@
                 <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">_epoch</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">current_batches</span><span class="p">)</span>
                 <span class="k">while</span> <span class="n">_remain</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-
                     <span class="n">_batches</span> <span class="o">=</span> <span class="n">current_batches</span><span class="p">[</span><span class="n">_cursor</span> <span class="p">:</span> <span class="n">_cursor</span> <span class="o">+</span> <span class="n">_remain</span><span class="p">]</span>
                     <span class="n">batches</span> <span class="o">+=</span> <span class="n">_batches</span>
                     <span class="k">if</span> <span class="n">_cursor</span> <span class="o">+</span> <span class="n">_remain</span> <span class="o">&gt;=</span> <span class="n">N</span><span class="p">:</span>

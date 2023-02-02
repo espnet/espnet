@@ -185,9 +185,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">batch</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">arange</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
-    <span class="n">history_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">arange</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">arange</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])[</span>
-        <span class="kc">None</span><span class="p">,</span>
-    <span class="p">]</span>
+    <span class="n">history_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">arange</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">arange</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])[</span><span class="kc">None</span><span class="p">,]</span>
     <span class="n">history_mask</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">history_mask</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">length</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">history_mask</span></div>
 </pre></div>

@@ -247,7 +247,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">BN</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BF_module.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.BF_module.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">num_mic</span><span class="p">):</span>
-
         <span class="c1"># input: (B, ch, N, T)</span>
         <span class="n">batch_size</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">seq_length</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
 
@@ -494,7 +493,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">enc_LN</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FaSNet_TAC.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.fasnet.FaSNet_TAC.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">num_mic</span><span class="p">):</span>
-
         <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">nmic</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
@@ -605,7 +603,6 @@
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-
     <span class="n">model_TAC</span> <span class="o">=</span> <span class="n">FaSNet_TAC</span><span class="p">(</span>
         <span class="n">enc_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
         <span class="n">feature_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>

@@ -186,7 +186,6 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">frontends</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">align_method</span><span class="o">=</span><span class="s2">&quot;linear_projection&quot;</span><span class="p">,</span> <span class="n">proj_dim</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">fs</span><span class="o">=</span><span class="mi">16000</span>
     <span class="p">):</span>
-
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">align_method</span> <span class="o">=</span> <span class="p">(</span>
@@ -278,7 +277,6 @@
 <div class="viewcode-block" id="FusedFrontends.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.fused.FusedFrontends.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">input_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-
         <span class="c1"># step 0 : get all frontends features</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feats</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">frontend</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontends</span><span class="p">:</span>
@@ -289,7 +287,6 @@
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">align_method</span> <span class="o">==</span> <span class="s2">&quot;linear_projection&quot;</span>
         <span class="p">):</span>  <span class="c1"># TODO(Dan): to add other align methods</span>
-
             <span class="c1"># first step : projections</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">feats_proj</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">frontend</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frontends</span><span class="p">):</span>
