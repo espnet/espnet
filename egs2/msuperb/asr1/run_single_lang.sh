@@ -28,10 +28,11 @@ for duration in 10min 1h; do
         ./asr.sh \
             --ngpu 1 \
             --stage 1 \
-            --stop_stage 12 \
+            --stop_stage 13 \
             --lang ${lang} \
             --nj 4 \
             --inference_nj 4 \
+            --inference_asr_model "valid.loss.ave.pth" \
             --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
             --use_lm false \
             --lm_config "${lm_config}" \
