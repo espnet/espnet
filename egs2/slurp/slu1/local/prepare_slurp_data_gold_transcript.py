@@ -31,7 +31,6 @@ for subset in ["train", "devel", "test"]:
     ) as wavscp, open(
         os.path.join(odir, "utt2spk"), "w"
     ) as utt2spk:
-
         for line in meta:
             prompt = json.loads(line.strip())
             transcript = prompt["sentence"]

@@ -135,7 +135,6 @@ def main(argv):
         device = "cpu"
 
     if args.toolkit in ("speechbrain", "rawnet"):
-
         # Prepare spk2utt for mean x-vector
         spk2utt = dict()
         with open(os.path.join(args.in_folder, "spk2utt"), "r") as reader:

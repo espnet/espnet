@@ -387,7 +387,6 @@ class FairseqHubertEncoder(AbsEncoder):
             self.pretrained_params = copy.deepcopy(state)
 
         else:
-
             self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
 
             (

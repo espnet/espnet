@@ -56,7 +56,7 @@ def Batch(fdir, snr_l=[]):
     wav_np = np.zeros(
         [len(wav_l), maxlen], np.int16
     )  # numpy array for waveform matrix.
-    for (i, wav) in zip(range(len(wav_l)), wav_l):
+    for i, wav in zip(range(len(wav_l)), wav_l):
         wav_np[i, : len(wav)] = wav  # add waveform to numpy array.
         len_l.append(len(wav))  # append length of waveform to list.
     return wav_np, np.array(len_l, np.int32), np.array(snr_test_l, np.int32), fname_l

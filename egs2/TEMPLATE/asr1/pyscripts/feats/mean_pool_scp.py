@@ -74,7 +74,6 @@ def main():
         with open(save_path + ".lengths", "w") as lengths_out, open(
             scp_file, "w"
         ) as sf:
-
             for length, utt_id in tqdm.tqdm(zip(lengths, utt_ids)):
                 utt_id = utt_id.rstrip()
                 length = int(length)
