@@ -370,7 +370,6 @@ class ESPnetUASRModel(AbsESPnetModel):
         text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-
         if self.frontend is not None:
             # Frontend
             #  e.g. STFT and Feature extract
@@ -407,7 +406,6 @@ class ESPnetUASRModel(AbsESPnetModel):
     def encode(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         with autocast(False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)

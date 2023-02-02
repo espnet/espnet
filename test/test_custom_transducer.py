@@ -470,7 +470,6 @@ def test_invalid_input_layer_type():
 
 
 def test_invalid_architecture_layer_type():
-
     with pytest.raises(NotImplementedError):
         _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "foo"}])
 

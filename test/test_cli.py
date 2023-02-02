@@ -20,7 +20,6 @@ def test_KaldiReader(tmpdir, filetype):
         compression_method=2,
         pcm_format="wav",
     ) as writer:
-
         if "sound" in filetype:
             aaa = np.random.randint(-10, 10, 100, dtype=np.int16)
             bbb = np.random.randint(-10, 10, 50, dtype=np.int16)
