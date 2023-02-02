@@ -448,8 +448,6 @@ class ESPnetSTModel(AbsESPnetModel):
         if self.hier_encoder is not None:
             encoder_out, encoder_out_lens, _ = self.hier_encoder(encoder_out, encoder_out_lens)
 
-        import pdb;pdb.set_trace()
-
         # Post-encoder, e.g. NLU
         if self.postencoder is not None:
             encoder_out, encoder_out_lens = self.postencoder(

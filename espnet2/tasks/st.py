@@ -17,8 +17,6 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
     TransformerMDDecoder,
-    TransformerMDDecoderTriple,
-
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -56,9 +54,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
-from espnet2.st.espnet_model_seqattn2 import ESPnetSTModelSA2
-from espnet2.st.espnet_model_seqattn3 import ESPnetSTModelSA3
-from espnet2.st.espnet_model_seqattn4 import ESPnetSTModelSA4
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -139,7 +134,6 @@ decoder_choices = ClassChoices(
     classes=dict(
         transformer=TransformerDecoder,
         transformer_md=TransformerMDDecoder,
-        transformer_md_triple=TransformerMDDecoderTriple,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -188,6 +182,8 @@ md_encoder_choices = ClassChoices(
         contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default=None,
@@ -489,7 +485,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTModelSA2, ESPnetSTModelSA3, ESPnetSTModelSA4]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:

@@ -285,7 +285,9 @@ class EBranchformerEncoder(AbsEncoder):
             )
         elif input_layer is None:
             if input_size == output_size:
-                self.embed = None
+                self.embed = torch.nn.Sequential(
+                    pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+                )
             else:
                 self.embed = torch.nn.Linear(input_size, output_size)
         else:
