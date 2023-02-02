@@ -24,7 +24,6 @@ num_workers: 4
 batch_type: sorted
 batch_size: 8
 accum_grad: 4
-max_epoch: 200
 patience: none
 init: none
 best_model_criterion:
