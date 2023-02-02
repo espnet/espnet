@@ -46,7 +46,6 @@ class SkiMSeparator(AbsSeparator):
         mem_type: str = "hc",
         seg_overlap: bool = False,
     ):
-
         super().__init__()
 
         self._num_spk = num_spk

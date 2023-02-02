@@ -41,6 +41,8 @@ python=python3       # Specify python to execute espnet commands.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
+post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
+auxiliary_data_tags= # the names of training data for auxiliary tasks
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -144,6 +146,7 @@ lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
+hyp_cleaner=none # Text cleaner for hypotheses (may be used with external tokenizers)
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
@@ -349,6 +352,14 @@ elif [ "${token_type}" = char ]; then
 elif [ "${token_type}" = word ]; then
     token_list="${wordtoken_list}"
     bpemodel=none
+elif [ "${token_type}" = whisper_en ]; then # should make token_list an output filepath here
+    token_list="${token_listdir}"/whisper_en/tokens.txt
+    bpemodel=whisper_en
+    hyp_cleaner=${cleaner}
+elif [ "${token_type}" = whisper_multilingual ]; then
+    token_list="${token_listdir}"/whisper_multilingual/tokens.txt
+    bpemodel=whisper_multilingual
+    hyp_cleaner=${cleaner}
 elif [ "${token_type}" = hugging_face ]; then
     token_list="${hugging_face_token_list}"
     bpemodel=${hugging_face_model_name_or_path}
@@ -701,6 +712,11 @@ if ! "${skip_data_prep}"; then
                 "${data_feats}/${dset}"
         done
 
+        if [ -n "${post_process_local_data_opts}" ]; then
+            # Do any additional local data post-processing here
+            local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
+        fi 
+
         # shellcheck disable=SC2002,SC2068,SC2005
         for lm_txt in ${lm_train_text[@]}; do
             suffix=$(echo "$(basename ${lm_txt})" | sed 's/text//')
@@ -762,9 +778,16 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
+        elif grep -q "whisper" <<< ${token_type}; then
+            log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            echo ${token_list}
+            ${python} -m espnet2.bin.whisper_export_vocabulary  \
+                --whisper_model "${token_type}" \
+                --output "${token_list}"
         elif [ "${token_type}" = hugging_face ]; then
             log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
-
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
             # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
@@ -1083,6 +1106,10 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+        if [ "${feats_normalize}" != global_mvn ]; then
+            # Skip summerizaing stats if not using global MVN
+            _opts+="--skip_sum_stats"
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
 
@@ -1170,6 +1197,14 @@ if ! "${skip_train}"; then
         else
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
+
+            read -r -a aux_list <<< "$auxiliary_data_tags"
+            if [ ${#aux_list[@]} != 0 ]; then
+                _opts+="--allow_variable_data_keys True "
+                for aux_dset in "${aux_list[@]}"; do
+                     _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
+                done
+            fi
             # shellcheck disable=SC2068
             for i in ${!ref_text_names[@]}; do
                 _opts+="--fold_length ${asr_text_fold_length} "
@@ -1446,6 +1481,7 @@ if ! "${skip_eval}"; then
                             ${python} -m espnet2.bin.tokenize_text  \
                                 -f 2- --input - --output - \
                                 ${_opts} \
+                                --cleaner "${hyp_cleaner}" \
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/hyp${suffix:-${suffix}}.trn"

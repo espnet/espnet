@@ -460,7 +460,6 @@ class HubertPretrainModel(AbsESPnetModel):
         self,
         encoder_out: Dict[str, torch.Tensor],
     ):
-
         # 1. Compute hubert loss
         loss, logp_m_list, logp_u_list = self.criterion_hubert(
             self.encoder.encoder, encoder_out

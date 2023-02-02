@@ -1181,7 +1181,6 @@ class SSKernelDiag(OptimModule):
         lr=None,
         bandlimit=None,
     ):
-
         super().__init__()
         self.L = L
         self.disc = disc

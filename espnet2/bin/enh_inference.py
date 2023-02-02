@@ -472,7 +472,7 @@ def inference(
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         waves = separate_speech(**batch)
-        for (spk, w) in enumerate(waves):
+        for spk, w in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
 
