@@ -2,7 +2,8 @@
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -euo pipefail
-calc() { awk "BEGIN{ printf \"%.12f\n\", $* }"; }
+calc_float() { awk "BEGIN{ printf \"%.12f\n\", $* }"; }
+calc_int() { awk "BEGIN{ printf \"%.d\n\", $* }"; }
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
@@ -30,13 +31,14 @@ cmd_dprep=run.pl
 dprep_stage=0
 gss_dump_root=./exp/gss
 ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
+train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
+train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
-max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
-cmd_gss=run.pl
+gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
+cmd_gss=run.pl # change to suit your needs e.g. slurm !
 gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev" # no mixer6 train in baseline
-gss_max_wav_duration=20
-gss_ngpus=$ngpu
+
 
 # ASR CONFIG
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
@@ -50,20 +52,20 @@ use_word_lm=false
 word_vocab_size=65000
 nbpe=500
 
-asr_max_segment_length=$gss_max_wav_duration # also reduce if you get OOM, here A100 40GB
-asr_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
+
 # and not contribute much (but you may use all)
-asr_ngpus=$ngpu
 asr_max_epochs=8
 # ESPNet does not scale parameters with num of GPUs by default, doing it
 # here for you
-asr_batch_size=$(calc 128*$asr_ngpus) # reduce 128 bsz if you get OOMs errors
-asr_max_lr=$(calc $asr_ngpus/10000.0)
-asr_warmup=$(calc 40000/$asr_ngpus)
 
 . ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
+
+asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
+asr_max_lr=$(calc_float $ngpu/10000.0)
+asr_warmup=$(calc_int 40000.0/$ngpu)
+
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
@@ -115,7 +117,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     if [ ${dset_part} == train ]; then
-      max_segment_length=${max_wav_duration} # we can discard utterances too long based on asr training
+      max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
     fi
 
     log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
@@ -123,9 +125,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
           --cmd $cmd_gss \
-          --nj $gss_ngpus \
-          --max-segment-length $gss_max_wav_duration \
-          --max-batch-duration $max_batch_dur \
+          --nj $ngpu \
+          --max-segment-length $max_segment_length \
+          --max-batch-duration $gss_max_batch_dur \
           --channels $channels
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
@@ -210,7 +212,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     --lang en \
     --local_data_opts "--train-set ${asr_train_set}" \
     --stage $asr_stage \
-    --ngpu $asr_ngpus \
+    --ngpu $ngpu \
     --asr_args "--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup} --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}" \
     --token_type bpe \
     --nbpe $nbpe \
@@ -219,8 +221,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     --feats_type raw \
     --feats_normalize utterance_mvn \
     --audio_format "flac" \
-    --min_wav_duration $asr_min_segment_length \
-    --max_wav_duration $asr_max_segment_length \
+    --min_wav_duration $train_min_segment_length \
+    --max_wav_duration $train_max_segment_length \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
