@@ -57,10 +57,46 @@ TTS recipe consists of 9 stages.
 ### 1. Data preparation
 
 Data preparation stage.
+You have two methods to generate the data:
+
+#### ESPnet format:
+
 It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets.
 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
+
+#### (New) MFA Aligments generation
+
+You can generate aligments using the [Montreal-Forced-Aligner tool](https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner)
+Use the script `scripts/mfa.sh` to generate the required mfa aligments and train a model that employs these alignments.
+
+Because the script `scripts/mfa.sh` prepares the data, it is not required to execute `local/data.sh` previously. However, you will
+need to set some additional flags, such as `--split_sets`, `--samplerate`, or `--acoustic_model`:
+
+```bash
+./scripts/mfa.sh --split_sets "train_set dev_set test_set" \
+    --stage 1 \
+    --stop-stage 2 \
+    --train true --nj 36 --g2p_model espeak_ng_english_vits
+```
+
+You can find a reference at `egs2/ljspeech/tts1/local/run_mfa.sh`.
+
+The script `scripts/mfa.sh` will generate the aligments using a given `g2p_model` & `acoustic_model` and store it in the `<split_sets>_phn` directory.
+This script download a pretrained model (if `--train false`) or trains the mfa g2p and acoustic model (if `--train true`), for then generate the aligments.
+
+Then, you can continue the training on the main script:
+
+```bash
+./run.sh --train-set train_set_phn \
+         --dev-set dev_set_phn \
+         --test_sets "dev_set_phn test_set_phn" \
+         --stage 2 \
+         --g2p none \
+         --cleaner none \
+         --teacher_dumpdir "data"
+```
 
 ### 2. Wav dump / Embedding preparation
 
@@ -69,7 +105,7 @@ This stage reformats `wav.scp` in data directories.
 
 Additionally, We support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract X-vectors.
-You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xvector_tool <option>` 
+You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xvector_tool <option>`
 (Default: `xvector_tool=kaldi`).
 If you specify kaldi, then we additionally extract mfcc features and vad decision.
 This processing requires the compiled kaldi, please be careful.
@@ -686,6 +722,12 @@ You can change via `--g2p` option in `tts.sh`.
 - `espeak_ng_hindi`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - e.g. `नमस्ते दुनिया` -> `[n, ə, m, ˈʌ, s, t, eː, d, ˈʊ, n, ɪ, j, ˌaː]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_italian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Ciao mondo.` -> `[tʃ, ˈa, o, m, ˈo, n, d, o, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_polish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Witaj świecie.` -> `[v, ˈi, t, a, j, ɕ, fʲ, ˈɛ, tɕ, ɛ, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_english_us_vits`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - VITS official implementation-like processing (https://github.com/jaywalnut310/vits)
     - e.g. `Hello World.` -> `[h, ə, l, ˈ, o, ʊ, , <space>, w, ˈ, ɜ, ː, l, d, .]`
@@ -695,6 +737,9 @@ You can change via `--g2p` option in `tts.sh`.
 - `g2pk_no_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
     - Same G2P but do not use word separator
     - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+- `g2pk_explicit_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
+    - Same G2P but use explicit word separator
+    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, <space>, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `korean_jaso`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
     - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, <space>, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, <space>, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `korean_jaso_no_space`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
@@ -916,7 +961,7 @@ We recommend modifying the following part in `utils/validate_data_dir.sh` to be 
 
 https://github.com/kaldi-asr/kaldi/blob/40c71c5ee3ee5dffa1ad2c53b1b089e16d967bb5/egs/wsj/s5/utils/validate_data_dir.sh#L9
 
-> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces`  
+> `utils/validate_text.pl: The line for utterance xxx contains disallowed Unicode whitespaces`
 > `utils/validate_text.pl: ERROR: text file 'data/xxx' contains disallowed UTF-8 whitespace character(s)`
 
 The use of zenkaku whitespace in `text` is not allowed.

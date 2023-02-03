@@ -165,8 +165,60 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
 
+# E-Branchformer
+- Params: 148.92 M
+- ASR config: [conf/tuning/train_asr_e_branchformer.yaml](conf/tuning/train_asr_e_branchformer.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Model link: [https://huggingface.co/asapp/e_branchformer_librispeech](https://huggingface.co/asapp/e_branchformer_librispeech)
 
+# RESULTS
+## Environments
+- date: `Mon Jan  2 12:59:49 UTC 2023`
+- python version: `3.8.15 (default, Nov 24 2022, 15:19:38)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `7a203d55543df02f0369d5608cd6f3033119a135`
+  - Commit date: `Fri Dec 23 00:58:49 2022 +0000`
 
+## asr_train_asr_e_branchformer_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|26.3|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|50948|95.8|3.8|0.3|0.4|4.6|40.6|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.8|0.2|0.2|2.2|26.6|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|52343|95.9|3.7|0.4|0.5|4.6|42.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_clean|2703|54402|98.5|1.3|0.2|0.2|1.6|22.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_other|2864|50948|96.7|3.0|0.3|0.3|3.7|34.7|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_clean|2620|52576|98.4|1.5|0.2|0.2|1.9|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_other|2939|52343|96.7|2.9|0.4|0.4|3.7|37.1|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|26.3|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|265951|98.6|0.9|0.5|0.5|1.9|40.6|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.2|0.2|0.2|0.7|26.6|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|272758|98.7|0.8|0.5|0.5|1.8|42.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|22.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_other|2864|265951|98.7|0.7|0.6|0.4|1.7|34.7|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.2|0.2|0.2|0.6|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_other|2939|272758|98.8|0.6|0.6|0.4|1.6|37.1|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_clean|2703|68010|97.8|1.6|0.6|0.3|2.6|26.3|
+|decode_asr_asr_model_valid.acc.ave/dev_other|2864|63110|94.9|3.9|1.2|0.8|5.9|40.6|
+|decode_asr_asr_model_valid.acc.ave/test_clean|2620|65818|97.6|1.7|0.7|0.3|2.7|26.6|
+|decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|95.0|3.6|1.4|0.7|5.7|42.0|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_clean|2703|68010|98.1|1.3|0.6|0.3|2.1|22.5|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/dev_other|2864|63110|95.6|3.1|1.3|0.6|5.0|34.7|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_clean|2620|65818|97.8|1.4|0.8|0.3|2.5|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_bpe5000_scheduler_confwarmup_steps25000_batch_bins500000000_accum_grad2_use_amptrue_valid.loss.ave_10best_asr_model_valid.acc.ave/test_other|2939|65101|95.8|2.8|1.5|0.5|4.7|37.1|
 
 # Branchformer, `hope_length=160, num_blocks=18, cgmlp_linear_units=3072`
 - Params: 116.88 M
@@ -246,6 +298,62 @@
 |till70epoch_beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.2|3.4|1.4|0.7|5.5|36.6|
 |till70epoch_beam60_ctc0.3_lm0.6/test_clean|2620|65818|97.7|1.5|0.8|0.3|2.5|24.0|
 |till70epoch_beam60_ctc0.3_lm0.6/test_other|2939|65101|95.2|3.1|1.7|0.6|5.4|39.6|
+
+
+
+# Conformer, S4 Decoder
+- Params: 113.20M
+- ASR config [conf/tuning/train_asr_s4_decoder.yaml](conf/tuning/train_asr_s4_decoder.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://huggingface.co/espnet/kmiyazaki_librispeech_asr_s4_decoder](https://huggingface.co/espnet/kmiyazaki_librispeech_asr_s4_decoder)
+# RESULTS
+## Environments
+- date: `Thu Dec 29 11:58:25 UTC 2022`
+- python version: `3.10.8 (main, Nov 24 2022, 14:13:03) [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.0`
+- Git hash: `617189d2d7e060bbcf670ab54b88776333b5137e`
+  - Commit date: `Mon Dec 26 18:01:58 2022 +0900`
+
+## asr_train_asr_s4_decoder_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|25.9|
+|beam60_ctc0.3/dev_other|2864|50948|95.5|4.2|0.4|0.5|5.0|42.2|
+|beam60_ctc0.3/test_clean|2620|52576|98.0|1.8|0.2|0.3|2.3|27.2|
+|beam60_ctc0.3/test_other|2939|52343|95.6|4.0|0.4|0.6|5.0|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|54402|98.5|1.3|0.2|0.2|1.7|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|50948|96.4|3.3|0.3|0.4|4.0|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|52576|98.3|1.5|0.2|0.2|1.9|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|52343|96.3|3.3|0.4|0.4|4.1|39.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.6|25.9|
+|beam60_ctc0.3/dev_other|2864|265951|98.4|1.0|0.6|0.5|2.1|42.2|
+|beam60_ctc0.3/test_clean|2620|281530|99.5|0.3|0.2|0.2|0.7|27.2|
+|beam60_ctc0.3/test_other|2939|272758|98.6|0.8|0.6|0.6|2.0|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|265951|98.6|0.8|0.5|0.5|1.8|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|281530|99.6|0.2|0.2|0.2|0.6|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|272758|98.8|0.7|0.6|0.5|1.7|39.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|68010|97.8|1.6|0.6|0.4|2.5|25.9|
+|beam60_ctc0.3/dev_other|2864|63110|94.5|4.3|1.3|0.9|6.4|42.2|
+|beam60_ctc0.3/test_clean|2620|65818|97.5|1.7|0.7|0.4|2.8|27.2|
+|beam60_ctc0.3/test_other|2939|65101|94.6|3.9|1.5|0.8|6.2|44.4|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|68010|98.1|1.4|0.5|0.4|2.2|23.0|
+|beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.4|3.5|1.1|0.9|5.5|36.6|
+|beam60_ctc0.3_lm0.6/test_clean|2620|65818|98.0|1.4|0.6|0.4|2.4|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|65101|95.5|3.2|1.3|0.8|5.4|39.5|
 
 
 

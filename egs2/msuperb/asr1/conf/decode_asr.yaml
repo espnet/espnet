@@ -1,0 +1,3 @@
+beam_size: 20
+ctc_weight: 0.3
+lm_weight: 0.0 # we intentially skip the lm

@@ -47,6 +47,12 @@ class EnhS2TPackedContents(PackedContents):
     yaml_files = ["enh_s2t_train_config", "lm_train_config"]
 
 
+class SSLPackedContents(PackedContents):
+    # These names must be consistent with the argument of inference functions
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
     for key in contents.yaml_files:
@@ -69,6 +75,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("diar", DiarPackedContents),
         ("svs", SVSPackedContents),
         ("enh_s2t", EnhS2TPackedContents),
+        ("ssl", SSLPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,
