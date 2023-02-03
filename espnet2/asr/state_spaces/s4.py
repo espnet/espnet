@@ -1139,8 +1139,8 @@ class SSKernelNPLR(OptimModule):
 
             self.input_contraction = contract_expression(
                 "h n, ... h -> ... h n",
-                (H, N),  # self.dB.shape
-                batch_shape + (H,),
+                (H, N),
+                batch_shape + (H,),  # self.dB.shape
             )
 
         self.output_contraction = contract_expression(

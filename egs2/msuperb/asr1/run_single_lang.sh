@@ -28,15 +28,17 @@ for duration in 10min 1h; do
         ./asr.sh \
             --ngpu 1 \
             --stage 1 \
-            --stop_stage 12 \
+            --stop_stage 13 \
             --lang ${lang} \
             --nj 4 \
             --inference_nj 4 \
+            --inference_asr_model "valid.loss.ave.pth" \
             --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
             --use_lm false \
             --lm_config "${lm_config}" \
             --token_type char \
             --feats_type raw \
+            --feats_normalize utterance_mvn \
             --asr_config "${asr_config}" \
             --inference_config "${inference_config}" \
             --train_set "${train_set}" \
@@ -44,6 +46,7 @@ for duration in 10min 1h; do
             --test_sets "${test_set}" \
             --bpe_train_text "data/${train_set}/text" \
             --asr_tag "${asr_tag}" \
+            --asr_stats_dir exp/asr_stats_${lang}_${duration} \
             --lm_train_text "data/${train_set}/text" "$@"
     done
 done
