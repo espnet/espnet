@@ -73,4 +73,4 @@ echo "flake8-docstrings ready files coverage: ${n_ok} / ${n_all} = ${cov}%"
 flake8 --show-source --extend-ignore=D test utils doc ${flake8_black_list} espnet2 test/espnet2 egs/*/*/local/*.py
 
 # white list of files that should support flake8-docstrings
-flake8 --show-source espnet --exclude=${flake8_black_list//$'\n'/,} --ignore=E231
+flake8 --show-source espnet --exclude=${flake8_black_list//$'\n'/,}
