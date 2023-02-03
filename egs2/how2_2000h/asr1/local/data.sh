@@ -17,7 +17,7 @@ stop_stage=1
 . ./path.sh
 . ./cmd.sh
 
-data_url="http://islpc21.is.cs.cmu.edu/tmp_audio_2000_667b98c3-89d9-4862-93de-cc61cd460b65.tar.bz2"
+data_url=""
 data_how2=${HOW2_2kH}
 
 
@@ -54,7 +54,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for dir in tr_2000h_utt cv05_utt dev5_test_utt; do  
         [ -f data/${dir}/text ] ||  mv ${data_how2}/how2_release/data/${dir} data/${dir} 
         [ -f "data/${dir}/feats.scp" ] ||  awk -F ' ' -v x="$(realpath $data_how2/how2_release/)" '{print $1,x"/audio/fbank_pitch/"$2}' < "${data_how2}/how2_release/audio/fbank_pitch/all_utts_asr.scp" > "data/${dir}/feats.scp"
-        [ -f "data/${dir}/wav.scp" ] || cut -d ' ' -f2 "data/${dir}/segments" | sort | uniq | awk -F ' ' '{print $1,"<DUMMY>"}' > "data/${dir}/wav.scp"
+        cut -d ' ' -f2 "data/${dir}/segments" | sort | uniq | awk -F ' ' '{print $1,"<DUMMY>"}' > "data/${dir}/wav.scp"
         utils/fix_data_dir.sh data/${dir}
     done 
    
