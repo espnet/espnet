@@ -1312,8 +1312,8 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">input_contraction</span> <span class="o">=</span> <span class="n">contract_expression</span><span class="p">(</span>
                 <span class="s2">&quot;h n, ... h -&gt; ... h n&quot;</span><span class="p">,</span>
-                <span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span>  <span class="c1"># self.dB.shape</span>
-                <span class="n">batch_shape</span> <span class="o">+</span> <span class="p">(</span><span class="n">H</span><span class="p">,),</span>
+                <span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span>
+                <span class="n">batch_shape</span> <span class="o">+</span> <span class="p">(</span><span class="n">H</span><span class="p">,),</span>  <span class="c1"># self.dB.shape</span>
             <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_contraction</span> <span class="o">=</span> <span class="n">contract_expression</span><span class="p">(</span>
