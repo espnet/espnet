@@ -12,7 +12,6 @@ def save_kaldi_format(outdir, ds):
     ) as fp_wav, open(os.path.join(outdir, "utt2spk"), "w") as fp_utt2spk, open(
         os.path.join(outdir, "spk2utt"), "w"
     ) as fp_spk2utt:
-
         for item in ds.sort("name"):
             path = item["audio"]["path"]
 

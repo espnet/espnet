@@ -403,7 +403,6 @@ class ASRTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-
             try:
                 _ = getattr(args, "preprocessor")
             except AttributeError:

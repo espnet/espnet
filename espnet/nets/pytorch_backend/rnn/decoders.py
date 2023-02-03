@@ -65,7 +65,6 @@ class Decoder(torch.nn.Module, ScorerInterface):
         replace_sos=False,
         num_encs=1,
     ):
-
         torch.nn.Module.__init__(self)
         self.dtype = dtype
         self.dunits = dunits
