@@ -110,6 +110,7 @@ def TransposedModule(module):
     Wrap a SequenceModule class to accept transposed parameter,
     handle state, absorb kwargs
     """
+
     # https://stackoverflow.com/a/65470430/1980685
     @functools.wraps(module, updated=())
     class TransposedModule(module):

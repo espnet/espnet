@@ -33,7 +33,6 @@ def process_data(target_dir, source_dir, audio_dir, filename, min_length):
     ) as segments, open(
         os.path.join(target_dir, "text"), "a", encoding="utf-8"
     ) as text:
-
         metadata_f = load_json(os.path.join(source_dir, "metadata", filename + ".json"))
         transcript_f = load_json(
             os.path.join(source_dir, "transcript", filename + ".json")
