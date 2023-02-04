@@ -139,12 +139,9 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
             x = torch.from_numpy(x).float().to(self.device)
             x = x.view(1, -1)
 
-            feat = self.model.wav2vec2.extract_features(
-                x,
-                num_layers=self.layer,
-            )[
-                0
-            ][-1][
+            feat = self.model.wav2vec2.extract_features(x, num_layers=self.layer,)[0][
+                -1
+            ][
                 0
             ]  # (time, feat_dim)
         return feat.cpu()

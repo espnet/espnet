@@ -47,7 +47,7 @@ requirements = {
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
         # lhotse
-        "lhotse @ git+git+https://github.com/lhotse-speech/lhotse"
+        "lhotse @ git+git+https://github.com/lhotse-speech/lhotse",
     ],
     # train: The modules invoked when training only.
     "train": [
