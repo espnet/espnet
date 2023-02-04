@@ -60,15 +60,23 @@ jiwer_chime7_scoring = jiwer.Compose(
 
 # need to remove also quotation marks and leading, trailing whitespaces and
 # kaldi non-words w.r.t. lhotse one.
-chime6_norm_scoring = lambda x: jiwer_chime6_scoring(
-    normalize_text_chime6(x, normalize="kaldi")
-)
+
+
+def chime6_norm_scoring(txt):
+
+    return jiwer_chime6_scoring(normalize_text_chime6(txt, normalize="kaldi"))
+
+
 # here we also normalize non-words sounds such as hmmm which are quite a lot !
 # you are free to use whatever normalization you prefer for training but this
 # normalization below will be used when we score your submissions.
-chime7_norm_scoring = lambda x: jiwer_chime7_scoring(
-    jiwer_chime6_scoring(normalize_text_chime6(x, normalize="kaldi"))
-)
+def chime7_norm_scoring(txt):
+
+    return jiwer_chime7_scoring(
+        jiwer_chime6_scoring(
+            normalize_text_chime6(txt, normalize="kaldi")
+        )  # noqa: E731
+    )  # noqa: E731
 
 
 def choose_txt_normalization(scoring_txt_normalization="chime7"):
@@ -167,7 +175,8 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
 
             [
                 os.symlink(
-                    x, os.path.join(out_dir, "audio", tsplit, Path(x).stem) + ".wav"
+                    x,
+                    os.path.join(out_dir, "audio", tsplit, Path(x).stem) + ".wav",
                 )
                 for x in sess2audio[sess_name]
             ]
@@ -180,7 +189,10 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             # retain original annotation but dump also the scoring one
             with open(
                 os.path.join(
-                    out_dir, "transcriptions_scoring", tsplit, sess_name + ".json"
+                    out_dir,
+                    "transcriptions_scoring",
+                    tsplit,
+                    sess_name + ".json",
                 ),
                 "w",
             ) as f:
@@ -189,7 +201,9 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             first = sorted([float(x["start_time"]) for x in annotation])[0]
             end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
             c_uem = "{} 1 {} {}\n".format(
-                sess_name, "{:.3f}".format(float(first)), "{:.3f}".format(end / 16000)
+                sess_name,
+                "{:.3f}".format(float(first)),
+                "{:.3f}".format(end / 16000),
             )
 
             with open(os.path.join(out_dir, "uem", tsplit, "all.uem"), "a+") as f:
@@ -203,9 +217,10 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
     def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
 
         annotation_scoring = []
-        _get_time = lambda x: (
-            dt.strptime(x, "%H:%M:%S.%f") - dt(1900, 1, 1)
-        ).total_seconds()
+
+        def _get_time(x):
+            return (dt.strptime(x, "%H:%M:%S.%f") - dt(1900, 1, 1)).total_seconds()
+
         for indx in range(len(annotation)):
             ex = annotation[indx]
             ex["session_id"] = "S{:02d}".format(
@@ -305,7 +320,10 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 json.dump(annotation, f, indent=4)
             with open(
                 os.path.join(
-                    out_dir, "transcriptions_scoring", split, new_sess_name + ".json"
+                    out_dir,
+                    "transcriptions_scoring",
+                    split,
+                    new_sess_name + ".json",
                 ),
                 "w",
             ) as f:
@@ -377,7 +395,10 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                         os.symlink(
                             x,
                             os.path.join(
-                                out_dir, "audio", c_split, Path(x).stem + ".flac"
+                                out_dir,
+                                "audio",
+                                c_split,
+                                Path(x).stem + ".flac",
                             ),
                         )
                         for x in sess2audio[sess_name]
@@ -399,7 +420,8 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             # create symlinks too
             [
                 os.symlink(
-                    x, os.path.join(out_dir, "audio", c_split, Path(x).stem + ".flac")
+                    x,
+                    os.path.join(out_dir, "audio", c_split, Path(x).stem + ".flac"),
                 )
                 for x in sess2audio[sess_name]
             ]
@@ -411,7 +433,10 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 json.dump(annotation, f, indent=4)
             with open(
                 os.path.join(
-                    out_dir, "transcriptions_scoring", c_split, sess_name + ".json"
+                    out_dir,
+                    "transcriptions_scoring",
+                    c_split,
+                    sess_name + ".json",
                 ),
                 "w",
             ) as f:

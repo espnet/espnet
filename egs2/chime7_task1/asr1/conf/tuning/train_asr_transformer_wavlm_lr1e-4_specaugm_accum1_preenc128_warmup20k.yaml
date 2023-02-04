@@ -32,7 +32,7 @@ preencoder: linear
 preencoder_conf:
     input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
     output_size: 128
-    dropout: 0.1
+    dropout: 0.2
 
 # encoder related
 encoder: transformer
@@ -84,5 +84,5 @@ specaug_conf:
     apply_time_mask: true
     time_mask_width_ratio_range:
     - 0.0
-    - 0.15   
-    num_time_mask: 2
+    - 0.15
+    num_time_mask: 3

@@ -205,10 +205,10 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-  asr_train_set=kaldi/train_all
+  asr_train_set=train_kaldi
   asr_cv_set=kaldi/dev_gss_all
   # Decoding on dev set because test is blind for now
-  asr_tt_set="kaldi/chime6_dev/dev/gss/ kaldi/dipco_dev/dev/gss/ kaldi/mixer6_dev/dev/gss/"
+  asr_tt_set="kaldi/chime6_dev/dev/gss/"
   ./asr.sh \
     --lang en \
     --local_data_opts "--train-set ${asr_train_set}" \
