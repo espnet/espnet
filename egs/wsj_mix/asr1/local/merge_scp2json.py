@@ -221,7 +221,6 @@ if __name__ == "__main__":
             ("output", output_lines, output_infos),
             ("other", lines, infos),
         ]:
-
             lis = []
             for idx, (line_list, info_list) in enumerate(zip(_lines, _infos), 1):
                 if inout == "input":

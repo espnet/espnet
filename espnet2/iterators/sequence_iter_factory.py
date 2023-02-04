@@ -113,7 +113,6 @@ class SequenceIterFactory(AbsIterFactory):
                 if shuffle:
                     np.random.RandomState(_epoch + self.seed).shuffle(current_batches)
                 while _remain > 0:
-
                     _batches = current_batches[_cursor : _cursor + _remain]
                     batches += _batches
                     if _cursor + _remain >= N:
