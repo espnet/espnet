@@ -13,7 +13,6 @@ stage=0
 stop_stage=2
 
 log "$0 $*"
-train_set=
 . utils/parse_options.sh
 
 
@@ -25,11 +24,13 @@ fi
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 
-nlsyms=data/nlsyms.txt
+nlsyms_file=data/nlsyms.txt
+
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # create a dummy non-linguistic symbols file, these should be already removed in data prep
-    log "stage 2: Create DUMMY non linguistic symbols file: ${nlsyms}"
-    touch ${nlsyms} # dummy empty file
+    log "stage 2: Create non linguistic symbols file: ${nlsyms_file}"
+    touch ${nlsyms_file} # dummy empty file
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -44,6 +44,8 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
+        # lhotse
+        "lhotse @ git+https://github.com/lhotse/lhotse@master"
     ],
     # train: The modules invoked when training only.
     "train": [
