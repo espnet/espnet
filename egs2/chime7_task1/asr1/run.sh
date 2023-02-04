@@ -70,6 +70,7 @@ asr_warmup=$(calc_int 40000.0/$ngpu)
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
   local/gen_task1_data.sh --chime6-root $chime6_root --stage $dprep_stage  --chime7-root $chime7_root \
+    --chime5_root $chime5_root \
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
