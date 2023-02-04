@@ -16,6 +16,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 import torch
 import logging
+from mosestokenizer import MosesDetokenizer
 
 
 @entrypoint
@@ -103,7 +104,9 @@ class DummyAgent(SpeechToTextAgent):
                 disable_repetition_detection=kwargs['disable_repetition_detection'],
                 decoder_text_length_limit=kwargs['decoder_text_length_limit'],
                 encoded_feat_length_limit=kwargs['encoded_feat_length_limit'],
+                time_sync=kwargs['time_sync'],
                 incremental_decode=kwargs['incremental_decode'],
+                blank_penalty=kwargs['blank_penalty'],
             )
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
         
@@ -342,9 +345,19 @@ class DummyAgent(SpeechToTextAgent):
             help="Limit the lengths of the text" "to input to the decoder.",
         )
         group.add_argument(
+            "--time_sync",
+            type=str2bool,
+            default=False,
+        )
+        group.add_argument(
             "--incremental_decode",
             type=str2bool,
             default=False,
+        )
+        group.add_argument(
+            "--blank_penalty",
+            type=float,
+            default=1.0,
         )
 
         return parser
@@ -352,6 +365,7 @@ class DummyAgent(SpeechToTextAgent):
     def clean(self):
         self.processed_index = -1
         self.maxlen = 0
+        self.prev_prediction = ""
 
     def policy(self):
 
@@ -375,7 +389,10 @@ class DummyAgent(SpeechToTextAgent):
                 results = self.speech2text(speech=speech, is_final=self.states.source_finished)
                 self.processed_index = len(self.states.source) - 1
                 if not self.states.source_finished:
-                    if self.speech2text.beam_search.running_hyps and len(self.speech2text.beam_search.running_hyps.yseq[0]) > self.maxlen:
+                    if len(results) > 0:
+                        prediction = results[0][0]                  
+
+                    elif self.speech2text.beam_search.running_hyps and len(self.speech2text.beam_search.running_hyps.yseq[0]) > self.maxlen:
                         prediction = self.speech2text.beam_search.running_hyps.yseq[0][1:]
                         prediction = self.speech2text.converter.ids2tokens(prediction)
                         prediction = self.speech2text.tokenizer.tokens2text(prediction)
@@ -385,11 +402,29 @@ class DummyAgent(SpeechToTextAgent):
                 else:
                     prediction = results[0][0]
 
-                unwritten_length = len(prediction) - len("".join(self.states.target))
-                # if unwritten_length > 0:
-                print(self.processed_index, prediction[-unwritten_length:])
+                if prediction != self.prev_prediction or self.states.source_finished:
+                    self.prev_prediction = prediction
+                    prediction = MosesDetokenizer('de')(prediction.split(" "))
+                    
+                    if not self.states.source_finished:
+                        prediction = prediction.rsplit(" ",1)
+                        if len(prediction) == 1:
+                            prediction = ""
+                        else:
+                            prediction = prediction[0]
+
+                    unwritten_length = len(prediction) - len("".join(self.states.target))
+                else:
+                    unwritten_length = 0
+
                 if self.states.source_finished:
                     self.clean()
-                return WriteAction(prediction[-unwritten_length:], finished=self.states.source_finished)
+
+                if unwritten_length > 0:
+                    ret = prediction[-unwritten_length:]
+                    print(self.processed_index, ret)
+                    return WriteAction(ret, finished=self.states.source_finished)
+                elif self.states.source_finished:
+                    return WriteAction("", finished=self.states.source_finished)
 
             return ReadAction()
