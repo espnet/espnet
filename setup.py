@@ -24,6 +24,8 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
+        # lhotse
+        "lhotse @ git+https://github.com/lhotse-speech/lhotse",
         "numpy",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
@@ -46,8 +48,6 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
-        # lhotse
-        #"lhotse @ git+https://github.com/lhotse-speech/lhotse",
     ],
     # train: The modules invoked when training only.
     "train": [
