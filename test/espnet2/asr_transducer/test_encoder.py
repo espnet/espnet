@@ -191,21 +191,32 @@ def test_encoder(input_conf, body_conf, main_conf):
 
     _ = encoder(sequence, sequence_len)
 
-    # For each test with Conformer block, we do the same testing with Branchformer
-    _branchformer_flag = False
+    # Note (b-flo): For each test with Conformer blocks, we do the same testing with
+    # Branchformer and E-Branchformer blocks instead.
+    # The tests will be redesigned, for now we avoid writing too many configs.
+    _swap = False
 
-    for b in body_conf:
+    branchformer_conf = body_conf[:]
+    ebranchformer_conf = body_conf[:]
+
+    for i, b in enumerate(body_conf):
         if b["block_type"] == "conformer":
-            b["block_type"] = "branchformer"
+            branchformer_conf[i]["block_type"] = "branchformer"
+            ebranchformer_conf[i]["block_type"] = "ebranchformer"
 
-            _branchformer_flag = True
+            if _swap is False:
+                _swap = True
 
-    if _branchformer_flag:
+    if _swap:
         branchformer_encoder = Encoder(
-            input_size, body_conf, input_conf=input_conf, main_conf=main_conf
+            input_size, branchformer_conf, input_conf=input_conf, main_conf=main_conf
         )
-
         _ = branchformer_encoder(sequence, sequence_len)
+
+        ebranchformer_encoder = Encoder(
+            input_size, ebranchformer_conf, input_conf=input_conf, main_conf=main_conf
+        )
+        _ = ebranchformer_encoder(sequence, sequence_len)
 
 
 @pytest.mark.parametrize(
@@ -224,11 +235,13 @@ def test_block_type(input_conf, body_conf):
     "body_conf",
     [
         [{"block_type": "branchformer", "hidden_size": 4}],
+        [{"block_type": "branchformer", "hidden_size": 4, "linear_size": 2}],
         [{"block_type": "conformer", "hidden_size": 4}],
+        [{"block_type": "conformer", "hidden_size": 4, "linear_size": 2}],
         [{"block_type": "conv1d"}],
         [{"block_type": "conv1d", "output_size": 8}, {}],
-        [{"block_type": "branchformer", "hidden_size": 4, "linear_size": 2}],
-        [{"block_type": "conformer", "hidden_size": 4, "linear_size": 2}],
+        [{"block_type": "ebranchformer", "hidden_size": 4}],
+        [{"block_type": "ebranchformer", "hidden_size": 4, "linear_size": 2}],
     ],
 )
 def test_wrong_block_arguments(body_conf):
@@ -321,6 +334,15 @@ def test_wrong_subsampling_factor(input_conf, body_conf):
             },
         ],
         [
+            {"block_type": "conv1d", "output_size": 8, "kernel_size": 1},
+            {
+                "block_type": "ebranchformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
             {
                 "block_type": "branchformer",
                 "hidden_size": 8,
@@ -329,6 +351,20 @@ def test_wrong_subsampling_factor(input_conf, body_conf):
             },
             {
                 "block_type": "branchformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
+            {
+                "block_type": "ebranchformer",
+                "hidden_size": 8,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+            {
+                "block_type": "ebranchformer",
                 "hidden_size": 4,
                 "conv_mod_kernel_size": 2,
                 "linear_size": 2,
@@ -357,6 +393,20 @@ def test_wrong_subsampling_factor(input_conf, body_conf):
             },
             {
                 "block_type": "conformer",
+                "hidden_size": 4,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+        ],
+        [
+            {
+                "block_type": "conformer",
+                "hidden_size": 8,
+                "conv_mod_kernel_size": 2,
+                "linear_size": 2,
+            },
+            {
+                "block_type": "ebranchformer",
                 "hidden_size": 4,
                 "conv_mod_kernel_size": 2,
                 "linear_size": 2,

@@ -79,6 +79,8 @@ def asr_config_file(tmp_path: Path, token_list):
         "vgg_branchformer",
         "conv2d_conformer",
         "vgg_conformer",
+        "conv2d_ebranchformer",
+        "vgg_ebranchformer",
     ]
 )
 def asr_stream_config_file(request, tmp_path: Path, token_list):

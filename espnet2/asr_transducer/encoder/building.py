@@ -7,12 +7,14 @@ from espnet2.asr_transducer.encoder.blocks.branchformer import Branchformer
 from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
+from espnet2.asr_transducer.encoder.blocks.ebranchformer import EBranchformer
 from espnet2.asr_transducer.encoder.modules.attention import (  # noqa: H301
     RelPositionMultiHeadedAttention,
 )
 from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
     ConformerConvolution,
     ConvolutionalSpatialGatingUnit,
+    DepthwiseConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
 from espnet2.asr_transducer.encoder.modules.normalization import get_normalization
@@ -43,8 +45,8 @@ def build_main_parameters(
     """Build encoder main parameters.
 
     Args:
-        pos_wise_act_type: Conformer position-wise feed-forward activation type.
-        conv_mod_act_type: Conformer convolution module activation type.
+        pos_wise_act_type: X-former position-wise feed-forward activation type.
+        conv_mod_act_type: X-former convolution module activation type.
         pos_enc_dropout_rate: Positional encoding dropout rate.
         pos_enc_max_len: Positional encoding maximum length.
         simplified_att_score: Whether to use simplified attention score computation.
@@ -141,7 +143,7 @@ def build_input_block(
 def build_branchformer_block(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
-) -> Conformer:
+) -> Branchformer:
     """Build Branchformer block.
 
     Args:
@@ -286,6 +288,82 @@ def build_conv1d_block(
     )
 
 
+def build_ebranchformer_block(
+    configuration: List[Dict[str, Any]],
+    main_params: Dict[str, Any],
+) -> EBranchformer:
+    """Build E-Branchformer block.
+
+    Args:
+        configuration: E-Branchformer block configuration.
+        main_params: Encoder main parameters.
+
+    Returns:
+        : E-Branchformer block function.
+
+    """
+    hidden_size = configuration["hidden_size"]
+    linear_size = configuration["linear_size"]
+
+    dropout_rate = configuration.get("dropout_rate", 0.0)
+
+    pos_wise_args = (
+        hidden_size,
+        linear_size,
+        configuration.get("pos_wise_dropout_rate", 0.0),
+        main_params["pos_wise_act"],
+    )
+
+    conv_mod_norm_class, conv_mod_norm_args = get_normalization(
+        main_params["conv_mod_norm_type"],
+        eps=configuration.get("conv_mod_norm_eps"),
+        partial=configuration.get("conv_mod_norm_partial"),
+    )
+
+    conv_mod_args = (
+        linear_size,
+        configuration["conv_mod_kernel_size"],
+        conv_mod_norm_class,
+        conv_mod_norm_args,
+        dropout_rate,
+        main_params["dynamic_chunk_training"],
+    )
+
+    mult_att_args = (
+        configuration.get("heads", 4),
+        hidden_size,
+        configuration.get("att_dropout_rate", 0.0),
+        main_params["simplified_att_score"],
+    )
+
+    depthwise_conv_args = (
+        hidden_size,
+        configuration.get(
+            "depth_conv_kernel_size", configuration["conv_mod_kernel_size"]
+        ),
+        main_params["dynamic_chunk_training"],
+    )
+
+    norm_class, norm_args = get_normalization(
+        main_params["norm_type"],
+        eps=configuration.get("norm_eps"),
+        partial=configuration.get("norm_partial"),
+    )
+
+    return lambda: EBranchformer(
+        hidden_size,
+        linear_size,
+        RelPositionMultiHeadedAttention(*mult_att_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        ConvolutionalSpatialGatingUnit(*conv_mod_args),
+        DepthwiseConvolution(*depthwise_conv_args),
+        norm_class=norm_class,
+        norm_args=norm_args,
+        dropout_rate=dropout_rate,
+    )
+
+
 def build_body_blocks(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
@@ -322,6 +400,8 @@ def build_body_blocks(
             module = build_conformer_block(c, main_params)
         elif block_type == "conv1d":
             module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
+        elif block_type == "ebranchformer":
+            module = build_ebranchformer_block(c, main_params)
         else:
             raise NotImplementedError
 

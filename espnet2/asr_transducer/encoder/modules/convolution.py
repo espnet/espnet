@@ -69,18 +69,19 @@ class ConformerConvolution(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        cache: Optional[torch.Tensor] = None,
         mask: Optional[torch.Tensor] = None,
+        cache: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute convolution module.
 
         Args:
             x: ConformerConvolution input sequences. (B, T, D_hidden)
-            cache: ConformerConvolution input cache. (1, conv_kernel, D_hidden)
+            mask: Source mask. (B, T_2)
+            cache: ConformerConvolution input cache. (1, D_hidden, conv_kernel)
 
         Returns:
-            x: ConformerConvolution output sequences. (B, T, D_hidden)
-            cache: ConformerConvolution output cache. (1, conv_kernel, D_hidden)
+            x: ConformerConvolution output sequences. (B, ?, D_hidden)
+            cache: ConformerConvolution output cache. (1, D_hidden, conv_kernel)
 
         """
         x = self.pointwise_conv1(x.transpose(1, 2))
@@ -157,22 +158,27 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
         cache: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute convolution module.
 
         Args:
             x: ConvolutionalSpatialGatingUnit input sequences. (B, T, D_hidden)
+            mask: Source mask. (B, T_2)
             cache: ConvolutionalSpationGatingUnit input cache.
-                   (1, conv_kernel, D_hidden)
+                   (1, D_hidden, conv_kernel)
 
         Returns:
-            x: ConvolutionalSpatialGatingUnit output sequences. (B, T, D_hidden // 2)
+            x: ConvolutionalSpatialGatingUnit output sequences. (B, ?, D_hidden)
 
         """
         x_r, x_g = x.chunk(2, dim=-1)
 
         x_g = self.norm(x_g).transpose(1, 2)
+
+        if mask is not None:
+            x_g.masked_fill_(mask.unsqueeze(1).expand_as(x_g), 0.0)
 
         if self.lorder > 0:
             if cache is None:
@@ -184,5 +190,78 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         x_g = self.conv(x_g).transpose(1, 2)
 
         x = self.dropout(x_r * self.activation(x_g))
+
+        return x, cache
+
+
+class DepthwiseConvolution(torch.nn.Module):
+    """Depth-wise Convolution module definition.
+
+    Args:
+        size: Initial size to determine the number of channels.
+        kernel_size: Size of the convolving kernel.
+        causal: Whether to use causal convolution (set to True if streaming).
+
+    """
+
+    def __init__(
+        self,
+        size: int,
+        kernel_size: int,
+        causal: bool = False,
+    ) -> None:
+        """Construct a DepthwiseConvolution object."""
+        super().__init__()
+
+        channels = size + size
+
+        self.kernel_size = kernel_size
+
+        if causal:
+            self.lorder = kernel_size - 1
+            padding = 0
+        else:
+            self.lorder = 0
+            padding = (kernel_size - 1) // 2
+
+        self.conv = torch.nn.Conv1d(
+            channels,
+            channels,
+            kernel_size,
+            stride=1,
+            padding=padding,
+            groups=channels,
+        )
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        cache: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute convolution module.
+
+        Args:
+            x: DepthwiseConvolution input sequences. (B, T, D_hidden)
+            mask: Source mask. (B, T_2)
+            cache: DepthwiseConvolution input cache. (1, conv_kernel, D_hidden)
+
+        Returns:
+            x: DepthwiseConvolution output sequences. (B, ?, D_hidden)
+
+        """
+        x = x.transpose(1, 2)
+
+        if mask is not None:
+            x.masked_fill_(mask.unsqueeze(1).expand_as(x), 0.0)
+
+        if self.lorder > 0:
+            if cache is None:
+                x = torch.nn.functional.pad(x, (self.lorder, 0), "constant", 0.0)
+            else:
+                x = torch.cat([cache, x], dim=2)
+                cache = x[..., -self.lorder :]
+
+        x = self.conv(x).transpose(1, 2)
 
         return x, cache

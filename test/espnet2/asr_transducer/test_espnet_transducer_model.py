@@ -195,6 +195,39 @@ def get_specaug():
             {"joint_space_size": 4},
             {"transducer_weight": 1.0},
         ),
+        (
+            [
+                {
+                    "block_type": "ebranchformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"rnn_type": "lstm", "num_layers": 2},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
+        ),
+        (
+            [
+                {
+                    "block_type": "ebranchformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"embed_size": 4},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
     ],
 )
 def test_model_training(
