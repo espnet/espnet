@@ -864,6 +864,7 @@ class EnhPreprocessor(CommonPreprocessor):
                 (sref[detect_non_silence(sref)] ** 2).mean() for sref in speech_ref
             ]
 
+            speech_mix = data[self.speech_name]
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
                 speech_ref, rir_ref = zip(
@@ -907,7 +908,9 @@ class EnhPreprocessor(CommonPreprocessor):
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = data[speech_ref_name]
 
-            speech_mix = sum(speech_ref)
+                # NOTE(Wangyou): Must be careful here in case that the original
+                # `speech_ref` dones not sum up to `speech_mix` (such as in the TSE task)
+                speech_mix = sum(speech_ref)
             power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
 
             # 2. Add Noise
@@ -1232,6 +1235,14 @@ class TSEPreprocessor(EnhPreprocessor):
         self.load_spk_embedding = load_spk_embedding
         # If False, only one of the speakers in each mixture sample will be loaded
         self.load_all_speakers = load_all_speakers
+
+        if train and rir_scp is not None and rir_apply_prob > 0:
+            logging.warning(
+                "Be cautious when applying RIRs on the fly in the TSE task! "
+                "Please ensure `speech_ref` sums up to `speech_mix` for each sample. "
+                "Otherwise, the preprocessed training data will be wrong after the line:"
+                "\n        data = super()._speech_process(data)"
+            )
 
         if train:
             if train_spk2enroll is None:
