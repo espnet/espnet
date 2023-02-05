@@ -37,12 +37,13 @@ train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 # GSS CONFIG
 gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
-gss_dsets="chime6_train chime6_dev dipco_dev mixer6_dev" # no mixer6 train in baseline
+gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev" # no mixer6 train in baseline
 
 
 # ASR CONFIG
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
 asr_stage=0 # starts at 13 for inference only
+asr_dprep_stage=0
 bpe_nlsyms="" # in the baseline these are handled by the dataprep
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
@@ -102,7 +103,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   #    please refer to the README for how to install it. \n
   #    See also https://github.com/desh2608/gss for more informations." && exit 1;
 
-  for dset in $gss_dsets; do
+  split_gss_dsets_commas=$(echo $gss_dsets | tr "," " ")
+  for dset in $split_gss_dsets_commas; do
     # for each dataset get the name and part (dev or train)
     dset_name="$(cut -d'_' -f1 <<<${dset})"
     dset_part="$(cut -d'_' -f2 <<<${dset})"
@@ -134,87 +136,30 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   done
 fi
 
-if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
-    # Preparing ASR training and validation data;
-    log "Parsing the GSS output to lhotse manifests"
-    cv_kaldi_manifests_gss=()
-    tr_kaldi_manifests=()
-    for dset in $gss_dsets; do
-      # for each dataset get the name and part (dev or train)
-      dset_name="$(cut -d'_' -f1 <<<${dset})"
-      dset_part="$(cut -d'_' -f2 <<<${dset})"
-      python local/gss2lhotse.py -i ${gss_dump_root}/${dset_name}/${dset_part} \
-        -o $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss
-
-      lhotse kaldi export -p $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_recordings.jsonl.gz  \
-          $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_supervisions.jsonl.gz \
-          data/kaldi/${dset}/${dset_part}/gss
-
-      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/gss/utt2spk > data/kaldi/${dset}/${dset_part}/gss/spk2utt
-      ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/gss
-
-      if [ $dset_part == train ]; then
-        tr_kaldi_manifests+=( "data/kaldi/${dset}/${dset_part}/gss" )
-      fi
-
-      if [ $dset_part == dev ]; then
-        cv_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss" )
-      fi
-    done
-
-    if (( ${#cv_kaldi_manifests_gss[@]} )); then
-      ./utils/combine_data.sh data/kaldi/dev_gss_all "${cv_kaldi_manifests_gss[@]}"
-      ./utils/fix_data_dir.sh data/kaldi/dev_gss_all
-    fi
-    # not empty
-    # Preparing all the ASR data, dumping to Kaldi manifests and then merging all the data
-    # train set
-    log "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
-    dset_part=train
-    mic=ihm
-    for dset in chime6 mixer6; do
-      for mic in ihm mdm; do
-        #if [ $dset == mixer6 ] && [ $mic == ihm ]; then
-        #  continue # not used right now
-        #fi
-      lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
-      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
-      ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
-      tr_kaldi_manifests+=( "data/kaldi/$dset/$dset_part/$mic" )
-      done
-    done
-
-    ./utils/combine_data.sh data/kaldi/train_all "${tr_kaldi_manifests[@]}"
-    ./utils/fix_data_dir.sh data/kaldi/train_all
-
-    # dev set ihm, useful for debugging and testing how well ASR performs in best conditions
-    log "Dumping all lhotse manifests to kaldi manifests for dev set with close-talk microphones."
-    cv_kaldi_manifests_ihm=()
-    dset_part=dev
-    mic=ihm
-    for dset in chime6 dipco; do
-      lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
-      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
-      ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
-      cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/${mic}")
-    done
-    # shellcheck disable=2043
-    ./utils/combine_data.sh data/kaldi/dev_ihm_all "${cv_kaldi_manifests_ihm[@]}"
-    ./utils/fix_data_dir.sh data/kaldi/dev_ihm_all
-fi
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-  asr_train_set=train_kaldi
-  asr_cv_set=kaldi/dev_gss_all
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+  asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
+  asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
   asr_tt_set="kaldi/chime6_dev/dev/gss/"
+  # these are args to ASR data prep, done in local/data.sh
+  gss_dsets=($gss_dsets)
+  data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
+  data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
+  # override ASR conf/tuning to scale automatically with num of GPUs
+  asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
+  asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
+
+  echo "$data_opts"
+  #"${data_opts[@]}" \
+
   ./asr.sh \
     --lang en \
-    --local_data_opts "--train-set ${asr_train_set}" \
+    --local_data_opts "${data_opts}" \
     --stage $asr_stage \
     --ngpu $ngpu \
-    --asr_args "--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup} --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}" \
+    --asr_args "${asr_args[@]}" \
     --token_type bpe \
     --nbpe $nbpe \
     --bpe_nlsyms "${bpe_nlsyms}" \
