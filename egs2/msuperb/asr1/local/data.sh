@@ -110,12 +110,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                     --output "data/${x}_${duration}_${single_lang}/phn_text" \
                     --cleaner "none" \
                     --g2p "${g2p}"
+                paste -d " " <(cut -f1 -d" " data/${x}_${duration}_${single_lang}/wav.scp) \
+                    <(cat data/${x}_${duration}_${single_lang}/phn_text) \
+                    > data/${x}_${duration}_${single_lang}/text
+                utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
             fi
 
-            paste -d " " <(cut -f1 -d" " data/${x}_${duration}_${single_lang}/wav.scp) \
-                <(cat data/${x}_${duration}_${single_lang}/phn_text) \
-                > data/${x}_${duration}_${single_lang}/text
-            utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
+
         done
     fi
 fi
