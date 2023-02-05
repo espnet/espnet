@@ -144,7 +144,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # Decoding on dev set because test is blind for now
   asr_tt_set="kaldi/chime6_dev/dev/gss/"
   # these are args to ASR data prep, done in local/data.sh
-  gss_dsets=($gss_dsets)
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
   # override ASR conf/tuning to scale automatically with num of GPUs

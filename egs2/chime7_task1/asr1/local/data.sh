@@ -95,7 +95,7 @@ if [ $stage -le 2 ] && [ $stop_stage -ge 3 ]; then
   # This is the config for the system using simulated RIRs and point-source noises
   rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/smallroom/rir_list")
   rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/mediumroom/rir_list")
-  rvb_opts+=(--noise-set-parameters $noise_list)
+  rvb_opts+=(--noise-set-parameters "$noise_list")
 
   steps/data/reverberate_data_dir.py \
     "${rvb_opts[@]}" \
@@ -136,11 +136,11 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/gss
 
       if [ $dset_part == train ]; then
-         tr_kaldi_manifests_gss+=( data/kaldi/${dset}/${dset_part}/gss)
+         tr_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss")
       fi
 
       if [ $dset_part == dev ]; then
-         cv_kaldi_manifests_gss+=( data/kaldi/${dset}/${dset_part}/gss)
+         cv_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss")
       fi
     done
 
