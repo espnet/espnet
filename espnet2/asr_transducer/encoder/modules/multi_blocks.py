@@ -13,6 +13,7 @@ class MultiBlocks(torch.nn.Module):
         output_size: Architecture output size.
         norm_class: Normalization module class.
         norm_args: Normalization module arguments.
+        blockdrop_rate: Probability threshold of dropping out each block.
 
     """
 
@@ -22,12 +23,16 @@ class MultiBlocks(torch.nn.Module):
         output_size: int,
         norm_class: torch.nn.Module = torch.nn.LayerNorm,
         norm_args: Optional[Dict] = None,
+        blockdrop_rate: int = 0.0,
     ) -> None:
         """Construct a MultiBlocks object."""
         super().__init__()
 
         self.blocks = torch.nn.ModuleList(block_list)
         self.norm_blocks = norm_class(output_size, **norm_args)
+
+        self.blockdrop_rate = blockdrop_rate
+        self.blockdrop_decay = 1.0 / len(self.blocks)
 
     def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
         """Initialize/Reset encoder streaming cache.
@@ -60,8 +65,14 @@ class MultiBlocks(torch.nn.Module):
             x: Output sequences. (B, T, D_block_N)
 
         """
-        for block in self.blocks:
-            x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
+        keepblock_probs = torch.empty(len(self.blocks)).uniform_()
+
+        for idx, block in enumerate(self.blocks):
+            if not self.training or (
+                keepblock_probs[idx]
+                >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
+            ):
+                x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
 
         x = self.norm_blocks(x)
 

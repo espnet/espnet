@@ -36,6 +36,7 @@ def build_main_parameters(
     conv_mod_norm_type: str = "layer_norm",
     after_norm_eps: Optional[float] = None,
     after_norm_partial: Optional[float] = None,
+    blockdrop_rate: float = 0.0,
     dynamic_chunk_training: bool = False,
     short_chunk_threshold: float = 0.75,
     short_chunk_size: int = 25,
@@ -54,6 +55,7 @@ def build_main_parameters(
         conv_mod_norm_type: Conformer convolution module normalization type.
         after_norm_eps: Epsilon value for the final normalization.
         after_norm_partial: Value for the final normalization with RMSNorm.
+        blockdrop_rate: Probability threshold of dropping out each encoder block.
         dynamic_chunk_training: Whether to use dynamic chunk training.
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
@@ -88,6 +90,8 @@ def build_main_parameters(
         main_params["after_norm_class"],
         main_params["after_norm_args"],
     ) = get_normalization(norm_type, eps=after_norm_eps, partial=after_norm_partial)
+
+    main_params["blockdrop_rate"] = blockdrop_rate
 
     main_params["dynamic_chunk_training"] = dynamic_chunk_training
     main_params["short_chunk_threshold"] = max(0, short_chunk_threshold)
@@ -412,4 +416,5 @@ def build_body_blocks(
         output_size,
         norm_class=main_params["after_norm_class"],
         norm_args=main_params["after_norm_args"],
+        blockdrop_rate=main_params["blockdrop_rate"],
     )
