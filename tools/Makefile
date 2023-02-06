@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: kaldi showenv python conda_packages.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done whisper.done rvad_fast.done
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi
@@ -144,6 +144,14 @@ speechbrain.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_speechbrain.sh
 	touch speechbrain.done
 
+mfa.done: espnet.done conda_packages.done
+ifneq ($(strip $(USE_CONDA)),)
+	. ./activate_python.sh && ./installers/install_mfa.sh "true"
+else
+	. ./activate_python.sh && ./installers/install_mfa.sh "false"
+endif
+	touch mfa.done
+
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
@@ -184,6 +192,10 @@ s3prl.done: espnet.done
 	. ./activate_python.sh && ./installers/install_s3prl.sh
 	touch s3prl.done
 
+whisper.done: espnet.done
+	. ./activate_python.sh && ./installers/install_whisper.sh
+	touch whisper.done
+
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
@@ -204,6 +216,14 @@ muskits.done: espnet.done
 	. ./activate_python.sh && ./installers/install_muskits.sh
 	touch muskits.done
 
+cauchy_mult.done: espnet.done
+	. ./activate_python.sh && ./installers/install_cauchy_mult.sh
+	touch cauchy_mult.done
+
+rvad_fast.done: espnet.done
+	git clone https://github.com/zhenghuatan/rVADfast.git
+	touch rvad_fast.done
+
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 
@@ -220,5 +240,7 @@ clean_python:
 clean_extra:
 	rm -rf nkf.done swig.done moses.done mwerSegmenter.done
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
+	rm -rf muskit.done
+	rm -rf rvad_fast.done
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

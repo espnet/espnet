@@ -52,7 +52,6 @@ use_sid=false           # Whether to use speaker id as the inputs (Need utt2spk 
 feats_extract=fbank     # Type of feature extractor
 use_sid=false           # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false           # Whether to use language id as the inputs (Need utt2lang in data directory).
-use_discrete_unit=false # Whether to use discrete unit （TODO: jiatong)
 
 # X-vector related
 use_xvector=false
@@ -76,6 +75,18 @@ tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
 tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
 tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
 tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
+
+# Discrette unit-related
+use_discrete_unit=false         # Whether to use discrete unit
+feature_dir="dump/feats"        # Feature directory for dumped feature
+km_tag=                         # KMeans tagging
+use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
+feature_layer=6                 # Layers for feature extraction
+s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
+feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
+clustering_portion=0.2
+feature_num_clusters=500        # Number of feature clusters
+
 
 # S2ST model related
 s2st_tag=        # Suffix to the result dir for s2st model training.
@@ -162,7 +173,6 @@ Options:
     --feats_extract    # Type of feature extractor (default="${feats_extract}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
-    --use_discrete_unit # Whether to use discrete unit （TODO: jiatong) (default="${use_discrete_unit}").
 
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
@@ -182,6 +192,17 @@ Options:
     --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
     --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
     --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
+
+    # Discrete unit related
+    --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
+    --km_tag=                  # KMeans tagging (default="${km_tag}")
+    --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
+    --feature_layer            # Layers for feature extraction (default="${feature_layer}")
+    --s3prl_upstream_name      # S3PRL upstream name for feature extraction (default="${s3prl_upstream_name}")
+    --feature_clustering_tool  # Tool to do feature clustering (default="${feature_clustering_tool}")
+    --feature_num_clusters     # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
+
 
     # S2ST model related
     --s2st_tag           # Suffix to the result dir for s2st model training (default="${s2st_tag}").
@@ -350,6 +371,11 @@ else
     exit 2
 fi
 
+# Set tag for KMeans direcotry
+if [ -z "${km_tag}" ]; then
+    km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
+    km_dir="dump/${km_tag}"
+fi
 
 # Set tag for naming of model directory
 if [ -z "${s2st_tag}" ]; then
@@ -798,6 +824,44 @@ if ! "${skip_data_prep}"; then
             fi
         fi
     fi
+
+    if "${use_discrete_unit}"; then
+        if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+            log "Stage 5: S2ST discrete unit extraction"
+
+            scripts/feats/perform_kmeans.sh \
+                --stage 2 \
+                --stop_stage 3 \
+                --nj ${nj} \
+                --scp_suffix ".${tgt_lang}" \
+                --feature_type "s3prl" \
+                --train_set "${train_set}" \
+                --dev_set "${valid_set}" \
+                --datadir "${data_feats}" \
+                --feat_dir "${feature_dir}" \
+                --km_dir "${km_dir}" \
+                --km_tag "${km_tag}" \
+                --s3prl_upstream_name "${s3prl_upstream_name}" \
+                --use_gpu "${use_gpu_feat_extract}" \
+                --layer "${feature_layer}" \
+                --portion "${clustering_portion}" \
+                --clustering_method "${feature_clustering_tool}" \
+                --nclusters "${feature_num_clusters}"
+            
+            # NOTE(jiatong): use the pseudo label without unique to train the vocoder
+            log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
+            log "Saving dev pseudo_labels at ${data_feats}/${dev_set}/text.km.${km_tag}"
+
+            # NOTE(jiatong): use the pseudo label with unique to train s2st
+            for dset in ${train_set} ${dev_set}; do
+                pyscripts/feats/unique_pseudo_labels.py \
+                    --input_label ${data_feats}/${dset}/text.km.${km_tag} \
+                    --output_label ${data_feats}/${dset}/text.km.${km_tag}.unique
+            done
+        fi
+    else
+        log "Skip discrete unit extraction for data preparation"
+    fi
 else
     log "Skip the stages for data preparation"
 fi
@@ -807,10 +871,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _s2st_train_dir="${data_feats}/${train_set}"
         _s2st_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: S2ST collect stats: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+        log "Stage 6: S2ST collect stats: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
 
         _opts=
         if [ -n "${s2st_config}" ]; then
@@ -821,15 +885,29 @@ if ! "${skip_train}"; then
 
         _feats_type="$(<${_s2st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            _tgt_scp=wav.scp.${tgt_lang}
+            # src related
             _src_scp=wav.scp.${src_lang}
             if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
+                _src_type=kaldi_ark
             else
                 # "sound" supports "wav", "flac", etc.
-                _type=sound
+                _src_type=sound
             fi
             _opts+="--frontend_conf fs=${fs} "
+
+            # tgt related
+            if "${use_discrete_unit}"; then
+                _tgt_scp=text.km.${km_tag}.unique
+                _tgt_type=text_int
+            else
+                _tgt_scp=wav.scp.${tgt_lang}
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _tgt_type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _tgt_type=sound
+                fi
+            fi
         else
             log "Error: not supported feature type '${_feats_type}'"
             exit 2
@@ -892,10 +970,10 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --tgt_g2p "${tgt_g2p}" \
                 --src_g2p "${src_g2p}" \
-                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_src_scp},src_speech,${_type}" \
-                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_type}" \
+                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_src_scp},src_speech,${_src_type}" \
+                --train_data_path_and_name_and_type "${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_tgt_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -933,10 +1011,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _s2st_train_dir="${data_feats}/${train_set}"
         _s2st_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: S2ST Training: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
+        log "Stage 7: S2ST Training: train_set=${_s2st_train_dir}, valid_set=${_s2st_valid_dir}"
 
         _opts=
         if [ -n "${s2st_config}" ]; then
@@ -947,23 +1025,32 @@ if ! "${skip_train}"; then
 
         _feats_type="$(<${_s2st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            _tgt_scp=wav.scp.${tgt_lang}
+            # src related
             _src_scp=wav.scp.${src_lang}
-            # "sound" supports "wav", "flac", etc.
             if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
+                _src_type=kaldi_ark
             else
-                _type=sound
+                # "sound" supports "wav", "flac", etc.
+                _src_type=sound
             fi
-            _fold_length="$((s2st_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-            _fold_length="${s2st_speech_fold_length}"
-            _input_size="$(<${_s2st_train_dir}/feats_dim)"
-            _opts+="--input_size=${_input_size} "
 
+            # tgt related
+            if "${use_discrete_unit}"; then
+                _tgt_scp=text.km.${km_tag}.unique
+                _tgt_type=text_int
+            else
+                _tgt_scp=wav.scp.${tgt_lang}
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _tgt_type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _tgt_type=sound
+                fi
+            fi
+        else
+            log "Error: not supported feature type '${_feats_type}'"
+            exit 2
         fi
 
         if "${use_xvector}"; then
@@ -1024,8 +1111,8 @@ if ! "${skip_train}"; then
                 log "${_split_dir}/.done exists. Spliting is skipped"
             fi
 
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_tgt_scp},tgt_speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_src_scp},src_speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_tgt_scp},tgt_speech,${_tgt_type} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_src_scp},src_speech,${_src_type} "
             _opts+="--train_shape_file ${_split_dir}/tgt_speech_shape "
             _opts+="--train_shape_file ${_split_dir}/src_speech_shape "
             _opts+="--multiple_iterator true "
@@ -1038,8 +1125,8 @@ if ! "${skip_train}"; then
                 _opts+="--train_shape_file ${_split_dir}/tgt_text_shape.${tgt_token_type} "
             fi 
         else
-            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_src_scp},src_speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type} "
+            _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_src_scp},src_speech,${_src_type} "
             _opts+="--train_shape_file ${s2st_stats_dir}/train/tgt_speech_shape "
             _opts+="--train_shape_file ${s2st_stats_dir}/train/src_speech_shape "
             if [ $use_src_lang = true ]; then
@@ -1095,8 +1182,8 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --tgt_g2p "${tgt_g2p}" \
                 --src_g2p "${src_g2p}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_src_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                 --valid_shape_file "${s2st_stats_dir}/valid/src_speech_shape" \
                 --valid_shape_file "${s2st_stats_dir}/valid/tgt_speech_shape" \
                 --resume true \
@@ -1275,14 +1362,12 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-        log "Stage 13: Scoring"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Scoring"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${s2st_exp}/${inference_tag}/${dset}"
-
-            # TODO(jiatong): add asr scoring and inference
 
             _scoredir="${_dir}/score_bleu"
             mkdir -p "${_scoredir}"
@@ -1380,8 +1465,8 @@ fi
 
 packed_model="${s2st_exp}/${s2st_exp##*/}_${inference_s2st_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-        log "Stage 14: Pack model: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack model: ${packed_model}"
 
         _opts=
         if [ "${src_feats_normalize}" = global_mvn ]; then
@@ -1409,8 +1494,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
-        log "Stage 15: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1468,11 +1553,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

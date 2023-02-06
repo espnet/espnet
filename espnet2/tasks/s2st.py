@@ -58,6 +58,7 @@ from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.translatotron import Translatotron
+from espnet2.s2st.synthesizer.discrete_synthesizer import TransformerDiscreteSynthesizer
 from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
 from espnet2.s2st.tgt_feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.s2st.tgt_feats_extract.log_mel_fbank import LogMelFbank
@@ -93,7 +94,8 @@ tgt_feats_extract_choices = ClassChoices(
         linear_spectrogram=LinearSpectrogram,
     ),
     type_check=AbsTgtFeatsExtract,
-    default="fbank",
+    default=None,
+    optional=True,
 )
 specaug_choices = ClassChoices(
     name="specaug",
@@ -168,7 +170,7 @@ asr_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
 )
 st_decoder_choices = ClassChoices(
     "st_decoder",
@@ -181,7 +183,7 @@ st_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
 )
 aux_attention_choices = ClassChoices(
     "aux_attention",
@@ -194,6 +196,7 @@ synthesizer_choices = ClassChoices(
     "synthesizer",
     classes=dict(
         translatotron=Translatotron,
+        discrete_unit=TransformerDiscreteSynthesizer,
     ),
     type_check=AbsSynthesizer,
     default="translatotron",
@@ -276,6 +279,12 @@ class S2STTask(STTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for source language)",
+        )
+        group.add_argument(
+            "--unit_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for discrete_unit)",
         )
         group.add_argument(
             "--odim",
@@ -477,15 +486,24 @@ class S2STTask(STTask):
         assert check_argument_types()
         if args.src_token_type == "none":
             args.src_token_type = None
+        if args.unit_token_list is None:
+            unit_token_type = None
+        else:
+            unit_token_type = "word"
+
+        # NOTE(jiatong): if discrete unit is used, the tokenizer will parse discrete \
+        #                unit sequence, otherwise the tgt_speech will left unchanged \
+        #                for spectrogram.
+
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=[args.tgt_token_type, args.src_token_type],
-                token_list=[args.tgt_token_list, args.src_token_list],
-                bpemodel=[args.tgt_bpemodel, args.src_bpemodel],
+                token_type=[args.tgt_token_type, args.src_token_type, unit_token_type],
+                token_list=[args.tgt_token_list, args.src_token_list, args.unit_token_list],
+                bpemodel=[args.tgt_bpemodel, args.src_bpemodel, None],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=[args.tgt_g2p, args.src_g2p],
+                g2p_type=[args.tgt_g2p, args.src_g2p, None],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
                 rir_apply_prob=args.rir_apply_prob
@@ -504,8 +522,8 @@ class S2STTask(STTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "speech_volume_normalize")
                 else None,
-                speech_name="speech",
-                text_name=["tgt_text", "src_text"],
+                speech_name="src_speech",
+                text_name=["tgt_text", "src_text", "tgt_speech"],
             )
         else:
             retval = None
@@ -568,6 +586,22 @@ class S2STTask(STTask):
             logging.info(f"Source vocabulary size: {src_vocab_size }")
         else:
             src_token_list, src_vocab_size = None, None
+        
+        if args.unit_token_list is not None:
+            if isinstance(args.unit_token_list, str):
+                with open(args.unit_token_list, encoding="utf-8") as f:
+                    unit_token_list = [line.rstrip() for line in f]
+
+                # Overwriting unit_token_list to keep it as "portable".
+                args.unit_token_list = list(unit_token_list)
+            elif isinstance(args.unit_token_list, (tuple, list)):
+                unit_token_list = list(args.unit_token_list)
+            else:
+                raise RuntimeError("token_list must be str or list")
+            unit_vocab_size = len(unit_token_list)
+            logging.info(f"Discrete unit vocabulary size: {unit_vocab_size }")
+        else:
+            unit_token_list, unit_vocab_size = None, None
 
         # 1. frontend and tgt_feats_extract
         if args.input_size is None:
@@ -582,13 +616,19 @@ class S2STTask(STTask):
             frontend = None
             raw_input_size = args.input_size
 
-        if args.output_size is None:
+        if args.tgt_feats_extract is not None:
             # Extract target features in the model
             tgt_feats_extract_class = tgt_feats_extract_choices.get_class(
                 args.tgt_feats_extract
             )
             tgt_feats_extract = tgt_feats_extract_class(**args.tgt_feats_extract_conf)
             output_size = tgt_feats_extract.output_size()
+        else:
+            # NOTE(jiatong): discrete unit cases
+            assert unit_vocab_size is not None, \
+                "need a discrete unit token list for non-spectrograms target speech"
+            output_size = unit_vocab_size
+            tgt_feats_extract = None
 
         # 2. Data augmentation for spectrogram
         if args.specaug is not None:
@@ -717,6 +757,10 @@ class S2STTask(STTask):
                     loss = loss_choices.get_class(ctr["type"])(
                         vocab_size=tgt_vocab_size, **ctr["conf"]
                     )
+                elif unit_vocab_size is not None and ctr["name"] == "synthesis":
+                    loss = loss_choices.get_class(ctr["type"])(
+                        vocab_size=unit_vocab_size, **ctr["conf"]
+                    )
                 else:
                     loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
@@ -743,6 +787,8 @@ class S2STTask(STTask):
             tgt_token_list=tgt_token_list,
             src_vocab_size=src_vocab_size,
             src_token_list=src_token_list,
+            unit_vocab_size=unit_vocab_size,
+            unit_token_list=unit_token_list,
             **args.model_conf,
         )
 

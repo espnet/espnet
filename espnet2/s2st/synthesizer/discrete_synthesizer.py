@@ -32,8 +32,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
     def __init__(
         self,
         # decoder related
-        vocab_size: int,
-        encoder_output_size: int,
+        odim: int,
+        idim: int,
         attention_heads: int = 4,
         linear_units: int = 2048,
         num_blocks: int = 6,
@@ -97,17 +97,17 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             self.spk_embed_dim = spk_embed_dim
             self.spk_embed_integration_type = spk_embed_integration_type
         if self.spk_embed_dim is None:
-            dec_idim = encoder_output_size
+            dec_idim = idim
         elif self.spk_embed_integration_type == "concat":
-            dec_idim = encoder_output_size + spk_embed_dim
+            dec_idim = idim + spk_embed_dim
         elif self.spk_embed_integration_type == "add":
-            dec_idim = encoder_output_size
+            dec_idim = idim
             self.projection = torch.nn.Linear(self.spk_embed_dim, encoder_output_size)
         else:
             raise ValueError(f"{spk_embed_integration_type} is not supported.")
 
         self.decoder = TransformerDecoder(
-            vocab_size=vocab_size,
+            vocab_size=odim,
             encoder_output_size=dec_idim,
             attention_heads=attention_heads,
             linear_units=linear_units,
@@ -124,6 +124,7 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             layer_drop_rate=layer_drop_rate,
         )
 
+
     def forward(
         self,
         enc_outputs: torch.Tensor,
@@ -133,6 +134,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        return_last_hidden: bool = False,
+        return_all_hiddens: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
@@ -146,13 +149,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         Returns:
-            after_outs (TODO(jiatong) add full comment)
-            before_outs (TODO(jiatong) add full comments)
-            logits
-            att_ws
-            ys
-            stop_labels
-            olens
+            hs
+            hlens
         """
 
         enc_outputs = enc_outputs[:, : enc_outputs_lengths.max()]
@@ -161,12 +159,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
         ys = feats
         olens = feats_lengths
 
-        # make labels for stop prediction
-        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
-        labels = F.pad(labels, [0, 1], "constant", 1.0)
-
-        # calculate tacotron2 outputs
-        after_outs, before_outs, logits, att_ws = self._forward(
+        # calculate hidden spaces for discrete unit outputs
+        hs, hlens = self._forward(
             hs=enc_outputs,
             hlens=enc_outputs_lengths,
             ys=ys,
@@ -174,22 +168,11 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             spembs=spembs,
             sids=sids,
             lids=lids,
+            return_last_hidden=return_last_hidden,
+            return_all_hiddens=return_all_hiddens,
         )
 
-        # modify mod part of groundtruth
-        if self.reduction_factor > 1:
-            assert olens.ge(
-                self.reduction_factor
-            ).all(), "Output length must be greater than or equal to reduction factor."
-            olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
-            max_out = max(olens)
-            ys = ys[:, :max_out]
-            labels = labels[:, :max_out]
-            labels = torch.scatter(
-                labels, 1, (olens - 1).unsqueeze(1), 1.0
-            )  # see #3388
-
-        return after_outs, before_outs, logits, att_ws, ys, labels, olens
+        return hs, hlens
 
     def _forward(
         self,
@@ -200,6 +183,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
         spembs: torch.Tensor,
         sids: torch.Tensor,
         lids: torch.Tensor,
+        return_last_hidden: bool = False,
+        return_all_hiddens: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if self.spks is not None:
             sid_embs = self.sid_emb(sids.view(-1))
@@ -209,91 +194,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             hs = hs + lid_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        return self.dec(hs, hlens, ys)
+        return self.decoder(hs, hlens, ys, olens, return_last_hidden=return_last_hidden, return_all_hiddens=return_all_hiddens)
 
-    def inference(
-        self,
-        enc_outputs: torch.Tensor,
-        feats: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        sids: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
-        threshold: float = 0.5,
-        minlenratio: float = 0.0,
-        maxlenratio: float = 10.0,
-        use_att_constraint: bool = False,
-        backward_window: int = 1,
-        forward_window: int = 3,
-        use_teacher_forcing: bool = False,
-    ) -> Dict[str, torch.Tensor]:
-        """Generate the sequence of features given the sequences of characters.
-
-        Args:
-            enc_outputs (LongTensor): Input sequence of characters (N, idim).
-            feats (Optional[Tensor]): Feature sequence to extract style (N, odim).
-            spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
-            sids (Optional[Tensor]): Speaker ID (1,).
-            lids (Optional[Tensor]): Language ID (1,).
-            threshold (float): Threshold in inference.
-            minlenratio (float): Minimum length ratio in inference.
-            maxlenratio (float): Maximum length ratio in inference.
-            use_att_constraint (bool): Whether to apply attention constraint.
-            backward_window (int): Backward window in attention constraint.
-            forward_window (int): Forward window in attention constraint.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
-
-        Returns:
-            Dict[str, Tensor]: Output dict including the following items:
-                * feat_gen (Tensor): Output sequence of features (T_feats, odim).
-                * prob (Tensor): Output sequence of stop probabilities (T_feats,).
-                * att_w (Tensor): Attention weights (T_feats, T).
-
-        """
-        h = enc_outputs
-        y = feats
-        spemb = spembs
-
-        # inference with teacher forcing
-        if use_teacher_forcing:
-            assert feats is not None, "feats must be provided with teacher forcing."
-
-            hs, ys = h.unsqueeze(0), y.unsqueeze(0)
-            spembs = None if spemb is None else spemb.unsqueeze(0)
-            hlens = h.new_tensor([hs.size(1)]).long()
-            olens = y.new_tensor([ys.size(1)]).long()
-            outs, _, _, att_ws = self._forward(
-                hs=hs,
-                hlens=hlens,
-                ys=ys,
-                olens=olens,
-                spembs=spembs,
-                sids=sids,
-                lids=lids,
-            )
-
-            return dict(feat_gen=outs[0], att_w=att_ws[0])
-
-        # inference
-        if self.spks is not None:
-            sid_emb = self.sid_emb(sids.view(-1))
-            enc_outputs = enc_outputs + sid_emb
-        if self.langs is not None:
-            lid_emb = self.lid_emb(lids.view(-1))
-            enc_outputs = enc_outputs + lid_emb
-        if self.spk_embed_dim is not None:
-            enc_outputs, spembs = enc_outputs.unsqueeze(0), spemb.unsqueeze(0)
-            enc_outputs = self._integrate_with_spk_embed(enc_outputs, spembs)[0]
-        out, prob, att_w = self.dec.inference(
-            enc_outputs,
-            threshold=threshold,
-            minlenratio=minlenratio,
-            maxlenratio=maxlenratio,
-            use_att_constraint=use_att_constraint,
-            backward_window=backward_window,
-            forward_window=forward_window,
-        )
-
-        return dict(feat_gen=out, prob=prob, att_w=att_w)
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
@@ -321,3 +223,6 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             raise NotImplementedError("support only add or concat.")
 
         return hs
+    
+    def inference(self):
+        pass
