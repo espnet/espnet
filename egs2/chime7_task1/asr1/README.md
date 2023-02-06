@@ -101,8 +101,30 @@ See [Data page](https://www.chimechallenge.org/current/task1/data) for
 the instructions on how to obtain the re-annotated Mixer 6 Speech and CHiME-6 data.  
 
 ### <a id="data_description">2.1 Generating the Data</a>
+To generate the data you need to have downloaded and unpacked manually Mixer 6 Speech
+and the CHiME-5 dataset as obtained from instructions here [Data page](https://www.chimechallenge.org/current/task1/data).
 
 
+Stage 0 of `run.sh` here handles CHiME-7 DASR dataset creation and calls `local/gen_task1_data.sh`. <br>
+Note that DiPCo will be downloaded and extracted automatically. <br>
+To **ONLY** generate the data you will need to run:
+
+```bash
+./run.sh --chime5-root YOUR_PATH_TO_CHiME5 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --stop-stage 0
+```
+If you have already CHiME-6 data you can use that without re-creating it from CHiME-5. 
+```bash
+./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --stop-stage 0
+```
+if you want to run the recipe from data prep to ASR training and decoding, instead remove the stop-stage flag.
+But please you want to take a look at arguments such as `ngpu`, `gss_max_batch_dur` 
+and `asr_batch_size` because you may want to adjust these based on your hardware. 
+```bash
+./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 
+```
 
 
 ### <a id="data_description">2.2 Quick Data Overview</a>
