@@ -25,6 +25,12 @@ for duration in 10min 1h; do
         lang=${single_lang}
         asr_tag="$(basename "${asr_config}" .yaml)_${single_lang}_${duration}"
 
+        if [ "${single_lang}" == "cmn" ] || [ "${single_lang}" == "jpn" ]; then
+            token_type=word
+        else
+            token_type=char
+        fi
+
         ./asr.sh \
             --ngpu 1 \
             --stage 1 \
@@ -36,7 +42,7 @@ for duration in 10min 1h; do
             --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
             --use_lm false \
             --lm_config "${lm_config}" \
-            --token_type char \
+            --token_type ${token_type} \
             --feats_type raw \
             --feats_normalize utterance_mvn \
             --asr_config "${asr_config}" \
