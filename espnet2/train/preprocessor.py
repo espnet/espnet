@@ -909,7 +909,8 @@ class EnhPreprocessor(CommonPreprocessor):
                                 data[dereverb_name] = data[speech_ref_name]
 
                 # NOTE(Wangyou): Must be careful here in case that the original
-                # `speech_ref` dones not sum up to `speech_mix` (such as in the TSE task)
+                # `speech_ref` dones not sum up to `speech_mix`
+                # (such as in the TSE task)
                 speech_mix = sum(speech_ref)
             power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
 
@@ -1240,8 +1241,8 @@ class TSEPreprocessor(EnhPreprocessor):
             logging.warning(
                 "Be cautious when applying RIRs on the fly in the TSE task! "
                 "Please ensure `speech_ref` sums up to `speech_mix` for each sample. "
-                "Otherwise, the preprocessed training data will be wrong after the line:"
-                "\n        data = super()._speech_process(data)"
+                "Otherwise, the preprocessed training data will be wrong after the "
+                "line:\n        data = super()._speech_process(data)"
             )
 
         if train:
