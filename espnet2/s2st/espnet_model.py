@@ -429,7 +429,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 stop_labels,
                 updated_tgt_feats_lengths,
             )
-            loss_record.append(syn_loss * self.losses["synthesis"].weight)
+            # loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
             loss = sum(loss_record)
 
@@ -443,9 +443,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
                 syn_loss=syn_loss.item() if syn_loss is not None else None,
-                syn_l1_loss=l1_loss.item(),
-                syn_mse_loss=mse_loss.item(),
-                syn_bce_loss=bce_loss.item(),
+                syn_l1_loss=l1_loss.item() if l1_loss is not None else None,
+                syn_mse_loss=mse_loss.item() if mse_loss is not None else None,
+                syn_bce_loss=bce_loss.item() if bce_loss is not None else None,
             )
 
         elif self.s2st_type == "discrete_unit":

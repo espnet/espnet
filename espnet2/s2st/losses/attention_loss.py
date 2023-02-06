@@ -43,4 +43,4 @@ class S2STAttentionLoss(AbsS2STLoss):
         if self.weight > 0:
             return self.loss(dense_y, token_y)
         else:
-            return 0
+            return None
