@@ -84,7 +84,7 @@ use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
 feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
-clustering_portion=0.2
+clustering_portion=0.5
 feature_num_clusters=500        # Number of feature clusters
 
 
@@ -373,6 +373,7 @@ fi
 if [ -z "${km_tag}" ]; then
     km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
     km_dir="dump/${km_tag}"
+    unit_tokendir="${token_listdir}"/discrete_unit.${km_tag}
 fi
 
 # Set tag for naming of model directory
@@ -566,8 +567,8 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
                     #   the number of utts will be different from the original features (raw or fbank).
                     #   To avoid this mismatch, perform filtering of the original feature scp here.
-                    cp "${data_feats}${_suf}/${dset}"/wav.{scp.${src_lang},scp.${src_lang}.bak}
-                    <"${data_feats}${_suf}/${dset}/wav.scp.${src_lang}.bak" \
+                    cp "${data_feats}${_suf}/${dset}"/wav.{scp."${src_lang}",scp."${src_lang}".bak}
+                    < "${data_feats}${_suf}/${dset}/wav.scp.${src_lang}.bak" \
                         utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
                         >"${data_feats}${_suf}/${dset}/wav.scp.${src_lang}"
                     utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
@@ -828,13 +829,14 @@ if ! "${skip_data_prep}"; then
             log "Stage 5: S2ST discrete unit extraction"
 
             scripts/feats/perform_kmeans.sh \
-                --stage 2 \
-                --stop_stage 3 \
+                --stage 1 \
+                --stop_stage 4 \
                 --nj ${nj} \
                 --scp_suffix ".${tgt_lang}" \
                 --feature_type "s3prl" \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
+                --test_sets "${test_sets}" \
                 --datadir "${data_feats}" \
                 --feat_dir "${feature_dir}" \
                 --km_dir "${km_dir}" \
@@ -844,17 +846,18 @@ if ! "${skip_data_prep}"; then
                 --layer "${feature_layer}" \
                 --portion "${clustering_portion}" \
                 --clustering_method "${feature_clustering_tool}" \
-                --nclusters "${feature_num_clusters}"
+                --nclusters "${feature_num_clusters}" \
+                --dictdir "${unit_tokendir}"
             
             # NOTE(jiatong): use the pseudo label without unique to train the vocoder
-            log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
-            log "Saving dev pseudo_labels at ${data_feats}/${dev_set}/text.km.${km_tag}"
+            log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}.${tgt_lang}"
+            log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}.${tgt_lang}"
 
             # NOTE(jiatong): use the pseudo label with unique to train s2st
-            for dset in ${train_set} ${dev_set}; do
-                pyscripts/feats/unique_pseudo_labels.py \
-                    --input_label ${data_feats}/${dset}/text.km.${km_tag} \
-                    --output_label ${data_feats}/${dset}/text.km.${km_tag}.unique
+            for dset in ${train_set} ${valid_set}; do
+                python pyscripts/feats/unique_pseudo_labels.py \
+                    --input_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang} \
+                    --output_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang}.unique
             done
         fi
     else
@@ -895,8 +898,8 @@ if ! "${skip_train}"; then
 
             # tgt related
             if "${use_discrete_unit}"; then
-                _tgt_scp=text.km.${km_tag}.unique
-                _tgt_type=text_int
+                _tgt_scp=text.km.${km_tag}.${tgt_lang}.unique
+                _tgt_type=text
             else
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
@@ -958,6 +961,11 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/text.${src_lang},src_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${src_lang},src_text,text "
         fi
+
+        if [ $use_discrete_unit = true ]; then
+            _opts+="--unit_token_list ${unit_tokendir}/tokens.txt "
+        fi
+
         # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -970,7 +978,7 @@ if ! "${skip_train}"; then
                 --src_g2p "${src_g2p}" \
                 --train_data_path_and_name_and_type "${_s2st_train_dir}/${_src_scp},src_speech,${_src_type}" \
                 --train_data_path_and_name_and_type "${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
-                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_tgt_type}" \
+                --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_src_scp},src_speech,${_src_type}" \
                 --valid_data_path_and_name_and_type "${_s2st_valid_dir}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
@@ -1035,8 +1043,8 @@ if ! "${skip_train}"; then
 
             # tgt related
             if "${use_discrete_unit}"; then
-                _tgt_scp=text.km.${km_tag}.unique
-                _tgt_type=text_int
+                _tgt_scp=text.km.${km_tag}.${tgt_lang}.unique
+                _tgt_type=text
             else
                 _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
@@ -1162,6 +1170,9 @@ if ! "${skip_train}"; then
             _opts+="--valid_shape_file ${s2st_stats_dir}/valid/src_text_shape.${src_token_type} " 
             _opts+="--fold_length ${s2st_text_fold_length} "
         fi
+        if [ $use_discrete_unit = true ]; then
+            _opts+="--unit_token_list ${unit_tokendir}/tokens.txt "
+        fi
 
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
@@ -1184,7 +1195,7 @@ if ! "${skip_train}"; then
                 --resume true \
                 --init_param ${pretrained_asr} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
-                --fold_length "${_fold_length}" \
+                --fold_length "${s2st_speech_fold_length}" \
                 --fold_length "${s2st_text_fold_length}" \
                 --output_dir "${s2st_exp}" \
                 ${_opts} ${s2st_args}
