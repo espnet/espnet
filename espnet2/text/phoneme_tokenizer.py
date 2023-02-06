@@ -1,12 +1,12 @@
 import logging
 import re
 import warnings
-from packaging.version import parse as V
 from pathlib import Path
 from typing import Iterable, List, Optional, Union
 
 import g2p_en
 import jamo
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
