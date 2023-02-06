@@ -337,7 +337,10 @@ class ConformerEncoder(AbsEncoder):
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
                 if return_all_hiddens:
-                    intermediate_outs.append(xs_pad)
+                    if isinstance(xs_pad, tuple):
+                        intermediate_outs.append(xs_pad[0])
+                    else:
+                        intermediate_outs.append(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)

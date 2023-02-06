@@ -118,6 +118,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if use_output_layer is True,
             olens: (batch, )
         """
+        import logging
         tgt = ys_in_pad
         # tgt_mask: (B, 1, L)
         tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
@@ -144,7 +145,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 x, tgt_mask, memory, memory_mask
             )
             if return_all_hiddens:
-                intermediate_outs.append(xs_pad)
+                intermediate_outs.append(x)
         if self.normalize_before:
             x = self.after_norm(x)
         if self.output_layer is not None:
@@ -154,7 +155,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         olens = tgt_mask.sum(1)
         if return_last_hidden:
-            return (x, hidden), olens, hidden
+            return (x, hidden), olens
         elif return_all_hiddens:
             return (x, intermediate_outs), olens
         return x, olens

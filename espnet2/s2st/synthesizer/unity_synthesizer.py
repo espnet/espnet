@@ -17,23 +17,20 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
 
-class TransformerDiscreteSynthesizer(AbsSynthesizer):
-    """Discrete unit Synthesizer related modules for speech-to-speech translation.
+class UnitYSynthesizer(AbsSynthesizer):
+    """UnitY Synthesizer related modules for speech-to-speech translation.
 
     This is a module of discrete unit prediction network in discrete-unit described
     in `Direct speech-to-speech translation with discrete units`_,
     which converts the sequence of hidden states into the sequence of discrete unit (from SSLs).
-
-    .. _`Direct speech-to-speech translation with discrete units`:
-       https://arxiv.org/abs/2107.05604
 
     """
 
     def __init__(
         self,
         # decoder related
-        odim: int,
-        idim: int,
+        vocab_size: int,
+        encoder_output_size: int,
         attention_heads: int = 4,
         linear_units: int = 2048,
         num_blocks: int = 6,
@@ -97,17 +94,17 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             self.spk_embed_dim = spk_embed_dim
             self.spk_embed_integration_type = spk_embed_integration_type
         if self.spk_embed_dim is None:
-            dec_idim = idim
+            dec_idim = encoder_output_size
         elif self.spk_embed_integration_type == "concat":
-            dec_idim = idim + spk_embed_dim
+            dec_idim = encoder_output_size + spk_embed_dim
         elif self.spk_embed_integration_type == "add":
-            dec_idim = idim
+            dec_idim = encoder_output_size
             self.projection = torch.nn.Linear(self.spk_embed_dim, encoder_output_size)
         else:
             raise ValueError(f"{spk_embed_integration_type} is not supported.")
 
         self.decoder = TransformerDecoder(
-            vocab_size=odim,
+            vocab_size=vocab_size,
             encoder_output_size=dec_idim,
             attention_heads=attention_heads,
             linear_units=linear_units,
@@ -159,7 +156,11 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
         ys = feats
         olens = feats_lengths
 
-        # calculate hidden spaces for discrete unit outputs
+        # make labels for stop prediction
+        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = F.pad(labels, [0, 1], "constant", 1.0)
+
+        # calculate tacotron2 outputs
         hs, hlens = self._forward(
             hs=enc_outputs,
             hlens=enc_outputs_lengths,
@@ -223,6 +224,3 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             raise NotImplementedError("support only add or concat.")
 
         return hs
-    
-    def inference(self):
-        pass
