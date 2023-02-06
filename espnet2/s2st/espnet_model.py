@@ -409,7 +409,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 stop_labels,
                 updated_tgt_feats_lengths,
             )
-            loss_record.append(syn_loss * self.losses["synthesis"].weight)
+            # loss_record.append(syn_loss * self.losses["synthesis"].weight)
 
             loss = sum(loss_record)
 
@@ -423,9 +423,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
                 syn_loss=syn_loss.item() if syn_loss is not None else None,
-                syn_l1_loss=l1_loss.item(),
-                syn_mse_loss=mse_loss.item(),
-                syn_bce_loss=bce_loss.item(),
+                syn_l1_loss=l1_loss.item() if l1_loss is not None else None,
+                syn_mse_loss=mse_loss.item() if mse_loss is not None else None,
+                syn_bce_loss=bce_loss.item() if bce_loss is not None else None,
             )
 
         elif self.s2st_type == "discrete_unit":
@@ -655,13 +655,18 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, decoder_out_lengths, decoder_hidden = self.st_decoder(
+        decoder_out= self.st_decoder(
             encoder_out,
             encoder_out_lens,
             ys_in_pad,
             ys_in_lens,
             return_hidden=return_hidden,
         )
+
+        if return_hidden:
+            decoder_out, decoder_out_lengths, decoder_hidden = decoder_out
+        else:
+            decoder_out, decoder_out_lengths = decoder_out
 
         # 2. Compute attention loss
         loss_att = self.losses["tgt_attn"](decoder_out, ys_out_pad)

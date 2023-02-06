@@ -85,10 +85,11 @@ s2st_stats_dir=  # Specify the directory path for S2ST statistics.
 s2st_config=     # Config for s2st model training.
 s2st_args=       # Arguments for s2st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in s2st config.
-pretrained_asr=               # Pretrained model to load
-ignore_init_mismatch=false      # Ignore initial mismatch
-feats_normalize=global_mvn # Normalizaton layer type.
-num_splits_s2st=1            # Number of splitting for s2st corpus.
+pretrained=                # Pretrained model to load
+ignore_init_mismatch=false # Ignore initial mismatch
+src_feats_normalize=global_mvn # Normalizaton layer type for source features.
+tgt_feats_normalize=global_mvn # Normalization layer type for target features.
+num_splits_s2st=1           # Number of splitting for s2st corpus.
 src_lang=es                # source language abbrev. id (e.g., es).
 tgt_lang=en                # target language abbrev. id (e.g., en).
 use_src_lang=true          # Incorporate ASR loss (use src texts) or not.
@@ -191,9 +192,10 @@ Options:
     --s2st_args          # Arguments for s2st model training (default="${s2st_args}").
                        # e.g., --s2st_args "--max_epoch 10"
                        # Note that it will overwrite args in s2st config.
-    --pretrained_asr=          # Pretrained model to load (default="${pretrained_asr}").
+    --pretrained=          # Pretrained model to load (default="${pretrained}").
     --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
-    --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
+    --src_feats_normalize  # Normalizaton layer type for source features. (default="${src_feats_normalize}").
+    --tgt_feats_normalize # Normalization layer type for target features. (default="${tgt_feats_normalize}").
     --num_splits_s2st    # Number of splitting for s2st corpus.  (default="${num_splits_s2st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}").
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}").
@@ -981,9 +983,12 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
         fi
 
-        if [ "${feats_normalize}" = global_mvn ]; then
+        if [ "${src_feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--src_normalize=global_mvn --src_normalize_conf stats_file=${s2st_stats_dir}/train/src_feats_stats.npz "
+       fi
+        if [ "${tgt_feats_normalize}" = global_mvn ]; then
+            # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--tgt_normalize=global_mvn --tgt_normalize_conf stats_file=${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
 
@@ -1095,7 +1100,7 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${s2st_stats_dir}/valid/src_speech_shape" \
                 --valid_shape_file "${s2st_stats_dir}/valid/tgt_speech_shape" \
                 --resume true \
-                --init_param ${pretrained_asr} \
+                --init_param ${pretrained} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${s2st_text_fold_length}" \
@@ -1379,8 +1384,11 @@ if ! "${skip_upload}"; then
         log "Stage 14: Pack model: ${packed_model}"
 
         _opts=
-        if [ "${feats_normalize}" = global_mvn ]; then
-            _opts+="--option ${s2st_stats_dir}/train/feats_stats.npz "
+        if [ "${src_feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${s2st_stats_dir}/train/src_feats_stats.npz "
+        fi
+        if [ "${tgt_feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
         if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${tgt_bpemodel} "

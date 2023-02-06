@@ -66,4 +66,4 @@ class S2STTacotron2Loss(AbsS2STLoss):
             else:
                 raise ValueError(f"unknown --loss-type {self.loss_type}")
         else:
-            return 0, 0, 0, 0
+            return None, None, None, None

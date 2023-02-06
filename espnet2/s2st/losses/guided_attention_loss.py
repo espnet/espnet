@@ -41,4 +41,4 @@ class S2STGuidedAttentionLoss(AbsS2STLoss):
         if self.weight > 0:
             return self.loss(att_ws, ilens, olens_in)
         else:
-            return 0, 0, 0, 0
+            return None, None, None, None

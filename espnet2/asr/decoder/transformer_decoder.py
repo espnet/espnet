@@ -95,7 +95,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         hlens: torch.Tensor,
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
-        return_hidden: torch.Tensor,
+        return_hidden: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
