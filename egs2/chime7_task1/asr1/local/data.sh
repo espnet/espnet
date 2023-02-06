@@ -130,10 +130,10 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
 
       lhotse kaldi export -p $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_recordings.jsonl.gz  \
           $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_supervisions.jsonl.gz \
-          data/kaldi/${dset}/${dset_part}/gss
+          data/kaldi/${dset_name}/${dset_part}/gss
 
-      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/gss/utt2spk > data/kaldi/${dset}/${dset_part}/gss/spk2utt
-      ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/gss
+      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset_name}/${dset_part}/gss/utt2spk > data/kaldi/${dset_name}/${dset_part}/gss/spk2utt
+      ./utils/fix_data_dir.sh data/kaldi/${dset_name}/${dset_part}/gss
 
       if [ $dset_part == train ]; then
          tr_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss")

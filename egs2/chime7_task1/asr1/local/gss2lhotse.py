@@ -10,7 +10,6 @@ import soundfile as sf
 
 
 def get_new_manifests(input_dir, output_filename):
-
     assert os.path.exists(os.path.join(input_dir, "enhanced")), (
         f"{input_dir} does not contain a sub-folder "
         f"named enhanced, is it the correct path ?"

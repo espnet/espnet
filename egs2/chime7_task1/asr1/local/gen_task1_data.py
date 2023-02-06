@@ -63,7 +63,6 @@ jiwer_chime7_scoring = jiwer.Compose(
 
 
 def chime6_norm_scoring(txt):
-
     return jiwer_chime6_scoring(normalize_text_chime6(txt, normalize="kaldi"))
 
 
@@ -71,7 +70,6 @@ def chime6_norm_scoring(txt):
 # you are free to use whatever normalization you prefer for training but this
 # normalization below will be used when we score your submissions.
 def chime7_norm_scoring(txt):
-
     return jiwer_chime7_scoring(
         jiwer_chime6_scoring(
             normalize_text_chime6(txt, normalize="kaldi")
@@ -92,7 +90,6 @@ def choose_txt_normalization(scoring_txt_normalization="chime7"):
 
 
 def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
-
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
 
     def normalize_chime6(annotation, txt_normalizer, eval_opt=False):
@@ -211,11 +208,9 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
 
 
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
-
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
 
     def normalize_dipco(annotation, txt_normalizer, eval_opt=0):
-
         annotation_scoring = []
 
         def _get_time(x):
@@ -331,7 +326,6 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
 
 
 def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
-
     scoring_txt_normalization = choose_txt_normalization(scoring_txt_normalization)
 
     def normalize_mixer6(annotation, txt_normalizer, eval_opt=0):

@@ -24,8 +24,6 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
-        # lhotse
-        "lhotse @ git+https://github.com/lhotse-speech/lhotse",
         "numpy",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",

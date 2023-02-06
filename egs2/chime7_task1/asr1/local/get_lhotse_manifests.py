@@ -345,7 +345,6 @@ def prepare_mixer6(
     ] = None,  # alternative annotation e.g. from non-oracle diarization
     ignore_shorter: Optional[float] = 0.2,
 ) -> Dict[str, Dict[str, Union[RecordingSet, SupervisionSet]]]:
-
     assert mic in ["ihm", "mdm"], "mic must be one of 'ihm' or 'mdm'"
     if mic == "ihm":
         assert dset_part in [
@@ -581,7 +580,6 @@ if __name__ == "__main__":
             )
 
         elif args.dset_name == "mixer6":
-
             if args.dset_part in ["dev", "eval"] and mic == "ihm":
                 continue
 

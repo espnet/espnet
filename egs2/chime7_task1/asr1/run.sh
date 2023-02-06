@@ -137,7 +137,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
   asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
@@ -149,9 +148,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
-
-  echo "$data_opts"
-  #"${data_opts[@]}" \
 
   ./asr.sh \
     --lang en \
