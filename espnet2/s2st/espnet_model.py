@@ -905,6 +905,8 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         if return_last_hidden or return_all_hiddens:
             (decoder_out, decoder_hidden) = decoder_outs
+        else:
+            decoder_out = decoder_outs
 
         # 2. Compute attention loss
         loss_att = self.losses["tgt_attn"](decoder_out, ys_out_pad)
