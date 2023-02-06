@@ -2,6 +2,9 @@
 set -euo pipefail
 [ -f ./path.sh ] && . ./path.sh
 
+# install lhotse from master, we need the most up-to-date one
+pip install git+https://github.com/lhotse-speech/lhotse
+
 #check if kaldi has been installed and compiled
 if ! command -v wav-reverberate &>/dev/null; then
   echo "It seems that wav-reverberate Kaldi command cannot be found.
