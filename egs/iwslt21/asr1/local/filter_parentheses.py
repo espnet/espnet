@@ -16,7 +16,6 @@ args = parser.parse_args()
 
 
 def main():
-
     p_kanji = regex.compile(r".*\p{Script=Han}+.*")
     p_hiragana = regex.compile(r".*\p{Block=Hiragana}+.*")
     p_katakana = regex.compile(r".*\p{Block=Katakana}+.*")

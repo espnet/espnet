@@ -36,11 +36,11 @@ set -u
 set -o pipefail
 
 wavdir=${PUEBLA_NAHUATL}/Sound-files-Puebla-Nahuatl
-annotation_dir=${PUEBLA_NAHUATL}/Pueble-Nahuatl-Manifest
+annotation_dir=local/Pueble-Nahuatl-Manifest
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
     log "stage1: Download data to ${PUEBLA_NAHUATL}"
     mkdir -p ${PUEBLA_NAHUATL}
     local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Puebla-Nahuatl-Manifest.tgz
@@ -48,11 +48,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     git clone https://github.com/ftshijt/Puebla_Nahuatl_Split.git local/split
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage2: Preparing data for Puebla Nahuatl"
     ### Task dependent. You have to make data the following preparation part by yourself.
     for x in train dev "test"; do
-        python local/data_prep.py -w $wavdir -t data/${x} -m ${annotation_type} -i local/split/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
+        python local/data_prep.py -w $wavdir -t data/${x} -m ${annotation_type} -i local/split/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir} \
+            -d local/split/Puebla-Nahuat-and-Totonac-consultants_for-LDC-archive.xml
         utils/fix_data_dir.sh data/${x}
         chmod +x data/${x}/remix_script.sh
         mkdir -p remixed

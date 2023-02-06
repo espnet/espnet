@@ -9,7 +9,7 @@ from espnet2.asr_transducer.utils import TooShortUttError
     "input_conf, body_conf, main_conf",
     [
         (
-            {"vgg_like": True, "conv_size": 8},
+            {"vgg_like": True, "susbsampling_factor": 4, "conv_size": 8},
             [
                 {
                     "block_type": "conformer",
@@ -23,7 +23,34 @@ from espnet2.asr_transducer.utils import TooShortUttError
             {},
         ),
         (
-            {"vgg_like": True},
+            {"vgg_like": True, "susbsampling_factor": 6, "conv_size": 8},
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 2,
+                    "conv_mod_kernel_size": 1,
+                    "num_blocks": 2,
+                    "avg_eps": 1e-8,
+                }
+            ],
+            {},
+        ),
+        (
+            {"vgg_like": True, "subsampling_factor": 4},
+            [
+                {
+                    "block_type": "conv1d",
+                    "output_size": 4,
+                    "kernel_size": 1,
+                    "batch_norm": True,
+                    "relu": True,
+                }
+            ],
+            {},
+        ),
+        (
+            {"vgg_like": True, "subsampling_factor": 6},
             [
                 {
                     "block_type": "conv1d",

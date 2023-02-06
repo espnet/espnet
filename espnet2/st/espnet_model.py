@@ -74,8 +74,8 @@ class ESPnetSTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
-        self.src_sos = src_vocab_size - 1
-        self.src_eos = src_vocab_size - 1
+        self.src_sos = src_vocab_size - 1 if src_vocab_size else None
+        self.src_eos = src_vocab_size - 1 if src_vocab_size else None
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
@@ -141,7 +141,7 @@ class ESPnetSTModel(AbsESPnetModel):
             self.mt_error_calculator = None
 
         # ASR error calculator
-        if report_cer or report_wer:
+        if self.asr_weight > 0 and (report_cer or report_wer):
             assert (
                 src_token_list is not None
             ), "Missing src_token_list, cannot add asr module to st model"
@@ -161,8 +161,8 @@ class ESPnetSTModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        src_text: Optional[torch.Tensor],
-        src_text_lengths: Optional[torch.Tensor],
+        src_text: Optional[torch.Tensor] = None,
+        src_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -261,7 +261,9 @@ class ESPnetSTModel(AbsESPnetModel):
 
         stats = dict(
             loss=loss.detach(),
-            loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
+            loss_asr=loss_asr.detach()
+            if type(loss_asr) not in {float, int}
+            else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
@@ -283,20 +285,11 @@ class ESPnetSTModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        src_text: Optional[torch.Tensor],
-        src_text_lengths: Optional[torch.Tensor],
+        src_text: Optional[torch.Tensor] = None,
+        src_text_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        if self.extract_feats_in_collect_stats:
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        else:
-            # Generate dummy stats if extract_feats_in_collect_stats is False
-            logging.warning(
-                "Generating dummy stats for feats and feats_lengths, "
-                "because encoder_conf.extract_feats_in_collect_stats is "
-                f"{self.extract_feats_in_collect_stats}"
-            )
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(

@@ -42,7 +42,6 @@ def main(args):
 
 
 def convert(jsonf, dic, refs, hyps, srcs, dic_src):
-
     # logging info
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=logfmt)

@@ -1,4 +1,3 @@
-import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -47,9 +46,10 @@ class ESPnetASRModel(AbsESPnetModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: Optional[AbsDecoder],
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
+        aux_ctc: dict = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,
@@ -59,21 +59,37 @@ class ESPnetASRModel(AbsESPnetModel):
         report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
+        # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
+        sym_sos: str = "<sos/eos>",
+        sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
+        lang_token_id: int = -1,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__()
-        # note that eos is the same as sos (equivalent ID)
-        self.blank_id = 0
-        self.sos = vocab_size - 1
-        self.eos = vocab_size - 1
+        # NOTE (Shih-Lun): else case is for OpenAI Whisper ASR model,
+        #                  which doesn't use <blank> token
+        if sym_blank in token_list:
+            self.blank_id = token_list.index(sym_blank)
+        else:
+            self.blank_id = 0
+        if sym_sos in token_list:
+            self.sos = token_list.index(sym_sos)
+        else:
+            self.sos = vocab_size - 1
+        if sym_eos in token_list:
+            self.eos = token_list.index(sym_eos)
+        else:
+            self.eos = vocab_size - 1
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
         self.interctc_weight = interctc_weight
+        self.aux_ctc = aux_ctc
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -127,10 +143,12 @@ class ESPnetASRModel(AbsESPnetModel):
             # self.decoder parameters were never used and PyTorch complained
             # and threw an Exception in the multi-GPU experiment.
             # thanks Jeff Farris for pointing out the issue.
-            if ctc_weight == 1.0:
-                self.decoder = None
-            else:
-                self.decoder = decoder
+            if ctc_weight < 1.0:
+                assert (
+                    decoder is not None
+                ), "decoder should not be None when attention is used"
+
+            self.decoder = decoder
 
             self.criterion_att = LabelSmoothingLoss(
                 size=vocab_size,
@@ -150,6 +168,18 @@ class ESPnetASRModel(AbsESPnetModel):
             self.ctc = ctc
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
+
+        self.is_encoder_whisper = "Whisper" in type(self.encoder).__name__
+
+        if self.is_encoder_whisper:
+            assert (
+                self.frontend is None
+            ), "frontend should be None when using full Whisper model"
+
+        if lang_token_id != -1:
+            self.lang_token_id = torch.tensor([[lang_token_id]])
+        else:
+            self.lang_token_id = None
 
     def forward(
         self,
@@ -177,6 +207,8 @@ class ESPnetASRModel(AbsESPnetModel):
             == text_lengths.shape[0]
         ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
         batch_size = speech.shape[0]
+
+        text[text == -1] = self.ignore_id
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
@@ -209,9 +241,31 @@ class ESPnetASRModel(AbsESPnetModel):
             for layer_idx, intermediate_out in intermediate_outs:
                 # we assume intermediate_out has the same length & padding
                 # as those of encoder_out
-                loss_ic, cer_ic = self._calc_ctc_loss(
-                    intermediate_out, encoder_out_lens, text, text_lengths
-                )
+
+                # use auxillary ctc data if specified
+                loss_ic = None
+                if self.aux_ctc is not None:
+                    idx_key = str(layer_idx)
+                    if idx_key in self.aux_ctc:
+                        aux_data_key = self.aux_ctc[idx_key]
+                        aux_data_tensor = kwargs.get(aux_data_key, None)
+                        aux_data_lengths = kwargs.get(aux_data_key + "_lengths", None)
+
+                        if aux_data_tensor is not None and aux_data_lengths is not None:
+                            loss_ic, cer_ic = self._calc_ctc_loss(
+                                intermediate_out,
+                                encoder_out_lens,
+                                aux_data_tensor,
+                                aux_data_lengths,
+                            )
+                        else:
+                            raise Exception(
+                                "Aux. CTC tasks were specified but no data was found"
+                            )
+                if loss_ic is None:
+                    loss_ic, cer_ic = self._calc_ctc_loss(
+                        intermediate_out, encoder_out_lens, text, text_lengths
+                    )
                 loss_interctc = loss_interctc + loss_ic
 
                 # Collect Intermedaite CTC stats
@@ -287,16 +341,7 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        if self.extract_feats_in_collect_stats:
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        else:
-            # Generate dummy stats if extract_feats_in_collect_stats is False
-            logging.warning(
-                "Generating dummy stats for feats and feats_lengths, "
-                "because encoder_conf.extract_feats_in_collect_stats is "
-                f"{self.extract_feats_in_collect_stats}"
-            )
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
@@ -348,10 +393,14 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             speech.size(0),
         )
-        assert encoder_out.size(1) <= encoder_out_lens.max(), (
-            encoder_out.size(),
-            encoder_out_lens.max(),
-        )
+        if (
+            getattr(self.encoder, "selfattention_layer_type", None) != "lf_selfattn"
+            and not self.is_encoder_whisper
+        ):
+            assert encoder_out.size(-2) <= encoder_out_lens.max(), (
+                encoder_out.size(),
+                encoder_out_lens.max(),
+            )
 
         if intermediate_outs is not None:
             return (encoder_out, intermediate_outs), encoder_out_lens
@@ -469,6 +518,16 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
+        if hasattr(self, "lang_token_id") and self.lang_token_id is not None:
+            ys_pad = torch.cat(
+                [
+                    self.lang_token_id.repeat(ys_pad.size(0), 1).to(ys_pad.device),
+                    ys_pad,
+                ],
+                dim=1,
+            )
+            ys_pad_lens += 1
+
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 

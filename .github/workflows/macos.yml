@@ -1,0 +1,42 @@
+name: MacOS
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test_macos:
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        python-version: [3.9]
+        pytorch-version: [1.13.1]
+        use-conda: [true, false]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: 6.0.0
+          USE_CONDA: ${{ matrix.use-conda }}
+          # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
+          WITH_OMP: OFF
+          # NOTE(kamo): If it's hard to build with clang, please consider using gcc
+          # However, I couldn't build pysptk with gcc on MacOS
+          # CC: /usr/local/bin/gcc-11
+          # CXX: /usr/local/bin/g++-11
+        run: |
+          ./ci/install.sh

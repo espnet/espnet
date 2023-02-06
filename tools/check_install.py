@@ -6,6 +6,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
+import os
 import shutil
 import sys
 
@@ -14,7 +15,6 @@ from packaging.version import parse
 module_list = [
     ("torchaudio", None, None),
     ("torch_optimizer", None, None),
-    ("warpctc_pytorch", None, "installers/install_warp-ctc.sh"),
     ("warprnnt_pytorch", None, "installers/install_warp-transducer.sh"),
     ("chainer_ctc", None, "installers/install_chainer_ctc.sh"),
     ("pyopenjtalk", None, "installers/install_pyopenjtalk.sh"),
@@ -33,6 +33,10 @@ module_list = [
     ("longformer", None, "installers/install_longformer.sh"),
     ("nlg-eval", None, "installers/install_longformer.sh"),
     ("datasets", None, "installers/install_longformer.sh"),
+    ("pykeops", None, "installers/install_cauchy_mult.sh"),
+    ("whisper", None, "installers/install_whisper.sh"),
+    ("RawNet3", None, "installers/install_rawnet.sh"),
+    ("reazonspeech", None, "installers/install_reazonspeech.sh"),
 ]
 
 executable_list = [
@@ -128,6 +132,13 @@ def main():
             print(f"[ ] {name}")
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
+
+    # check muskits install
+    if os.path.exists("muskits.done"):
+        print(f"[x] muskits")
+    else:
+        print(f"[ ] muskits")
+        to_install.append(f"Use 'installers/install_muskits.sh' to install muskits")
 
     print()
     print("Executables:")

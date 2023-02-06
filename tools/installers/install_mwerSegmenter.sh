@@ -7,6 +7,12 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
+unames="$(uname -s)"
+if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
+    echo "Warning: This script may not work with ${unames}. Exit with doing nothing"
+    exit 0
+fi
+
 wget --tries=3 https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
 tar zxvf mwerSegmenter.tar.gz
 rm mwerSegmenter.tar.gz
