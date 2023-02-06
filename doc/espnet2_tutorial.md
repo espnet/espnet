@@ -419,7 +419,7 @@ Latency: 52581.004 [ms/sentence]
 
 ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. Currently, two versions of these models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention ASR models while the second is designed independently and purely for the Transducer task. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
 
-For the user, it means two things. First, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) may be missing in the standalone version until futher testing.
+For the user, it means two things. First, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) may be missing in the standalone version until validation.
 
 ***The following sections of this tutorial are dedicated to the introduction of the version under asr_transducer***. In that regards, the user should keep in mind that most features described here are not available in the first version.
 
@@ -446,7 +446,7 @@ The architecture is composed of three modules: encoder, decoder and joint networ
 
 #### Encoder
 
-For the encoder, we propose a unique encoder type encapsulating the following blocks: Branchformer, Conformer and Conv 1D (other X-former such as Squeezeformer or Enformer will be supported later).
+For the encoder, we propose a unique encoder type encapsulating the following blocks: Branchformer, Conformer, Conv 1D and E-Branchformer.
 It is similar to the custom encoder in ESPnet1, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three configurations passed to `encoder_conf`:
 
   1. `input_conf` (**Dict**): The configuration for the input block.
@@ -465,6 +465,7 @@ The first and second configurations are optional. If needed, the following param
       conv_mod_norm_type: Branchformer convolution module normalization type. (str, default = "layer_norm")
       after_norm_eps: Epsilon value for the final normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
       after_norm_partial: Partial value for the final normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+      blockdrop_rate: Probability threshold of dropping out each encoder block. (float, default = 0.0)
       # For more information on the parameters below, please refer to espnet2/asr_transducer/activation.py
       ftswish_threshold: Threshold value for FTSwish activation formulation.
       ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
@@ -484,6 +485,33 @@ The first and second configurations are optional. If needed, the following param
 
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
+    # Branchformer
+    - block_type: branchformer
+      hidden_size: Hidden (and output) dimension. (int)
+      linear_size: Dimension of the Linear layers. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the ConvolutionalSpatialGatingUnit module. (int)
+      heads (optional): Number of heads in multi-head attention. (int, default = 4)
+      norm_eps (optional): Epsilon value for the normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for ConvolutionalSpatialGatingUnit module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
+      conv_mod_norm_partial (optional): Partial value for the ConvolutionalSpatialGatingUnit module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
+      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+
+    # Conformer
+    - block_type: conformer
+      hidden_size: Hidden (and output) dimension. (int)
+      linear_size: Dimension of feed-forward module. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the ConformerConvolution module. (int)
+      heads (optional): Number of heads in multi-head attention. (int, default = 4)
+      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
+      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in the ConformerConvolution module. (float, default = 1e-05)
+      conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the ConformerConvolution module. (float, default = 0.1)
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
+      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
+      pos_wise_dropout_rate (optional): Dropout rate for the position-wise feed-forward module. (float, default = 0.0)
+
     # Conv 1D
     - block_type: conv1d
       output_size: Output size. (int)
@@ -496,32 +524,19 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       batch_norm: Whether to use batch normalization after convolution. (bool, default = False)
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
-    # Branchformer
-    - block_type: branchformer
+    # E-Branchformer
+    - block_type: ebranchformer
       hidden_size: Hidden (and output) dimension. (int)
-      linear_size: Dimension of the Linear layers. (int)
-      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
+      linear_size: Dimension of the feed-forward module and othger linear layers. (int)
+      conv_mod_kernel_size: Size of the convolving kernel in the ConvolutionalSpatialGatingUnit module. (int)
+      depthwise_conv_kernel_size: Size of the convolving kernel in the DepthwiseConvolution module. (int, default = conv_mod_kernel_size)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       norm_eps (optional): Epsilon value for the normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
       norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
-      conv_mod_norm_eps (optional): Epsilon value for convolutional module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
-      conv_mod_norm_partial (optional): Partial value for the convolutional module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
+      conv_mod_norm_eps (optional): Epsilon value for ConvolutionalSpatialGatingUnit module normalization. (float, default = 1e-05 or 0.25 for BasicNorm)
+      conv_mod_norm_partial (optional): Partial value for the ConvolutionalSpatialGatingUnit module normalization, if conv_norm_type = 'rms_norm'. (float, default = -1.0)
       dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
       att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
-
-    # Conformer
-    - block_type: conformer
-      hidden_size: Hidden (and output) dimension. (int)
-      linear_size: Dimension of feed-forward module. (int)
-      conv_mod_kernel_size: Size of the convolving kernel in the convolutional module. (int)
-      heads (optional): Number of heads in multi-head attention. (int, default = 4)
-      norm_eps (optional): Epsilon value for normalization module. (float, default = 1e-05 or 0.25 for BasicNorm)
-      norm_partial (optional): Partial value for the normalization module, if norm_type = 'rms_norm'. (float, default = -1.0)
-      conv_mod_norm_eps (optional): Epsilon value for Batchnorm1d in the convolutional module. (float, default = 1e-05)
-      conv_mod_norm_momentum (optional): Momentum value for Batchnorm1d in the convolutional module. (float, default = 0.1)
-      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
-      att_dropout_rate (optional): Dropout rate for the attention module. (float, default = 0.0)
-      pos_wise_dropout_rate (optional): Dropout rate for the position-wise feed-forward module. (float, default = 0.0)
 
 In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
@@ -605,7 +620,7 @@ Various decoding algorithms are also available for Transducer by setting `search
   - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search_type: alsd`)
   - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and [[Boyer et al., 2021]](https://arxiv.org/pdf/2201.05420.pdf). (`search_type: maes`)
 
-The algorithms share two parameters to control the beam size (`beam_size`) and the final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
+The algorithms share two parameters to control the beam size (`beam_size`) and the partial/final hypotheses normalization (`score_norm`). In addition, three algorithms have specific parameters:
 
     # Time-synchronous decoding
     search_type: tsd
