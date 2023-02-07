@@ -83,7 +83,6 @@ class LengthRegulator(torch.nn.Module):
         out = list()
         predicted = predicted.squeeze()
         for i, vec in enumerate(batch):
-
             duration = predicted[i].item()
             if self.sr * duration - self.winlen > 0:
                 expand_size = max((self.sr * duration - self.winlen) / self.hoplen, 1)

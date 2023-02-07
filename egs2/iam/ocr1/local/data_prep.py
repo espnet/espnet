@@ -48,7 +48,6 @@ def prepare_text(lines_file_path, output_dir, split_ids):
     skipped_ids = []
     with open(lines_file_path) as lines_file:
         for line in lines_file.readlines():
-
             # skip comment lines
             if line[0] == "#":
                 continue
@@ -59,7 +58,6 @@ def prepare_text(lines_file_path, output_dir, split_ids):
             line_id = line_split[0]
 
             if line_id in split_ids:
-
                 # extract and format transcription into Kaldi style
                 transcription = " ".join(line_split[8:])
                 transcription = transcription.replace("|", " ")
@@ -175,7 +173,6 @@ def prepare_feats(
 
 
 if __name__ == "__main__":
-
     downloads_dir = "downloads/"
     data_dir = "data/"
 

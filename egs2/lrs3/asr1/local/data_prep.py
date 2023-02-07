@@ -128,11 +128,9 @@ class DatasetUtils:
         wav = []
 
         for speaker_folder in speaker_folders:
-
             spk_id = os.path.basename(speaker_folder)
 
             for wav_file in os.listdir(speaker_folder):
-
                 if not wav_file.endswith(".wav"):
                     continue
                 text_file = wav_file.replace("wav", "txt")

@@ -333,7 +333,7 @@ class UASRTrainer(Trainer):
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         print_hyp = True
-        for (_, batch) in iterator:
+        for _, batch in iterator:
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)

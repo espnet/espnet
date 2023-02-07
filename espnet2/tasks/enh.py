@@ -518,7 +518,6 @@ class EnhancementTask(AbsTask):
         mode: str,
         kwargs: dict = None,
     ) -> AbsIterFactory:
-
         dynamic_mixing = getattr(args, "dynamic_mixing", False)
         if dynamic_mixing and mode == "train":
             args = copy.deepcopy(args)

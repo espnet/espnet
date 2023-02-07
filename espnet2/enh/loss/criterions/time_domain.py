@@ -101,7 +101,6 @@ class CISDRLoss(TimeDomainLoss):
         ref: torch.Tensor,
         inf: torch.Tensor,
     ) -> torch.Tensor:
-
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
         return ci_sdr.pt.ci_sdr_loss(
