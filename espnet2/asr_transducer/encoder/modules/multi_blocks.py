@@ -33,6 +33,7 @@ class MultiBlocks(torch.nn.Module):
 
         self.blockdrop_rate = blockdrop_rate
         self.blockdrop_decay = 1.0 / len(self.blocks)
+        self.keep_probs = torch.ones(len(self.blocks))
 
     def reset_streaming_cache(self, left_context: int, device: torch.device) -> None:
         """Initialize/Reset encoder streaming cache.
@@ -65,12 +66,12 @@ class MultiBlocks(torch.nn.Module):
             x: Output sequences. (B, T, D_block_N)
 
         """
-        keepblock_probs = torch.empty(len(self.blocks)).uniform_()
+        self.keep_probs[:-1].uniform_()
 
         for idx, block in enumerate(self.blocks):
             if not self.training or (
-                keepblock_probs[idx]
-                >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
+               self.keep_probs[idx]
+               >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
             ):
                 x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
 
