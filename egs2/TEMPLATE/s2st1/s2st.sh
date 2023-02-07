@@ -570,7 +570,7 @@ if ! "${skip_data_prep}"; then
                     #   the number of utts will be different from the original features (raw or fbank).
                     #   To avoid this mismatch, perform filtering of the original feature scp here.
                     cp "${data_feats}${_suf}/${dset}"/wav.{scp."${src_lang}",scp."${src_lang}".bak}
-                    < "${data_feats}${_suf}/${dset}/wav.scp.${src_lang}.bak" \
+                    < ${data_feats}${_suf}/${dset}/wav.scp.${src_lang}.bak \
                         utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
                         >"${data_feats}${_suf}/${dset}/wav.scp.${src_lang}"
                     utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
@@ -664,11 +664,11 @@ if ! "${skip_data_prep}"; then
 
                 for lang in "${src_lang}" "${tgt_lang}"; do
                     # utt2num_samples is created by format_wav_scp.sh
-                    <"${data_feats}/org/${dset}/utt2num_samples.${lang}" \
+                    <${data_feats}/org/${dset}/utt2num_samples.${lang} \
                         awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
                             '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
                             >"${data_feats}/${dset}/utt2num_samples.${lang}"
-                    <"${data_feats}/org/${dset}/wav.scp.${lang}" \
+                    <${data_feats}/org/${dset}/wav.scp.${lang} \
                         utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples.${lang}"  \
                         >"${data_feats}/${dset}/wav.scp.${lang}"
                 done
@@ -679,8 +679,8 @@ if ! "${skip_data_prep}"; then
 
             # Remove empty text
             for utt_extra_file in ${utt_extra_files}; do
-                <"${data_feats}/org/${dset}/${utt_extra_file}" \
-                    awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/${utt_extra_file}"
+                <${data_feats}/org/${dset}/${utt_extra_file} \
+                    awk ' { if( NF != 1 ) print $0; } ' > ${data_feats}/${dset}/${utt_extra_file}
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
@@ -734,7 +734,7 @@ if ! "${skip_data_prep}"; then
             echo "${blank}"
             echo "${oov}"
             # Remove <unk>, <s>, </s> from the vocabulary
-            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            <${tgt_bpeprefix}.vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
             echo "${sos_eos}"
             } > "${tgt_token_list}"
 
@@ -794,8 +794,8 @@ if ! "${skip_data_prep}"; then
                 echo "${blank}"
                 echo "${oov}"
                 # Remove <unk>, <s>, </s> from the vocabulary
-                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-                echo "${sos_eos}"
+                <${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+                echo "${sos_eos}
                 } > "${src_token_list}"
 
             elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ] || [ "${tgt_token_type}" = phn ]; then
@@ -997,22 +997,22 @@ if ! "${skip_train}"; then
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
         if [ ${use_tgt_lang} = true ]; then
-            <"${s2st_stats_dir}/train/tgt_text_shape" \
+            <${s2st_stats_dir}/train/tgt_text_shape \
                 awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
                 >"${s2st_stats_dir}/train/tgt_text_shape.${tgt_token_type}"
 
-            <"${s2st_stats_dir}/valid/tgt_text_shape" \
+            <${s2st_stats_dir}/valid/tgt_text_shape \
                 awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
                 >"${s2st_stats_dir}/valid/tgt_text_shape.${tgt_token_type}"
         fi
 
         
         if [ ${use_src_lang} = true ]; then
-            <"${s2st_stats_dir}/train/src_text_shape" \
+            <${s2st_stats_dir}/train/src_text_shape \
                 awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
                 >"${s2st_stats_dir}/train/src_text_shape.${src_token_type}"
 
-            <"${s2st_stats_dir}/valid/src_text_shape" \
+            <${s2st_stats_dir}/valid/src_text_shape \
                 awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
                 >"${s2st_stats_dir}/valid/src_text_shape.${src_token_type}"
         fi
@@ -1232,8 +1232,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Decoding: training_dir=${s2st_exp}"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Decoding: training_dir=${s2st_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1353,16 +1353,6 @@ if ! "${skip_eval}"; then
                     rm -rf "${_logdir}/output.${i}"/att_ws
                 done
             fi
-            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
-            fi
-            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
-            fi
             if [ -e "${_logdir}/output.${_nj}/probs" ]; then
                 mkdir -p "${_dir}"/probs
                 for i in $(seq "${_nj}"); do
@@ -1373,96 +1363,30 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Scoring"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Scoring"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${s2st_exp}/${inference_tag}/${dset}"
 
-            _scoredir="${_dir}/score_bleu"
-            mkdir -p "${_scoredir}"
-
-            paste \
-                <(<"${_data}/text.${tgt_lang}" \
-                    ${python} -m espnet2.bin.tokenize_text  \
-                        -f 2- --input - --output - \
-                        --token_type word \
-                        --non_linguistic_symbols "${nlsyms_txt}" \
-                        --remove_non_linguistic_symbols true \
-                        --cleaner "${cleaner}" \
-                        ) \
-                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/ref.trn.org"
-
-            # NOTE(kamo): Don't use cleaner for hyp
-            paste \
-                <(<"${_dir}/text"  \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            --token_type word \
-                            --non_linguistic_symbols "${nlsyms_txt}" \
-                            --remove_non_linguistic_symbols true \
-                            ) \
-                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/hyp.trn.org"
-
-            # remove utterance id
-            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
-
-            # detokenizer
-            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
-
-            # rotate result files
-            pyscripts/utils/rotate_logfile.py ${_scoredir}/result.lc.txt
-
-
-            # detokenize & remove punctuation except apostrophe
-            remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
-            remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
-            echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
-            sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
-                      -i "${_scoredir}/hyp.trn.detok.lc.rm" \
-                      -m bleu chrf ter \
-                      >> ${_scoredir}/result.lc.txt
-            log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
-
-            # process multi-references cases
-            multi_references=$(ls "${_data}/text.${tgt_lang}".* || echo "")
-            if [ "${multi_references}" != "" ]; then
-                case_sensitive_refs=""
-                case_insensitive_refs=""
-                for multi_reference in ${multi_references}; do
-                    ref_idx="${multi_reference##*.}"
-                    paste \
-                        <(<${multi_reference} \
-                            ${python} -m espnet2.bin.tokenize_text  \
-                                -f 2- --input - --output - \
-                                --token_type word \
-                                --non_linguistic_symbols "${nlsyms_txt}" \
-                                --remove_non_linguistic_symbols true \
-                                --cleaner "${cleaner}" \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn.org.${ref_idx}"
-
-                    # remove utterance id
-                    perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
-                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
-                    case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
-                    case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
-                done
-
-
-                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
-                sacrebleu -lc ${case_insensitive_refs} \
-                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
-                    >> ${_scoredir}/result.lc.txt
-                log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
-            fi
+            # NOTE(jiatong): we skip data prep which is already done in previous stages
+            scripts/evaluate_asr_bleu.sh \
+                --datadir ${_data} \
+                --outdir ${_dir} \
+                --nj ${inference_nj} \
+                --gpu_inference ${gpu_inference} \
+                --fs ${fs} \
+                --skip_data_prep true \
+                --scp_suffix ".${tgt_lang}" \
+                --tgt_lang "${tgt_lang}" \
+                --model_tag "${score_asr_model_tag}" \
+                --asr_model_file "${score_asr_model}" \
+                --lm_file "${score_lm_model}" \
+                --inference_config "${score_asr_inference_config}" \
+                --infernece_args "${score_asr_inference_args}" \
+                --nlsyms_txt "${score_nlsyms_text}" \
+                --cleaner "${score_cleaner}"
         done
 
         # Show results in Markdown syntax
@@ -1476,8 +1400,8 @@ fi
 
 packed_model="${s2st_exp}/${s2st_exp##*/}_${inference_s2st_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Pack model: ${packed_model}"
 
         _opts=
         if [ "${src_feats_normalize}" = global_mvn ]; then
@@ -1505,8 +1429,8 @@ if ! "${skip_upload}"; then
     fi
 
 
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        log "Stage 11: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1564,11 +1488,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 12: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

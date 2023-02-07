@@ -82,9 +82,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.src_vocab_size = src_vocab_size
         self.unit_vocab_size = unit_vocab_size
         self.ignore_id = ignore_id
-        self.tgt_token_list = tgt_token_list.copy()
-        self.src_token_list = src_token_list.copy()
-        self.unit_token_list = unit_token_list.copy()
+        self.tgt_token_list = tgt_token_list.copy() if tgt_token_list else None
+        self.src_token_list = src_token_list.copy() if src_token_list else None
+        self.unit_token_list = unit_token_list.copy() if unit_token_list else None
         self.s2st_type = s2st_type
 
         self.frontend = frontend
@@ -807,7 +807,10 @@ class ESPnetS2STModel(AbsESPnetModel):
             encoder_out_lens.max(),
         )
 
-        return (encoder_out, inter_encoder_out), encoder_out_lens
+        if return_all_hiddens:
+            return (encoder_out, inter_encoder_out), encoder_out_lens
+        else:
+            return encoder_out, encoder_out_lens
 
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor, target: bool = False

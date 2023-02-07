@@ -375,14 +375,6 @@ def inference(
             if output_dict.get("feat_gen_denorm") is not None:
                 denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
 
-            if output_dict.get("duration") is not None:
-                # Save duration and fucus rates
-                duration_writer.write(
-                    f"{key} "
-                    + " ".join(map(str, output_dict["duration"].long().cpu().numpy()))
-                    + "\n"
-                )
-
             if output_dict.get("focus_rate") is not None:
                 focus_rate_writer.write(
                     f"{key} {float(output_dict['focus_rate']):.5f}\n"
@@ -396,6 +388,7 @@ def inference(
                     logging.warning(
                         "Cannot plot attn due to dim mismatch (for multihead)"
                     )
+                    output_dict["att_w"] = None
                 else:
                     if att_w.ndim == 2:
                         att_w = att_w[None][None]
@@ -458,8 +451,6 @@ def inference(
         shutil.rmtree(output_dir / "denorm")
     if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
-    if output_dict.get("duration") is None:
-        shutil.rmtree(output_dir / "durations")
     if output_dict.get("focus_rate") is None:
         shutil.rmtree(output_dir / "focus_rates")
     if output_dict.get("prob") is None:
