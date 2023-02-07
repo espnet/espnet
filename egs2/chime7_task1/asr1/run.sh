@@ -117,6 +117,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ ${dset_name} == dipco ]; then
       channels=2,5,9,12,16,19,23,26,30,33 # in dipco only using opposite mics on each array, works better
+    elif [ ${dset_name} == chime6 ] && [ ${dset_part} == dev ]; then
+      channels=0,3,4,7,8,11,12,15,16,19
     fi
 
     if [ ${dset_part} == train ]; then
@@ -141,7 +143,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
   asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
-  asr_tt_set="kaldi/chime6_dev/dev/gss/"
+  asr_tt_set="kaldi/chime6/dev/gss/ kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
