@@ -35,7 +35,7 @@ stop_stage=3
 nj=8
 gpu_inference=false
 fs=16000
-skip_data_prep=true
+do_data_prep=false
 scp_suffix=
 tgt_lang=
 
@@ -54,7 +54,7 @@ cleaner=none
 gt_text=""
 
 help_message=$(cat << EOF
-Usage: $0 [Options] <wav.scp> <outdir>
+Usage: $0 [Options]
 
 Options:
     # General configuration
@@ -75,7 +75,6 @@ Options:
     --inference_args    # Additional arguments for ASR inference (default=${inference_args}).
 
     # Scoring related configuration
-    --bpemodel    # BPE model path, needed if you want to calculate TER (default="${bpemodel}").
     --nlsyms_txt  # Non-language symbol file (default="${nlsyms_txt}").
     --cleaner     # Text cleaner module for the reference (default="${cleaner}").
     --gt_text     # Kaldi-format groundtruth text file (default="${gt_text}")
@@ -83,13 +82,13 @@ Options:
 
 Examples:
     # Use pretrained model and perform only inference
-    $0 --model_tag <model_tag> wav.scp asr_outputs
+    $0 --model_tag <model_tag> kaldi_datadir asr_outputs --stop-stage 2
 
     # Use pretrained model and perform inference and scoring
-    $0 --model_tag <model_tag> --stop-stage 2 --gt_text /path/to/text wav.scp asr_results
+    $0 --model_tag <model_tag> --stop-stage 3 --gt_text /path/to/text kaldi_datadir asr_results
 
     # Use local model and perform inference and scoring
-    $0 --asr_model_file /path/to/model.pth --stop-stage 2 --gt_text /path/to/text wav.scp asr_results
+    $0 --asr_model_file /path/to/model.pth --stop-stage 3 --gt_text /path/to/text kaldi_datadir asr_results
 
 EOF
 )
@@ -98,7 +97,7 @@ log "$0 $*"
 # shellcheck disable=SC1091
 . utils/parse_options.sh
 
-if [ $# -ne 2 ]; then
+if [ -z "${datadir}" ] || [ -z "${outdir}" ] ; then
     log "${help_message}"
     exit 2
 fi
@@ -108,8 +107,9 @@ fi
 # shellcheck disable=SC1091
 . ./cmd.sh
 
+echo "${datadir}/text${scp_suffix}"
 # Check the option is valid
-if [ -z "${gt_text}" ] && [ "${stop_stage}" -ge 3 ]; then
+if [ -z "${gt_text}" ] && [ ! -e "${datadir}/text${scp_suffix}" ]; then
     log "--gt_text must be provided if perform scoring."
     exit 1
 fi
@@ -132,7 +132,7 @@ fi
 #                but we also provide options to prepare data from scratch
 source_wavscp="${datadir}/wav.scp${scp_suffix}"
 
-if ${skip_data_prep}; then
+if ${do_data_prep}; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         log "stage 1: Format wav.scp"
         # shellcheck disable=SC2154

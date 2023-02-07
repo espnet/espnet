@@ -125,6 +125,16 @@ inference_s2st_model=valid.loss.best.pth # S2ST model path for decoding.
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model= # Download a model from Model Zoo and use it for decoding.
 
+# Scoring related
+# NOTE(jiatong): either model_tag or model can be selected for scoring
+score_asr_model_tag=""         # Scoring model tag in espnet_model_zoo
+score_asr_model=""             # Scoring asr model file (e.g., *.pth)
+score_lm_model=""              # Scoring lm model file for asr (e.g., *.pth)
+score_asr_inference_config=""  # Scoring asr inference config file
+score_asr_inference_args=""    # Scoring asr inference arguments
+score_nlsyms_text=none         # Scoring asr nlsyms text file for filtering
+score_cleaner=none             # Scoring cleaner for text normalizing
+
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
@@ -237,6 +247,15 @@ Options:
     --vocoder_file        # Vocoder paramemter file (default=${vocoder_file}).
                           # If set to none, Griffin-Lim vocoder will be used.
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+
+    # Scoring related
+    --score_asr_model_tag         # Scoring model tag in espnet_model_zoo (default="${score_asr_model_tag}").
+    --score_asr_model             # Scoring asr model file (e.g., *.pth) (default="${score_asr_model}").
+    --score_lm_model              # Scoring lm model file for asr (e.g., *.pth) (default="${score_lm_model}").
+    --score_asr_inference_config  # Scoring asr inference config file (default="${score_asr_inference_config}").
+    --score_asr_inference_args    # Scoring asr inference arguments (default="${score_asr_inference_args}").
+    --score_nlsyms_text           # Scoring asr nlsyms text file for filtering (default="${score_nlsyms_text}").
+    --score_cleaner               # Scoring cleaner for text normalizing (default="${score_cleaner}").
     
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -1370,21 +1389,23 @@ if ! "${skip_eval}"; then
             _data="${data_feats}/${dset}"
             _dir="${s2st_exp}/${inference_tag}/${dset}"
 
+            mkdir -p "${_dir}"
+
             # NOTE(jiatong): we skip data prep which is already done in previous stages
-            scripts/evaluate_asr_bleu.sh \
+            scripts/utils/evaluate_asr_bleu.sh \
                 --datadir ${_data} \
                 --outdir ${_dir} \
                 --nj ${inference_nj} \
                 --gpu_inference ${gpu_inference} \
                 --fs ${fs} \
-                --skip_data_prep true \
+                --do_data_prep false \
                 --scp_suffix ".${tgt_lang}" \
                 --tgt_lang "${tgt_lang}" \
                 --model_tag "${score_asr_model_tag}" \
                 --asr_model_file "${score_asr_model}" \
                 --lm_file "${score_lm_model}" \
                 --inference_config "${score_asr_inference_config}" \
-                --infernece_args "${score_asr_inference_args}" \
+                --inference_args "${score_asr_inference_args}" \
                 --nlsyms_txt "${score_nlsyms_text}" \
                 --cleaner "${score_cleaner}"
         done
