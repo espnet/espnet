@@ -35,7 +35,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         self.encoder = encoder
         self.extractor = extractor
         self.decoder = decoder
-        # Whether to share encoder for both mixyture and enrollment
+        # Whether to share encoder for both mixture and enrollment
         self.share_encoder = share_encoder
         self.num_spk = num_spk
 

@@ -11,6 +11,9 @@ from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
+is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
+
+
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
@@ -89,8 +92,11 @@ class Stft(torch.nn.Module, InversibleInterface):
             window = None
 
         # For the compatibility of ARM devices, which do not support
-        # torch.stft() due to the lake of MKL.
-        if input.is_cuda or torch.backends.mkl.is_available():
+        # torch.stft() due to the lack of MKL (on older pytorch versions),
+        # there is an alternative replacement implementation with librosa.
+        # Note: pytorch >= 1.10.0 now has native support for FFT and STFT
+        # on all cpu targets including ARM.
+        if is_torch_1_10_plus or input.is_cuda or torch.backends.mkl.is_available():
             stft_kwargs = dict(
                 n_fft=self.n_fft,
                 win_length=self.win_length,
@@ -111,9 +117,11 @@ class Stft(torch.nn.Module, InversibleInterface):
                 )
 
             # use stft_kwargs to flexibly control different PyTorch versions' kwargs
+            # note: librosa does not support a win_length that is < n_ftt
+            # but the window can be manually padded (see below).
             stft_kwargs = dict(
                 n_fft=self.n_fft,
-                win_length=self.win_length,
+                win_length=self.n_fft,
                 hop_length=self.hop_length,
                 center=self.center,
                 window=window,
