@@ -400,13 +400,16 @@
         <span class="c1"># a. To device</span>
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">lengths</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">feats_aux</span><span class="p">,</span> <span class="n">flens_aux</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
-            <span class="o">*</span><span class="p">[</span>
-                <span class="c1"># self.enh_model.encoder_aux(enroll_ref[spk], aux_lengths[spk])</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">enroll_ref</span><span class="p">[</span><span class="n">spk</span><span class="p">],</span> <span class="n">aux_lengths</span><span class="p">[</span><span class="n">spk</span><span class="p">])</span>
-                <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">enroll_ref</span><span class="p">))</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">share_encoder</span><span class="p">:</span>
+            <span class="n">feats_aux</span><span class="p">,</span> <span class="n">flens_aux</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="o">*</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">enroll_ref</span><span class="p">[</span><span class="n">spk</span><span class="p">],</span> <span class="n">aux_lengths</span><span class="p">[</span><span class="n">spk</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">enroll_ref</span><span class="p">))</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">feats_aux</span> <span class="o">=</span> <span class="n">enroll_ref</span>
+            <span class="n">flens_aux</span> <span class="o">=</span> <span class="n">aux_lengths</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenting</span> <span class="ow">and</span> <span class="n">lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">*</span> <span class="n">fs</span><span class="p">:</span>
             <span class="c1"># Segment-wise speech enhancement/separation</span>
