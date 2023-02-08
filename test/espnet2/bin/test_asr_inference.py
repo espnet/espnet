@@ -48,7 +48,7 @@ def asr_config_file(tmp_path: Path, token_list):
             "--token_type",
             "char",
             "--encoder",
-            "rnn"
+            "rnn",
         ]
     )
     return tmp_path / "asr" / "config.yaml"
