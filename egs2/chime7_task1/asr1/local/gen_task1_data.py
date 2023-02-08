@@ -280,7 +280,11 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
         sess2audio = {}
         for x in audio_files:
             session_name = Path(x).stem.split("_")[0]
-            if Path(x).stem.split("_")[-1].startswith("P") and eval_opt != 2:
+            if (
+                split == "eval"
+                and Path(x).stem.split("_")[-1].startswith("P")
+                and eval_opt != 2
+            ):
                 continue
             if session_name not in sess2audio:
                 sess2audio[session_name] = [x]
