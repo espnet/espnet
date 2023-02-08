@@ -50,7 +50,7 @@ class ESPnetASRModel(AbsESPnetModel):
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
         aux_ctc: dict = None,
-        ctc_weight: float = 0.5,
+        ctc_weight: float = 1.0,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
