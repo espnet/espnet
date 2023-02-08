@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMU 11751/18781 2021: ESPnet Tutorial &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -92,8 +96,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#Speech-synthesis-demo">Speech synthesis demo</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Installation">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Model Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">Model Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-selection-1">Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-setup-1">Model Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Synthesis">Synthesis</a></li>
 </ul>
 </li>
@@ -104,7 +108,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#Speech-Separation">Speech Separation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id3">Model Selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#model-selection-2">Model Selection</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#Separate-the-example-in-wsj0_2mix-testing-set">Separate the example in wsj0_2mix testing set</a></li>
 </ul>
 </li>
@@ -205,7 +209,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">CMU 11751/18781 2021: ESPnet Tutorial</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/notebook/espnet2_tutorial_2021_CMU_11751_18781.ipynb.txt" rel="nofollow"> View page source</a>
@@ -769,8 +773,8 @@ for index, row in egs.iterrows():
 </div>
 </div>
 </section>
-<section id="id1">
-<h3>Model Selection<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<section id="model-selection-1">
+<h3>Model Selection<a class="headerlink" href="#model-selection-1" title="Permalink to this headline">¶</a></h3>
 <p>Please select model: English, Japanese, and Mandarin are supported.</p>
 <div class="line-block">
 <div class="line">You can try end-to-end text2wav model &amp; combination of text2mel and vocoder.</div>
@@ -817,8 +821,8 @@ for index, row in egs.iterrows():
 </div>
 </div>
 </section>
-<section id="id2">
-<h3>Model Setup<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<section id="model-setup-1">
+<h3>Model Setup<a class="headerlink" href="#model-setup-1" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -958,8 +962,8 @@ display(Audio(mixwav_mc.T, rate=sr))
 </section>
 <section id="Speech-Separation">
 <h3>Speech Separation<a class="headerlink" href="#Speech-Separation" title="Permalink to this headline">¶</a></h3>
-<section id="id3">
-<h4>Model Selection<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<section id="model-selection-2">
+<h4>Model Selection<a class="headerlink" href="#model-selection-2" title="Permalink to this headline">¶</a></h4>
 <p>Please select model shown in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv">espnet_model_zoo</a></p>
 <p>In this demonstration, we will show different speech separation models on wsj0_2mix.</p>
 <div class="nbinput nblast docutils container">

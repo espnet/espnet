@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.train package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -120,19 +124,19 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.train package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-distributed-utils">espnet2.train.distributed_utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-reporter">espnet2.train.reporter</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-gan-trainer">espnet2.train.gan_trainer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-espnet-model">espnet2.train.abs_espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-collate-fn">espnet2.train.collate_fn</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-preprocessor">espnet2.train.preprocessor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-iterable-dataset">espnet2.train.iterable_dataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-init">espnet2.train.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-uasr-trainer">espnet2.train.uasr_trainer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-class-choices">espnet2.train.class_choices</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-trainer">espnet2.train.trainer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-dataset">espnet2.train.dataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-gan-espnet-model">espnet2.train.abs_gan_espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-distributed-utils-1">espnet2.train.distributed_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-reporter-1">espnet2.train.reporter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-gan-trainer-1">espnet2.train.gan_trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-espnet-model-1">espnet2.train.abs_espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-collate-fn-1">espnet2.train.collate_fn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-preprocessor-1">espnet2.train.preprocessor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-iterable-dataset-1">espnet2.train.iterable_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-init-1">espnet2.train.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-uasr-trainer-1">espnet2.train.uasr_trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-class-choices-1">espnet2.train.class_choices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-trainer-1">espnet2.train.trainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-dataset-1">espnet2.train.dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-gan-espnet-model-1">espnet2.train.abs_gan_espnet_model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
@@ -177,7 +181,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.train package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.train.rst.txt" rel="nofollow"> View page source</a>
@@ -214,8 +218,8 @@
 </style>
 <section id="espnet2-train-package">
 <h1>espnet2.train package<a class="headerlink" href="#espnet2-train-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-train-distributed-utils">
-<span id="id1"></span><h2>espnet2.train.distributed_utils<a class="headerlink" href="#espnet2-train-distributed-utils" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-distributed-utils-1">
+<span id="espnet2-train-distributed-utils"></span><h2>espnet2.train.distributed_utils<a class="headerlink" href="#espnet2-train-distributed-utils-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.distributed_utils"></span><dl class="class">
 <dt id="espnet2.train.distributed_utils.DistributedOption">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.distributed_utils.</code><code class="sig-name descname">DistributedOption</code><span class="sig-paren">(</span><em class="sig-param">distributed: bool = False</em>, <em class="sig-param">dist_backend: str = 'nccl'</em>, <em class="sig-param">dist_init_method: str = 'env://'</em>, <em class="sig-param">dist_world_size: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_rank: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">local_rank: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">ngpu: int = 0</em>, <em class="sig-param">dist_master_addr: Union[str</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_master_port: Union[int</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">dist_launcher: Union[str</em>, <em class="sig-param">NoneType] = None</em>, <em class="sig-param">multiprocessing_distributed: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/distributed_utils.html#DistributedOption"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.distributed_utils.DistributedOption" title="Permalink to this definition">¶</a></dt>
@@ -355,8 +359,8 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-train-reporter">
-<span id="id2"></span><h2>espnet2.train.reporter<a class="headerlink" href="#espnet2-train-reporter" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-reporter-1">
+<span id="espnet2-train-reporter"></span><h2>espnet2.train.reporter<a class="headerlink" href="#espnet2-train-reporter-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.reporter"></span><p>Reporter module.</p>
 <dl class="class">
 <dt id="espnet2.train.reporter.Average">
@@ -582,8 +586,8 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-train-gan-trainer">
-<span id="id3"></span><h2>espnet2.train.gan_trainer<a class="headerlink" href="#espnet2-train-gan-trainer" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-gan-trainer-1">
+<span id="espnet2-train-gan-trainer"></span><h2>espnet2.train.gan_trainer<a class="headerlink" href="#espnet2-train-gan-trainer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.gan_trainer"></span><p>Trainer module for GAN-based training.</p>
 <dl class="class">
 <dt id="espnet2.train.gan_trainer.GANTrainer">
@@ -626,8 +630,8 @@ espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-train-abs-espnet-model">
-<span id="id4"></span><h2>espnet2.train.abs_espnet_model<a class="headerlink" href="#espnet2-train-abs-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-abs-espnet-model-1">
+<span id="espnet2-train-abs-espnet-model"></span><h2>espnet2.train.abs_espnet_model<a class="headerlink" href="#espnet2-train-abs-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.abs_espnet_model"></span><dl class="class">
 <dt id="espnet2.train.abs_espnet_model.AbsESPnetModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.abs_espnet_model.</code><code class="sig-name descname">AbsESPnetModel</code><a class="reference internal" href="../_modules/espnet2/train/abs_espnet_model.html#AbsESPnetModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.abs_espnet_model.AbsESPnetModel" title="Permalink to this definition">¶</a></dt>
@@ -670,14 +674,14 @@ just only these three values, loss, stats, and weight.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-train-collate-fn">
-<span id="id5"></span><h2>espnet2.train.collate_fn<a class="headerlink" href="#espnet2-train-collate-fn" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-collate-fn-1">
+<span id="espnet2-train-collate-fn"></span><h2>espnet2.train.collate_fn<a class="headerlink" href="#espnet2-train-collate-fn-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.collate_fn"></span><dl class="class">
 <dt id="espnet2.train.collate_fn.CommonCollateFn">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.collate_fn.</code><code class="sig-name descname">CommonCollateFn</code><span class="sig-paren">(</span><em class="sig-param">float_pad_value: Union[float</em>, <em class="sig-param">int] = 0.0</em>, <em class="sig-param">int_pad_value: int = -32768</em>, <em class="sig-param">not_sequence: Collection[str] = ()</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/collate_fn.html#CommonCollateFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.collate_fn.CommonCollateFn" title="Permalink to this definition">¶</a></dt>
@@ -713,8 +717,8 @@ that of the dataset as they are.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-train-preprocessor">
-<span id="id6"></span><h2>espnet2.train.preprocessor<a class="headerlink" href="#espnet2-train-preprocessor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-preprocessor-1">
+<span id="espnet2-train-preprocessor"></span><h2>espnet2.train.preprocessor<a class="headerlink" href="#espnet2-train-preprocessor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.preprocessor"></span><dl class="class">
 <dt id="espnet2.train.preprocessor.AbsPreprocessor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">AbsPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#AbsPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.AbsPreprocessor" title="Permalink to this definition">¶</a></dt>
@@ -777,7 +781,7 @@ that of the dataset as they are.</p>
 <code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">detect_non_silence</code><span class="sig-paren">(</span><em class="sig-param">x: numpy.ndarray</em>, <em class="sig-param">threshold: float = 0.01</em>, <em class="sig-param">frame_length: int = 1024</em>, <em class="sig-param">frame_shift: int = 512</em>, <em class="sig-param">window: str = 'boxcar'</em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#detect_non_silence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.detect_non_silence" title="Permalink to this definition">¶</a></dt>
 <dd><p>Power based voice activity detection.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> – (Channel, Time)</p>
 </dd>
 </dl>
@@ -795,8 +799,8 @@ that of the dataset as they are.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-train-iterable-dataset">
-<span id="id7"></span><h2>espnet2.train.iterable_dataset<a class="headerlink" href="#espnet2-train-iterable-dataset" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-iterable-dataset-1">
+<span id="espnet2-train-iterable-dataset"></span><h2>espnet2.train.iterable_dataset<a class="headerlink" href="#espnet2-train-iterable-dataset-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.iterable_dataset"></span><p>Iterable dataset module.</p>
 <dl class="class">
 <dt id="espnet2.train.iterable_dataset.IterableESPnetDataset">
@@ -830,11 +834,11 @@ that of the dataset as they are.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-train-init">
-<span id="id8"></span><h2>espnet2.train.__init__<a class="headerlink" href="#espnet2-train-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-init-1">
+<span id="espnet2-train-init"></span><h2>espnet2.train.__init__<a class="headerlink" href="#espnet2-train-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.__init__"></span></section>
-<section id="espnet2-train-uasr-trainer">
-<span id="id9"></span><h2>espnet2.train.uasr_trainer<a class="headerlink" href="#espnet2-train-uasr-trainer" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-uasr-trainer-1">
+<span id="espnet2-train-uasr-trainer"></span><h2>espnet2.train.uasr_trainer<a class="headerlink" href="#espnet2-train-uasr-trainer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.uasr_trainer"></span><p>Trainer module for GAN-based UASR training.</p>
 <dl class="class">
 <dt id="espnet2.train.uasr_trainer.UASRTrainer">
@@ -877,8 +881,8 @@ espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-train-class-choices">
-<span id="id10"></span><h2>espnet2.train.class_choices<a class="headerlink" href="#espnet2-train-class-choices" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-class-choices-1">
+<span id="espnet2-train-class-choices"></span><h2>espnet2.train.class_choices<a class="headerlink" href="#espnet2-train-class-choices-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.class_choices"></span><dl class="class">
 <dt id="espnet2.train.class_choices.ClassChoices">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.class_choices.</code><code class="sig-name descname">ClassChoices</code><span class="sig-paren">(</span><em class="sig-param">name: str, classes: Mapping[str, type], type_check: type = None, default: str = None, optional: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/class_choices.html#ClassChoices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.class_choices.ClassChoices" title="Permalink to this definition">¶</a></dt>
@@ -920,8 +924,8 @@ espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-train-trainer">
-<span id="id11"></span><h2>espnet2.train.trainer<a class="headerlink" href="#espnet2-train-trainer" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-trainer-1">
+<span id="espnet2-train-trainer"></span><h2>espnet2.train.trainer<a class="headerlink" href="#espnet2-train-trainer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.trainer"></span><p>Trainer module.</p>
 <dl class="class">
 <dt id="espnet2.train.trainer.Trainer">
@@ -993,8 +997,8 @@ and override the methods if necessary - at least “train_one_epoch()”</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-train-dataset">
-<span id="id12"></span><h2>espnet2.train.dataset<a class="headerlink" href="#espnet2-train-dataset" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-dataset-1">
+<span id="espnet2-train-dataset"></span><h2>espnet2.train.dataset<a class="headerlink" href="#espnet2-train-dataset-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.dataset"></span><dl class="class">
 <dt id="espnet2.train.dataset.AbsDataset">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.dataset.</code><code class="sig-name descname">AbsDataset</code><a class="reference internal" href="../_modules/espnet2/train/dataset.html#AbsDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.dataset.AbsDataset" title="Permalink to this definition">¶</a></dt>
@@ -1101,8 +1105,8 @@ and override the methods if necessary - at least “train_one_epoch()”</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-train-abs-gan-espnet-model">
-<span id="id13"></span><h2>espnet2.train.abs_gan_espnet_model<a class="headerlink" href="#espnet2-train-abs-gan-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-train-abs-gan-espnet-model-1">
+<span id="espnet2-train-abs-gan-espnet-model"></span><h2>espnet2.train.abs_gan_espnet_model<a class="headerlink" href="#espnet2-train-abs-gan-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.abs_gan_espnet_model"></span><p>ESPnetModel abstract class for GAN-based training.</p>
 <dl class="class">
 <dt id="espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel">
@@ -1147,11 +1151,11 @@ loss calculation and the discrimiantor loss calculation. If forward_generator
 is true, return the generator loss with optim_idx 0. If forward_generator is
 false, return the discrimiantor loss with optim_idx 1.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>forward_generator</strong> (<em>bool</em>) – Whether to return the generator loss or the
 discrimiantor loss. This must have the default value.</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p>loss (Tensor): Loss scalar tensor.</p></li>
 <li><p>stats (Dict[str, float]): Statistics to be monitored.</p></li>
@@ -1160,7 +1164,7 @@ discrimiantor loss. This must have the default value.</p>
 </ul>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
 </dd>
 </dl>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESPnet2 &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -87,7 +91,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#real-time-factor-and-latency">Real-Time-Factor and Latency</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-1">Usage</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#example">Example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
@@ -104,11 +108,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#multi-task-learning">Multi-task learning</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#inference">Inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#streaming">Streaming</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#id2">Training</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id3">Decoding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#training-1">Training</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#decoding-1">Decoding</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">FAQ</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#faq-1">FAQ</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#how-to-add-a-new-block-type-to-the-custom-encoder">How to add a new block type to the custom encoder?</a></li>
 </ul>
 </li>
@@ -224,7 +228,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">ESPnet2</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/espnet2_tutorial.md.txt" rel="nofollow"> View page source</a>
@@ -603,8 +607,8 @@ encoder_conf:
 <section id="real-time-factor-and-latency">
 <h2>Real-Time-Factor and Latency<a class="headerlink" href="#real-time-factor-and-latency" title="Permalink to this headline">¶</a></h2>
 <p>In order to calculate real-time-factor and (non-streaming) latency the script <code class="docutils literal notranslate"><span class="pre">utils/calculate_rtf.py</span></code> has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see <a class="reference external" href="#limitations">Limitations</a> section below) after the decoding stage has finished but can also be run as a stand-alone script:</p>
-<section id="id1">
-<h3>Usage<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<section id="usage-1">
+<h3>Usage<a class="headerlink" href="#usage-1" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">calculate_rtf</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="n">name</span> <span class="p">{</span><span class="n">decode</span><span class="p">,</span><span class="n">asr_inference</span><span class="p">}]</span>
                         <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">shift</span> <span class="n">INPUT_SHIFT</span><span class="p">]</span>
@@ -876,8 +880,8 @@ The type of the stack of blocks is by passing a string (either <code class="docu
 <h3>Streaming<a class="headerlink" href="#streaming" title="Permalink to this headline">¶</a></h3>
 <p>To enable streaming capabilities for Transducer models, we support dynamic chunk training and chunk-by-chunk decoding as proposed in <a class="reference external" href="https://arxiv.org/pdf/2012.05481.pdf">[Zhang et al., 2021]</a>. Our implementation is based on the version proposed in <a class="reference external" href="https://github.com/k2-fsa/icefall/">Icefall</a>, based itself on the original <a class="reference external" href="https://github.com/wenet-e2e/wenet/">WeNet</a> one.</p>
 <p>For a complete explanation on the different procedure and parameters, we refer the reader to the corresponding paper.</p>
-<section id="id2">
-<h4>Training<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h4>
+<section id="training-1">
+<h4>Training<a class="headerlink" href="#training-1" title="Permalink to this headline">¶</a></h4>
 <p>To train a streaming model, the parameter <code class="docutils literal notranslate"><span class="pre">dynamic_chunk_training</span></code> should be set to <code class="docutils literal notranslate"><span class="pre">True</span></code> in the encoder <code class="docutils literal notranslate"><span class="pre">main_conf</span></code>. From here, the user has access to two parameters in order to control the dynamic chunk selection (<code class="docutils literal notranslate"><span class="pre">short_chunk_threshold</span></code> and <code class="docutils literal notranslate"><span class="pre">short_chunk_size</span></code>) and another one to control the left context in the causal convolution and the attention module (<code class="docutils literal notranslate"><span class="pre">left_chunk_size</span></code>).</p>
 <p>All these parameters can be configured through <code class="docutils literal notranslate"><span class="pre">main_conf</span></code>, introduced in the Encoder section:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dynamic_chunk_training</span><span class="p">:</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">train</span> <span class="n">streaming</span> <span class="n">model</span> <span class="k">with</span> <span class="n">dynamic</span> <span class="n">chunks</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
@@ -887,8 +891,8 @@ The type of the stack of blocks is by passing a string (either <code class="docu
 </pre></div>
 </div>
 </section>
-<section id="id3">
-<h4>Decoding<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<section id="decoding-1">
+<h4>Decoding<a class="headerlink" href="#decoding-1" title="Permalink to this headline">¶</a></h4>
 <p>To perform chunk-by-chunk inference, the parameter <code class="docutils literal notranslate"><span class="pre">streaming</span></code> should be set to True in the decoding configuration(otherwise, offline decoding will be performed). Three parameters are available to control the decoding process:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">chunk_size</span><span class="p">:</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">frames</span> <span class="ow">in</span> <span class="n">chunk</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">16</span><span class="p">)</span>
 <span class="n">left_context</span><span class="p">:</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">frames</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">left</span> <span class="n">context</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">32</span><span class="p">)</span>
@@ -900,8 +904,8 @@ The type of the stack of blocks is by passing a string (either <code class="docu
 <p><em><strong>Note 2:</strong></em> All search algorithms but ALSD are available with chunk-by-chunk inference.</p>
 </section>
 </section>
-<section id="id4">
-<h3>FAQ<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<section id="faq-1">
+<h3>FAQ<a class="headerlink" href="#faq-1" title="Permalink to this headline">¶</a></h3>
 <section id="how-to-add-a-new-block-type-to-the-custom-encoder">
 <h4>How to add a new block type to the custom encoder?<a class="headerlink" href="#how-to-add-a-new-block-type-to-the-custom-encoder" title="Permalink to this headline">¶</a></h4>
 <p><em><strong>Provided paths are relative to the directory: <code class="docutils literal notranslate"><span class="pre">espnet2/asr_transducer/encoder/</span></code></strong></em></p>

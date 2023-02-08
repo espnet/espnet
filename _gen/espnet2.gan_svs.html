@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.gan_svs package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -132,19 +136,19 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.gan_svs package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-abs-gan-svs">espnet2.gan_svs.abs_gan_svs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-init">espnet2.gan_svs.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-espnet-model">espnet2.gan_svs.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-text-encoder">espnet2.gan_svs.vits.text_encoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-generator">espnet2.gan_svs.vits.generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-frame-prior-net">espnet2.gan_svs.vits.frame_prior_net</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-modules">espnet2.gan_svs.vits.modules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-vits">espnet2.gan_svs.vits.vits</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-length-regulator">espnet2.gan_svs.vits.length_regulator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-phoneme-predictor">espnet2.gan_svs.vits.phoneme_predictor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-init">espnet2.gan_svs.vits.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-duration-predictor">espnet2.gan_svs.vits.duration_predictor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-pitch-predictor">espnet2.gan_svs.vits.pitch_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-abs-gan-svs-1">espnet2.gan_svs.abs_gan_svs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-init-1">espnet2.gan_svs.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-espnet-model-1">espnet2.gan_svs.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-text-encoder-1">espnet2.gan_svs.vits.text_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-generator-1">espnet2.gan_svs.vits.generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-frame-prior-net-1">espnet2.gan_svs.vits.frame_prior_net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-modules-1">espnet2.gan_svs.vits.modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-vits-1">espnet2.gan_svs.vits.vits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-length-regulator-1">espnet2.gan_svs.vits.length_regulator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-phoneme-predictor-1">espnet2.gan_svs.vits.phoneme_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-init-1">espnet2.gan_svs.vits.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-duration-predictor-1">espnet2.gan_svs.vits.duration_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-pitch-predictor-1">espnet2.gan_svs.vits.pitch_predictor</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
@@ -177,7 +181,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.gan_svs package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.gan_svs.rst.txt" rel="nofollow"> View page source</a>
@@ -214,8 +218,8 @@
 </style>
 <section id="espnet2-gan-svs-package">
 <h1>espnet2.gan_svs package<a class="headerlink" href="#espnet2-gan-svs-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-gan-svs-abs-gan-svs">
-<span id="id1"></span><h2>espnet2.gan_svs.abs_gan_svs<a class="headerlink" href="#espnet2-gan-svs-abs-gan-svs" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-abs-gan-svs-1">
+<span id="espnet2-gan-svs-abs-gan-svs"></span><h2>espnet2.gan_svs.abs_gan_svs<a class="headerlink" href="#espnet2-gan-svs-abs-gan-svs-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.abs_gan_svs"></span><p>GAN-based SVS abstrast class.</p>
 <dl class="class">
 <dt id="espnet2.gan_svs.abs_gan_svs.AbsGANSVS">
@@ -232,11 +236,11 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-init">
-<span id="id2"></span><h2>espnet2.gan_svs.__init__<a class="headerlink" href="#espnet2-gan-svs-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-init-1">
+<span id="espnet2-gan-svs-init"></span><h2>espnet2.gan_svs.__init__<a class="headerlink" href="#espnet2-gan-svs-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.__init__"></span></section>
-<section id="espnet2-gan-svs-espnet-model">
-<span id="id3"></span><h2>espnet2.gan_svs.espnet_model<a class="headerlink" href="#espnet2-gan-svs-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-espnet-model-1">
+<span id="espnet2-gan-svs-espnet-model"></span><h2>espnet2.gan_svs.espnet_model<a class="headerlink" href="#espnet2-gan-svs-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.espnet_model"></span><p>GAN-based Singing-voice-synthesis ESPnet model.</p>
 <dl class="class">
 <dt id="espnet2.gan_svs.espnet_model.ESPnetGANSVSModel">
@@ -249,7 +253,7 @@
 <code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate features and return them as a dict.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
@@ -297,10 +301,10 @@
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dict of features.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -311,7 +315,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return generator or discriminator loss with dict format.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
@@ -361,7 +365,7 @@
 <li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p>loss (Tensor): Loss scalar tensor.</p></li>
 <li><p>stats (Dict[str, float]): Statistics to be monitored.</p></li>
@@ -370,7 +374,7 @@
 </ul>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
 </dd>
 </dl>
@@ -381,7 +385,7 @@
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">tempo_score: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_lab: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">beat_score_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (T_wav).</p></li>
@@ -411,10 +415,10 @@
 <li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dict of outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -423,8 +427,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-text-encoder">
-<span id="id4"></span><h2>espnet2.gan_svs.vits.text_encoder<a class="headerlink" href="#espnet2-gan-svs-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-text-encoder-1">
+<span id="espnet2-gan-svs-vits-text-encoder"></span><h2>espnet2.gan_svs.vits.text_encoder<a class="headerlink" href="#espnet2-gan-svs-vits-text-encoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.text_encoder"></span><p>Text encoder module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -438,7 +442,7 @@ with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
 the encoder module, which contains additional convolution layers.</p>
 <p>Initialize TextEncoder module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vocabs</strong> (<em>int</em>) – Vocabulary size.</p></li>
 <li><p><strong>attention_dim</strong> (<em>int</em>) – Attention dimension.</p></li>
@@ -465,19 +469,19 @@ the encoder module, which contains additional convolution layers.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em>, <em class="sig-param">note_pitch: torch.Tensor</em>, <em class="sig-param">note_beat: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/text_encoder.html#TextEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.text_encoder.TextEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>Tensor</em>) – Input index tensor (B, T_text).</p></li>
 <li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Encoded hidden representation (B, attention_dim, T_text).
 Tensor: Projected mean tensor (B, attention_dim, T_text).
 Tensor: Projected scale tensor (B, attention_dim, T_text).
 Tensor: Mask tensor for input tensor (B, 1, T_text).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -486,8 +490,8 @@ Tensor: Mask tensor for input tensor (B, 1, T_text).</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-generator">
-<span id="id5"></span><h2>espnet2.gan_svs.vits.generator<a class="headerlink" href="#espnet2-gan-svs-vits-generator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-generator-1">
+<span id="espnet2-gan-svs-vits-generator"></span><h2>espnet2.gan_svs.vits.generator<a class="headerlink" href="#espnet2-gan-svs-vits-generator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.generator"></span><p>Generator module in VISinger.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -501,7 +505,7 @@ with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
 Transformer, which contains additional convolution layers.</p>
 <p>Initialize VITS generator module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vocabs</strong> (<em>int</em>) – Input vocabulary size.</p></li>
 <li><p><strong>aux_channels</strong> (<em>int</em>) – Number of acoustic feature channels.</p></li>
@@ -578,7 +582,7 @@ flow.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">duration: torch.Tensor = None</em>, <em class="sig-param">label: torch.Tensor = None</em>, <em class="sig-param">label_lengths: torch.Tensor = None</em>, <em class="sig-param">melody: torch.Tensor = None</em>, <em class="sig-param">melody_lengths: torch.Tensor = None</em>, <em class="sig-param">tempo: torch.Tensor = None</em>, <em class="sig-param">tempo_lengths: torch.Tensor = None</em>, <em class="sig-param">beat: torch.Tensor = None</em>, <em class="sig-param">beat_lengths: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/generator.html#VITSGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.generator.VITSGenerator.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
@@ -600,7 +604,7 @@ flow.</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><p>Waveform tensor (B, 1, segment_size * upsample_factor).
 Tensor: Duration negative log-likelihood (NLL) tensor (B,).
 Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
@@ -620,7 +624,7 @@ tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:</p>
 </div></blockquote>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -631,7 +635,7 @@ tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/generator.html#VITSGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.generator.VITSGenerator.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run inference.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (B, T_text,).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
@@ -656,10 +660,10 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <li><p><strong>use_teacher_forcing</strong> (<em>bool</em>) – Whether to use teacher forcing.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Generated waveform tensor (B, T_wav).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -668,8 +672,8 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-frame-prior-net">
-<span id="id7"></span><h2>espnet2.gan_svs.vits.frame_prior_net<a class="headerlink" href="#espnet2-gan-svs-vits-frame-prior-net" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-frame-prior-net-1">
+<span id="espnet2-gan-svs-vits-frame-prior-net"></span><h2>espnet2.gan_svs.vits.frame_prior_net<a class="headerlink" href="#espnet2-gan-svs-vits-frame-prior-net-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.frame_prior_net"></span><dl class="class">
 <dt id="espnet2.gan_svs.vits.frame_prior_net.FramePriorNet">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.vits.frame_prior_net.</code><code class="sig-name descname">FramePriorNet</code><span class="sig-paren">(</span><em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">attention_dim: int = 192</em>, <em class="sig-param">attention_heads: int = 2</em>, <em class="sig-param">linear_units: int = 768</em>, <em class="sig-param">blocks: int = 4</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">positional_encoding_layer_type: str = 'rel_pos'</em>, <em class="sig-param">self_attention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">use_macaron_style: bool = False</em>, <em class="sig-param">use_conformer_conv: bool = False</em>, <em class="sig-param">conformer_kernel_size: int = 7</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.0</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/vits/frame_prior_net.html#FramePriorNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.frame_prior_net.FramePriorNet" title="Permalink to this definition">¶</a></dt>
@@ -685,14 +689,14 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-modules">
-<span id="id8"></span><h2>espnet2.gan_svs.vits.modules<a class="headerlink" href="#espnet2-gan-svs-vits-modules" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-modules-1">
+<span id="espnet2-gan-svs-vits-modules"></span><h2>espnet2.gan_svs.vits.modules<a class="headerlink" href="#espnet2-gan-svs-vits-modules-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.modules"></span><dl class="class">
 <dt id="espnet2.gan_svs.vits.modules.Projection">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.vits.modules.</code><code class="sig-name descname">Projection</code><span class="sig-paren">(</span><em class="sig-param">hidden_channels</em>, <em class="sig-param">out_channels</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/vits/modules.html#Projection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.modules.Projection" title="Permalink to this definition">¶</a></dt>
@@ -708,7 +712,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
@@ -719,8 +723,8 @@ registered hooks while the latter silently ignores them.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-vits">
-<span id="id9"></span><h2>espnet2.gan_svs.vits.vits<a class="headerlink" href="#espnet2-gan-svs-vits-vits" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-vits-1">
+<span id="espnet2-gan-svs-vits-vits"></span><h2>espnet2.gan_svs.vits.vits<a class="headerlink" href="#espnet2-gan-svs-vits-vits-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.vits"></span><p>VITS/VISinger module for GAN-SVS task.</p>
 <dl class="class">
 <dt id="espnet2.gan_svs.vits.vits.VITS">
@@ -731,7 +735,7 @@ registered hooks while the latter silently ignores them.</p>
 with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
 <p>Initialize VITS module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Input vocabrary size.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Acoustic feature dimension. The actual output channels will
@@ -763,7 +767,7 @@ discriminator adversarial loss.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: torch.LongTensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/vits.html#VITS.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.vits.VITS.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform generator forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
@@ -797,7 +801,7 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <li><p><strong>forward_generator</strong> (<em>bool</em>) – Whether to forward generator.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p>loss (Tensor): Loss scalar tensor.</p></li>
 <li><p>stats (Dict[str, float]): Statistics to be monitored.</p></li>
@@ -806,7 +810,7 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 </ul>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
 </dd>
 </dl>
@@ -817,7 +821,7 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">tempo: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">beat: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/vits/vits.html#VITS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.vits.VITS.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run inference.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (T_feats, aux_channels).</p></li>
@@ -842,13 +846,13 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p>wav (Tensor): Generated waveform tensor (T_wav,).</p></li>
 </ul>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -869,8 +873,8 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-length-regulator">
-<span id="id11"></span><h2>espnet2.gan_svs.vits.length_regulator<a class="headerlink" href="#espnet2-gan-svs-vits-length-regulator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-length-regulator-1">
+<span id="espnet2-gan-svs-vits-length-regulator"></span><h2>espnet2.gan_svs.vits.length_regulator<a class="headerlink" href="#espnet2-gan-svs-vits-length-regulator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.length_regulator"></span><p>Length regulator related modules.</p>
 <dl class="class">
 <dt id="espnet2.gan_svs.vits.length_regulator.LengthRegulator">
@@ -879,7 +883,7 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 <p>Length Regulator</p>
 <p>Initilize length regulator module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>pad_value</strong> (<em>float</em><em>, </em><em>optional</em>) – Value used for padding.</p>
 </dd>
 </dl>
@@ -909,14 +913,14 @@ value (LongTensor): Batch of padded beat (B, Tmax).</p></li>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-phoneme-predictor">
-<span id="id12"></span><h2>espnet2.gan_svs.vits.phoneme_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-phoneme-predictor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-phoneme-predictor-1">
+<span id="espnet2-gan-svs-vits-phoneme-predictor"></span><h2>espnet2.gan_svs.vits.phoneme_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-phoneme-predictor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.phoneme_predictor"></span><dl class="class">
 <dt id="espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.vits.phoneme_predictor.</code><code class="sig-name descname">PhonemePredictor</code><span class="sig-paren">(</span><em class="sig-param">vocabs: int</em>, <em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">attention_dim: int = 192</em>, <em class="sig-param">attention_heads: int = 2</em>, <em class="sig-param">linear_units: int = 768</em>, <em class="sig-param">blocks: int = 2</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">positional_encoding_layer_type: str = 'rel_pos'</em>, <em class="sig-param">self_attention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">use_macaron_style: bool = False</em>, <em class="sig-param">use_conformer_conv: bool = False</em>, <em class="sig-param">conformer_kernel_size: int = 7</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.0</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/vits/phoneme_predictor.html#PhonemePredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor" title="Permalink to this definition">¶</a></dt>
@@ -932,17 +936,17 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-init">
-<span id="id13"></span><h2>espnet2.gan_svs.vits.__init__<a class="headerlink" href="#espnet2-gan-svs-vits-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-init-1">
+<span id="espnet2-gan-svs-vits-init"></span><h2>espnet2.gan_svs.vits.__init__<a class="headerlink" href="#espnet2-gan-svs-vits-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.__init__"></span></section>
-<section id="espnet2-gan-svs-vits-duration-predictor">
-<span id="id14"></span><h2>espnet2.gan_svs.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-duration-predictor-1">
+<span id="espnet2-gan-svs-vits-duration-predictor"></span><h2>espnet2.gan_svs.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-duration-predictor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.duration_predictor"></span><p>Duration predictor modules in VISinger.</p>
 <dl class="class">
 <dt id="espnet2.gan_svs.vits.duration_predictor.DurationPredictor">
@@ -959,14 +963,14 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-gan-svs-vits-pitch-predictor">
-<span id="id15"></span><h2>espnet2.gan_svs.vits.pitch_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-pitch-predictor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-gan-svs-vits-pitch-predictor-1">
+<span id="espnet2-gan-svs-vits-pitch-predictor"></span><h2>espnet2.gan_svs.vits.pitch_predictor<a class="headerlink" href="#espnet2-gan-svs-vits-pitch-predictor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_svs.vits.pitch_predictor"></span><dl class="class">
 <dt id="espnet2.gan_svs.vits.pitch_predictor.PitchPredictor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.vits.pitch_predictor.</code><code class="sig-name descname">PitchPredictor</code><span class="sig-paren">(</span><em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">attention_dim: int = 192</em>, <em class="sig-param">attention_heads: int = 2</em>, <em class="sig-param">linear_units: int = 768</em>, <em class="sig-param">blocks: int = 6</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">positional_encoding_layer_type: str = 'rel_pos'</em>, <em class="sig-param">self_attention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">use_macaron_style: bool = False</em>, <em class="sig-param">use_conformer_conv: bool = False</em>, <em class="sig-param">conformer_kernel_size: int = 7</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.0</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/vits/pitch_predictor.html#PitchPredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.vits.pitch_predictor.PitchPredictor" title="Permalink to this definition">¶</a></dt>
@@ -982,7 +986,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>

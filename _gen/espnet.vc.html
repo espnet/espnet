@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet.vc package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -107,7 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.vc package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-vc-pytorch-backend-vc">espnet.vc.pytorch_backend.vc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-vc-pytorch-backend-vc-1">espnet.vc.pytorch_backend.vc</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
@@ -165,7 +169,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet.vc package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet.vc.rst.txt" rel="nofollow"> View page source</a>
@@ -202,8 +206,8 @@
 </style>
 <section id="espnet-vc-package">
 <h1>espnet.vc package<a class="headerlink" href="#espnet-vc-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet-vc-pytorch-backend-vc">
-<span id="id1"></span><h2>espnet.vc.pytorch_backend.vc<a class="headerlink" href="#espnet-vc-pytorch-backend-vc" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-vc-pytorch-backend-vc-1">
+<span id="espnet-vc-pytorch-backend-vc"></span><h2>espnet.vc.pytorch_backend.vc<a class="headerlink" href="#espnet-vc-pytorch-backend-vc-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.vc.pytorch_backend.vc"></span><p>E2E VC training / decoding functions.</p>
 <dl class="class">
 <dt id="espnet.vc.pytorch_backend.vc.CustomConverter">
@@ -220,7 +224,7 @@
 <p>Custom evaluator.</p>
 <p>Initilize module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Pytorch model instance.</p></li>
 <li><p><strong>iterator</strong> (<em>chainer.dataset.Iterator</em>) – Iterator for validation.</p></li>
@@ -244,7 +248,7 @@
 <p>Custom updater.</p>
 <p>Initilize module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Pytorch model instance.</p></li>
 <li><p><strong>grad_clip</strong> (<em>float</em>) – The gradient clipping value.</p></li>

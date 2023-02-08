@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.uasr package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -129,25 +133,25 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.uasr package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-init">espnet2.uasr.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-espnet-model">espnet2.uasr.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-abs-segmenter">espnet2.uasr.segmenter.abs_segmenter</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-join-segmenter">espnet2.uasr.segmenter.join_segmenter</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-init">espnet2.uasr.segmenter.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-random-segmenter">espnet2.uasr.segmenter.random_segmenter</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-abs-generator">espnet2.uasr.generator.abs_generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-conv-generator">espnet2.uasr.generator.conv_generator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-init">espnet2.uasr.generator.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-conv-discriminator">espnet2.uasr.discriminator.conv_discriminator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-init">espnet2.uasr.discriminator.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-abs-discriminator">espnet2.uasr.discriminator.abs_discriminator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-phoneme-diversity-loss">espnet2.uasr.loss.phoneme_diversity_loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-gradient-penalty">espnet2.uasr.loss.gradient_penalty</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-abs-loss">espnet2.uasr.loss.abs_loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-pseudo-label-loss">espnet2.uasr.loss.pseudo_label_loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-discriminator-loss">espnet2.uasr.loss.discriminator_loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-init">espnet2.uasr.loss.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-smoothness-penalty">espnet2.uasr.loss.smoothness_penalty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-init-1">espnet2.uasr.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-espnet-model-1">espnet2.uasr.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-abs-segmenter-1">espnet2.uasr.segmenter.abs_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-join-segmenter-1">espnet2.uasr.segmenter.join_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-init-1">espnet2.uasr.segmenter.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-segmenter-random-segmenter-1">espnet2.uasr.segmenter.random_segmenter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-abs-generator-1">espnet2.uasr.generator.abs_generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-conv-generator-1">espnet2.uasr.generator.conv_generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-generator-init-1">espnet2.uasr.generator.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-conv-discriminator-1">espnet2.uasr.discriminator.conv_discriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-init-1">espnet2.uasr.discriminator.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-discriminator-abs-discriminator-1">espnet2.uasr.discriminator.abs_discriminator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-phoneme-diversity-loss-1">espnet2.uasr.loss.phoneme_diversity_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-gradient-penalty-1">espnet2.uasr.loss.gradient_penalty</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-abs-loss-1">espnet2.uasr.loss.abs_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-pseudo-label-loss-1">espnet2.uasr.loss.pseudo_label_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-discriminator-loss-1">espnet2.uasr.loss.discriminator_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-init-1">espnet2.uasr.loss.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-uasr-loss-smoothness-penalty-1">espnet2.uasr.loss.smoothness_penalty</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
@@ -183,7 +187,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.uasr package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.uasr.rst.txt" rel="nofollow"> View page source</a>
@@ -220,11 +224,11 @@
 </style>
 <section id="espnet2-uasr-package">
 <h1>espnet2.uasr package<a class="headerlink" href="#espnet2-uasr-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-uasr-init">
-<span id="id1"></span><h2>espnet2.uasr.__init__<a class="headerlink" href="#espnet2-uasr-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-init-1">
+<span id="espnet2-uasr-init"></span><h2>espnet2.uasr.__init__<a class="headerlink" href="#espnet2-uasr-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.__init__"></span></section>
-<section id="espnet2-uasr-espnet-model">
-<span id="id2"></span><h2>espnet2.uasr.espnet_model<a class="headerlink" href="#espnet2-uasr-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-espnet-model-1">
+<span id="espnet2-uasr-espnet-model"></span><h2>espnet2.uasr.espnet_model<a class="headerlink" href="#espnet2-uasr-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.espnet_model"></span><dl class="class">
 <dt id="espnet2.uasr.espnet_model.ESPnetUASRModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.espnet_model.</code><code class="sig-name descname">ESPnetUASRModel</code><span class="sig-paren">(</span><em class="sig-param">frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], segmenter: Optional[espnet2.uasr.segmenter.abs_segmenter.AbsSegmenter], generator: espnet2.uasr.generator.abs_generator.AbsGenerator, discriminator: espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator, losses: Dict[str, espnet2.uasr.loss.abs_loss.AbsUASRLoss], kenlm_path: Optional[str], token_list: Optional[list], max_epoch: Optional[int], vocab_size: int, cfg: Optional[Dict] = None, pad: int = 1, sil_token: str = '&lt;SIL&gt;', sos_token: str = '&lt;s&gt;', eos_token: str = '&lt;/s&gt;', skip_softmax: espnet2.utils.types.str2bool = False, use_gumbel: espnet2.utils.types.str2bool = False, use_hard_gumbel: espnet2.utils.types.str2bool = True, min_temperature: float = 0.1, max_temperature: float = 2.0, decay_temperature: float = 0.99995, use_collected_training_feats: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/espnet_model.html#ESPnetUASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.espnet_model.ESPnetUASRModel" title="Permalink to this definition">¶</a></dt>
@@ -272,8 +276,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-segmenter-abs-segmenter">
-<span id="id3"></span><h2>espnet2.uasr.segmenter.abs_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-abs-segmenter" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-segmenter-abs-segmenter-1">
+<span id="espnet2-uasr-segmenter-abs-segmenter"></span><h2>espnet2.uasr.segmenter.abs_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-abs-segmenter-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.segmenter.abs_segmenter"></span><p>Segmenter definition for UASR task</p>
 <p>Practially, the output of the generator (in frame-level) may
 predict the same phoneme for consecutive frames, which makes
@@ -297,8 +301,8 @@ to merge frames with a similar prediction from the generator output.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-segmenter-join-segmenter">
-<span id="id4"></span><h2>espnet2.uasr.segmenter.join_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-join-segmenter" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-segmenter-join-segmenter-1">
+<span id="espnet2-uasr-segmenter-join-segmenter"></span><h2>espnet2.uasr.segmenter.join_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-join-segmenter-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.segmenter.join_segmenter"></span><dl class="class">
 <dt id="espnet2.uasr.segmenter.join_segmenter.JoinSegmenter">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.segmenter.join_segmenter.</code><code class="sig-name descname">JoinSegmenter</code><span class="sig-paren">(</span><em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">subsample_rate: float = 0.25</em>, <em class="sig-param">mean_pool: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">mean_join_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">remove_zeros: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/segmenter/join_segmenter.html#JoinSegmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.join_segmenter.JoinSegmenter" title="Permalink to this definition">¶</a></dt>
@@ -316,11 +320,11 @@ to merge frames with a similar prediction from the generator output.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-segmenter-init">
-<span id="id5"></span><h2>espnet2.uasr.segmenter.__init__<a class="headerlink" href="#espnet2-uasr-segmenter-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-segmenter-init-1">
+<span id="espnet2-uasr-segmenter-init"></span><h2>espnet2.uasr.segmenter.__init__<a class="headerlink" href="#espnet2-uasr-segmenter-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.segmenter.__init__"></span></section>
-<section id="espnet2-uasr-segmenter-random-segmenter">
-<span id="id6"></span><h2>espnet2.uasr.segmenter.random_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-random-segmenter" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-segmenter-random-segmenter-1">
+<span id="espnet2-uasr-segmenter-random-segmenter"></span><h2>espnet2.uasr.segmenter.random_segmenter<a class="headerlink" href="#espnet2-uasr-segmenter-random-segmenter-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.segmenter.random_segmenter"></span><dl class="class">
 <dt id="espnet2.uasr.segmenter.random_segmenter.RandomSegmenter">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.segmenter.random_segmenter.</code><code class="sig-name descname">RandomSegmenter</code><span class="sig-paren">(</span><em class="sig-param">subsample_rate: float = 0.25</em>, <em class="sig-param">mean_pool: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">mean_join_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">remove_zeros: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/segmenter/random_segmenter.html#RandomSegmenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.segmenter.random_segmenter.RandomSegmenter" title="Permalink to this definition">¶</a></dt>
@@ -338,8 +342,8 @@ to merge frames with a similar prediction from the generator output.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-generator-abs-generator">
-<span id="id7"></span><h2>espnet2.uasr.generator.abs_generator<a class="headerlink" href="#espnet2-uasr-generator-abs-generator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-generator-abs-generator-1">
+<span id="espnet2-uasr-generator-abs-generator"></span><h2>espnet2.uasr.generator.abs_generator<a class="headerlink" href="#espnet2-uasr-generator-abs-generator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.generator.abs_generator"></span><dl class="class">
 <dt id="espnet2.uasr.generator.abs_generator.AbsGenerator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.abs_generator.</code><code class="sig-name descname">AbsGenerator</code><a class="reference internal" href="../_modules/espnet2/uasr/generator/abs_generator.html#AbsGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.abs_generator.AbsGenerator" title="Permalink to this definition">¶</a></dt>
@@ -356,7 +360,7 @@ to merge frames with a similar prediction from the generator output.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -367,8 +371,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-generator-conv-generator">
-<span id="id8"></span><h2>espnet2.uasr.generator.conv_generator<a class="headerlink" href="#espnet2-uasr-generator-conv-generator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-generator-conv-generator-1">
+<span id="espnet2-uasr-generator-conv-generator"></span><h2>espnet2.uasr.generator.conv_generator<a class="headerlink" href="#espnet2-uasr-generator-conv-generator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.generator.conv_generator"></span><dl class="class">
 <dt id="espnet2.uasr.generator.conv_generator.ConvGenerator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.generator.conv_generator.</code><code class="sig-name descname">ConvGenerator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">output_dim: int</em>, <em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">conv_kernel: int = 3</em>, <em class="sig-param">conv_dilation: int = 1</em>, <em class="sig-param">conv_stride: int = 9</em>, <em class="sig-param">pad: int = -1</em>, <em class="sig-param">bias: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">batch_norm: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">batch_norm_weight: float = 30.0</em>, <em class="sig-param">residual: espnet2.utils.types.str2bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/generator/conv_generator.html#ConvGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.generator.conv_generator.ConvGenerator" title="Permalink to this definition">¶</a></dt>
@@ -390,7 +394,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -415,7 +419,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
@@ -435,17 +439,17 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-generator-init">
-<span id="id9"></span><h2>espnet2.uasr.generator.__init__<a class="headerlink" href="#espnet2-uasr-generator-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-generator-init-1">
+<span id="espnet2-uasr-generator-init"></span><h2>espnet2.uasr.generator.__init__<a class="headerlink" href="#espnet2-uasr-generator-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.generator.__init__"></span></section>
-<section id="espnet2-uasr-discriminator-conv-discriminator">
-<span id="id10"></span><h2>espnet2.uasr.discriminator.conv_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-conv-discriminator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-discriminator-conv-discriminator-1">
+<span id="espnet2-uasr-discriminator-conv-discriminator"></span><h2>espnet2.uasr.discriminator.conv_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-conv-discriminator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.discriminator.conv_discriminator"></span><dl class="class">
 <dt id="espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.discriminator.conv_discriminator.</code><code class="sig-name descname">ConvDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">cfg: Optional[Dict] = None</em>, <em class="sig-param">conv_channels: int = 384</em>, <em class="sig-param">conv_kernel: int = 8</em>, <em class="sig-param">conv_dilation: int = 1</em>, <em class="sig-param">conv_depth: int = 2</em>, <em class="sig-param">linear_emb: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">causal: espnet2.utils.types.str2bool = True</em>, <em class="sig-param">max_pool: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">act_after_linear: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">spectral_norm: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">weight_norm: espnet2.utils.types.str2bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/conv_discriminator.html#ConvDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.conv_discriminator.ConvDiscriminator" title="Permalink to this definition">¶</a></dt>
@@ -462,7 +466,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
@@ -482,17 +486,17 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-discriminator-init">
-<span id="id11"></span><h2>espnet2.uasr.discriminator.__init__<a class="headerlink" href="#espnet2-uasr-discriminator-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-discriminator-init-1">
+<span id="espnet2-uasr-discriminator-init"></span><h2>espnet2.uasr.discriminator.__init__<a class="headerlink" href="#espnet2-uasr-discriminator-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.discriminator.__init__"></span></section>
-<section id="espnet2-uasr-discriminator-abs-discriminator">
-<span id="id12"></span><h2>espnet2.uasr.discriminator.abs_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-abs-discriminator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-discriminator-abs-discriminator-1">
+<span id="espnet2-uasr-discriminator-abs-discriminator"></span><h2>espnet2.uasr.discriminator.abs_discriminator<a class="headerlink" href="#espnet2-uasr-discriminator-abs-discriminator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.discriminator.abs_discriminator"></span><dl class="class">
 <dt id="espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.discriminator.abs_discriminator.</code><code class="sig-name descname">AbsDiscriminator</code><a class="reference internal" href="../_modules/espnet2/uasr/discriminator/abs_discriminator.html#AbsDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator" title="Permalink to this definition">¶</a></dt>
@@ -509,14 +513,14 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-phoneme-diversity-loss">
-<span id="id13"></span><h2>espnet2.uasr.loss.phoneme_diversity_loss<a class="headerlink" href="#espnet2-uasr-loss-phoneme-diversity-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-phoneme-diversity-loss-1">
+<span id="espnet2-uasr-loss-phoneme-diversity-loss"></span><h2>espnet2.uasr.loss.phoneme_diversity_loss<a class="headerlink" href="#espnet2-uasr-loss-phoneme-diversity-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.phoneme_diversity_loss"></span><dl class="class">
 <dt id="espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.phoneme_diversity_loss.</code><code class="sig-name descname">UASRPhonemeDiversityLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/phoneme_diversity_loss.html#UASRPhonemeDiversityLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss" title="Permalink to this definition">¶</a></dt>
@@ -527,7 +531,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_x: torch.Tensor</em>, <em class="sig-param">sample_size: int</em>, <em class="sig-param">is_discriminative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/phoneme_diversity_loss.html#UASRPhonemeDiversityLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.phoneme_diversity_loss.UASRPhonemeDiversityLoss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dense_x</strong> – predicted logits of generated samples</p></li>
 <li><p><strong>sample_size</strong> – batch size</p></li>
@@ -540,8 +544,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-gradient-penalty">
-<span id="id14"></span><h2>espnet2.uasr.loss.gradient_penalty<a class="headerlink" href="#espnet2-uasr-loss-gradient-penalty" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-gradient-penalty-1">
+<span id="espnet2-uasr-loss-gradient-penalty"></span><h2>espnet2.uasr.loss.gradient_penalty<a class="headerlink" href="#espnet2-uasr-loss-gradient-penalty-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.gradient_penalty"></span><dl class="class">
 <dt id="espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.gradient_penalty.</code><code class="sig-name descname">UASRGradientPenalty</code><span class="sig-paren">(</span><em class="sig-param">discriminator: espnet2.uasr.discriminator.abs_discriminator.AbsDiscriminator</em>, <em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">probabilistic_grad_penalty_slicing: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">reduction: str = 'sum'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/gradient_penalty.html#UASRGradientPenalty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty" title="Permalink to this definition">¶</a></dt>
@@ -552,7 +556,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">fake_sample: torch.Tensor</em>, <em class="sig-param">real_sample: torch.Tensor</em>, <em class="sig-param">is_training: espnet2.utils.types.str2bool</em>, <em class="sig-param">is_discrimininative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/gradient_penalty.html#UASRGradientPenalty.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.gradient_penalty.UASRGradientPenalty.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fake_sample</strong> – generated sample from generator</p></li>
 <li><p><strong>real_sample</strong> – real sample</p></li>
@@ -566,8 +570,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-abs-loss">
-<span id="id15"></span><h2>espnet2.uasr.loss.abs_loss<a class="headerlink" href="#espnet2-uasr-loss-abs-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-abs-loss-1">
+<span id="espnet2-uasr-loss-abs-loss"></span><h2>espnet2.uasr.loss.abs_loss<a class="headerlink" href="#espnet2-uasr-loss-abs-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.abs_loss"></span><dl class="class">
 <dt id="espnet2.uasr.loss.abs_loss.AbsUASRLoss">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.abs_loss.</code><code class="sig-name descname">AbsUASRLoss</code><a class="reference internal" href="../_modules/espnet2/uasr/loss/abs_loss.html#AbsUASRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.abs_loss.AbsUASRLoss" title="Permalink to this definition">¶</a></dt>
@@ -585,7 +589,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -596,8 +600,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-pseudo-label-loss">
-<span id="id16"></span><h2>espnet2.uasr.loss.pseudo_label_loss<a class="headerlink" href="#espnet2-uasr-loss-pseudo-label-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-pseudo-label-loss-1">
+<span id="espnet2-uasr-loss-pseudo-label-loss"></span><h2>espnet2.uasr.loss.pseudo_label_loss<a class="headerlink" href="#espnet2-uasr-loss-pseudo-label-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.pseudo_label_loss"></span><dl class="class">
 <dt id="espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.pseudo_label_loss.</code><code class="sig-name descname">UASRPseudoLabelLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">input_dim: int = 128</em>, <em class="sig-param">output_dim: int = 64</em>, <em class="sig-param">downsample_rate: int = 2</em>, <em class="sig-param">ignore_index: int = -1</em>, <em class="sig-param">reduction: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/pseudo_label_loss.html#UASRPseudoLabelLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.pseudo_label_loss.UASRPseudoLabelLoss" title="Permalink to this definition">¶</a></dt>
@@ -613,8 +617,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-discriminator-loss">
-<span id="id17"></span><h2>espnet2.uasr.loss.discriminator_loss<a class="headerlink" href="#espnet2-uasr-loss-discriminator-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-discriminator-loss-1">
+<span id="espnet2-uasr-loss-discriminator-loss"></span><h2>espnet2.uasr.loss.discriminator_loss<a class="headerlink" href="#espnet2-uasr-loss-discriminator-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.discriminator_loss"></span><dl class="class">
 <dt id="espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.discriminator_loss.</code><code class="sig-name descname">UASRDiscriminatorLoss</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">smoothing: float = 0.0</em>, <em class="sig-param">smoothing_one_side: espnet2.utils.types.str2bool = False</em>, <em class="sig-param">reduction: str = 'sum'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/discriminator_loss.html#UASRDiscriminatorLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss" title="Permalink to this definition">¶</a></dt>
@@ -625,7 +629,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_y: torch.Tensor</em>, <em class="sig-param">token_y: torch.Tensor</em>, <em class="sig-param">is_discriminative_step: espnet2.utils.types.str2bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/discriminator_loss.html#UASRDiscriminatorLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.discriminator_loss.UASRDiscriminatorLoss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dense_y</strong> – predicted logits of generated samples</p></li>
 <li><p><strong>token_y</strong> – predicted logits of real samples</p></li>
@@ -637,11 +641,11 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-uasr-loss-init">
-<span id="id18"></span><h2>espnet2.uasr.loss.__init__<a class="headerlink" href="#espnet2-uasr-loss-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-init-1">
+<span id="espnet2-uasr-loss-init"></span><h2>espnet2.uasr.loss.__init__<a class="headerlink" href="#espnet2-uasr-loss-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.__init__"></span></section>
-<section id="espnet2-uasr-loss-smoothness-penalty">
-<span id="id19"></span><h2>espnet2.uasr.loss.smoothness_penalty<a class="headerlink" href="#espnet2-uasr-loss-smoothness-penalty" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-uasr-loss-smoothness-penalty-1">
+<span id="espnet2-uasr-loss-smoothness-penalty"></span><h2>espnet2.uasr.loss.smoothness_penalty<a class="headerlink" href="#espnet2-uasr-loss-smoothness-penalty-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.uasr.loss.smoothness_penalty"></span><dl class="class">
 <dt id="espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.uasr.loss.smoothness_penalty.</code><code class="sig-name descname">UASRSmoothnessPenalty</code><span class="sig-paren">(</span><em class="sig-param">weight: float = 1.0</em>, <em class="sig-param">reduction: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/smoothness_penalty.html#UASRSmoothnessPenalty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty" title="Permalink to this definition">¶</a></dt>
@@ -652,7 +656,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">dense_logits: torch.Tensor</em>, <em class="sig-param">dense_padding_mask: torch.Tensor</em>, <em class="sig-param">sample_size: int</em>, <em class="sig-param">is_discriminative_step: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/uasr/loss/smoothness_penalty.html#UASRSmoothnessPenalty.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.uasr.loss.smoothness_penalty.UASRSmoothnessPenalty.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dense_logits</strong> – output logits of generator</p></li>
 <li><p><strong>dense_padding_mask</strong> – padding mask of logits</p></li>

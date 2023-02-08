@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.slu package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -126,14 +130,14 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.slu package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-init">espnet2.slu.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-espnet-model">espnet2.slu.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-transformer-postencoder">espnet2.slu.postencoder.transformer_postencoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-init">espnet2.slu.postencoder.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-conformer-postencoder">espnet2.slu.postencoder.conformer_postencoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-init">espnet2.slu.postdecoder.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-hugging-face-transformers-postdecoder">espnet2.slu.postdecoder.hugging_face_transformers_postdecoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-abs-postdecoder">espnet2.slu.postdecoder.abs_postdecoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-init-1">espnet2.slu.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-espnet-model-1">espnet2.slu.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-transformer-postencoder-1">espnet2.slu.postencoder.transformer_postencoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-init-1">espnet2.slu.postencoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postencoder-conformer-postencoder-1">espnet2.slu.postencoder.conformer_postencoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-init-1">espnet2.slu.postdecoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-hugging-face-transformers-postdecoder-1">espnet2.slu.postdecoder.hugging_face_transformers_postdecoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-slu-postdecoder-abs-postdecoder-1">espnet2.slu.postdecoder.abs_postdecoder</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
@@ -172,7 +176,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.slu package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.slu.rst.txt" rel="nofollow"> View page source</a>
@@ -209,11 +213,11 @@
 </style>
 <section id="espnet2-slu-package">
 <h1>espnet2.slu package<a class="headerlink" href="#espnet2-slu-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-slu-init">
-<span id="id1"></span><h2>espnet2.slu.__init__<a class="headerlink" href="#espnet2-slu-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-init-1">
+<span id="espnet2-slu-init"></span><h2>espnet2.slu.__init__<a class="headerlink" href="#espnet2-slu-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.__init__"></span></section>
-<section id="espnet2-slu-espnet-model">
-<span id="id2"></span><h2>espnet2.slu.espnet_model<a class="headerlink" href="#espnet2-slu-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-espnet-model-1">
+<span id="espnet2-slu-espnet-model"></span><h2>espnet2.slu.espnet_model<a class="headerlink" href="#espnet2-slu-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.espnet_model"></span><dl class="class">
 <dt id="espnet2.slu.espnet_model.ESPnetSLUModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.slu.espnet_model.</code><code class="sig-name descname">ESPnetSLUModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], postdecoder: Optional[espnet2.slu.postdecoder.abs_postdecoder.AbsPostDecoder] = None, deliberationencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder] = None, transcript_token_list: Union[Tuple[str, ...], List[str]] = None, ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', extract_feats_in_collect_stats: bool = True, two_pass: bool = False, pre_postencoder_norm: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/slu/espnet_model.html#ESPnetSLUModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.slu.espnet_model.ESPnetSLUModel" title="Permalink to this definition">¶</a></dt>
@@ -229,7 +233,7 @@
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">transcript_pad: torch.Tensor = None</em>, <em class="sig-param">transcript_pad_lens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/slu/espnet_model.html#ESPnetSLUModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.slu.espnet_model.ESPnetSLUModel.encode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder. Note that this method is used by asr_inference.py</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -243,7 +247,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">transcript: torch.Tensor = None</em>, <em class="sig-param">transcript_lengths: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/slu/espnet_model.html#ESPnetSLUModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.slu.espnet_model.ESPnetSLUModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Decoder + Calc loss</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -258,8 +262,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-slu-postencoder-transformer-postencoder">
-<span id="id3"></span><h2>espnet2.slu.postencoder.transformer_postencoder<a class="headerlink" href="#espnet2-slu-postencoder-transformer-postencoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postencoder-transformer-postencoder-1">
+<span id="espnet2-slu-postencoder-transformer-postencoder"></span><h2>espnet2.slu.postencoder.transformer_postencoder<a class="headerlink" href="#espnet2-slu-postencoder-transformer-postencoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postencoder.transformer_postencoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder">
@@ -267,7 +271,7 @@
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder</span></code></a></p>
 <p>Transformer encoder module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_size</strong> – input dim</p></li>
 <li><p><strong>output_size</strong> – dimension of attention</p></li>
@@ -296,14 +300,14 @@ i.e. x -&gt; x + att(x)</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/slu/postencoder/transformer_postencoder.html#TransformerPostEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Embed positions in tensor.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
 <li><p><strong>ilens</strong> – input length (B)</p></li>
 <li><p><strong>prev_states</strong> – Not to be used now.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>position embedded tensor and mask</p>
 </dd>
 </dl>
@@ -317,11 +321,11 @@ i.e. x -&gt; x + att(x)</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-slu-postencoder-init">
-<span id="id4"></span><h2>espnet2.slu.postencoder.__init__<a class="headerlink" href="#espnet2-slu-postencoder-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postencoder-init-1">
+<span id="espnet2-slu-postencoder-init"></span><h2>espnet2.slu.postencoder.__init__<a class="headerlink" href="#espnet2-slu-postencoder-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postencoder.__init__"></span></section>
-<section id="espnet2-slu-postencoder-conformer-postencoder">
-<span id="id5"></span><h2>espnet2.slu.postencoder.conformer_postencoder<a class="headerlink" href="#espnet2-slu-postencoder-conformer-postencoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postencoder-conformer-postencoder-1">
+<span id="espnet2-slu-postencoder-conformer-postencoder"></span><h2>espnet2.slu.postencoder.conformer_postencoder<a class="headerlink" href="#espnet2-slu-postencoder-conformer-postencoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postencoder.conformer_postencoder"></span><p>Conformers PostEncoder.</p>
 <dl class="class">
 <dt id="espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder">
@@ -343,11 +347,11 @@ i.e. x -&gt; x + att(x)</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-slu-postdecoder-init">
-<span id="id6"></span><h2>espnet2.slu.postdecoder.__init__<a class="headerlink" href="#espnet2-slu-postdecoder-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postdecoder-init-1">
+<span id="espnet2-slu-postdecoder-init"></span><h2>espnet2.slu.postdecoder.__init__<a class="headerlink" href="#espnet2-slu-postdecoder-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postdecoder.__init__"></span></section>
-<section id="espnet2-slu-postdecoder-hugging-face-transformers-postdecoder">
-<span id="id7"></span><h2>espnet2.slu.postdecoder.hugging_face_transformers_postdecoder<a class="headerlink" href="#espnet2-slu-postdecoder-hugging-face-transformers-postdecoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postdecoder-hugging-face-transformers-postdecoder-1">
+<span id="espnet2-slu-postdecoder-hugging-face-transformers-postdecoder"></span><h2>espnet2.slu.postdecoder.hugging_face_transformers_postdecoder<a class="headerlink" href="#espnet2-slu-postdecoder-hugging-face-transformers-postdecoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postdecoder.hugging_face_transformers_postdecoder"></span><p>Hugging Face Transformers PostDecoder.</p>
 <dl class="class">
 <dt id="espnet2.slu.postdecoder.hugging_face_transformers_postdecoder.HuggingFaceTransformersPostDecoder">
@@ -375,8 +379,8 @@ i.e. x -&gt; x + att(x)</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-slu-postdecoder-abs-postdecoder">
-<span id="id8"></span><h2>espnet2.slu.postdecoder.abs_postdecoder<a class="headerlink" href="#espnet2-slu-postdecoder-abs-postdecoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-slu-postdecoder-abs-postdecoder-1">
+<span id="espnet2-slu-postdecoder-abs-postdecoder"></span><h2>espnet2.slu.postdecoder.abs_postdecoder<a class="headerlink" href="#espnet2-slu-postdecoder-abs-postdecoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.slu.postdecoder.abs_postdecoder"></span><dl class="class">
 <dt id="espnet2.slu.postdecoder.abs_postdecoder.AbsPostDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.slu.postdecoder.abs_postdecoder.</code><code class="sig-name descname">AbsPostDecoder</code><a class="reference internal" href="../_modules/espnet2/slu/postdecoder/abs_postdecoder.html#AbsPostDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.slu.postdecoder.abs_postdecoder.AbsPostDecoder" title="Permalink to this definition">¶</a></dt>
@@ -398,7 +402,7 @@ i.e. x -&gt; x + att(x)</p></li>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">

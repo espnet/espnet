@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESPnet real time E2E-TTS demonstration &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -118,22 +122,22 @@
 <li class="toctree-l3"><a class="reference internal" href="#Install-Japanese-dependencies">Install Japanese dependencies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Download-pretrained-models">Download pretrained models</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#(a)-Tacotron-2">(a) Tacotron 2</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#id1">(b) Transformer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#b-transformer-1">(b) Transformer</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup-1">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#synthesis-1">Synthesis</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#Mandarin-demo">Mandarin demo</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Install-Mandarin-dependencies">Install Mandarin dependencies</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id4">Download pretrained models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#download-pretrained-models-1">Download pretrained models</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#(a)-Transformer">(a) Transformer</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#(b)-FastSpeech">(b) FastSpeech</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id5">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id6">Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setup-2">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#synthesis-2">Synthesis</a></li>
 </ul>
 </li>
 </ul>
@@ -204,7 +208,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">ESPnet real time E2E-TTS demonstration</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/notebook/tts_realtime_demo.ipynb.txt" rel="nofollow"> View page source</a>
@@ -798,8 +802,8 @@ print(&quot;sucessfully finished download.&quot;)
 </div>
 </div>
 </section>
-<section id="id1">
-<h4>(b) Transformer<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h4>
+<section id="b-transformer-1">
+<h4>(b) Transformer<a class="headerlink" href="#b-transformer-1" title="Permalink to this headline">¶</a></h4>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -823,8 +827,8 @@ print(&quot;sucessfully finished download.&quot;)
 </div>
 </section>
 </section>
-<section id="id2">
-<h3>Setup<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<section id="setup-1">
+<h3>Setup<a class="headerlink" href="#setup-1" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -884,8 +888,8 @@ print(&quot;Now ready to synthesize!&quot;)
 </div>
 </div>
 </section>
-<section id="id3">
-<h3>Synthesis<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<section id="synthesis-1">
+<h3>Synthesis<a class="headerlink" href="#synthesis-1" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -924,8 +928,8 @@ display(Audio(y.view(-1).cpu().numpy(), rate=fs))
 </div>
 </div>
 </section>
-<section id="id4">
-<h3>Download pretrained models<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<section id="download-pretrained-models-1">
+<h3>Download pretrained models<a class="headerlink" href="#download-pretrained-models-1" title="Permalink to this headline">¶</a></h3>
 <p>You can select Transformer or FastSpeech.</p>
 <section id="(a)-Transformer">
 <h4>(a) Transformer<a class="headerlink" href="#(a)-Transformer" title="Permalink to this headline">¶</a></h4>
@@ -976,8 +980,8 @@ print(&quot;sucessfully finished download.&quot;)
 </div>
 </section>
 </section>
-<section id="id5">
-<h3>Setup<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<section id="setup-2">
+<h3>Setup<a class="headerlink" href="#setup-2" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -1048,8 +1052,8 @@ print(&quot;now ready to synthesize!&quot;)
 </div>
 </div>
 </section>
-<section id="id6">
-<h3>Synthesis<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<section id="synthesis-2">
+<h3>Synthesis<a class="headerlink" href="#synthesis-2" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>

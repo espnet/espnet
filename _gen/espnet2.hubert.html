@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.hubert package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -119,9 +123,9 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.hubert package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-init">espnet2.hubert.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-espnet-model">espnet2.hubert.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-hubert-loss">espnet2.hubert.hubert_loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-init-1">espnet2.hubert.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-espnet-model-1">espnet2.hubert.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-hubert-hubert-loss-1">espnet2.hubert.hubert_loss</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
@@ -167,7 +171,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.hubert package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.hubert.rst.txt" rel="nofollow"> View page source</a>
@@ -204,11 +208,11 @@
 </style>
 <section id="espnet2-hubert-package">
 <h1>espnet2.hubert package<a class="headerlink" href="#espnet2-hubert-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-hubert-init">
-<span id="id1"></span><h2>espnet2.hubert.__init__<a class="headerlink" href="#espnet2-hubert-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-hubert-init-1">
+<span id="espnet2-hubert-init"></span><h2>espnet2.hubert.__init__<a class="headerlink" href="#espnet2-hubert-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.hubert.__init__"></span></section>
-<section id="espnet2-hubert-espnet-model">
-<span id="id2"></span><h2>espnet2.hubert.espnet_model<a class="headerlink" href="#espnet2-hubert-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-hubert-espnet-model-1">
+<span id="espnet2-hubert-espnet-model"></span><h2>espnet2.hubert.espnet_model<a class="headerlink" href="#espnet2-hubert-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.hubert.espnet_model"></span><dl class="class">
 <dt id="espnet2.hubert.espnet_model.HubertPretrainModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.hubert.espnet_model.</code><code class="sig-name descname">HubertPretrainModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = False, report_wer: bool = False, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', pred_masked_weight: float = 1.0, pred_nomask_weight: float = 0.0, loss_weights: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#HubertPretrainModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.HubertPretrainModel" title="Permalink to this definition">¶</a></dt>
@@ -229,7 +233,7 @@
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">y_pad: torch.Tensor</em>, <em class="sig-param">y_pad_length: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#HubertPretrainModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.HubertPretrainModel.encode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder. Note that this method is used by asr_inference.py</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -245,7 +249,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#HubertPretrainModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.HubertPretrainModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Calc loss</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -274,7 +278,7 @@
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">y_pad: torch.Tensor</em>, <em class="sig-param">y_pad_length: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.encode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder. Note that this method is used by asr_inference.py</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -290,7 +294,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/hubert/espnet_model.html#TorchAudioHubertPretrainModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.hubert.espnet_model.TorchAudioHubertPretrainModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Calc loss</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch, )</p></li>
@@ -305,8 +309,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-hubert-hubert-loss">
-<span id="id3"></span><h2>espnet2.hubert.hubert_loss<a class="headerlink" href="#espnet2-hubert-hubert-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-hubert-hubert-loss-1">
+<span id="espnet2-hubert-hubert-loss"></span><h2>espnet2.hubert.hubert_loss<a class="headerlink" href="#espnet2-hubert-hubert-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.hubert.hubert_loss"></span><p>Hubert Pretrain Loss module.</p>
 <dl class="class">
 <dt id="espnet2.hubert.hubert_loss.HubertPretrainLoss">
@@ -314,7 +318,7 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Hubert criterion module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>pred_masked_weight</strong> – weight for predictive loss for masked frames</p></li>
 <li><p><strong>pred_nomask_weight</strong> – weight for predictive loss for unmasked frames</p></li>
@@ -333,7 +337,7 @@
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>

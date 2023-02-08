@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet.optimizer package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -102,11 +106,11 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.optimizer package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-chainer">espnet.optimizer.chainer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-parser">espnet.optimizer.parser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-factory">espnet.optimizer.factory</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-init">espnet.optimizer.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-pytorch">espnet.optimizer.pytorch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-chainer-1">espnet.optimizer.chainer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-parser-1">espnet.optimizer.parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-factory-1">espnet.optimizer.factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-init-1">espnet.optimizer.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-optimizer-pytorch-1">espnet.optimizer.pytorch</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
@@ -169,7 +173,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet.optimizer package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet.optimizer.rst.txt" rel="nofollow"> View page source</a>
@@ -207,8 +211,8 @@
 <section id="espnet-optimizer-package">
 <h1>espnet.optimizer package<a class="headerlink" href="#espnet-optimizer-package" title="Permalink to this headline">¶</a></h1>
 <p>Initialize sub package.</p>
-<section id="espnet-optimizer-chainer">
-<span id="id1"></span><h2>espnet.optimizer.chainer<a class="headerlink" href="#espnet-optimizer-chainer" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-optimizer-chainer-1">
+<span id="espnet-optimizer-chainer"></span><h2>espnet.optimizer.chainer<a class="headerlink" href="#espnet-optimizer-chainer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.optimizer.chainer"></span><p>Chainer optimizer builders.</p>
 <dl class="class">
 <dt id="espnet.optimizer.chainer.AdadeltaFactory">
@@ -226,7 +230,7 @@
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/chainer.html#AdadeltaFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.chainer.AdadeltaFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -254,7 +258,7 @@ for chainer <cite>model</cite></p></li>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/chainer.html#AdamFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.chainer.AdamFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -282,7 +286,7 @@ for chainer <cite>model</cite></p></li>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/chainer.html#SGDFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.chainer.SGDFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -295,8 +299,8 @@ for chainer <cite>model</cite></p></li>
 </dd></dl>
 
 </section>
-<section id="espnet-optimizer-parser">
-<span id="id2"></span><h2>espnet.optimizer.parser<a class="headerlink" href="#espnet-optimizer-parser" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-optimizer-parser-1">
+<span id="espnet-optimizer-parser"></span><h2>espnet.optimizer.parser<a class="headerlink" href="#espnet-optimizer-parser-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.optimizer.parser"></span><p>Common optimizer default config for multiple backends.</p>
 <dl class="function">
 <dt id="espnet.optimizer.parser.adadelta">
@@ -317,8 +321,8 @@ for chainer <cite>model</cite></p></li>
 </dd></dl>
 
 </section>
-<section id="espnet-optimizer-factory">
-<span id="id3"></span><h2>espnet.optimizer.factory<a class="headerlink" href="#espnet-optimizer-factory" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-optimizer-factory-1">
+<span id="espnet-optimizer-factory"></span><h2>espnet.optimizer.factory<a class="headerlink" href="#espnet-optimizer-factory-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.optimizer.factory"></span><p>Import optimizer class dynamically.</p>
 <dl class="class">
 <dt id="espnet.optimizer.factory.OptimizerFactoryInterface">
@@ -336,11 +340,11 @@ for chainer <cite>model</cite></p></li>
 <em class="property">classmethod </em><code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/factory.html#OptimizerFactoryInterface.build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.factory.OptimizerFactoryInterface.build" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer with python-level args.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>new Optimizer</p>
 </dd>
 </dl>
@@ -351,7 +355,7 @@ for chainer <cite>model</cite></p>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/factory.html#OptimizerFactoryInterface.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.factory.OptimizerFactoryInterface.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -368,25 +372,25 @@ for chainer <cite>model</cite></p></li>
 <code class="sig-prename descclassname">espnet.optimizer.factory.</code><code class="sig-name descname">dynamic_import_optimizer</code><span class="sig-paren">(</span><em class="sig-param">name: str</em>, <em class="sig-param">backend: str</em><span class="sig-paren">)</span> &#x2192; espnet.optimizer.factory.OptimizerFactoryInterface<a class="reference internal" href="../_modules/espnet/optimizer/factory.html#dynamic_import_optimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.factory.dynamic_import_optimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Import optimizer class dynamically.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>name</strong> (<em>str</em>) – alias name or dynamic import syntax <cite>module:class</cite></p></li>
 <li><p><strong>backend</strong> (<em>str</em>) – backend name e.g., chainer or pytorch</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>OptimizerFactoryInterface or FunctionalOptimizerAdaptor</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet-optimizer-init">
-<span id="id4"></span><h2>espnet.optimizer.__init__<a class="headerlink" href="#espnet-optimizer-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-optimizer-init-1">
+<span id="espnet-optimizer-init"></span><h2>espnet.optimizer.__init__<a class="headerlink" href="#espnet-optimizer-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.optimizer.__init__"></span><p>Initialize sub package.</p>
 </section>
-<section id="espnet-optimizer-pytorch">
-<span id="id5"></span><h2>espnet.optimizer.pytorch<a class="headerlink" href="#espnet-optimizer-pytorch" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-optimizer-pytorch-1">
+<span id="espnet-optimizer-pytorch"></span><h2>espnet.optimizer.pytorch<a class="headerlink" href="#espnet-optimizer-pytorch-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.optimizer.pytorch"></span><p>PyTorch optimizer builders.</p>
 <dl class="class">
 <dt id="espnet.optimizer.pytorch.AdadeltaFactory">
@@ -404,7 +408,7 @@ for chainer <cite>model</cite></p></li>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/pytorch.html#AdadeltaFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.pytorch.AdadeltaFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -432,7 +436,7 @@ for chainer <cite>model</cite></p></li>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/pytorch.html#AdamFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.pytorch.AdamFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>
@@ -460,7 +464,7 @@ for chainer <cite>model</cite></p></li>
 <em class="property">static </em><code class="sig-name descname">from_args</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/optimizer/pytorch.html#SGDFactory.from_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.optimizer.pytorch.SGDFactory.from_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize optimizer from argparse Namespace.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>target</strong> – for pytorch <cite>model.parameters()</cite>,
 for chainer <cite>model</cite></p></li>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.layers package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -131,17 +135,17 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.layers package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-mask-along-axis">espnet2.layers.mask_along_axis</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-inversible-interface">espnet2.layers.inversible_interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-label-aggregation">espnet2.layers.label_aggregation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-utterance-mvn">espnet2.layers.utterance_mvn</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-global-mvn">espnet2.layers.global_mvn</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-stft">espnet2.layers.stft</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-abs-normalize">espnet2.layers.abs_normalize</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-time-warp">espnet2.layers.time_warp</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-log-mel">espnet2.layers.log_mel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-init">espnet2.layers.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-sinc-conv">espnet2.layers.sinc_conv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-mask-along-axis-1">espnet2.layers.mask_along_axis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-inversible-interface-1">espnet2.layers.inversible_interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-label-aggregation-1">espnet2.layers.label_aggregation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-utterance-mvn-1">espnet2.layers.utterance_mvn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-global-mvn-1">espnet2.layers.global_mvn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-stft-1">espnet2.layers.stft</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-abs-normalize-1">espnet2.layers.abs_normalize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-time-warp-1">espnet2.layers.time_warp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-log-mel-1">espnet2.layers.log_mel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-init-1">espnet2.layers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-sinc-conv-1">espnet2.layers.sinc_conv</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
@@ -175,7 +179,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.layers package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.layers.rst.txt" rel="nofollow"> View page source</a>
@@ -212,8 +216,8 @@
 </style>
 <section id="espnet2-layers-package">
 <h1>espnet2.layers package<a class="headerlink" href="#espnet2-layers-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-layers-mask-along-axis">
-<span id="id1"></span><h2>espnet2.layers.mask_along_axis<a class="headerlink" href="#espnet2-layers-mask-along-axis" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-mask-along-axis-1">
+<span id="espnet2-layers-mask-along-axis"></span><h2>espnet2.layers.mask_along_axis<a class="headerlink" href="#espnet2-layers-mask-along-axis-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.mask_along_axis"></span><dl class="class">
 <dt id="espnet2.layers.mask_along_axis.MaskAlongAxis">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.mask_along_axis.</code><code class="sig-name descname">MaskAlongAxis</code><span class="sig-paren">(</span><em class="sig-param">mask_width_range: Union[int</em>, <em class="sig-param">Sequence[int]] = (0</em>, <em class="sig-param">30)</em>, <em class="sig-param">num_mask: int = 2</em>, <em class="sig-param">dim: Union[int</em>, <em class="sig-param">str] = 'time'</em>, <em class="sig-param">replace_with_zero: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxis" title="Permalink to this definition">¶</a></dt>
@@ -232,7 +236,7 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">spec_lengths: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxis.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxis.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>spec</strong> – (Batch, Length, Freq)</p>
 </dd>
 </dl>
@@ -263,7 +267,7 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">spec_lengths: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxisVariableMaxWidth.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>spec</strong> – (Batch, Length, Freq)</p>
 </dd>
 </dl>
@@ -276,7 +280,7 @@ strings are acceptable.</p>
 <code class="sig-prename descclassname">espnet2.layers.mask_along_axis.</code><code class="sig-name descname">mask_along_axis</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">spec_lengths: torch.Tensor</em>, <em class="sig-param">mask_width_range: Sequence[int] = (0</em>, <em class="sig-param">30)</em>, <em class="sig-param">dim: int = 1</em>, <em class="sig-param">num_mask: int = 2</em>, <em class="sig-param">replace_with_zero: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#mask_along_axis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.mask_along_axis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply mask along the specified direction.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spec</strong> – (Batch, Length, Freq)</p></li>
 <li><p><strong>spec_lengths</strong> – (Length): Not using lengths in this implementation</p></li>
@@ -287,8 +291,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-inversible-interface">
-<span id="id2"></span><h2>espnet2.layers.inversible_interface<a class="headerlink" href="#espnet2-layers-inversible-interface" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-inversible-interface-1">
+<span id="espnet2-layers-inversible-interface"></span><h2>espnet2.layers.inversible_interface<a class="headerlink" href="#espnet2-layers-inversible-interface-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.inversible_interface"></span><dl class="class">
 <dt id="espnet2.layers.inversible_interface.InversibleInterface">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.inversible_interface.</code><code class="sig-name descname">InversibleInterface</code><a class="reference internal" href="../_modules/espnet2/layers/inversible_interface.html#InversibleInterface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.inversible_interface.InversibleInterface" title="Permalink to this definition">¶</a></dt>
@@ -301,8 +305,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-label-aggregation">
-<span id="id3"></span><h2>espnet2.layers.label_aggregation<a class="headerlink" href="#espnet2-layers-label-aggregation" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-label-aggregation-1">
+<span id="espnet2-layers-label-aggregation"></span><h2>espnet2.layers.label_aggregation<a class="headerlink" href="#espnet2-layers-label-aggregation-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.label_aggregation"></span><dl class="class">
 <dt id="espnet2.layers.label_aggregation.LabelAggregate">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.label_aggregation.</code><code class="sig-name descname">LabelAggregate</code><span class="sig-paren">(</span><em class="sig-param">win_length: int = 512</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">center: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/label_aggregation.html#LabelAggregate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.label_aggregation.LabelAggregate" title="Permalink to this definition">¶</a></dt>
@@ -321,16 +325,16 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/layers/label_aggregation.html#LabelAggregate.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.label_aggregation.LabelAggregate.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>LabelAggregate forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – (Batch, Nsamples, Label_dim)</p></li>
 <li><p><strong>ilens</strong> – (Batch)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(Batch, Frames, Label_dim)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>output</p>
 </dd>
 </dl>
@@ -339,8 +343,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-utterance-mvn">
-<span id="id4"></span><h2>espnet2.layers.utterance_mvn<a class="headerlink" href="#espnet2-layers-utterance-mvn" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-utterance-mvn-1">
+<span id="espnet2-layers-utterance-mvn"></span><h2>espnet2.layers.utterance_mvn<a class="headerlink" href="#espnet2-layers-utterance-mvn-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.utterance_mvn"></span><dl class="class">
 <dt id="espnet2.layers.utterance_mvn.UtteranceMVN">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.utterance_mvn.</code><code class="sig-name descname">UtteranceMVN</code><span class="sig-paren">(</span><em class="sig-param">norm_means: bool = True</em>, <em class="sig-param">norm_vars: bool = False</em>, <em class="sig-param">eps: float = 1e-20</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/utterance_mvn.html#UtteranceMVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.utterance_mvn.UtteranceMVN" title="Permalink to this definition">¶</a></dt>
@@ -359,7 +363,7 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/layers/utterance_mvn.html#UtteranceMVN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.utterance_mvn.UtteranceMVN.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – (B, L, …)</p></li>
 <li><p><strong>ilens</strong> – (B,)</p></li>
@@ -375,7 +379,7 @@ strings are acceptable.</p>
 <code class="sig-prename descclassname">espnet2.layers.utterance_mvn.</code><code class="sig-name descname">utterance_mvn</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em>, <em class="sig-param">norm_means: bool = True</em>, <em class="sig-param">norm_vars: bool = False</em>, <em class="sig-param">eps: float = 1e-20</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/layers/utterance_mvn.html#utterance_mvn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.utterance_mvn.utterance_mvn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply utterance mean and variance normalization</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – (B, T, D), assumed zero padded</p></li>
 <li><p><strong>ilens</strong> – (B,)</p></li>
@@ -388,8 +392,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-global-mvn">
-<span id="id5"></span><h2>espnet2.layers.global_mvn<a class="headerlink" href="#espnet2-layers-global-mvn" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-global-mvn-1">
+<span id="espnet2-layers-global-mvn"></span><h2>espnet2.layers.global_mvn<a class="headerlink" href="#espnet2-layers-global-mvn-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.global_mvn"></span><dl class="class">
 <dt id="espnet2.layers.global_mvn.GlobalMVN">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.global_mvn.</code><code class="sig-name descname">GlobalMVN</code><span class="sig-paren">(</span><em class="sig-param">stats_file: Union[pathlib.Path, str], norm_means: bool = True, norm_vars: bool = True, eps: float = 1e-20</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/global_mvn.html#GlobalMVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.global_mvn.GlobalMVN" title="Permalink to this definition">¶</a></dt>
@@ -397,7 +401,7 @@ strings are acceptable.</p>
 <p>Apply global mean and variance normalization</p>
 <p>TODO(kamo): Make this class portable somehow</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>stats_file</strong> – npy file</p></li>
 <li><p><strong>norm_means</strong> – Apply mean normalization</p></li>
@@ -420,7 +424,7 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/layers/global_mvn.html#GlobalMVN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.global_mvn.GlobalMVN.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – (B, L, …)</p></li>
 <li><p><strong>ilens</strong> – (B,)</p></li>
@@ -437,8 +441,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-stft">
-<span id="id6"></span><h2>espnet2.layers.stft<a class="headerlink" href="#espnet2-layers-stft" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-stft-1">
+<span id="espnet2-layers-stft"></span><h2>espnet2.layers.stft<a class="headerlink" href="#espnet2-layers-stft-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.stft"></span><dl class="class">
 <dt id="espnet2.layers.stft.Stft">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.stft.</code><code class="sig-name descname">Stft</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/stft.html#Stft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.stft.Stft" title="Permalink to this definition">¶</a></dt>
@@ -457,16 +461,16 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/layers/stft.html#Stft.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.stft.Stft.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>STFT forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – (Batch, Nsamples) or (Batch, Nsample, Channels)</p></li>
 <li><p><strong>ilens</strong> – (Batch)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(Batch, Frames, Freq, 2) or (Batch, Frames, Channels, Freq, 2)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>output</p>
 </dd>
 </dl>
@@ -477,17 +481,17 @@ strings are acceptable.</p>
 <code class="sig-name descname">inverse</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/layers/stft.html#Stft.inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.stft.Stft.inverse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Inverse STFT.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – Tensor(batch, T, F, 2) or ComplexTensor(batch, T, F)</p></li>
 <li><p><strong>ilens</strong> – (batch,)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(batch, samples)
 ilens: (batch,)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>wavs</p>
 </dd>
 </dl>
@@ -496,8 +500,8 @@ ilens: (batch,)</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-abs-normalize">
-<span id="id7"></span><h2>espnet2.layers.abs_normalize<a class="headerlink" href="#espnet2-layers-abs-normalize" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-abs-normalize-1">
+<span id="espnet2-layers-abs-normalize"></span><h2>espnet2.layers.abs_normalize<a class="headerlink" href="#espnet2-layers-abs-normalize-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.abs_normalize"></span><dl class="class">
 <dt id="espnet2.layers.abs_normalize.AbsNormalize">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.abs_normalize.</code><code class="sig-name descname">AbsNormalize</code><a class="reference internal" href="../_modules/espnet2/layers/abs_normalize.html#AbsNormalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.abs_normalize.AbsNormalize" title="Permalink to this definition">¶</a></dt>
@@ -514,14 +518,14 @@ ilens: (batch,)</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-time-warp">
-<span id="id8"></span><h2>espnet2.layers.time_warp<a class="headerlink" href="#espnet2-layers-time-warp" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-time-warp-1">
+<span id="espnet2-layers-time-warp"></span><h2>espnet2.layers.time_warp<a class="headerlink" href="#espnet2-layers-time-warp-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.time_warp"></span><p>Time warp module.</p>
 <dl class="class">
 <dt id="espnet2.layers.time_warp.TimeWarp">
@@ -529,7 +533,7 @@ registered hooks while the latter silently ignores them.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Time warping using torch.interpolate.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>window</strong> – time warp parameter</p></li>
 <li><p><strong>mode</strong> – Interpolate mode</p></li>
@@ -550,7 +554,7 @@ strings are acceptable.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/time_warp.html#TimeWarp.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.time_warp.TimeWarp.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – (Batch, Time, Freq)</p></li>
 <li><p><strong>x_lengths</strong> – (Batch,)</p></li>
@@ -566,7 +570,7 @@ strings are acceptable.</p>
 <code class="sig-prename descclassname">espnet2.layers.time_warp.</code><code class="sig-name descname">time_warp</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">window: int = 80</em>, <em class="sig-param">mode: str = 'bicubic'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/time_warp.html#time_warp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.time_warp.time_warp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Time warping using torch.interpolate.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – (Batch, Time, Freq)</p></li>
 <li><p><strong>window</strong> – time warp parameter</p></li>
@@ -577,8 +581,8 @@ strings are acceptable.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-log-mel">
-<span id="id9"></span><h2>espnet2.layers.log_mel<a class="headerlink" href="#espnet2-layers-log-mel" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-log-mel-1">
+<span id="espnet2-layers-log-mel"></span><h2>espnet2.layers.log_mel<a class="headerlink" href="#espnet2-layers-log-mel-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.log_mel"></span><dl class="class">
 <dt id="espnet2.layers.log_mel.LogMel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.log_mel.</code><code class="sig-name descname">LogMel</code><span class="sig-paren">(</span><em class="sig-param">fs: int = 16000</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: float = None</em>, <em class="sig-param">fmax: float = None</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">log_base: float = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/log_mel.html#LogMel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.log_mel.LogMel" title="Permalink to this definition">¶</a></dt>
@@ -586,7 +590,7 @@ strings are acceptable.</p>
 <p>Convert STFT to fbank feats</p>
 <p>The arguments is same as librosa.filters.mel</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fs</strong> – number &gt; 0 [scalar] sampling rate of the incoming signal</p></li>
 <li><p><strong>n_fft</strong> – int &gt; 0 [scalar] number of FFT components</p></li>
@@ -618,17 +622,17 @@ strings are acceptable.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-layers-init">
-<span id="id10"></span><h2>espnet2.layers.__init__<a class="headerlink" href="#espnet2-layers-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-init-1">
+<span id="espnet2-layers-init"></span><h2>espnet2.layers.__init__<a class="headerlink" href="#espnet2-layers-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.__init__"></span></section>
-<section id="espnet2-layers-sinc-conv">
-<span id="id11"></span><h2>espnet2.layers.sinc_conv<a class="headerlink" href="#espnet2-layers-sinc-conv" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-layers-sinc-conv-1">
+<span id="espnet2-layers-sinc-conv"></span><h2>espnet2.layers.sinc_conv<a class="headerlink" href="#espnet2-layers-sinc-conv-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.sinc_conv"></span><p>Sinc convolutions.</p>
 <dl class="class">
 <dt id="espnet2.layers.sinc_conv.BarkScale">
@@ -643,17 +647,17 @@ Zwicker and Terhardt, 1980</p>
 <em class="property">classmethod </em><code class="sig-name descname">bank</code><span class="sig-paren">(</span><em class="sig-param">channels: int</em>, <em class="sig-param">fs: float</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/layers/sinc_conv.html#BarkScale.bank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.sinc_conv.BarkScale.bank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain initialization values for the Bark scale.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channels</strong> – Number of channels.</p></li>
 <li><p><strong>fs</strong> – Sample rate.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Filter start frequencíes.
 torch.Tensor: Filter stop frequencíes.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -699,17 +703,17 @@ torch.Tensor: Filter stop frequencíes.</p>
 <em class="property">classmethod </em><code class="sig-name descname">bank</code><span class="sig-paren">(</span><em class="sig-param">channels: int</em>, <em class="sig-param">fs: float</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/layers/sinc_conv.html#MelScale.bank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.sinc_conv.MelScale.bank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Obtain initialization values for the mel scale.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>channels</strong> – Number of channels.</p></li>
 <li><p><strong>fs</strong> – Sample rate.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Filter start frequencíes.
 torch.Tensor: Filter stop frequencies.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -749,7 +753,7 @@ The windowing function is applied on the kernel to obtained a smoother filter,
 and not on the input values, which is different to traditional ASR.</p>
 <p>Initialize Sinc convolutions.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>in_channels</strong> – Number of input channels.</p></li>
 <li><p><strong>out_channels</strong> – Number of output channels.</p></li>
@@ -767,13 +771,13 @@ and not on the input values, which is different to traditional ASR.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/layers/sinc_conv.html#SincConv.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.sinc_conv.SincConv.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sinc convolution forward function.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>xs</strong> – Batch in form of torch.Tensor (B, C_in, D_in).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Batch in form of torch.Tensor (B, C_out, D_out).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>xs</p>
 </dd>
 </dl>

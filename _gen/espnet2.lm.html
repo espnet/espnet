@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.lm package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -130,11 +134,11 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.lm package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-abs-model">espnet2.lm.abs_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-transformer-lm">espnet2.lm.transformer_lm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-init">espnet2.lm.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-seq-rnn-lm">espnet2.lm.seq_rnn_lm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-espnet-model">espnet2.lm.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-abs-model-1">espnet2.lm.abs_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-transformer-lm-1">espnet2.lm.transformer_lm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-init-1">espnet2.lm.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-seq-rnn-lm-1">espnet2.lm.seq_rnn_lm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-lm-espnet-model-1">espnet2.lm.espnet_model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
@@ -169,7 +173,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.lm package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.lm.rst.txt" rel="nofollow"> View page source</a>
@@ -206,8 +210,8 @@
 </style>
 <section id="espnet2-lm-package">
 <h1>espnet2.lm package<a class="headerlink" href="#espnet2-lm-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-lm-abs-model">
-<span id="id1"></span><h2>espnet2.lm.abs_model<a class="headerlink" href="#espnet2-lm-abs-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-lm-abs-model-1">
+<span id="espnet2-lm-abs-model"></span><h2>espnet2.lm.abs_model<a class="headerlink" href="#espnet2-lm-abs-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.lm.abs_model"></span><dl class="class">
 <dt id="espnet2.lm.abs_model.AbsLM">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.abs_model.</code><code class="sig-name descname">AbsLM</code><a class="reference internal" href="../_modules/espnet2/lm/abs_model.html#AbsLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.abs_model.AbsLM" title="Permalink to this definition">¶</a></dt>
@@ -234,14 +238,14 @@ The instance of this class should be passed to “LanguageModel”</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-lm-transformer-lm">
-<span id="id2"></span><h2>espnet2.lm.transformer_lm<a class="headerlink" href="#espnet2-lm-transformer-lm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-lm-transformer-lm-1">
+<span id="espnet2-lm-transformer-lm"></span><h2>espnet2.lm.transformer_lm<a class="headerlink" href="#espnet2-lm-transformer-lm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.lm.transformer_lm"></span><dl class="class">
 <dt id="espnet2.lm.transformer_lm.TransformerLM">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.transformer_lm.</code><code class="sig-name descname">TransformerLM</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">pos_enc: str = None</em>, <em class="sig-param">embed_unit: int = 128</em>, <em class="sig-param">att_unit: int = 256</em>, <em class="sig-param">head: int = 2</em>, <em class="sig-param">unit: int = 1024</em>, <em class="sig-param">layer: int = 4</em>, <em class="sig-param">dropout_rate: float = 0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/transformer_lm.html#TransformerLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.transformer_lm.TransformerLM" title="Permalink to this definition">¶</a></dt>
@@ -251,14 +255,14 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/lm/transformer_lm.html#TransformerLM.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.transformer_lm.TransformerLM.batch_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new token batch.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ys</strong> (<em>torch.Tensor</em>) – torch.int64 prefix tokens (n_batch, ylen).</p></li>
 <li><p><strong>states</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – Scorer states for prefix tokens.</p></li>
 <li><p><strong>xs</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys (n_batch, xlen, n_feat).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Tuple of</dt><dd><p>batchfied scores for next token with shape of <cite>(n_batch, vocab_size)</cite>
 and next state list for ys.</p>
@@ -266,7 +270,7 @@ and next state list for ys.</p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[torch.Tensor, List[Any]]</p>
 </dd>
 </dl>
@@ -277,7 +281,7 @@ and next state list for ys.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">hidden: None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, None]<a class="reference internal" href="../_modules/espnet2/lm/transformer_lm.html#TransformerLM.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.transformer_lm.TransformerLM.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute LM loss value from buffer sequences.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> (<em>torch.Tensor</em>) – Input ids. (batch, len)</p></li>
 <li><p><strong>hidden</strong> (<em>torch.Tensor</em>) – Target ids. (batch, len)</p></li>
@@ -291,14 +295,14 @@ and next state list for ys.</p>
 <code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">y: torch.Tensor</em>, <em class="sig-param">state: Any</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Any]<a class="reference internal" href="../_modules/espnet2/lm/transformer_lm.html#TransformerLM.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.transformer_lm.TransformerLM.score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new token.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y</strong> (<em>torch.Tensor</em>) – 1D torch.int64 prefix tokens.</p></li>
 <li><p><strong>state</strong> – Scorer state for prefix tokens</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – encoder feature that generates ys.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Tuple of</dt><dd><p>torch.float32 scores for next token (vocab_size)
 and next state for ys</p>
@@ -306,7 +310,7 @@ and next state for ys</p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[torch.Tensor, Any]</p>
 </dd>
 </dl>
@@ -315,11 +319,11 @@ and next state for ys</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-lm-init">
-<span id="id3"></span><h2>espnet2.lm.__init__<a class="headerlink" href="#espnet2-lm-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-lm-init-1">
+<span id="espnet2-lm-init"></span><h2>espnet2.lm.__init__<a class="headerlink" href="#espnet2-lm-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.lm.__init__"></span></section>
-<section id="espnet2-lm-seq-rnn-lm">
-<span id="id4"></span><h2>espnet2.lm.seq_rnn_lm<a class="headerlink" href="#espnet2-lm-seq-rnn-lm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-lm-seq-rnn-lm-1">
+<span id="espnet2-lm-seq-rnn-lm"></span><h2>espnet2.lm.seq_rnn_lm<a class="headerlink" href="#espnet2-lm-seq-rnn-lm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.lm.seq_rnn_lm"></span><p>Sequential implementation of Recurrent Neural Network Language Model.</p>
 <dl class="class">
 <dt id="espnet2.lm.seq_rnn_lm.SequentialRNNLM">
@@ -329,20 +333,20 @@ and next state for ys</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference external" href="https://github.com/pytorch/examples/blob/4581968193699de14b56527296262dd76ab43557/word_language_model/model.py">https://github.com/pytorch/examples/blob/4581968193699de14b56527296262dd76ab43557/word_language_model/model.py</a></p>
-</div>
+</aside>
 <dl class="method">
 <dt id="espnet2.lm.seq_rnn_lm.SequentialRNNLM.batch_score">
 <code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor</em>, <em class="sig-param">states: torch.Tensor</em>, <em class="sig-param">xs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/seq_rnn_lm.html#SequentialRNNLM.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.seq_rnn_lm.SequentialRNNLM.batch_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new token batch.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ys</strong> (<em>torch.Tensor</em>) – torch.int64 prefix tokens (n_batch, ylen).</p></li>
 <li><p><strong>states</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – Scorer states for prefix tokens.</p></li>
 <li><p><strong>xs</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys (n_batch, xlen, n_feat).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Tuple of</dt><dd><p>batchfied scores for next token with shape of <cite>(n_batch, n_vocab)</cite>
 and next state list for ys.</p>
@@ -350,7 +354,7 @@ and next state list for ys.</p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[torch.Tensor, List[Any]]</p>
 </dd>
 </dl>
@@ -367,7 +371,7 @@ and next state list for ys.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -375,14 +379,14 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">y: torch.Tensor, state: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/lm/seq_rnn_lm.html#SequentialRNNLM.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.seq_rnn_lm.SequentialRNNLM.score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new token.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>y</strong> – 1D torch.int64 prefix tokens.</p></li>
 <li><p><strong>state</strong> – Scorer state for prefix tokens</p></li>
 <li><p><strong>x</strong> – 2D encoder feature that generates ys.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Tuple of</dt><dd><p>torch.float32 scores for next token (n_vocab)
 and next state for ys</p>
@@ -402,8 +406,8 @@ and next state for ys</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-lm-espnet-model">
-<span id="id5"></span><h2>espnet2.lm.espnet_model<a class="headerlink" href="#espnet2-lm-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-lm-espnet-model-1">
+<span id="espnet2-lm-espnet-model"></span><h2>espnet2.lm.espnet_model<a class="headerlink" href="#espnet2-lm-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.lm.espnet_model"></span><dl class="class">
 <dt id="espnet2.lm.espnet_model.ESPnetLanguageModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.lm.espnet_model.</code><code class="sig-name descname">ESPnetLanguageModel</code><span class="sig-paren">(</span><em class="sig-param">lm: espnet2.lm.abs_model.AbsLM</em>, <em class="sig-param">vocab_size: int</em>, <em class="sig-param">ignore_id: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/lm/espnet_model.html#ESPnetLanguageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model.ESPnetLanguageModel" title="Permalink to this definition">¶</a></dt>
@@ -438,7 +442,7 @@ Then call nll for each batch and combine and return results.
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">

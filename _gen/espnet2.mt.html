@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.mt package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -136,10 +140,10 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.mt package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-init">espnet2.mt.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-espnet-model">espnet2.mt.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-embedding">espnet2.mt.frontend.embedding</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-init">espnet2.mt.frontend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-init-1">espnet2.mt.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-espnet-model-1">espnet2.mt.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-embedding-1">espnet2.mt.frontend.embedding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-mt-frontend-init-1">espnet2.mt.frontend.__init__</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
@@ -168,7 +172,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.mt package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.mt.rst.txt" rel="nofollow"> View page source</a>
@@ -205,11 +209,11 @@
 </style>
 <section id="espnet2-mt-package">
 <h1>espnet2.mt package<a class="headerlink" href="#espnet2-mt-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-mt-init">
-<span id="id1"></span><h2>espnet2.mt.__init__<a class="headerlink" href="#espnet2-mt-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-mt-init-1">
+<span id="espnet2-mt-init"></span><h2>espnet2.mt.__init__<a class="headerlink" href="#espnet2-mt-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.__init__"></span></section>
-<section id="espnet2-mt-espnet-model">
-<span id="id2"></span><h2>espnet2.mt.espnet_model<a class="headerlink" href="#espnet2-mt-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-mt-espnet-model-1">
+<span id="espnet2-mt-espnet-model"></span><h2>espnet2.mt.espnet_model<a class="headerlink" href="#espnet2-mt-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.espnet_model"></span><dl class="class">
 <dt id="espnet2.mt.espnet_model.ESPnetMTModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.mt.espnet_model.</code><code class="sig-name descname">ESPnetMTModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder, src_vocab_size: int = 0, src_token_list: Union[Tuple[str, ...], List[str]] = [], ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_bleu: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', extract_feats_in_collect_stats: bool = True, share_decoder_input_output_embed: bool = False, share_encoder_decoder_input_embed: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel" title="Permalink to this definition">¶</a></dt>
@@ -225,7 +229,7 @@
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.encode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder. Note that this method is used by mt_inference.py</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>src_text</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>src_text_lengths</strong> – (Batch, )</p></li>
@@ -239,7 +243,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Decoder + Calc loss</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> – (Batch, Length)</p></li>
 <li><p><strong>text_lengths</strong> – (Batch,)</p></li>
@@ -254,8 +258,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-mt-frontend-embedding">
-<span id="id3"></span><h2>espnet2.mt.frontend.embedding<a class="headerlink" href="#espnet2-mt-frontend-embedding" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-mt-frontend-embedding-1">
+<span id="espnet2-mt-frontend-embedding"></span><h2>espnet2.mt.frontend.embedding<a class="headerlink" href="#espnet2-mt-frontend-embedding-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.frontend.embedding"></span><p>Embedding Frontend for text based inputs.</p>
 <dl class="class">
 <dt id="espnet2.mt.frontend.embedding.Embedding">
@@ -264,7 +268,7 @@
 <p>Embedding Frontend for text based inputs.</p>
 <p>Initialize.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_size</strong> – Number of input tokens.</p></li>
 <li><p><strong>embed_dim</strong> – Embedding Size.</p></li>
@@ -278,17 +282,17 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/frontend/embedding.html#Embedding.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.frontend.embedding.Embedding.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply a sliding window on the input.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – Input (B, T) or (B, T,D), with D.</p></li>
 <li><p><strong>input_lengths</strong> – Input lengths within batch.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output with dimensions (B, T, D).
 Tensor: Output lengths within batch.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -303,8 +307,8 @@ Tensor: Output lengths within batch.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-mt-frontend-init">
-<span id="id4"></span><h2>espnet2.mt.frontend.__init__<a class="headerlink" href="#espnet2-mt-frontend-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-mt-frontend-init-1">
+<span id="espnet2-mt-frontend-init"></span><h2>espnet2.mt.frontend.__init__<a class="headerlink" href="#espnet2-mt-frontend-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.mt.frontend.__init__"></span></section>
 </section>
 

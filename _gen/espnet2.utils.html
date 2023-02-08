@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.utils package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -128,16 +132,16 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.slu.html">espnet2.slu package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.utils package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-build-dataclass">espnet2.utils.build_dataclass</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-get-default-kwargs">espnet2.utils.get_default_kwargs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-kwargs2args">espnet2.utils.kwargs2args</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-config-argparse">espnet2.utils.config_argparse</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-types">espnet2.utils.types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-sized-dict">espnet2.utils.sized_dict</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-nested-dict-action">espnet2.utils.nested_dict_action</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-init">espnet2.utils.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-griffin-lim">espnet2.utils.griffin_lim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-yaml-no-alias-safe-dump">espnet2.utils.yaml_no_alias_safe_dump</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-build-dataclass-1">espnet2.utils.build_dataclass</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-get-default-kwargs-1">espnet2.utils.get_default_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-kwargs2args-1">espnet2.utils.kwargs2args</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-config-argparse-1">espnet2.utils.config_argparse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-types-1">espnet2.utils.types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-sized-dict-1">espnet2.utils.sized_dict</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-nested-dict-action-1">espnet2.utils.nested_dict_action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-init-1">espnet2.utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-griffin-lim-1">espnet2.utils.griffin_lim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-yaml-no-alias-safe-dump-1">espnet2.utils.yaml_no_alias_safe_dump</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.uasr.html">espnet2.uasr package</a></li>
@@ -174,7 +178,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.utils package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.utils.rst.txt" rel="nofollow"> View page source</a>
@@ -211,8 +215,8 @@
 </style>
 <section id="espnet2-utils-package">
 <h1>espnet2.utils package<a class="headerlink" href="#espnet2-utils-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-utils-build-dataclass">
-<span id="id1"></span><h2>espnet2.utils.build_dataclass<a class="headerlink" href="#espnet2-utils-build-dataclass" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-build-dataclass-1">
+<span id="espnet2-utils-build-dataclass"></span><h2>espnet2.utils.build_dataclass<a class="headerlink" href="#espnet2-utils-build-dataclass-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.build_dataclass"></span><dl class="function">
 <dt id="espnet2.utils.build_dataclass.build_dataclass">
 <code class="sig-prename descclassname">espnet2.utils.build_dataclass.</code><code class="sig-name descname">build_dataclass</code><span class="sig-paren">(</span><em class="sig-param">dataclass</em>, <em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/build_dataclass.html#build_dataclass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.build_dataclass.build_dataclass" title="Permalink to this definition">¶</a></dt>
@@ -220,8 +224,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-get-default-kwargs">
-<span id="id2"></span><h2>espnet2.utils.get_default_kwargs<a class="headerlink" href="#espnet2-utils-get-default-kwargs" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-get-default-kwargs-1">
+<span id="espnet2-utils-get-default-kwargs"></span><h2>espnet2.utils.get_default_kwargs<a class="headerlink" href="#espnet2-utils-get-default-kwargs-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.get_default_kwargs"></span><dl class="class">
 <dt id="espnet2.utils.get_default_kwargs.Invalid">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.utils.get_default_kwargs.</code><code class="sig-name descname">Invalid</code><a class="reference internal" href="../_modules/espnet2/utils/get_default_kwargs.html#Invalid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.get_default_kwargs.Invalid" title="Permalink to this definition">¶</a></dt>
@@ -242,8 +246,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-kwargs2args">
-<span id="id3"></span><h2>espnet2.utils.kwargs2args<a class="headerlink" href="#espnet2-utils-kwargs2args" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-kwargs2args-1">
+<span id="espnet2-utils-kwargs2args"></span><h2>espnet2.utils.kwargs2args<a class="headerlink" href="#espnet2-utils-kwargs2args-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.kwargs2args"></span><dl class="function">
 <dt id="espnet2.utils.kwargs2args.func">
 <code class="sig-prename descclassname">espnet2.utils.kwargs2args.</code><code class="sig-name descname">func</code><span class="sig-paren">(</span><em class="sig-param">a: int</em>, <em class="sig-param">b</em>, <em class="sig-param">*</em>, <em class="sig-param">c</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/kwargs2args.html#func"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.kwargs2args.func" title="Permalink to this definition">¶</a></dt>
@@ -255,8 +259,8 @@
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-utils-config-argparse">
-<span id="id4"></span><h2>espnet2.utils.config_argparse<a class="headerlink" href="#espnet2-utils-config-argparse" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-config-argparse-1">
+<span id="espnet2-utils-config-argparse"></span><h2>espnet2.utils.config_argparse<a class="headerlink" href="#espnet2-utils-config-argparse-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.config_argparse"></span><dl class="class">
 <dt id="espnet2.utils.config_argparse.ArgumentParser">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.utils.config_argparse.</code><code class="sig-name descname">ArgumentParser</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/config_argparse.html#ArgumentParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.config_argparse.ArgumentParser" title="Permalink to this definition">¶</a></dt>
@@ -278,8 +282,8 @@ but this class is lack of some features that it has.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-types">
-<span id="id5"></span><h2>espnet2.utils.types<a class="headerlink" href="#espnet2-utils-types" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-types-1">
+<span id="espnet2-utils-types"></span><h2>espnet2.utils.types<a class="headerlink" href="#espnet2-utils-types-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.types"></span><dl class="function">
 <dt id="espnet2.utils.types.float_or_none">
 <code class="sig-prename descclassname">espnet2.utils.types.</code><code class="sig-name descname">float_or_none</code><span class="sig-paren">(</span><em class="sig-param">value: str</em><span class="sig-paren">)</span> &#x2192; Optional[float]<a class="reference internal" href="../_modules/espnet2/utils/types.html#float_or_none"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.types.float_or_none" title="Permalink to this definition">¶</a></dt>
@@ -393,8 +397,8 @@ but this class is lack of some features that it has.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-sized-dict">
-<span id="id6"></span><h2>espnet2.utils.sized_dict<a class="headerlink" href="#espnet2-utils-sized-dict" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-sized-dict-1">
+<span id="espnet2-utils-sized-dict"></span><h2>espnet2.utils.sized_dict<a class="headerlink" href="#espnet2-utils-sized-dict-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.sized_dict"></span><dl class="class">
 <dt id="espnet2.utils.sized_dict.SizedDict">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.utils.sized_dict.</code><code class="sig-name descname">SizedDict</code><span class="sig-paren">(</span><em class="sig-param">shared: bool = False</em>, <em class="sig-param">data: dict = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/sized_dict.html#SizedDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.sized_dict.SizedDict" title="Permalink to this definition">¶</a></dt>
@@ -409,8 +413,8 @@ but this class is lack of some features that it has.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-nested-dict-action">
-<span id="id7"></span><h2>espnet2.utils.nested_dict_action<a class="headerlink" href="#espnet2-utils-nested-dict-action" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-nested-dict-action-1">
+<span id="espnet2-utils-nested-dict-action"></span><h2>espnet2.utils.nested_dict_action<a class="headerlink" href="#espnet2-utils-nested-dict-action-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.nested_dict_action"></span><dl class="class">
 <dt id="espnet2.utils.nested_dict_action.NestedDictAction">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.utils.nested_dict_action.</code><code class="sig-name descname">NestedDictAction</code><span class="sig-paren">(</span><em class="sig-param">option_strings</em>, <em class="sig-param">dest</em>, <em class="sig-param">nargs=None</em>, <em class="sig-param">default=None</em>, <em class="sig-param">choices=None</em>, <em class="sig-param">required=False</em>, <em class="sig-param">help=None</em>, <em class="sig-param">metavar=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/nested_dict_action.html#NestedDictAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.nested_dict_action.NestedDictAction" title="Permalink to this definition">¶</a></dt>
@@ -433,11 +437,11 @@ but this class is lack of some features that it has.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-init">
-<span id="id8"></span><h2>espnet2.utils.__init__<a class="headerlink" href="#espnet2-utils-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-init-1">
+<span id="espnet2-utils-init"></span><h2>espnet2.utils.__init__<a class="headerlink" href="#espnet2-utils-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.__init__"></span></section>
-<section id="espnet2-utils-griffin-lim">
-<span id="id9"></span><h2>espnet2.utils.griffin_lim<a class="headerlink" href="#espnet2-utils-griffin-lim" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-griffin-lim-1">
+<span id="espnet2-utils-griffin-lim"></span><h2>espnet2.utils.griffin_lim<a class="headerlink" href="#espnet2-utils-griffin-lim-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.griffin_lim"></span><p>Griffin-Lim related modules.</p>
 <dl class="class">
 <dt id="espnet2.utils.griffin_lim.Spectrogram2Waveform">
@@ -446,7 +450,7 @@ but this class is lack of some features that it has.</p>
 <p>Spectrogram to waveform conversion module.</p>
 <p>Initialize module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fs</strong> – Sampling frequency.</p></li>
 <li><p><strong>n_fft</strong> – The number of FFT points.</p></li>
@@ -467,7 +471,7 @@ but this class is lack of some features that it has.</p>
 <code class="sig-prename descclassname">espnet2.utils.griffin_lim.</code><code class="sig-name descname">griffin_lim</code><span class="sig-paren">(</span><em class="sig-param">spc: numpy.ndarray</em>, <em class="sig-param">n_fft: int</em>, <em class="sig-param">n_shift: int</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">n_iter: Optional[int] = 32</em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="reference internal" href="../_modules/espnet2/utils/griffin_lim.html#griffin_lim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.griffin_lim.griffin_lim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert linear spectrogram into waveform using Griffin-Lim.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spc</strong> – Linear spectrogram (T, n_fft // 2 + 1).</p></li>
 <li><p><strong>n_fft</strong> – The number of FFT points.</p></li>
@@ -477,7 +481,7 @@ but this class is lack of some features that it has.</p>
 <li><p><strong>n_iter</strong> – The number of iterations.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Reconstructed waveform (N,).</p>
 </dd>
 </dl>
@@ -488,7 +492,7 @@ but this class is lack of some features that it has.</p>
 <code class="sig-prename descclassname">espnet2.utils.griffin_lim.</code><code class="sig-name descname">logmel2linear</code><span class="sig-paren">(</span><em class="sig-param">lmspc: numpy.ndarray</em>, <em class="sig-param">fs: int</em>, <em class="sig-param">n_fft: int</em>, <em class="sig-param">n_mels: int</em>, <em class="sig-param">fmin: int = None</em>, <em class="sig-param">fmax: int = None</em><span class="sig-paren">)</span> &#x2192; numpy.ndarray<a class="reference internal" href="../_modules/espnet2/utils/griffin_lim.html#logmel2linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.griffin_lim.logmel2linear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert log Mel filterbank to linear spectrogram.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lmspc</strong> – Log Mel filterbank (T, n_mels).</p></li>
 <li><p><strong>fs</strong> – Sampling frequency.</p></li>
@@ -498,15 +502,15 @@ but this class is lack of some features that it has.</p>
 <li><p><strong>f_max</strong> – Maximum frequency to analyze.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Linear spectrogram (T, n_fft // 2 + 1).</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet2-utils-yaml-no-alias-safe-dump">
-<span id="id10"></span><h2>espnet2.utils.yaml_no_alias_safe_dump<a class="headerlink" href="#espnet2-utils-yaml-no-alias-safe-dump" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-utils-yaml-no-alias-safe-dump-1">
+<span id="espnet2-utils-yaml-no-alias-safe-dump"></span><h2>espnet2.utils.yaml_no_alias_safe_dump<a class="headerlink" href="#espnet2-utils-yaml-no-alias-safe-dump-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.utils.yaml_no_alias_safe_dump"></span><dl class="class">
 <dt id="espnet2.utils.yaml_no_alias_safe_dump.NoAliasSafeDumper">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.utils.yaml_no_alias_safe_dump.</code><code class="sig-name descname">NoAliasSafeDumper</code><span class="sig-paren">(</span><em class="sig-param">stream</em>, <em class="sig-param">default_style=None</em>, <em class="sig-param">default_flow_style=False</em>, <em class="sig-param">canonical=None</em>, <em class="sig-param">indent=None</em>, <em class="sig-param">width=None</em>, <em class="sig-param">allow_unicode=None</em>, <em class="sig-param">line_break=None</em>, <em class="sig-param">encoding=None</em>, <em class="sig-param">explicit_start=None</em>, <em class="sig-param">explicit_end=None</em>, <em class="sig-param">version=None</em>, <em class="sig-param">tags=None</em>, <em class="sig-param">sort_keys=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/yaml_no_alias_safe_dump.html#NoAliasSafeDumper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.yaml_no_alias_safe_dump.NoAliasSafeDumper" title="Permalink to this definition">¶</a></dt>

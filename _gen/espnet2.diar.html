@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.diar package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -116,22 +120,22 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.diar package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-label-processor">espnet2.diar.label_processor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-init">espnet2.diar.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-abs-diar">espnet2.diar.abs_diar</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-espnet-model">espnet2.diar.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-rnn-attractor">espnet2.diar.attractor.rnn_attractor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-abs-attractor">espnet2.diar.attractor.abs_attractor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-init">espnet2.diar.attractor.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-multi-mask">espnet2.diar.layers.multi_mask</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-abs-mask">espnet2.diar.layers.abs_mask</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-tcn-nomask">espnet2.diar.layers.tcn_nomask</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-init">espnet2.diar.layers.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-linear-decoder">espnet2.diar.decoder.linear_decoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-init">espnet2.diar.decoder.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-abs-decoder">espnet2.diar.decoder.abs_decoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-separator-tcn-separator-nomask">espnet2.diar.separator.tcn_separator_nomask</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-separator-init">espnet2.diar.separator.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-label-processor-1">espnet2.diar.label_processor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-init-1">espnet2.diar.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-abs-diar-1">espnet2.diar.abs_diar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-espnet-model-1">espnet2.diar.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-rnn-attractor-1">espnet2.diar.attractor.rnn_attractor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-abs-attractor-1">espnet2.diar.attractor.abs_attractor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-attractor-init-1">espnet2.diar.attractor.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-multi-mask-1">espnet2.diar.layers.multi_mask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-abs-mask-1">espnet2.diar.layers.abs_mask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-tcn-nomask-1">espnet2.diar.layers.tcn_nomask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-layers-init-1">espnet2.diar.layers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-linear-decoder-1">espnet2.diar.decoder.linear_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-init-1">espnet2.diar.decoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-decoder-abs-decoder-1">espnet2.diar.decoder.abs_decoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-separator-tcn-separator-nomask-1">espnet2.diar.separator.tcn_separator_nomask</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-diar-separator-init-1">espnet2.diar.separator.__init__</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
@@ -180,7 +184,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.diar package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.diar.rst.txt" rel="nofollow"> View page source</a>
@@ -217,8 +221,8 @@
 </style>
 <section id="espnet2-diar-package">
 <h1>espnet2.diar package<a class="headerlink" href="#espnet2-diar-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-diar-label-processor">
-<span id="id1"></span><h2>espnet2.diar.label_processor<a class="headerlink" href="#espnet2-diar-label-processor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-label-processor-1">
+<span id="espnet2-diar-label-processor"></span><h2>espnet2.diar.label_processor<a class="headerlink" href="#espnet2-diar-label-processor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.label_processor"></span><dl class="class">
 <dt id="espnet2.diar.label_processor.LabelProcessor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.label_processor.</code><code class="sig-name descname">LabelProcessor</code><span class="sig-paren">(</span><em class="sig-param">win_length: int = 512</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">center: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/label_processor.html#LabelProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.label_processor.LabelProcessor" title="Permalink to this definition">¶</a></dt>
@@ -229,17 +233,17 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/label_processor.html#LabelProcessor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.label_processor.LabelProcessor.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – (Batch, Nsamples, Label_dim)</p></li>
 <li><p><strong>ilens</strong> – (Batch)</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(Batch, Frames, Label_dim)
 olens: (Batch)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>output</p>
 </dd>
 </dl>
@@ -248,11 +252,11 @@ olens: (Batch)</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-init">
-<span id="id2"></span><h2>espnet2.diar.__init__<a class="headerlink" href="#espnet2-diar-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-init-1">
+<span id="espnet2-diar-init"></span><h2>espnet2.diar.__init__<a class="headerlink" href="#espnet2-diar-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.__init__"></span></section>
-<section id="espnet2-diar-abs-diar">
-<span id="id3"></span><h2>espnet2.diar.abs_diar<a class="headerlink" href="#espnet2-diar-abs-diar" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-abs-diar-1">
+<span id="espnet2-diar-abs-diar"></span><h2>espnet2.diar.abs_diar<a class="headerlink" href="#espnet2-diar-abs-diar-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.abs_diar"></span><dl class="class">
 <dt id="espnet2.diar.abs_diar.AbsDiarization">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.abs_diar.</code><code class="sig-name descname">AbsDiarization</code><a class="reference internal" href="../_modules/espnet2/diar/abs_diar.html#AbsDiarization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.abs_diar.AbsDiarization" title="Permalink to this definition">¶</a></dt>
@@ -269,7 +273,7 @@ olens: (Batch)</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -280,8 +284,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-espnet-model">
-<span id="id4"></span><h2>espnet2.diar.espnet_model<a class="headerlink" href="#espnet2-diar-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-espnet-model-1">
+<span id="espnet2-diar-espnet-model"></span><h2>espnet2.diar.espnet_model<a class="headerlink" href="#espnet2-diar-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.espnet_model"></span><dl class="class">
 <dt id="espnet2.diar.espnet_model.ESPnetDiarizationModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.espnet_model.</code><code class="sig-name descname">ESPnetDiarizationModel</code><span class="sig-paren">(</span><em class="sig-param">frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], label_aggregator: torch.nn.modules.module.Module, encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, decoder: espnet2.diar.decoder.abs_decoder.AbsDecoder, attractor: Optional[espnet2.diar.attractor.abs_attractor.AbsAttractor], diar_weight: float = 1.0, attractor_weight: float = 1.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/espnet_model.html#ESPnetDiarizationModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.espnet_model.ESPnetDiarizationModel" title="Permalink to this definition">¶</a></dt>
@@ -317,7 +321,7 @@ EEND-EDA: <a class="reference external" href="https://arxiv.org/pdf/2005.09921.p
 <code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">bottleneck_feats: torch.Tensor</em>, <em class="sig-param">bottleneck_feats_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/diar/espnet_model.html#ESPnetDiarizationModel.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.espnet_model.ESPnetDiarizationModel.encode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, Length, …)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch,)</p></li>
@@ -332,7 +336,7 @@ EEND-EDA: <a class="reference external" href="https://arxiv.org/pdf/2005.09921.p
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor = None</em>, <em class="sig-param">spk_labels: torch.Tensor = None</em>, <em class="sig-param">spk_labels_lengths: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/diar/espnet_model.html#ESPnetDiarizationModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.espnet_model.ESPnetDiarizationModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Decoder + Calc loss</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, samples)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch,) default None for chunk interator,
@@ -360,8 +364,8 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-attractor-rnn-attractor">
-<span id="id5"></span><h2>espnet2.diar.attractor.rnn_attractor<a class="headerlink" href="#espnet2-diar-attractor-rnn-attractor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-attractor-rnn-attractor-1">
+<span id="espnet2-diar-attractor-rnn-attractor"></span><h2>espnet2.diar.attractor.rnn_attractor<a class="headerlink" href="#espnet2-diar-attractor-rnn-attractor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.attractor.rnn_attractor"></span><dl class="class">
 <dt id="espnet2.diar.attractor.rnn_attractor.RnnAttractor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.attractor.rnn_attractor.</code><code class="sig-name descname">RnnAttractor</code><span class="sig-paren">(</span><em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">layer: int = 1</em>, <em class="sig-param">unit: int = 512</em>, <em class="sig-param">dropout: float = 0.1</em>, <em class="sig-param">attractor_grad: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/attractor/rnn_attractor.html#RnnAttractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.attractor.rnn_attractor.RnnAttractor" title="Permalink to this definition">¶</a></dt>
@@ -372,18 +376,18 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">dec_input: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/attractor/rnn_attractor.html#RnnAttractor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.attractor.rnn_attractor.RnnAttractor.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>enc_input</strong> (<em>torch.Tensor</em>) – hidden_space [Batch, T, F]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
 <li><p><strong>dec_input</strong> (<em>torch.Tensor</em>) – decoder input (zeros) [Batch, num_spk + 1, F]</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[Batch, num_spk + 1, F]
 att_prob: [Batch, num_spk + 1, 1]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>attractor</p>
 </dd>
 </dl>
@@ -392,8 +396,8 @@ att_prob: [Batch, num_spk + 1, 1]</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-attractor-abs-attractor">
-<span id="id6"></span><h2>espnet2.diar.attractor.abs_attractor<a class="headerlink" href="#espnet2-diar-attractor-abs-attractor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-attractor-abs-attractor-1">
+<span id="espnet2-diar-attractor-abs-attractor"></span><h2>espnet2.diar.attractor.abs_attractor<a class="headerlink" href="#espnet2-diar-attractor-abs-attractor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.attractor.abs_attractor"></span><dl class="class">
 <dt id="espnet2.diar.attractor.abs_attractor.AbsAttractor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.attractor.abs_attractor.</code><code class="sig-name descname">AbsAttractor</code><a class="reference internal" href="../_modules/espnet2/diar/attractor/abs_attractor.html#AbsAttractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.attractor.abs_attractor.AbsAttractor" title="Permalink to this definition">¶</a></dt>
@@ -410,17 +414,17 @@ att_prob: [Batch, num_spk + 1, 1]</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-attractor-init">
-<span id="id7"></span><h2>espnet2.diar.attractor.__init__<a class="headerlink" href="#espnet2-diar-attractor-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-attractor-init-1">
+<span id="espnet2-diar-attractor-init"></span><h2>espnet2.diar.attractor.__init__<a class="headerlink" href="#espnet2-diar-attractor-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.attractor.__init__"></span></section>
-<section id="espnet2-diar-layers-multi-mask">
-<span id="id8"></span><h2>espnet2.diar.layers.multi_mask<a class="headerlink" href="#espnet2-diar-layers-multi-mask" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-layers-multi-mask-1">
+<span id="espnet2-diar-layers-multi-mask"></span><h2>espnet2.diar.layers.multi_mask<a class="headerlink" href="#espnet2-diar-layers-multi-mask-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.layers.multi_mask"></span><dl class="class">
 <dt id="espnet2.diar.layers.multi_mask.MultiMask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.layers.multi_mask.</code><code class="sig-name descname">MultiMask</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">max_num_spk: int = 3</em>, <em class="sig-param">mask_nonlinear='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/multi_mask.html#MultiMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.multi_mask.MultiMask" title="Permalink to this definition">¶</a></dt>
@@ -431,7 +435,7 @@ non-linear function in TCNSeparator.
 This module has multiple 1x1 conv blocks. One of them is selected
 according to the given num_spk to handle flexible num_spk.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> – Number of filters in autoencoder</p></li>
 <li><p><strong>bottleneck_dim</strong> – Number of channels in bottleneck 1 * 1-conv block</p></li>
@@ -446,7 +450,7 @@ according to the given num_spk to handle flexible num_spk.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor, bottleneck_feat: torch.Tensor, num_spk: int</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/diar/layers/multi_mask.html#MultiMask.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.multi_mask.MultiMask.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Keep this API same with TasNet.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> – [M, K, N], M is batch size</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (M,)</p></li>
@@ -456,7 +460,7 @@ according to the given num_spk to handle flexible num_spk.</p>
 <li><p><strong>Inference</strong> – estimated by other module (e.g, EEND-EDA))</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><p>[(M, K, N), …]
 ilens (torch.Tensor): (M,)
 others predicted data, e.g. masks: OrderedDict[</p>
@@ -469,7 +473,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <p>]</p>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>masked (List[Union(torch.Tensor, ComplexTensor)])</p>
 </dd>
 </dl>
@@ -483,8 +487,8 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-layers-abs-mask">
-<span id="id9"></span><h2>espnet2.diar.layers.abs_mask<a class="headerlink" href="#espnet2-diar-layers-abs-mask" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-layers-abs-mask-1">
+<span id="espnet2-diar-layers-abs-mask"></span><h2>espnet2.diar.layers.abs_mask<a class="headerlink" href="#espnet2-diar-layers-abs-mask-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.layers.abs_mask"></span><dl class="class">
 <dt id="espnet2.diar.layers.abs_mask.AbsMask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.layers.abs_mask.</code><code class="sig-name descname">AbsMask</code><a class="reference internal" href="../_modules/espnet2/diar/layers/abs_mask.html#AbsMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.abs_mask.AbsMask" title="Permalink to this definition">¶</a></dt>
@@ -501,7 +505,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -512,8 +516,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-layers-tcn-nomask">
-<span id="id10"></span><h2>espnet2.diar.layers.tcn_nomask<a class="headerlink" href="#espnet2-diar-layers-tcn-nomask" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-layers-tcn-nomask-1">
+<span id="espnet2-diar-layers-tcn-nomask"></span><h2>espnet2.diar.layers.tcn_nomask<a class="headerlink" href="#espnet2-diar-layers-tcn-nomask-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.layers.tcn_nomask"></span><dl class="class">
 <dt id="espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.layers.tcn_nomask.</code><code class="sig-name descname">ChannelwiseLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#ChannelwiseLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm" title="Permalink to this definition">¶</a></dt>
@@ -524,13 +528,13 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#ChannelwiseLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.ChannelwiseLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>y</strong> – [M, N, K], M is batch size, N is channel size, K is length</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, N, K]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>cLN_y</p>
 </dd>
 </dl>
@@ -553,10 +557,10 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#Chomp1d.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.Chomp1d.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> – [M, H, Kpad]</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, H, K]</p>
 </dd>
 </dl>
@@ -573,13 +577,13 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#DepthwiseSeparableConv.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.DepthwiseSeparableConv.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> – [M, H, K]</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, B, K]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>result</p>
 </dd>
 </dl>
@@ -597,13 +601,13 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#GlobalLayerNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.GlobalLayerNorm.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>y</strong> – [M, N, K], M is batch size, N is channel size, K is length</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, N, K]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>gLN_y</p>
 </dd>
 </dl>
@@ -625,10 +629,10 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#TemporalBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.TemporalBlock.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> – [M, B, K]</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, B, K]</p>
 </dd>
 </dl>
@@ -642,7 +646,7 @@ registered hooks while the latter silently ignores them.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Basic Module of tasnet.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>N</strong> – Number of filters in autoencoder</p></li>
 <li><p><strong>B</strong> – Number of channels in bottleneck 1 * 1-conv block</p></li>
@@ -660,13 +664,13 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">mixture_w</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/layers/tcn_nomask.html#TemporalConvNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.layers.tcn_nomask.TemporalConvNet.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Keep this API same with TasNet.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>mixture_w</strong> – [M, N, K], M is batch size</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[M, B, K]</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>bottleneck_feature</p>
 </dd>
 </dl>
@@ -687,11 +691,11 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-layers-init">
-<span id="id11"></span><h2>espnet2.diar.layers.__init__<a class="headerlink" href="#espnet2-diar-layers-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-layers-init-1">
+<span id="espnet2-diar-layers-init"></span><h2>espnet2.diar.layers.__init__<a class="headerlink" href="#espnet2-diar-layers-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.layers.__init__"></span></section>
-<section id="espnet2-diar-decoder-linear-decoder">
-<span id="id12"></span><h2>espnet2.diar.decoder.linear_decoder<a class="headerlink" href="#espnet2-diar-decoder-linear-decoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-decoder-linear-decoder-1">
+<span id="espnet2-diar-decoder-linear-decoder"></span><h2>espnet2.diar.decoder.linear_decoder<a class="headerlink" href="#espnet2-diar-decoder-linear-decoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.decoder.linear_decoder"></span><dl class="class">
 <dt id="espnet2.diar.decoder.linear_decoder.LinearDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.decoder.linear_decoder.</code><code class="sig-name descname">LinearDecoder</code><span class="sig-paren">(</span><em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">num_spk: int = 2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/decoder/linear_decoder.html#LinearDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.decoder.linear_decoder.LinearDecoder" title="Permalink to this definition">¶</a></dt>
@@ -702,7 +706,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/decoder/linear_decoder.html#LinearDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.decoder.linear_decoder.LinearDecoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> (<em>torch.Tensor</em>) – hidden_space [Batch, T, F]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
@@ -719,11 +723,11 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-decoder-init">
-<span id="id13"></span><h2>espnet2.diar.decoder.__init__<a class="headerlink" href="#espnet2-diar-decoder-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-decoder-init-1">
+<span id="espnet2-diar-decoder-init"></span><h2>espnet2.diar.decoder.__init__<a class="headerlink" href="#espnet2-diar-decoder-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.decoder.__init__"></span></section>
-<section id="espnet2-diar-decoder-abs-decoder">
-<span id="id14"></span><h2>espnet2.diar.decoder.abs_decoder<a class="headerlink" href="#espnet2-diar-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-decoder-abs-decoder-1">
+<span id="espnet2-diar-decoder-abs-decoder"></span><h2>espnet2.diar.decoder.abs_decoder<a class="headerlink" href="#espnet2-diar-decoder-abs-decoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.decoder.abs_decoder"></span><dl class="class">
 <dt id="espnet2.diar.decoder.abs_decoder.AbsDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.decoder.abs_decoder.</code><code class="sig-name descname">AbsDecoder</code><a class="reference internal" href="../_modules/espnet2/diar/decoder/abs_decoder.html#AbsDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.decoder.abs_decoder.AbsDecoder" title="Permalink to this definition">¶</a></dt>
@@ -740,7 +744,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -751,8 +755,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-separator-tcn-separator-nomask">
-<span id="id15"></span><h2>espnet2.diar.separator.tcn_separator_nomask<a class="headerlink" href="#espnet2-diar-separator-tcn-separator-nomask" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-separator-tcn-separator-nomask-1">
+<span id="espnet2-diar-separator-tcn-separator-nomask"></span><h2>espnet2.diar.separator.tcn_separator_nomask<a class="headerlink" href="#espnet2-diar-separator-tcn-separator-nomask-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.separator.tcn_separator_nomask"></span><dl class="class">
 <dt id="espnet2.diar.separator.tcn_separator_nomask.TCNSeparatorNomask">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.diar.separator.tcn_separator_nomask.</code><code class="sig-name descname">TCNSeparatorNomask</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/diar/separator/tcn_separator_nomask.html#TCNSeparatorNomask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.separator.tcn_separator_nomask.TCNSeparatorNomask" title="Permalink to this definition">¶</a></dt>
@@ -765,7 +769,7 @@ This separator outputs the intermediate bottleneck feats
 This separator is followed by MultiMask module,
 which estimates the masks.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> – input feature dimension</p></li>
 <li><p><strong>layer</strong> – int, number of layers in each stack.</p></li>
@@ -783,17 +787,17 @@ which estimates the masks.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/diar/separator/tcn_separator_nomask.html#TCNSeparatorNomask.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.diar.separator.tcn_separator_nomask.TCNSeparatorNomask.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>[B, T, bottleneck_dim]
 ilens (torch.Tensor): (B,)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>feats (torch.Tensor)</p>
 </dd>
 </dl>
@@ -812,8 +816,8 @@ ilens (torch.Tensor): (B,)</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-diar-separator-init">
-<span id="id16"></span><h2>espnet2.diar.separator.__init__<a class="headerlink" href="#espnet2-diar-separator-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-diar-separator-init-1">
+<span id="espnet2-diar-separator-init"></span><h2>espnet2.diar.separator.__init__<a class="headerlink" href="#espnet2-diar-separator-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.diar.separator.__init__"></span></section>
 </section>
 

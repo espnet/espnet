@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet.st package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -109,9 +113,9 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.st package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-st-init">espnet.st.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-st-pytorch-backend-st">espnet.st.pytorch_backend.st</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-st-pytorch-backend-init">espnet.st.pytorch_backend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-st-init-1">espnet.st.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-st-pytorch-backend-st-1">espnet.st.pytorch_backend.st</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-st-pytorch-backend-init-1">espnet.st.pytorch_backend.__init__</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
@@ -167,7 +171,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet.st package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet.st.rst.txt" rel="nofollow"> View page source</a>
@@ -205,12 +209,12 @@
 <section id="espnet-st-package">
 <h1>espnet.st package<a class="headerlink" href="#espnet-st-package" title="Permalink to this headline">¶</a></h1>
 <p>Initialize sub package.</p>
-<section id="espnet-st-init">
-<span id="id1"></span><h2>espnet.st.__init__<a class="headerlink" href="#espnet-st-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-st-init-1">
+<span id="espnet-st-init"></span><h2>espnet.st.__init__<a class="headerlink" href="#espnet-st-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.st.__init__"></span><p>Initialize sub package.</p>
 </section>
-<section id="espnet-st-pytorch-backend-st">
-<span id="id2"></span><h2>espnet.st.pytorch_backend.st<a class="headerlink" href="#espnet-st-pytorch-backend-st" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-st-pytorch-backend-st-1">
+<span id="espnet-st-pytorch-backend-st"></span><h2>espnet.st.pytorch_backend.st<a class="headerlink" href="#espnet-st-pytorch-backend-st-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.st.pytorch_backend.st"></span><p>Training/decoding definition for the speech translation task.</p>
 <dl class="class">
 <dt id="espnet.st.pytorch_backend.st.CustomConverter">
@@ -218,7 +222,7 @@
 <dd><p>Bases: <a class="reference internal" href="espnet.asr.html#espnet.asr.pytorch_backend.asr.CustomConverter" title="espnet.asr.pytorch_backend.asr.CustomConverter"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.asr.pytorch_backend.asr.CustomConverter</span></code></a></p>
 <p>Custom batch converter for Pytorch.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>subsampling_factor</strong> (<em>int</em>) – The subsampling factor.</p></li>
 <li><p><strong>dtype</strong> (<em>torch.dtype</em>) – Data type to convert.</p></li>
@@ -234,7 +238,7 @@
 <code class="sig-prename descclassname">espnet.st.pytorch_backend.st.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/st/pytorch_backend/st.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.st.pytorch_backend.st.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Train with the given args.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>args</strong> (<em>namespace</em>) – The program arguments.</p>
 </dd>
 </dl>
@@ -245,15 +249,15 @@
 <code class="sig-prename descclassname">espnet.st.pytorch_backend.st.</code><code class="sig-name descname">trans</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/st/pytorch_backend/st.html#trans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.st.pytorch_backend.st.trans" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decode with the given args.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>args</strong> (<em>namespace</em>) – The program arguments.</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet-st-pytorch-backend-init">
-<span id="id3"></span><h2>espnet.st.pytorch_backend.__init__<a class="headerlink" href="#espnet-st-pytorch-backend-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-st-pytorch-backend-init-1">
+<span id="espnet-st-pytorch-backend-init"></span><h2>espnet.st.pytorch_backend.__init__<a class="headerlink" href="#espnet-st-pytorch-backend-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.st.pytorch_backend.__init__"></span><p>Initialize sub package.</p>
 </section>
 </section>

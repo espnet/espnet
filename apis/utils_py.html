@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>python utility tools &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -146,180 +150,180 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet_bin.html">core tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_bin.html">core tools (espnet2)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">python utility tools</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#addjson-py">addjson.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#addjson-py-1">addjson.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#apply-cmvn-py">apply-cmvn.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#apply-cmvn-py-1">apply-cmvn.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#average-checkpoints-py">average_checkpoints.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#average-checkpoints-py-1">average_checkpoints.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#calculate-rtf-py">calculate_rtf.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#calculate-rtf-py-1">calculate_rtf.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#change-yaml-py">change_yaml.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#change-yaml-py-1">change_yaml.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#compute-cmvn-stats-py">compute-cmvn-stats.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#compute-cmvn-stats-py-1">compute-cmvn-stats.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#compute-fbank-feats-py">compute-fbank-feats.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#compute-fbank-feats-py-1">compute-fbank-feats.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#compute-stft-feats-py">compute-stft-feats.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#compute-stft-feats-py-1">compute-stft-feats.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#concat-json-multiref-py">concat_json_multiref.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#concat-json-multiref-py-1">concat_json_multiref.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#concatjson-py">concatjson.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#concatjson-py-1">concatjson.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#convert-fbank-to-wav-py">convert_fbank_to_wav.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#copy-feats-py">copy-feats.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#convert-fbank-to-wav-py-1">convert_fbank_to_wav.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#dump-pcm-py">dump-pcm.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#copy-feats-py-1">copy-feats.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#eval-source-separation-py">eval-source-separation.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#eval-perm-free-error-py">eval_perm_free_error.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dump-pcm-py-1">dump-pcm.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#feat-to-shape-py">feat-to-shape.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#eval-source-separation-py-1">eval-source-separation.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#eval-perm-free-error-py-1">eval_perm_free_error.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#feats2npy-py">feats2npy.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#filt-py">filt.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#feat-to-shape-py-1">feat-to-shape.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#generate-wav-from-fbank-py">generate_wav_from_fbank.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#feats2npy-py-1">feats2npy.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#filt-py-1">filt.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#get-yaml-py">get_yaml.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#json2sctm-py">json2sctm.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#generate-wav-from-fbank-py-1">generate_wav_from_fbank.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#json2text-py">json2text.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#get-yaml-py-1">get_yaml.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#json2trn-py">json2trn.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#json2trn-mt-py">json2trn_mt.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#json2sctm-py-1">json2sctm.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#json2trn-wo-dict-py">json2trn_wo_dict.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#json2text-py-1">json2text.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#json2trn-py-1">json2trn.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#make-pair-json-py">make_pair_json.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#mcd-calculate-py">mcd_calculate.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#merge-scp2json-py">merge_scp2json.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#mergejson-py">mergejson.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#mix-mono-wav-scp-py">mix-mono-wav-scp.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#result2json-py">result2json.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#score-lang-id-py">score_lang_id.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#scp2json-py">scp2json.py</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#splitjson-py">splitjson.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#json2trn-mt-py-1">json2trn_mt.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#text2token-py">text2token.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#json2trn-wo-dict-py-1">json2trn_wo_dict.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#text2vocabulary-py">text2vocabulary.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#make-pair-json-py-1">make_pair_json.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#mcd-calculate-py-1">mcd_calculate.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#merge-scp2json-py-1">merge_scp2json.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#mergejson-py-1">mergejson.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#mix-mono-wav-scp-py-1">mix-mono-wav-scp.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#result2json-py-1">result2json.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#score-lang-id-py-1">score_lang_id.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#scp2json-py-1">scp2json.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#splitjson-py-1">splitjson.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#trim-silence-py">trim_silence.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#text2token-py-1">text2token.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#trn2ctm-py">trn2ctm.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#text2vocabulary-py-1">text2vocabulary.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#trim-silence-py-1">trim_silence.py</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#trn2ctm-py-1">trn2ctm.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#trn2stm-py">trn2stm.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#trn2stm-py-1">trn2stm.py</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#positional-arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#named-arguments">Named Arguments</a></li>
 </ul>
@@ -342,7 +346,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">python utility tools</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/apis/utils_py.rst.txt" rel="nofollow"> View page source</a>
@@ -377,8 +381,8 @@
     text-align: unset;
 }
 </style>
-<section id="python-utility-tools">
-<span id="id1"></span><h1>python utility tools<a class="headerlink" href="#python-utility-tools" title="Permalink to this headline">¶</a></h1>
+<section id="python-utility-tools-1">
+<span id="python-utility-tools"></span><h1>python utility tools<a class="headerlink" href="#python-utility-tools-1" title="Permalink to this headline">¶</a></h1>
 <p>ESPnet provides several command-line python tools under <code class="docutils literal notranslate"><span class="pre">utils/</span></code></p>
 <ul class="simple">
 <li><p><a class="reference internal" href="#addjson-py"><span class="std std-ref">addjson.py</span></a>: add multiple json values to an input or output value</p></li>
@@ -421,8 +425,8 @@
 <li><p><a class="reference internal" href="#trn2ctm-py"><span class="std std-ref">trn2ctm.py</span></a>: convert trn to ctm</p></li>
 <li><p><a class="reference internal" href="#trn2stm-py"><span class="std std-ref">trn2stm.py</span></a>: convert trn to stm</p></li>
 </ul>
-<section id="addjson-py">
-<span id="id2"></span><h2>addjson.py<a class="headerlink" href="#addjson-py" title="Permalink to this headline">¶</a></h2>
+<section id="addjson-py-1">
+<span id="addjson-py"></span><h2>addjson.py<a class="headerlink" href="#addjson-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>add multiple json values to an input or output value</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">addjson</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">i</span> <span class="n">IS_INPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span> <span class="n">jsons</span> <span class="p">[</span><span class="n">jsons</span> <span class="o">...</span><span class="p">]</span>
@@ -450,8 +454,8 @@
 </dl>
 </section>
 </section>
-<section id="apply-cmvn-py">
-<span id="id3"></span><h2>apply-cmvn.py<a class="headerlink" href="#apply-cmvn-py" title="Permalink to this headline">¶</a></h2>
+<section id="apply-cmvn-py-1">
+<span id="apply-cmvn-py"></span><h2>apply-cmvn.py<a class="headerlink" href="#apply-cmvn-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>apply mean-variance normalization to files</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">apply</span><span class="o">-</span><span class="n">cmvn</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span>
@@ -534,8 +538,8 @@
 </dl>
 </section>
 </section>
-<section id="average-checkpoints-py">
-<span id="id4"></span><h2>average_checkpoints.py<a class="headerlink" href="#average-checkpoints-py" title="Permalink to this headline">¶</a></h2>
+<section id="average-checkpoints-py-1">
+<span id="average-checkpoints-py"></span><h2>average_checkpoints.py<a class="headerlink" href="#average-checkpoints-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>average models from snapshot</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">average_checkpoints</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">snapshots</span> <span class="n">SNAPSHOTS</span> <span class="p">[</span><span class="n">SNAPSHOTS</span> <span class="o">...</span><span class="p">]</span> <span class="o">--</span><span class="n">out</span>
@@ -570,8 +574,8 @@
 </dl>
 </section>
 </section>
-<section id="calculate-rtf-py">
-<span id="id5"></span><h2>calculate_rtf.py<a class="headerlink" href="#calculate-rtf-py" title="Permalink to this headline">¶</a></h2>
+<section id="calculate-rtf-py-1">
+<span id="calculate-rtf-py"></span><h2>calculate_rtf.py<a class="headerlink" href="#calculate-rtf-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>calculate real time factor (RTF)</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">calculate_rtf</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span><span class="p">]</span>
@@ -614,8 +618,8 @@
 </dl>
 </section>
 </section>
-<section id="change-yaml-py">
-<span id="id6"></span><h2>change_yaml.py<a class="headerlink" href="#change-yaml-py" title="Permalink to this headline">¶</a></h2>
+<section id="change-yaml-py-1">
+<span id="change-yaml-py"></span><h2>change_yaml.py<a class="headerlink" href="#change-yaml-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>change specified attributes of a YAML file</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">change_yaml</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUTYAML</span> <span class="o">|</span> <span class="o">--</span><span class="n">outdir</span> <span class="n">OUTDIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">ARG</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DELETE</span><span class="p">]</span>
@@ -647,8 +651,8 @@
 </dl>
 </section>
 </section>
-<section id="compute-cmvn-stats-py">
-<span id="id7"></span><h2>compute-cmvn-stats.py<a class="headerlink" href="#compute-cmvn-stats-py" title="Permalink to this headline">¶</a></h2>
+<section id="compute-cmvn-stats-py-1">
+<span id="compute-cmvn-stats-py"></span><h2>compute-cmvn-stats.py<a class="headerlink" href="#compute-cmvn-stats-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Compute cepstral mean and variance normalization statisticsIf wspecifier provided: per-utterance by default, or per-speaker ifspk2utt option provided; if wxfilename: global</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">compute</span><span class="o">-</span><span class="n">cmvn</span><span class="o">-</span><span class="n">stats</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">spk2utt</span> <span class="n">SPK2UTT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span>
@@ -695,8 +699,8 @@
 </dl>
 </section>
 </section>
-<section id="compute-fbank-feats-py">
-<span id="id8"></span><h2>compute-fbank-feats.py<a class="headerlink" href="#compute-fbank-feats-py" title="Permalink to this headline">¶</a></h2>
+<section id="compute-fbank-feats-py-1">
+<span id="compute-fbank-feats-py"></span><h2>compute-fbank-feats.py<a class="headerlink" href="#compute-fbank-feats-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>compute FBANK feature from WAV</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">compute</span><span class="o">-</span><span class="n">fbank</span><span class="o">-</span><span class="n">feats</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fs</span> <span class="n">FS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fmax</span> <span class="p">[</span><span class="n">FMAX</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">fmin</span> <span class="p">[</span><span class="n">FMIN</span><span class="p">]]</span>
@@ -784,8 +788,8 @@
 </dl>
 </section>
 </section>
-<section id="compute-stft-feats-py">
-<span id="id9"></span><h2>compute-stft-feats.py<a class="headerlink" href="#compute-stft-feats-py" title="Permalink to this headline">¶</a></h2>
+<section id="compute-stft-feats-py-1">
+<span id="compute-stft-feats-py"></span><h2>compute-stft-feats.py<a class="headerlink" href="#compute-stft-feats-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>compute STFT feature from WAV</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">compute</span><span class="o">-</span><span class="n">stft</span><span class="o">-</span><span class="n">feats</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fs</span> <span class="n">FS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">n_fft</span> <span class="n">N_FFT</span><span class="p">]</span>
@@ -862,8 +866,8 @@
 </dl>
 </section>
 </section>
-<section id="concat-json-multiref-py">
-<span id="id10"></span><h2>concat_json_multiref.py<a class="headerlink" href="#concat-json-multiref-py" title="Permalink to this headline">¶</a></h2>
+<section id="concat-json-multiref-py-1">
+<span id="concat-json-multiref-py"></span><h2>concat_json_multiref.py<a class="headerlink" href="#concat-json-multiref-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>concatenate multiple json files for data augmentation</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">concat_json_multiref</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">jsons</span> <span class="p">[</span><span class="n">jsons</span> <span class="o">...</span><span class="p">]</span>
@@ -878,8 +882,8 @@
 </dl>
 </section>
 </section>
-<section id="concatjson-py">
-<span id="id11"></span><h2>concatjson.py<a class="headerlink" href="#concatjson-py" title="Permalink to this headline">¶</a></h2>
+<section id="concatjson-py-1">
+<span id="concatjson-py"></span><h2>concatjson.py<a class="headerlink" href="#concatjson-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>concatenate json files</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">concatjson</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">jsons</span> <span class="p">[</span><span class="n">jsons</span> <span class="o">...</span><span class="p">]</span>
@@ -894,8 +898,8 @@
 </dl>
 </section>
 </section>
-<section id="convert-fbank-to-wav-py">
-<span id="id12"></span><h2>convert_fbank_to_wav.py<a class="headerlink" href="#convert-fbank-to-wav-py" title="Permalink to this headline">¶</a></h2>
+<section id="convert-fbank-to-wav-py-1">
+<span id="convert-fbank-to-wav-py"></span><h2>convert_fbank_to_wav.py<a class="headerlink" href="#convert-fbank-to-wav-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert FBANK to WAV using Griffin-Lim algorithm</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">convert_fbank_to_wav</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fs</span> <span class="n">FS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fmax</span> <span class="p">[</span><span class="n">FMAX</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">fmin</span> <span class="p">[</span><span class="n">FMIN</span><span class="p">]]</span>
@@ -961,8 +965,8 @@
 </dl>
 </section>
 </section>
-<section id="copy-feats-py">
-<span id="id13"></span><h2>copy-feats.py<a class="headerlink" href="#copy-feats-py" title="Permalink to this headline">¶</a></h2>
+<section id="copy-feats-py-1">
+<span id="copy-feats-py"></span><h2>copy-feats.py<a class="headerlink" href="#copy-feats-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>copy feature with preprocessing</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">copy</span><span class="o">-</span><span class="n">feats</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span>
@@ -1020,8 +1024,8 @@
 </dl>
 </section>
 </section>
-<section id="dump-pcm-py">
-<span id="id14"></span><h2>dump-pcm.py<a class="headerlink" href="#dump-pcm-py" title="Permalink to this headline">¶</a></h2>
+<section id="dump-pcm-py-1">
+<span id="dump-pcm-py"></span><h2>dump-pcm.py<a class="headerlink" href="#dump-pcm-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>dump PCM files from a WAV scp file</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">dump</span><span class="o">-</span><span class="n">pcm</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">write</span><span class="o">-</span><span class="n">num</span><span class="o">-</span><span class="n">frames</span> <span class="n">WRITE_NUM_FRAMES</span><span class="p">]</span>
@@ -1088,8 +1092,8 @@
 </dl>
 </section>
 </section>
-<section id="eval-source-separation-py">
-<span id="id15"></span><h2>eval-source-separation.py<a class="headerlink" href="#eval-source-separation-py" title="Permalink to this headline">¶</a></h2>
+<section id="eval-source-separation-py-1">
+<span id="eval-source-separation-py"></span><h2>eval-source-separation.py<a class="headerlink" href="#eval-source-separation-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Evaluate enhanced speech. e.g. /home/runner/work/espnet/espnet/tools/venv/bin/sphinx-build –ref ref.scp –enh enh.scp –outdir outputdiror /home/runner/work/espnet/espnet/tools/venv/bin/sphinx-build –ref ref.scp ref2.scp –enh enh.scp enh2.scp –outdir outputdir</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="nb">eval</span><span class="o">-</span><span class="n">source</span><span class="o">-</span><span class="n">separation</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span> <span class="o">--</span><span class="n">ref</span> <span class="n">REFFILES</span>
@@ -1139,8 +1143,8 @@
 </dl>
 </section>
 </section>
-<section id="eval-perm-free-error-py">
-<span id="id16"></span><h2>eval_perm_free_error.py<a class="headerlink" href="#eval-perm-free-error-py" title="Permalink to this headline">¶</a></h2>
+<section id="eval-perm-free-error-py-1">
+<span id="eval-perm-free-error-py"></span><h2>eval_perm_free_error.py<a class="headerlink" href="#eval-perm-free-error-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>evaluate permutation-free error</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">eval_perm_free_error</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">num</span><span class="o">-</span><span class="n">spkrs</span> <span class="n">NUM_SPKRS</span><span class="p">]</span>
@@ -1165,8 +1169,8 @@
 </dl>
 </section>
 </section>
-<section id="feat-to-shape-py">
-<span id="id17"></span><h2>feat-to-shape.py<a class="headerlink" href="#feat-to-shape-py" title="Permalink to this headline">¶</a></h2>
+<section id="feat-to-shape-py-1">
+<span id="feat-to-shape-py"></span><h2>feat-to-shape.py<a class="headerlink" href="#feat-to-shape-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert feature to its shape</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">feat</span><span class="o">-</span><span class="n">to</span><span class="o">-</span><span class="n">shape</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">verbose</span> <span class="n">VERBOSE</span><span class="p">]</span>
@@ -1205,8 +1209,8 @@
 </dl>
 </section>
 </section>
-<section id="feats2npy-py">
-<span id="id18"></span><h2>feats2npy.py<a class="headerlink" href="#feats2npy-py" title="Permalink to this headline">¶</a></h2>
+<section id="feats2npy-py-1">
+<span id="feats2npy-py"></span><h2>feats2npy.py<a class="headerlink" href="#feats2npy-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Convet kaldi-style features to numpy arrays</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">feats2npy</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">scp_file</span> <span class="n">out_dir</span>
@@ -1224,8 +1228,8 @@
 </dl>
 </section>
 </section>
-<section id="filt-py">
-<span id="id19"></span><h2>filt.py<a class="headerlink" href="#filt-py" title="Permalink to this headline">¶</a></h2>
+<section id="filt-py-1">
+<span id="filt-py"></span><h2>filt.py<a class="headerlink" href="#filt-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>filter words in a text file</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">filt</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">exclude</span><span class="p">]</span> <span class="n">filt</span> <span class="n">infile</span>
@@ -1252,8 +1256,8 @@
 </dl>
 </section>
 </section>
-<section id="generate-wav-from-fbank-py">
-<span id="id20"></span><h2>generate_wav_from_fbank.py<a class="headerlink" href="#generate-wav-from-fbank-py" title="Permalink to this headline">¶</a></h2>
+<section id="generate-wav-from-fbank-py-1">
+<span id="generate-wav-from-fbank-py"></span><h2>generate_wav_from_fbank.py<a class="headerlink" href="#generate-wav-from-fbank-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>generate wav from FBANK using wavenet vocoder</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">generate_wav_from_fbank</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fs</span> <span class="n">FS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">n_fft</span> <span class="n">N_FFT</span><span class="p">]</span>
@@ -1299,8 +1303,8 @@
 </dl>
 </section>
 </section>
-<section id="get-yaml-py">
-<span id="id21"></span><h2>get_yaml.py<a class="headerlink" href="#get-yaml-py" title="Permalink to this headline">¶</a></h2>
+<section id="get-yaml-py-1">
+<span id="get-yaml-py"></span><h2>get_yaml.py<a class="headerlink" href="#get-yaml-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>get a specified attribute from a YAML file</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">get_yaml</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">inyaml</span> <span class="n">attr</span>
@@ -1317,8 +1321,8 @@
 </dl>
 </section>
 </section>
-<section id="json2sctm-py">
-<span id="id22"></span><h2>json2sctm.py<a class="headerlink" href="#json2sctm-py" title="Permalink to this headline">¶</a></h2>
+<section id="json2sctm-py-1">
+<span id="json2sctm-py"></span><h2>json2sctm.py<a class="headerlink" href="#json2sctm-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert json to sctm</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">json2sctm</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">num</span><span class="o">-</span><span class="n">spkrs</span> <span class="p">[</span><span class="n">NUM_SPKRS</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">refs</span> <span class="p">[</span><span class="n">REFS</span> <span class="p">[</span><span class="n">REFS</span> <span class="o">...</span><span class="p">]]]</span>
@@ -1366,8 +1370,8 @@
 </dl>
 </section>
 </section>
-<section id="json2text-py">
-<span id="id23"></span><h2>json2text.py<a class="headerlink" href="#json2text-py" title="Permalink to this headline">¶</a></h2>
+<section id="json2text-py-1">
+<span id="json2text-py"></span><h2>json2text.py<a class="headerlink" href="#json2text-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert ASR recognized json to text</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">json2text</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">json</span> <span class="nb">dict</span> <span class="n">ref</span> <span class="n">hyp</span>
@@ -1391,8 +1395,8 @@
 </dl>
 </section>
 </section>
-<section id="json2trn-py">
-<span id="id24"></span><h2>json2trn.py<a class="headerlink" href="#json2trn-py" title="Permalink to this headline">¶</a></h2>
+<section id="json2trn-py-1">
+<span id="json2trn-py"></span><h2>json2trn.py<a class="headerlink" href="#json2trn-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert a json to a transcription file with a token dictionary</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">json2trn</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">num</span><span class="o">-</span><span class="n">spkrs</span> <span class="n">NUM_SPKRS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">refs</span> <span class="n">REFS</span> <span class="p">[</span><span class="n">REFS</span> <span class="o">...</span><span class="p">]]</span>
@@ -1427,8 +1431,8 @@
 </dl>
 </section>
 </section>
-<section id="json2trn-mt-py">
-<span id="id25"></span><h2>json2trn_mt.py<a class="headerlink" href="#json2trn-mt-py" title="Permalink to this headline">¶</a></h2>
+<section id="json2trn-mt-py-1">
+<span id="json2trn-mt-py"></span><h2>json2trn_mt.py<a class="headerlink" href="#json2trn-mt-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert json to machine translation transcription</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">json2trn_mt</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">refs</span> <span class="n">REFS</span> <span class="p">[</span><span class="n">REFS</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">hyps</span> <span class="n">HYPS</span> <span class="p">[</span><span class="n">HYPS</span> <span class="o">...</span><span class="p">]]</span>
@@ -1466,8 +1470,8 @@
 </dl>
 </section>
 </section>
-<section id="json2trn-wo-dict-py">
-<span id="id26"></span><h2>json2trn_wo_dict.py<a class="headerlink" href="#json2trn-wo-dict-py" title="Permalink to this headline">¶</a></h2>
+<section id="json2trn-wo-dict-py-1">
+<span id="json2trn-wo-dict-py"></span><h2>json2trn_wo_dict.py<a class="headerlink" href="#json2trn-wo-dict-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert a json to a transcription file with a token dictionary</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">json2trn_wo_dict</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">num</span><span class="o">-</span><span class="n">spkrs</span> <span class="n">NUM_SPKRS</span><span class="p">]</span>
@@ -1499,8 +1503,8 @@
 </dl>
 </section>
 </section>
-<section id="make-pair-json-py">
-<span id="id27"></span><h2>make_pair_json.py<a class="headerlink" href="#make-pair-json-py" title="Permalink to this headline">¶</a></h2>
+<section id="make-pair-json-py-1">
+<span id="make-pair-json-py"></span><h2>make_pair_json.py<a class="headerlink" href="#make-pair-json-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Merge source and target data.json files into one json file.</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">make_pair_json</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">src</span><span class="o">-</span><span class="n">json</span> <span class="n">SRC_JSON</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">trg</span><span class="o">-</span><span class="n">json</span> <span class="n">TRG_JSON</span><span class="p">]</span>
@@ -1530,8 +1534,8 @@
 </dl>
 </section>
 </section>
-<section id="mcd-calculate-py">
-<span id="id28"></span><h2>mcd_calculate.py<a class="headerlink" href="#mcd-calculate-py" title="Permalink to this headline">¶</a></h2>
+<section id="mcd-calculate-py-1">
+<span id="mcd-calculate-py"></span><h2>mcd_calculate.py<a class="headerlink" href="#mcd-calculate-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>calculate MCD.</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">mcd_calculate</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">wavdir</span> <span class="n">WAVDIR</span> <span class="o">--</span><span class="n">gtwavdir</span> <span class="n">GTWAVDIR</span>
@@ -1578,8 +1582,8 @@
 </dl>
 </section>
 </section>
-<section id="merge-scp2json-py">
-<span id="id29"></span><h2>merge_scp2json.py<a class="headerlink" href="#merge-scp2json-py" title="Permalink to this headline">¶</a></h2>
+<section id="merge-scp2json-py-1">
+<span id="merge-scp2json-py"></span><h2>merge_scp2json.py<a class="headerlink" href="#merge-scp2json-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Given each file paths with such format as &lt;key&gt;:&lt;file&gt;:&lt;type&gt;. type&gt; can be omitted and the default is “str”. e.g. /home/runner/work/espnet/espnet/tools/venv/bin/sphinx-build –input-scps feat:data/feats.scp shape:data/utt2feat_shape:shape –input-scps feat:data/feats2.scp shape:data/utt2feat2_shape:shape –output-scps text:data/text shape:data/utt2text_shape:shape –scps utt2spk:data/utt2spk</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">merge_scp2json</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">scps</span> <span class="p">[</span><span class="n">INPUT_SCPS</span> <span class="p">[</span><span class="n">INPUT_SCPS</span> <span class="o">...</span><span class="p">]]]</span>
@@ -1617,8 +1621,8 @@
 </dl>
 </section>
 </section>
-<section id="mergejson-py">
-<span id="id30"></span><h2>mergejson.py<a class="headerlink" href="#mergejson-py" title="Permalink to this headline">¶</a></h2>
+<section id="mergejson-py-1">
+<span id="mergejson-py"></span><h2>mergejson.py<a class="headerlink" href="#mergejson-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>merge json files</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">mergejson</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">input</span><span class="o">-</span><span class="n">jsons</span> <span class="n">INPUT_JSONS</span> <span class="p">[</span><span class="n">INPUT_JSONS</span> <span class="o">...</span><span class="p">]]</span>
@@ -1652,8 +1656,8 @@
 </dl>
 </section>
 </section>
-<section id="mix-mono-wav-scp-py">
-<span id="id31"></span><h2>mix-mono-wav-scp.py<a class="headerlink" href="#mix-mono-wav-scp-py" title="Permalink to this headline">¶</a></h2>
+<section id="mix-mono-wav-scp-py-1">
+<span id="mix-mono-wav-scp-py"></span><h2>mix-mono-wav-scp.py<a class="headerlink" href="#mix-mono-wav-scp-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Mixing wav.scp files into a multi-channel wav.scp using sox.</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">mix</span><span class="o">-</span><span class="n">mono</span><span class="o">-</span><span class="n">wav</span><span class="o">-</span><span class="n">scp</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="n">scp</span> <span class="p">[</span><span class="n">scp</span> <span class="o">...</span><span class="p">]</span> <span class="p">[</span><span class="n">out</span><span class="p">]</span>
@@ -1667,13 +1671,13 @@
 </dd>
 <dt><kbd>out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f37c98636a0&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f1d0aab56d0&gt;</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="result2json-py">
-<span id="id32"></span><h2>result2json.py<a class="headerlink" href="#result2json-py" title="Permalink to this headline">¶</a></h2>
+<section id="result2json-py-1">
+<span id="result2json-py"></span><h2>result2json.py<a class="headerlink" href="#result2json-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert sclite’s result.txt file to json</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">result2json</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">key</span> <span class="n">KEY</span><span class="p">]</span>
@@ -1688,8 +1692,8 @@
 </dl>
 </section>
 </section>
-<section id="score-lang-id-py">
-<span id="id33"></span><h2>score_lang_id.py<a class="headerlink" href="#score-lang-id-py" title="Permalink to this headline">¶</a></h2>
+<section id="score-lang-id-py-1">
+<span id="score-lang-id-py"></span><h2>score_lang_id.py<a class="headerlink" href="#score-lang-id-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>language identification scoring</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">score_lang_id</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">ref</span> <span class="n">REF</span> <span class="o">--</span><span class="n">hyp</span> <span class="n">HYP</span> <span class="p">[</span><span class="o">--</span><span class="n">out</span> <span class="n">OUT</span><span class="p">]</span>
@@ -1706,13 +1710,13 @@
 </dd>
 <dt><kbd>--out</kbd></dt>
 <dd><p>The output filename. If omitted, then output to sys.stdout</p>
-<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f37c98636a0&gt;</p>
+<p>Default: &lt;encodings.utf_8.StreamWriter object at 0x7f1d0aab56d0&gt;</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="scp2json-py">
-<span id="id34"></span><h2>scp2json.py<a class="headerlink" href="#scp2json-py" title="Permalink to this headline">¶</a></h2>
+<section id="scp2json-py-1">
+<span id="scp2json-py"></span><h2>scp2json.py<a class="headerlink" href="#scp2json-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert scp to json</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">scp2json</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">key</span> <span class="n">KEY</span><span class="p">]</span>
@@ -1727,8 +1731,8 @@
 </dl>
 </section>
 </section>
-<section id="splitjson-py">
-<span id="id35"></span><h2>splitjson.py<a class="headerlink" href="#splitjson-py" title="Permalink to this headline">¶</a></h2>
+<section id="splitjson-py-1">
+<span id="splitjson-py"></span><h2>splitjson.py<a class="headerlink" href="#splitjson-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>split a json file for parallel processing</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">splitjson</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">parts</span> <span class="n">PARTS</span><span class="p">]</span> <span class="n">json</span>
@@ -1752,8 +1756,8 @@
 </dl>
 </section>
 </section>
-<section id="text2token-py">
-<span id="id36"></span><h2>text2token.py<a class="headerlink" href="#text2token-py" title="Permalink to this headline">¶</a></h2>
+<section id="text2token-py-1">
+<span id="text2token-py"></span><h2>text2token.py<a class="headerlink" href="#text2token-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert raw text to tokenized text</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">text2token</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">nchar</span> <span class="n">NCHAR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">skip</span><span class="o">-</span><span class="n">ncols</span> <span class="n">SKIP_NCOLS</span><span class="p">]</span>
@@ -1804,8 +1808,8 @@ sil t er n ih sil t ih v sil”</p>
 </dl>
 </section>
 </section>
-<section id="text2vocabulary-py">
-<span id="id37"></span><h2>text2vocabulary.py<a class="headerlink" href="#text2vocabulary-py" title="Permalink to this headline">¶</a></h2>
+<section id="text2vocabulary-py-1">
+<span id="text2vocabulary-py"></span><h2>text2vocabulary.py<a class="headerlink" href="#text2vocabulary-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>create a vocabulary file from text files</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">text2vocabulary</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">output</span> <span class="n">OUTPUT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cutoff</span> <span class="n">CUTOFF</span><span class="p">]</span>
@@ -1839,8 +1843,8 @@ sil t er n ih sil t ih v sil”</p>
 </dl>
 </section>
 </section>
-<section id="trim-silence-py">
-<span id="id38"></span><h2>trim_silence.py<a class="headerlink" href="#trim-silence-py" title="Permalink to this headline">¶</a></h2>
+<section id="trim-silence-py-1">
+<span id="trim-silence-py"></span><h2>trim_silence.py<a class="headerlink" href="#trim-silence-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>Trim slience with simple power thresholding and make segments file.</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">trim_silence</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fs</span> <span class="n">FS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">threshold</span> <span class="n">THRESHOLD</span><span class="p">]</span>
@@ -1897,8 +1901,8 @@ sil t er n ih sil t ih v sil”</p>
 </dl>
 </section>
 </section>
-<section id="trn2ctm-py">
-<span id="id39"></span><h2>trn2ctm.py<a class="headerlink" href="#trn2ctm-py" title="Permalink to this headline">¶</a></h2>
+<section id="trn2ctm-py-1">
+<span id="trn2ctm-py"></span><h2>trn2ctm.py<a class="headerlink" href="#trn2ctm-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert trn to ctm</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">trn2ctm</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="n">trn</span><span class="p">]</span> <span class="p">[</span><span class="n">ctm</span><span class="p">]</span>
@@ -1916,8 +1920,8 @@ sil t er n ih sil t ih v sil”</p>
 </dl>
 </section>
 </section>
-<section id="trn2stm-py">
-<span id="id40"></span><h2>trn2stm.py<a class="headerlink" href="#trn2stm-py" title="Permalink to this headline">¶</a></h2>
+<section id="trn2stm-py-1">
+<span id="trn2stm-py"></span><h2>trn2stm.py<a class="headerlink" href="#trn2stm-py-1" title="Permalink to this headline">¶</a></h2>
 <p><p>convert trn to stm</p>
 </p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">trn2stm</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">orig</span><span class="o">-</span><span class="n">stm</span> <span class="p">[</span><span class="n">ORIG_STM</span><span class="p">]]</span> <span class="p">[</span><span class="n">trn</span><span class="p">]</span> <span class="p">[</span><span class="n">stm</span><span class="p">]</span>

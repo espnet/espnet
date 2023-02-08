@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESPnet2-TTS realtime demonstration &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -86,10 +90,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#Multi-speaker-Model-Demo">Multi-speaker Model Demo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Model Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id2">Model Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-selection-1">Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-setup-1">Model Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Speaker-selection">Speaker selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#synthesis-1">Synthesis</a></li>
 </ul>
 </li>
 </ul>
@@ -178,7 +182,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">ESPnet2-TTS realtime demonstration</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/notebook/espnet2_tts_realtime_demo.ipynb.txt" rel="nofollow"> View page source</a>
@@ -600,8 +604,8 @@ display(Audio(wav.view(-1).cpu().numpy(), rate=text2speech.fs))
 </section>
 <section id="Multi-speaker-Model-Demo">
 <h2>Multi-speaker Model Demo<a class="headerlink" href="#Multi-speaker-Model-Demo" title="Permalink to this headline">¶</a></h2>
-<section id="id1">
-<h3>Model Selection<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<section id="model-selection-1">
+<h3>Model Selection<a class="headerlink" href="#model-selection-1" title="Permalink to this headline">¶</a></h3>
 <p>Now we provide only English multi-speaker pretrained model.</p>
 <blockquote>
 <div><p>The terms of use follow that of each corpus. We use the following corpora: - <code class="docutils literal notranslate"><span class="pre">libritts_*</span></code>: LibriTTS corpus - <a class="reference external" href="http://www.openslr.org/60">http://www.openslr.org/60</a> - <code class="docutils literal notranslate"><span class="pre">vctk_*</span></code>: English Multi-speaker Corpus for CSTR Voice Cloning Toolkit - <a class="reference external" href="http://www.udialogue.org/download/cstr-vctk-corpus.html">http://www.udialogue.org/download/cstr-vctk-corpus.html</a></p>
@@ -618,8 +622,8 @@ vocoder_tag = &quot;none&quot; #@param [&quot;none&quot;, &quot;parallel_wavegan
 </div>
 </div>
 </section>
-<section id="id2">
-<h3>Model Setup<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<section id="model-setup-1">
+<h3>Model Setup<a class="headerlink" href="#model-setup-1" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
@@ -709,8 +713,8 @@ if text2speech.use_speech:
 </div>
 </div>
 </section>
-<section id="id3">
-<h3>Synthesis<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<section id="synthesis-1">
+<h3>Synthesis<a class="headerlink" href="#synthesis-1" title="Permalink to this headline">¶</a></h3>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>

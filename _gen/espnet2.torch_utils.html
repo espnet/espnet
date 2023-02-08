@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.torch_utils package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -114,17 +118,17 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.torch_utils package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-load-pretrained-model">espnet2.torch_utils.load_pretrained_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-initialize">espnet2.torch_utils.initialize</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-set-all-random-seed">espnet2.torch_utils.set_all_random_seed</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-add-gradient-noise">espnet2.torch_utils.add_gradient_noise</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-recursive-op">espnet2.torch_utils.recursive_op</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-pytorch-version">espnet2.torch_utils.pytorch_version</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-forward-adaptor">espnet2.torch_utils.forward_adaptor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-get-layer-from-string">espnet2.torch_utils.get_layer_from_string</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-device-funcs">espnet2.torch_utils.device_funcs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-init">espnet2.torch_utils.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-model-summary">espnet2.torch_utils.model_summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-load-pretrained-model-1">espnet2.torch_utils.load_pretrained_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-initialize-1">espnet2.torch_utils.initialize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-set-all-random-seed-1">espnet2.torch_utils.set_all_random_seed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-add-gradient-noise-1">espnet2.torch_utils.add_gradient_noise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-recursive-op-1">espnet2.torch_utils.recursive_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-pytorch-version-1">espnet2.torch_utils.pytorch_version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-forward-adaptor-1">espnet2.torch_utils.forward_adaptor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-get-layer-from-string-1">espnet2.torch_utils.get_layer_from_string</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-device-funcs-1">espnet2.torch_utils.device_funcs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-init-1">espnet2.torch_utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-torch-utils-model-summary-1">espnet2.torch_utils.model_summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
@@ -175,7 +179,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.torch_utils package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.torch_utils.rst.txt" rel="nofollow"> View page source</a>
@@ -212,14 +216,14 @@
 </style>
 <section id="espnet2-torch-utils-package">
 <h1>espnet2.torch_utils package<a class="headerlink" href="#espnet2-torch-utils-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-torch-utils-load-pretrained-model">
-<span id="id1"></span><h2>espnet2.torch_utils.load_pretrained_model<a class="headerlink" href="#espnet2-torch-utils-load-pretrained-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-load-pretrained-model-1">
+<span id="espnet2-torch-utils-load-pretrained-model"></span><h2>espnet2.torch_utils.load_pretrained_model<a class="headerlink" href="#espnet2-torch-utils-load-pretrained-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.load_pretrained_model"></span><dl class="function">
 <dt id="espnet2.torch_utils.load_pretrained_model.filter_state_dict">
 <code class="sig-prename descclassname">espnet2.torch_utils.load_pretrained_model.</code><code class="sig-name descname">filter_state_dict</code><span class="sig-paren">(</span><em class="sig-param">dst_state: Dict[str, Union[float, torch.Tensor]], src_state: Dict[str, Union[float, torch.Tensor]]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/load_pretrained_model.html#filter_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.load_pretrained_model.filter_state_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Filter name, size mismatch instances between dicts.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dst_state</strong> – reference state dict for filtering</p></li>
 <li><p><strong>src_state</strong> – target state dict for filtering</p></li>
@@ -233,7 +237,7 @@
 <code class="sig-prename descclassname">espnet2.torch_utils.load_pretrained_model.</code><code class="sig-name descname">load_pretrained_model</code><span class="sig-paren">(</span><em class="sig-param">init_param: str</em>, <em class="sig-param">model: torch.nn.modules.module.Module</em>, <em class="sig-param">ignore_init_mismatch: bool</em>, <em class="sig-param">map_location: str = 'cpu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/load_pretrained_model.html#load_pretrained_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.load_pretrained_model.load_pretrained_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load a model state and set it to the model.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>init_param</strong> – &lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_Keys&gt;</p>
 </dd>
 </dl>
@@ -250,8 +254,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-initialize">
-<span id="id2"></span><h2>espnet2.torch_utils.initialize<a class="headerlink" href="#espnet2-torch-utils-initialize" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-initialize-1">
+<span id="espnet2-torch-utils-initialize"></span><h2>espnet2.torch_utils.initialize<a class="headerlink" href="#espnet2-torch-utils-initialize-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.initialize"></span><p>Initialize modules for espnet2 neural networks.</p>
 <dl class="function">
 <dt id="espnet2.torch_utils.initialize.initialize">
@@ -261,7 +265,7 @@
 <p>Custom initialization routines can be implemented into submodules
 as function <cite>espnet_initialization_fn</cite> within the custom module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> – Target.</p></li>
 <li><p><strong>init</strong> – Method of initialization.</p></li>
@@ -271,16 +275,16 @@ as function <cite>espnet_initialization_fn</cite> within the custom module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-set-all-random-seed">
-<span id="id3"></span><h2>espnet2.torch_utils.set_all_random_seed<a class="headerlink" href="#espnet2-torch-utils-set-all-random-seed" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-set-all-random-seed-1">
+<span id="espnet2-torch-utils-set-all-random-seed"></span><h2>espnet2.torch_utils.set_all_random_seed<a class="headerlink" href="#espnet2-torch-utils-set-all-random-seed-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.set_all_random_seed"></span><dl class="function">
 <dt id="espnet2.torch_utils.set_all_random_seed.set_all_random_seed">
 <code class="sig-prename descclassname">espnet2.torch_utils.set_all_random_seed.</code><code class="sig-name descname">set_all_random_seed</code><span class="sig-paren">(</span><em class="sig-param">seed: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/set_all_random_seed.html#set_all_random_seed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.set_all_random_seed.set_all_random_seed" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-add-gradient-noise">
-<span id="id4"></span><h2>espnet2.torch_utils.add_gradient_noise<a class="headerlink" href="#espnet2-torch-utils-add-gradient-noise" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-add-gradient-noise-1">
+<span id="espnet2-torch-utils-add-gradient-noise"></span><h2>espnet2.torch_utils.add_gradient_noise<a class="headerlink" href="#espnet2-torch-utils-add-gradient-noise-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.add_gradient_noise"></span><dl class="function">
 <dt id="espnet2.torch_utils.add_gradient_noise.add_gradient_noise">
 <code class="sig-prename descclassname">espnet2.torch_utils.add_gradient_noise.</code><code class="sig-name descname">add_gradient_noise</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module</em>, <em class="sig-param">iteration: int</em>, <em class="sig-param">duration: float = 100</em>, <em class="sig-param">eta: float = 1.0</em>, <em class="sig-param">scale_factor: float = 0.55</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/add_gradient_noise.html#add_gradient_noise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.add_gradient_noise.add_gradient_noise" title="Permalink to this definition">¶</a></dt>
@@ -289,7 +293,7 @@ as function <cite>espnet_initialization_fn</cite> within the custom module.</p>
 by the three hyper-parameters below.
 <cite>sigma</cite> goes to zero (no noise) with more iterations.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> – Model.</p></li>
 <li><p><strong>iteration</strong> – Number of iterations.</p></li>
@@ -303,8 +307,8 @@ the interval of the <cite>sigma</cite> change.</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-recursive-op">
-<span id="id5"></span><h2>espnet2.torch_utils.recursive_op<a class="headerlink" href="#espnet2-torch-utils-recursive-op" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-recursive-op-1">
+<span id="espnet2-torch-utils-recursive-op"></span><h2>espnet2.torch_utils.recursive_op<a class="headerlink" href="#espnet2-torch-utils-recursive-op-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.recursive_op"></span><p>Torch utility module.</p>
 <dl class="function">
 <dt id="espnet2.torch_utils.recursive_op.recursive_average">
@@ -322,16 +326,16 @@ the interval of the <cite>sigma</cite> change.</p></li>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-pytorch-version">
-<span id="id6"></span><h2>espnet2.torch_utils.pytorch_version<a class="headerlink" href="#espnet2-torch-utils-pytorch-version" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-pytorch-version-1">
+<span id="espnet2-torch-utils-pytorch-version"></span><h2>espnet2.torch_utils.pytorch_version<a class="headerlink" href="#espnet2-torch-utils-pytorch-version-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.pytorch_version"></span><dl class="function">
 <dt id="espnet2.torch_utils.pytorch_version.pytorch_cudnn_version">
 <code class="sig-prename descclassname">espnet2.torch_utils.pytorch_version.</code><code class="sig-name descname">pytorch_cudnn_version</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/torch_utils/pytorch_version.html#pytorch_cudnn_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.pytorch_version.pytorch_cudnn_version" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-forward-adaptor">
-<span id="id7"></span><h2>espnet2.torch_utils.forward_adaptor<a class="headerlink" href="#espnet2-torch-utils-forward-adaptor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-forward-adaptor-1">
+<span id="espnet2-torch-utils-forward-adaptor"></span><h2>espnet2.torch_utils.forward_adaptor<a class="headerlink" href="#espnet2-torch-utils-forward-adaptor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.forward_adaptor"></span><dl class="class">
 <dt id="espnet2.torch_utils.forward_adaptor.ForwardAdaptor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.torch_utils.forward_adaptor.</code><code class="sig-name descname">ForwardAdaptor</code><span class="sig-paren">(</span><em class="sig-param">module: torch.nn.modules.module.Module</em>, <em class="sig-param">name: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/forward_adaptor.html#ForwardAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.forward_adaptor.ForwardAdaptor" title="Permalink to this definition">¶</a></dt>
@@ -362,39 +366,39 @@ except for wrapping the module just like this class.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-get-layer-from-string">
-<span id="id8"></span><h2>espnet2.torch_utils.get_layer_from_string<a class="headerlink" href="#espnet2-torch-utils-get-layer-from-string" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-get-layer-from-string-1">
+<span id="espnet2-torch-utils-get-layer-from-string"></span><h2>espnet2.torch_utils.get_layer_from_string<a class="headerlink" href="#espnet2-torch-utils-get-layer-from-string-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.get_layer_from_string"></span><dl class="function">
 <dt id="espnet2.torch_utils.get_layer_from_string.get_layer">
 <code class="sig-prename descclassname">espnet2.torch_utils.get_layer_from_string.</code><code class="sig-name descname">get_layer</code><span class="sig-paren">(</span><em class="sig-param">l_name</em>, <em class="sig-param">library=&lt;module 'torch.nn' from '/home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/torch/nn/__init__.py'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/get_layer_from_string.html#get_layer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.get_layer_from_string.get_layer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return layer object handler from library e.g. from torch.nn</p>
 <p>E.g. if l_name==”elu”, returns torch.nn.ELU.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>l_name</strong> (<em>string</em>) – Case insensitive name for layer in library (e.g. .’elu’).</p></li>
 <li><p><strong>library</strong> (<em>module</em>) – Name of library/module where to search for object handler</p></li>
 <li><p><strong>l_name e.g. &quot;torch.nn&quot;.</strong> (<em>with</em>) – </p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>handler for the requested layer e.g. (torch.nn.ELU)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>layer_handler (object)</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-device-funcs">
-<span id="id9"></span><h2>espnet2.torch_utils.device_funcs<a class="headerlink" href="#espnet2-torch-utils-device-funcs" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-device-funcs-1">
+<span id="espnet2-torch-utils-device-funcs"></span><h2>espnet2.torch_utils.device_funcs<a class="headerlink" href="#espnet2-torch-utils-device-funcs-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.device_funcs"></span><dl class="function">
 <dt id="espnet2.torch_utils.device_funcs.force_gatherable">
 <code class="sig-prename descclassname">espnet2.torch_utils.device_funcs.</code><code class="sig-name descname">force_gatherable</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/torch_utils/device_funcs.html#force_gatherable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.device_funcs.force_gatherable" title="Permalink to this definition">¶</a></dt>
@@ -417,11 +421,11 @@ or a list, tuple, dict.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-torch-utils-init">
-<span id="id10"></span><h2>espnet2.torch_utils.__init__<a class="headerlink" href="#espnet2-torch-utils-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-init-1">
+<span id="espnet2-torch-utils-init"></span><h2>espnet2.torch_utils.__init__<a class="headerlink" href="#espnet2-torch-utils-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.__init__"></span></section>
-<section id="espnet2-torch-utils-model-summary">
-<span id="id11"></span><h2>espnet2.torch_utils.model_summary<a class="headerlink" href="#espnet2-torch-utils-model-summary" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-torch-utils-model-summary-1">
+<span id="espnet2-torch-utils-model-summary"></span><h2>espnet2.torch_utils.model_summary<a class="headerlink" href="#espnet2-torch-utils-model-summary-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.torch_utils.model_summary"></span><dl class="function">
 <dt id="espnet2.torch_utils.model_summary.get_human_readable_count">
 <code class="sig-prename descclassname">espnet2.torch_utils.model_summary.</code><code class="sig-name descname">get_human_readable_count</code><span class="sig-paren">(</span><em class="sig-param">number: int</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/torch_utils/model_summary.html#get_human_readable_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.torch_utils.model_summary.get_human_readable_count" title="Permalink to this definition">¶</a></dt>
@@ -446,10 +450,10 @@ billions and trillions, respectively.
 </pre></div>
 </div>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>number</strong> – a positive integer number</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A string formatted according to the pattern described above.</p>
 </dd>
 </dl>

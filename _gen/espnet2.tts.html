@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.tts package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -117,35 +121,35 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.tts package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-abs-tts">espnet2.tts.abs_tts</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-init">espnet2.tts.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-espnet-model">espnet2.tts.espnet_model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram">espnet2.tts.feats_extract.log_spectrogram</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank">espnet2.tts.feats_extract.log_mel_fbank</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract">espnet2.tts.feats_extract.abs_feats_extract</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-linear-spectrogram">espnet2.tts.feats_extract.linear_spectrogram</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init">espnet2.tts.feats_extract.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-dio">espnet2.tts.feats_extract.dio</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-energy">espnet2.tts.feats_extract.energy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2-init">espnet2.tts.tacotron2.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2-tacotron2">espnet2.tts.tacotron2.tacotron2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-loss">espnet2.tts.prodiff.loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-prodiff">espnet2.tts.prodiff.prodiff</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-init">espnet2.tts.prodiff.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-denoiser">espnet2.tts.prodiff.denoiser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-loss">espnet2.tts.fastspeech2.loss</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-fastspeech2">espnet2.tts.fastspeech2.fastspeech2</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-init">espnet2.tts.fastspeech2.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-variance-predictor">espnet2.tts.fastspeech2.variance_predictor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech-fastspeech">espnet2.tts.fastspeech.fastspeech</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech-init">espnet2.tts.fastspeech.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-style-encoder">espnet2.tts.gst.style_encoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-init">espnet2.tts.gst.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-duration-calculator">espnet2.tts.utils.duration_calculator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-parallel-wavegan-pretrained-vocoder">espnet2.tts.utils.parallel_wavegan_pretrained_vocoder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-init">espnet2.tts.utils.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-transformer">espnet2.tts.transformer.transformer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-init">espnet2.tts.transformer.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-abs-tts-1">espnet2.tts.abs_tts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-init-1">espnet2.tts.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-espnet-model-1">espnet2.tts.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram-1">espnet2.tts.feats_extract.log_spectrogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank-1">espnet2.tts.feats_extract.log_mel_fbank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract-1">espnet2.tts.feats_extract.abs_feats_extract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-linear-spectrogram-1">espnet2.tts.feats_extract.linear_spectrogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init-1">espnet2.tts.feats_extract.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-dio-1">espnet2.tts.feats_extract.dio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-energy-1">espnet2.tts.feats_extract.energy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2-init-1">espnet2.tts.tacotron2.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-tacotron2-tacotron2-1">espnet2.tts.tacotron2.tacotron2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-loss-1">espnet2.tts.prodiff.loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-prodiff-1">espnet2.tts.prodiff.prodiff</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-init-1">espnet2.tts.prodiff.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-prodiff-denoiser-1">espnet2.tts.prodiff.denoiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-loss-1">espnet2.tts.fastspeech2.loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-fastspeech2-1">espnet2.tts.fastspeech2.fastspeech2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-init-1">espnet2.tts.fastspeech2.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech2-variance-predictor-1">espnet2.tts.fastspeech2.variance_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech-fastspeech-1">espnet2.tts.fastspeech.fastspeech</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-fastspeech-init-1">espnet2.tts.fastspeech.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-style-encoder-1">espnet2.tts.gst.style_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-gst-init-1">espnet2.tts.gst.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-duration-calculator-1">espnet2.tts.utils.duration_calculator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-parallel-wavegan-pretrained-vocoder-1">espnet2.tts.utils.parallel_wavegan_pretrained_vocoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-utils-init-1">espnet2.tts.utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-transformer-1">espnet2.tts.transformer.transformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-init-1">espnet2.tts.transformer.__init__</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
@@ -193,7 +197,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.tts package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.tts.rst.txt" rel="nofollow"> View page source</a>
@@ -230,8 +234,8 @@
 </style>
 <section id="espnet2-tts-package">
 <h1>espnet2.tts package<a class="headerlink" href="#espnet2-tts-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-tts-abs-tts">
-<span id="id1"></span><h2>espnet2.tts.abs_tts<a class="headerlink" href="#espnet2-tts-abs-tts" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-abs-tts-1">
+<span id="espnet2-tts-abs-tts"></span><h2>espnet2.tts.abs_tts<a class="headerlink" href="#espnet2-tts-abs-tts-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.abs_tts"></span><p>Text-to-speech abstrast class.</p>
 <dl class="class">
 <dt id="espnet2.tts.abs_tts.AbsTTS">
@@ -266,11 +270,11 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-init">
-<span id="id2"></span><h2>espnet2.tts.__init__<a class="headerlink" href="#espnet2-tts-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-init-1">
+<span id="espnet2-tts-init"></span><h2>espnet2.tts.__init__<a class="headerlink" href="#espnet2-tts-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.__init__"></span></section>
-<section id="espnet2-tts-espnet-model">
-<span id="id3"></span><h2>espnet2.tts.espnet_model<a class="headerlink" href="#espnet2-tts-espnet-model" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-espnet-model-1">
+<span id="espnet2-tts-espnet-model"></span><h2>espnet2.tts.espnet_model<a class="headerlink" href="#espnet2-tts-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.espnet_model"></span><p>Text-to-speech ESPnet model.</p>
 <dl class="class">
 <dt id="espnet2.tts.espnet_model.ESPnetTTSModel">
@@ -283,7 +287,7 @@
 <code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
@@ -300,10 +304,10 @@
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dict of features.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -314,7 +318,7 @@
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte outputs and return the loss tensor.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
@@ -332,12 +336,12 @@
 <li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar tensor.
 Dict[str, float]: Statistics to be monitored.
 Tensor: Weight tensor to summarize losses.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -348,7 +352,7 @@ Tensor: Weight tensor to summarize losses.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
 <li><p><strong>speech</strong> (<em>Tensor</em>) – Speech waveform tensor (T_wav).</p></li>
@@ -360,10 +364,10 @@ Tensor: Weight tensor to summarize losses.</p>
 <li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Dict of outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -372,8 +376,8 @@ Tensor: Weight tensor to summarize losses.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-log-spectrogram">
-<span id="id4"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-log-spectrogram-1">
+<span id="espnet2-tts-feats-extract-log-spectrogram"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.log_spectrogram"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_spectrogram.</code><code class="sig-name descname">LogSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_spectrogram.html#LogSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_spectrogram.LogSpectrogram" title="Permalink to this definition">¶</a></dt>
@@ -391,7 +395,7 @@ Tensor: Weight tensor to summarize losses.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -408,8 +412,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-log-mel-fbank">
-<span id="id5"></span><h2>espnet2.tts.feats_extract.log_mel_fbank<a class="headerlink" href="#espnet2-tts-feats-extract-log-mel-fbank" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-log-mel-fbank-1">
+<span id="espnet2-tts-feats-extract-log-mel-fbank"></span><h2>espnet2.tts.feats_extract.log_mel_fbank<a class="headerlink" href="#espnet2-tts-feats-extract-log-mel-fbank-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.log_mel_fbank"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.log_mel_fbank.</code><code class="sig-name descname">LogMelFbank</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 80</em>, <em class="sig-param">fmax: Optional[int] = 7600</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">log_base: Optional[float] = 10.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/log_mel_fbank.html#LogMelFbank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.log_mel_fbank.LogMelFbank" title="Permalink to this definition">¶</a></dt>
@@ -427,7 +431,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -444,8 +448,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-abs-feats-extract">
-<span id="id6"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-abs-feats-extract-1">
+<span id="espnet2-tts-feats-extract-abs-feats-extract"></span><h2>espnet2.tts.feats_extract.abs_feats_extract<a class="headerlink" href="#espnet2-tts-feats-extract-abs-feats-extract-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.abs_feats_extract"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.abs_feats_extract.</code><code class="sig-name descname">AbsFeatsExtract</code><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/abs_feats_extract.html#AbsFeatsExtract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="Permalink to this definition">¶</a></dt>
@@ -462,7 +466,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -478,8 +482,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-linear-spectrogram">
-<span id="id7"></span><h2>espnet2.tts.feats_extract.linear_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-linear-spectrogram" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-linear-spectrogram-1">
+<span id="espnet2-tts-feats-extract-linear-spectrogram"></span><h2>espnet2.tts.feats_extract.linear_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-linear-spectrogram-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.linear_spectrogram"></span><dl class="class">
 <dt id="espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.linear_spectrogram.</code><code class="sig-name descname">LinearSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/linear_spectrogram.html#LinearSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.linear_spectrogram.LinearSpectrogram" title="Permalink to this definition">¶</a></dt>
@@ -497,7 +501,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -514,11 +518,11 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-init">
-<span id="id8"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-init-1">
+<span id="espnet2-tts-feats-extract-init"></span><h2>espnet2.tts.feats_extract.__init__<a class="headerlink" href="#espnet2-tts-feats-extract-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.__init__"></span></section>
-<section id="espnet2-tts-feats-extract-dio">
-<span id="id9"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-dio-1">
+<span id="espnet2-tts-feats-extract-dio"></span><h2>espnet2.tts.feats_extract.dio<a class="headerlink" href="#espnet2-tts-feats-extract-dio-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.dio"></span><p>F0 extractor using DIO + Stonemask algorithm.</p>
 <dl class="class">
 <dt id="espnet2.tts.feats_extract.dio.Dio">
@@ -531,7 +535,7 @@ a vocoder-based high-quality speech synthesis system for real-time applications<
 <p class="admonition-title">Note</p>
 <p>This module is based on NumPy implementation. Therefore, the computational graph
 is not connected.</p>
-</div>
+</aside>
 <dl class="method">
 <dt id="espnet2.tts.feats_extract.dio.Dio.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.forward" title="Permalink to this definition">¶</a></dt>
@@ -543,7 +547,7 @@ is not connected.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -559,8 +563,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-feats-extract-energy">
-<span id="id11"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-feats-extract-energy-1">
+<span id="espnet2-tts-feats-extract-energy"></span><h2>espnet2.tts.feats_extract.energy<a class="headerlink" href="#espnet2-tts-feats-extract-energy-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.energy"></span><p>Energy extractor.</p>
 <dl class="class">
 <dt id="espnet2.tts.feats_extract.energy.Energy">
@@ -578,7 +582,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -594,11 +598,11 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-tacotron2-init">
-<span id="id12"></span><h2>espnet2.tts.tacotron2.__init__<a class="headerlink" href="#espnet2-tts-tacotron2-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-tacotron2-init-1">
+<span id="espnet2-tts-tacotron2-init"></span><h2>espnet2.tts.tacotron2.__init__<a class="headerlink" href="#espnet2-tts-tacotron2-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.tacotron2.__init__"></span></section>
-<section id="espnet2-tts-tacotron2-tacotron2">
-<span id="id13"></span><h2>espnet2.tts.tacotron2.tacotron2<a class="headerlink" href="#espnet2-tts-tacotron2-tacotron2" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-tacotron2-tacotron2-1">
+<span id="espnet2-tts-tacotron2-tacotron2"></span><h2>espnet2.tts.tacotron2.tacotron2<a class="headerlink" href="#espnet2-tts-tacotron2-tacotron2-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.tacotron2.tacotron2"></span><p>Tacotron 2 related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.tacotron2.tacotron2.Tacotron2">
@@ -610,7 +614,7 @@ in <a class="reference external" href="https://arxiv.org/abs/1712.05884">Natural
 which converts the sequence of characters into the sequence of Mel-filterbanks.</p>
 <p>Initialize Tacotron2 module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>odim</strong> – (int) Dimension of the outputs.</p></li>
@@ -671,7 +675,7 @@ loss calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2/tacotron2.html#Tacotron2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.tacotron2.Tacotron2.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
@@ -683,12 +687,12 @@ loss calculation.</p></li>
 <li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
 Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -699,7 +703,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_att_constraint: bool = False</em>, <em class="sig-param">backward_window: int = 1</em>, <em class="sig-param">forward_window: int = 3</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2/tacotron2.html#Tacotron2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.tacotron2.Tacotron2.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Feature sequence to extract style (N, idim).</p></li>
@@ -715,7 +719,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <li><p><strong>use_teacher_forcing</strong> (<em>bool</em>) – Whether to use teacher forcing.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Output dict including the following items:</dt><dd><ul class="simple">
 <li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
@@ -726,7 +730,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -735,8 +739,8 @@ Tensor: Weight value if not joint training else model outputs.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-prodiff-loss">
-<span id="id14"></span><h2>espnet2.tts.prodiff.loss<a class="headerlink" href="#espnet2-tts-prodiff-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-prodiff-loss-1">
+<span id="espnet2-tts-prodiff-loss"></span><h2>espnet2.tts.prodiff.loss<a class="headerlink" href="#espnet2-tts-prodiff-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.prodiff.loss"></span><p>ProDiff related loss module for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.prodiff.loss.ProDiffLoss">
@@ -745,7 +749,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <p>Loss function module for ProDiffLoss.</p>
 <p>Initialize feed-forward Transformer loss module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to apply masking for padded part in loss
 calculation.</p></li>
@@ -759,7 +763,7 @@ calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">after_outs: torch.Tensor</em>, <em class="sig-param">before_outs: torch.Tensor</em>, <em class="sig-param">d_outs: torch.Tensor</em>, <em class="sig-param">p_outs: torch.Tensor</em>, <em class="sig-param">e_outs: torch.Tensor</em>, <em class="sig-param">ys: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">ps: torch.Tensor</em>, <em class="sig-param">es: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">olens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/prodiff/loss.html#ProDiffLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.loss.ProDiffLoss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>after_outs</strong> (<em>Tensor</em>) – Batch of outputs after postnets (B, T_feats, odim).</p></li>
 <li><p><strong>before_outs</strong> (<em>Tensor</em>) – Batch of outputs before postnets (B, T_feats, odim).</p></li>
@@ -774,13 +778,13 @@ calculation.</p></li>
 <li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>L1 loss value.
 Tensor: Duration predictor loss value.
 Tensor: Pitch predictor loss value.
 Tensor: Energy predictor loss value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -797,7 +801,7 @@ Tensor: Energy predictor loss value.</p>
 This code is modified from <a class="reference external" href="https://github.com/Po-Hsun-Su/pytorch-ssim">https://github.com/Po-Hsun-Su/pytorch-ssim</a>.</p>
 <p>Initialization.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>bias</strong> (<em>float</em><em>, </em><em>optional</em>) – value of the bias. Defaults to 6.0.</p></li>
 <li><p><strong>window_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Window size. Defaults to 11.</p></li>
@@ -812,7 +816,7 @@ calculation. Defaults to “none”.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">outputs: torch.Tensor</em>, <em class="sig-param">target: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/prodiff/loss.html#SSimLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.loss.SSimLoss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>outputs</strong> (<em>torch.Tensor</em>) – Batch of output sequences generated
 by the model (batch, time, mels).</p></li>
@@ -820,10 +824,10 @@ by the model (batch, time, mels).</p></li>
 states (batch, time, mels).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -834,16 +838,16 @@ states (batch, time, mels).</p></li>
 <code class="sig-name descname">ssim</code><span class="sig-paren">(</span><em class="sig-param">tensor1: torch.Tensor</em>, <em class="sig-param">tensor2: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/prodiff/loss.html#SSimLoss.ssim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.loss.SSimLoss.ssim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate SSIM loss.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tensor1</strong> (<em>torch.Tensor</em>) – Generated output.</p></li>
 <li><p><strong>tensor2</strong> (<em>torch.Tensor</em>) – Groundtruth output.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -856,24 +860,24 @@ states (batch, time, mels).</p></li>
 <code class="sig-prename descclassname">espnet2.tts.prodiff.loss.</code><code class="sig-name descname">gaussian</code><span class="sig-paren">(</span><em class="sig-param">window_size: int</em>, <em class="sig-param">sigma: float</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/loss.html#gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.loss.gaussian" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gaussian Noise.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>window_size</strong> (<em>int</em>) – Window size.</p></li>
 <li><p><strong>sigma</strong> (<em>float</em>) – Noise sigma.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Noise.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-prodiff-prodiff">
-<span id="id15"></span><h2>espnet2.tts.prodiff.prodiff<a class="headerlink" href="#espnet2-tts-prodiff-prodiff" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-prodiff-prodiff-1">
+<span id="espnet2-tts-prodiff-prodiff"></span><h2>espnet2.tts.prodiff.prodiff<a class="headerlink" href="#espnet2-tts-prodiff-prodiff-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.prodiff.prodiff"></span><p>ProDiff related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.prodiff.prodiff.ProDiff">
@@ -884,7 +888,7 @@ states (batch, time, mels).</p></li>
 for High-Quality Text-to-Speech</a>.</p>
 <p>Initialize ProDiff module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
@@ -984,7 +988,7 @@ calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">pitch: torch.Tensor</em>, <em class="sig-param">pitch_lengths: torch.Tensor</em>, <em class="sig-param">energy: torch.Tensor</em>, <em class="sig-param">energy_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/prodiff/prodiff.html#ProDiff.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.prodiff.ProDiff.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded token ids (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
@@ -1002,12 +1006,12 @@ calculation.</p></li>
 <li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
 Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1018,7 +1022,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/prodiff/prodiff.html#ProDiff.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.prodiff.ProDiff.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Feature sequence to extract style (N, idim).</p></li>
@@ -1033,7 +1037,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Output dict including the following items:</dt><dd><ul class="simple">
 <li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
@@ -1045,7 +1049,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -1054,30 +1058,30 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-prodiff-init">
-<span id="id16"></span><h2>espnet2.tts.prodiff.__init__<a class="headerlink" href="#espnet2-tts-prodiff-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-prodiff-init-1">
+<span id="espnet2-tts-prodiff-init"></span><h2>espnet2.tts.prodiff.__init__<a class="headerlink" href="#espnet2-tts-prodiff-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.prodiff.__init__"></span></section>
-<section id="espnet2-tts-prodiff-denoiser">
-<span id="id17"></span><h2>espnet2.tts.prodiff.denoiser<a class="headerlink" href="#espnet2-tts-prodiff-denoiser" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-prodiff-denoiser-1">
+<span id="espnet2-tts-prodiff-denoiser"></span><h2>espnet2.tts.prodiff.denoiser<a class="headerlink" href="#espnet2-tts-prodiff-denoiser-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.prodiff.denoiser"></span><dl class="class">
 <dt id="espnet2.tts.prodiff.denoiser.Mish">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.prodiff.denoiser.</code><code class="sig-name descname">Mish</code><a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#Mish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.Mish" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Mish Activation Function.</p>
-<p>Introduced in <a href="#id35"><span class="problematic" id="id36">`Mish: A Self Regularized Non-Monotonic Activation Function`_</span></a>.</p>
+<p>Introduced in <a href="#system-message-1"><span class="problematic" id="problematic-1">`Mish: A Self Regularized Non-Monotonic Activation Function`_</span></a>.</p>
 <p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
 <dl class="method">
 <dt id="espnet2.tts.prodiff.denoiser.Mish.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#Mish.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.Mish.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor.</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output tensor.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -1092,7 +1096,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 <p>Residual Block for Diffusion Denoiser.</p>
 <p>Initialization.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>adim</strong> (<em>int</em>) – Size of dimensions.</p></li>
 <li><p><strong>channels</strong> (<em>int</em>) – Number of channels.</p></li>
@@ -1105,17 +1109,17 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">condition: torch.Tensor</em>, <em class="sig-param">step: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#ResidualBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.ResidualBlock.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor.</p></li>
 <li><p><strong>condition</strong> (<em>torch.Tensor</em>) – Conditioning tensor.</p></li>
 <li><p><strong>step</strong> (<em>torch.Tensor</em>) – Number of diffusion step.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output tensor.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Union[torch.Tensor, torch.Tensor]</p>
 </dd>
 </dl>
@@ -1131,7 +1135,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 <p>Ref: <a class="reference external" href="https://arxiv.org/pdf/2207.06389.pdf">https://arxiv.org/pdf/2207.06389.pdf</a>.</p>
 <p>Initialization.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>adim</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimension of the hidden states. Defaults to 256.</p></li>
@@ -1153,17 +1157,17 @@ Defaults to 40.</p></li>
 <code class="sig-name descname">diffusion</code><span class="sig-paren">(</span><em class="sig-param">xs_ref: torch.Tensor</em>, <em class="sig-param">steps: torch.Tensor</em>, <em class="sig-param">noise: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#SpectogramDenoiser.diffusion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.SpectogramDenoiser.diffusion" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate diffusion process during training.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs_ref</strong> (<em>torch.Tensor</em>) – Input tensor.</p></li>
 <li><p><strong>steps</strong> (<em>torch.Tensor</em>) – Number of step.</p></li>
 <li><p><strong>noise</strong> (<em>Optional</em><em>[</em><em>torch.Tensor</em><em>]</em><em>, </em><em>optional</em>) – Noise tensor. Defaults to None.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output tensor.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -1174,7 +1178,7 @@ Defaults to 40.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em>, <em class="sig-param">ys: Optional[torch.Tensor] = None</em>, <em class="sig-param">masks: Optional[torch.Tensor] = None</em>, <em class="sig-param">is_inference: bool = False</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#SpectogramDenoiser.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.SpectogramDenoiser.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs</strong> (<em>torch.Tensor</em>) – Phoneme-encoded tensor (#batch, time, dims)</p></li>
 <li><p><strong>ys</strong> (<em>Optional</em><em>[</em><em>torch.Tensor</em><em>]</em><em>, </em><em>optional</em>) – Mel-based reference
@@ -1183,10 +1187,10 @@ tensor (#batch, time, mels). Defaults to None.</p></li>
 Defaults to None.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output tensor (#batch, time, dims).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -1197,17 +1201,17 @@ Defaults to None.</p></li>
 <code class="sig-name descname">forward_denoise</code><span class="sig-paren">(</span><em class="sig-param">xs_noisy: torch.Tensor</em>, <em class="sig-param">step: torch.Tensor</em>, <em class="sig-param">condition: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#SpectogramDenoiser.forward_denoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.SpectogramDenoiser.forward_denoise" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward for denoising diffusion.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs_noisy</strong> (<em>torch.Tensor</em>) – Input tensor.</p></li>
 <li><p><strong>step</strong> (<em>torch.Tensor</em>) – Number of step.</p></li>
 <li><p><strong>condition</strong> (<em>torch.Tensor</em>) – Conditioning tensor.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Denoised tensor.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -1218,13 +1222,13 @@ Defaults to None.</p></li>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">condition: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#SpectogramDenoiser.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.SpectogramDenoiser.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward during inference.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>condition</strong> (<em>torch.Tensor</em>) – Conditioning tensor (batch, time, dims).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Output tensor.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
@@ -1237,7 +1241,7 @@ Defaults to None.</p></li>
 <code class="sig-prename descclassname">espnet2.tts.prodiff.denoiser.</code><code class="sig-name descname">noise_scheduler</code><span class="sig-paren">(</span><em class="sig-param">sched_type: str</em>, <em class="sig-param">timesteps: int</em>, <em class="sig-param">min_beta: float = 0.0</em>, <em class="sig-param">max_beta: float = 0.01</em>, <em class="sig-param">s: float = 0.008</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/prodiff/denoiser.html#noise_scheduler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.prodiff.denoiser.noise_scheduler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Noise Scheduler.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sched_type</strong> (<em>str</em>) – type of scheduler.</p></li>
 <li><p><strong>timesteps</strong> (<em>int</em>) – numbern of time steps.</p></li>
@@ -1246,18 +1250,18 @@ Defaults to None.</p></li>
 <li><p><strong>s</strong> (<em>float</em><em>, </em><em>optional</em>) – Scheduler intersection. Defaults to 0.008.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Noise.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tensor</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-fastspeech2-loss">
-<span id="id18"></span><h2>espnet2.tts.fastspeech2.loss<a class="headerlink" href="#espnet2-tts-fastspeech2-loss" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech2-loss-1">
+<span id="espnet2-tts-fastspeech2-loss"></span><h2>espnet2.tts.fastspeech2.loss<a class="headerlink" href="#espnet2-tts-fastspeech2-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech2.loss"></span><p>Fastspeech2 related loss module for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.fastspeech2.loss.FastSpeech2Loss">
@@ -1266,7 +1270,7 @@ Defaults to None.</p></li>
 <p>Loss function module for FastSpeech2.</p>
 <p>Initialize feed-forward Transformer loss module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to apply masking for padded part in loss
 calculation.</p></li>
@@ -1280,7 +1284,7 @@ calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">after_outs: torch.Tensor</em>, <em class="sig-param">before_outs: torch.Tensor</em>, <em class="sig-param">d_outs: torch.Tensor</em>, <em class="sig-param">p_outs: torch.Tensor</em>, <em class="sig-param">e_outs: torch.Tensor</em>, <em class="sig-param">ys: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">ps: torch.Tensor</em>, <em class="sig-param">es: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">olens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/loss.html#FastSpeech2Loss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.loss.FastSpeech2Loss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>after_outs</strong> (<em>Tensor</em>) – Batch of outputs after postnets (B, T_feats, odim).</p></li>
 <li><p><strong>before_outs</strong> (<em>Tensor</em>) – Batch of outputs before postnets (B, T_feats, odim).</p></li>
@@ -1295,13 +1299,13 @@ calculation.</p></li>
 <li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>L1 loss value.
 Tensor: Duration predictor loss value.
 Tensor: Pitch predictor loss value.
 Tensor: Energy predictor loss value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1310,8 +1314,8 @@ Tensor: Energy predictor loss value.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-fastspeech2-fastspeech2">
-<span id="id19"></span><h2>espnet2.tts.fastspeech2.fastspeech2<a class="headerlink" href="#espnet2-tts-fastspeech2-fastspeech2" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech2-fastspeech2-1">
+<span id="espnet2-tts-fastspeech2-fastspeech2"></span><h2>espnet2.tts.fastspeech2.fastspeech2<a class="headerlink" href="#espnet2-tts-fastspeech2-fastspeech2-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech2.fastspeech2"></span><p>Fastspeech2 related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.fastspeech2.fastspeech2.FastSpeech2">
@@ -1324,7 +1328,7 @@ energy, we use token-averaged value introduced in <a class="reference external" 
 Text-to-speech with Pitch Prediction</a>.</p>
 <p>Initialize FastSpeech2 module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
@@ -1424,7 +1428,7 @@ calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">pitch: torch.Tensor</em>, <em class="sig-param">pitch_lengths: torch.Tensor</em>, <em class="sig-param">energy: torch.Tensor</em>, <em class="sig-param">energy_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/fastspeech2.html#FastSpeech2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded token ids (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
@@ -1442,12 +1446,12 @@ calculation.</p></li>
 <li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
 Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1458,7 +1462,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/fastspeech2.html#FastSpeech2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Feature sequence to extract style (N, idim).</p></li>
@@ -1473,7 +1477,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Output dict including the following items:</dt><dd><ul class="simple">
 <li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
@@ -1485,7 +1489,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -1494,11 +1498,11 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-fastspeech2-init">
-<span id="id20"></span><h2>espnet2.tts.fastspeech2.__init__<a class="headerlink" href="#espnet2-tts-fastspeech2-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech2-init-1">
+<span id="espnet2-tts-fastspeech2-init"></span><h2>espnet2.tts.fastspeech2.__init__<a class="headerlink" href="#espnet2-tts-fastspeech2-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech2.__init__"></span></section>
-<section id="espnet2-tts-fastspeech2-variance-predictor">
-<span id="id21"></span><h2>espnet2.tts.fastspeech2.variance_predictor<a class="headerlink" href="#espnet2-tts-fastspeech2-variance-predictor" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech2-variance-predictor-1">
+<span id="espnet2-tts-fastspeech2-variance-predictor"></span><h2>espnet2.tts.fastspeech2.variance_predictor<a class="headerlink" href="#espnet2-tts-fastspeech2-variance-predictor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech2.variance_predictor"></span><p>Variance predictor related modules.</p>
 <dl class="class">
 <dt id="espnet2.tts.fastspeech2.variance_predictor.VariancePredictor">
@@ -1509,7 +1513,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 Fast and High-Quality End-to-End Text to Speech</a>.</p>
 <p>Initilize duration predictor module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
 <li><p><strong>n_layers</strong> (<em>int</em>) – Number of convolutional layers.</p></li>
@@ -1524,16 +1528,16 @@ Fast and High-Quality End-to-End Text to Speech</a>.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em>, <em class="sig-param">x_masks: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/variance_predictor.html#VariancePredictor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.variance_predictor.VariancePredictor.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs</strong> (<em>Tensor</em>) – Batch of input sequences (B, Tmax, idim).</p></li>
 <li><p><strong>x_masks</strong> (<em>ByteTensor</em>) – Batch of masks indicating padded part (B, Tmax).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Batch of predicted sequences (B, Tmax, 1).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1542,8 +1546,8 @@ Fast and High-Quality End-to-End Text to Speech</a>.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-fastspeech-fastspeech">
-<span id="id23"></span><h2>espnet2.tts.fastspeech.fastspeech<a class="headerlink" href="#espnet2-tts-fastspeech-fastspeech" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech-fastspeech-1">
+<span id="espnet2-tts-fastspeech-fastspeech"></span><h2>espnet2.tts.fastspeech.fastspeech<a class="headerlink" href="#espnet2-tts-fastspeech-fastspeech-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech.fastspeech"></span><p>Fastspeech related modules for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.fastspeech.fastspeech.FastSpeech">
@@ -1556,7 +1560,7 @@ does not require any auto-regressive processing during inference, resulting in
 fast decoding compared with auto-regressive Transformer.</p>
 <p>Initialize FastSpeech module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
@@ -1640,7 +1644,7 @@ calculation.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech/fastspeech.html#FastSpeech.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.fastspeech.FastSpeech.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, T_text).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input (B,).</p></li>
@@ -1654,12 +1658,12 @@ calculation.</p></li>
 <li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
 Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1670,7 +1674,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech/fastspeech.html#FastSpeech.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.fastspeech.FastSpeech.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Feature sequence to extract style (N, idim).</p></li>
@@ -1683,7 +1687,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Output dict including the following items:</dt><dd><ul class="simple">
 <li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
@@ -1693,7 +1697,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -1702,11 +1706,11 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-fastspeech-init">
-<span id="id24"></span><h2>espnet2.tts.fastspeech.__init__<a class="headerlink" href="#espnet2-tts-fastspeech-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-fastspeech-init-1">
+<span id="espnet2-tts-fastspeech-init"></span><h2>espnet2.tts.fastspeech.__init__<a class="headerlink" href="#espnet2-tts-fastspeech-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.fastspeech.__init__"></span></section>
-<section id="espnet2-tts-gst-style-encoder">
-<span id="id25"></span><h2>espnet2.tts.gst.style_encoder<a class="headerlink" href="#espnet2-tts-gst-style-encoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-gst-style-encoder-1">
+<span id="espnet2-tts-gst-style-encoder"></span><h2>espnet2.tts.gst.style_encoder<a class="headerlink" href="#espnet2-tts-gst-style-encoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.gst.style_encoder"></span><p>Style encoder of GST-Tacotron.</p>
 <dl class="class">
 <dt id="espnet2.tts.gst.style_encoder.MultiHeadedAttention">
@@ -1724,7 +1728,7 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 <p>This module is reference encoder introduced in <cite>Style Tokens: Unsupervised Style
 Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimension of the input mel-spectrogram.</p></li>
 <li><p><strong>conv_layers</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of conv layers in the reference encoder.</p></li>
@@ -1743,13 +1747,13 @@ List of the number of channels of conv layers in the referece encoder.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/gst/style_encoder.html#ReferenceEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.gst.style_encoder.ReferenceEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>speech</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, idim).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Reference embedding (B, gru_units)</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1765,7 +1769,7 @@ List of the number of channels of conv layers in the referece encoder.</p></li>
 <p>This module is style encoder introduced in <cite>Style Tokens: Unsupervised Style
 Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimension of the input mel-spectrogram.</p></li>
 <li><p><strong>gst_tokens</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GST embeddings.</p></li>
@@ -1787,13 +1791,13 @@ List of the number of channels of conv layers in the referece encoder.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/gst/style_encoder.html#StyleEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.gst.style_encoder.StyleEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>speech</strong> (<em>Tensor</em>) – Batch of padded target features (B, Lmax, odim).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Style token embeddings (B, token_dim).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1809,7 +1813,7 @@ List of the number of channels of conv layers in the referece encoder.</p></li>
 <p>This module is style token layer introduced in <cite>Style Tokens: Unsupervised Style
 Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ref_embed_dim</strong> (<em>int</em><em>, </em><em>optional</em>) – Dimension of the input reference embedding.</p></li>
 <li><p><strong>gst_tokens</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of GST embeddings.</p></li>
@@ -1825,13 +1829,13 @@ Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ref_embs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/gst/style_encoder.html#StyleTokenLayer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.gst.style_encoder.StyleTokenLayer.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ref_embs</strong> (<em>Tensor</em>) – Reference embeddings (B, ref_embed_dim).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Style token embeddings (B, gst_token_dim).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1840,11 +1844,11 @@ Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-gst-init">
-<span id="id29"></span><h2>espnet2.tts.gst.__init__<a class="headerlink" href="#espnet2-tts-gst-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-gst-init-1">
+<span id="espnet2-tts-gst-init"></span><h2>espnet2.tts.gst.__init__<a class="headerlink" href="#espnet2-tts-gst-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.gst.__init__"></span></section>
-<section id="espnet2-tts-utils-duration-calculator">
-<span id="id30"></span><h2>espnet2.tts.utils.duration_calculator<a class="headerlink" href="#espnet2-tts-utils-duration-calculator" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-utils-duration-calculator-1">
+<span id="espnet2-tts-utils-duration-calculator"></span><h2>espnet2.tts.utils.duration_calculator<a class="headerlink" href="#espnet2-tts-utils-duration-calculator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.utils.duration_calculator"></span><p>Duration calculator for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.tts.utils.duration_calculator.DurationCalculator">
@@ -1857,15 +1861,15 @@ Modeling, Control and Transfer in End-to-End Speech Synthesis</cite>.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">att_ws: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/utils/duration_calculator.html#DurationCalculator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.duration_calculator.DurationCalculator.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert attention weight to durations.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>att_ws</strong> (<em>Tesnor</em>) – Attention weight tensor (T_feats, T_text) or
 (#layers, #heads, T_feats, T_text).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Duration of each input (T_text,).
 Tensor: Focus rate value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>LongTensor</p>
 </dd>
 </dl>
@@ -1874,8 +1878,8 @@ Tensor: Focus rate value.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-utils-parallel-wavegan-pretrained-vocoder">
-<span id="id31"></span><h2>espnet2.tts.utils.parallel_wavegan_pretrained_vocoder<a class="headerlink" href="#espnet2-tts-utils-parallel-wavegan-pretrained-vocoder" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-utils-parallel-wavegan-pretrained-vocoder-1">
+<span id="espnet2-tts-utils-parallel-wavegan-pretrained-vocoder"></span><h2>espnet2.tts.utils.parallel_wavegan_pretrained_vocoder<a class="headerlink" href="#espnet2-tts-utils-parallel-wavegan-pretrained-vocoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.utils.parallel_wavegan_pretrained_vocoder"></span><p>Wrapper class for the vocoder model trained with parallel_wavegan repo.</p>
 <dl class="class">
 <dt id="espnet2.tts.utils.parallel_wavegan_pretrained_vocoder.ParallelWaveGANPretrainedVocoder">
@@ -1888,13 +1892,13 @@ Tensor: Focus rate value.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">feats: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/utils/parallel_wavegan_pretrained_vocoder.html#ParallelWaveGANPretrainedVocoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.parallel_wavegan_pretrained_vocoder.ParallelWaveGANPretrainedVocoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate waveform with pretrained vocoder.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (T_feats, #mels).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Generated waveform tensor (T_wav).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1903,8 +1907,8 @@ Tensor: Focus rate value.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-utils-init">
-<span id="id32"></span><h2>espnet2.tts.utils.__init__<a class="headerlink" href="#espnet2-tts-utils-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-utils-init-1">
+<span id="espnet2-tts-utils-init"></span><h2>espnet2.tts.utils.__init__<a class="headerlink" href="#espnet2-tts-utils-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.utils.__init__"></span><dl class="class">
 <dt id="espnet2.tts.utils.__init__.DurationCalculator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.utils.__init__.</code><code class="sig-name descname">DurationCalculator</code><a class="reference internal" href="../_modules/espnet2/tts/utils/duration_calculator.html#DurationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.DurationCalculator" title="Permalink to this definition">¶</a></dt>
@@ -1916,15 +1920,15 @@ Tensor: Focus rate value.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">att_ws: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/utils/duration_calculator.html#DurationCalculator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.DurationCalculator.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert attention weight to durations.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>att_ws</strong> (<em>Tesnor</em>) – Attention weight tensor (T_feats, T_text) or
 (#layers, #heads, T_feats, T_text).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Duration of each input (T_text,).
 Tensor: Focus rate value.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>LongTensor</p>
 </dd>
 </dl>
@@ -1943,13 +1947,13 @@ Tensor: Focus rate value.</p>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">feats: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/utils/parallel_wavegan_pretrained_vocoder.html#ParallelWaveGANPretrainedVocoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate waveform with pretrained vocoder.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (T_feats, #mels).</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Generated waveform tensor (T_wav).</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -1958,8 +1962,8 @@ Tensor: Focus rate value.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-transformer-transformer">
-<span id="id33"></span><h2>espnet2.tts.transformer.transformer<a class="headerlink" href="#espnet2-tts-transformer-transformer" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-transformer-transformer-1">
+<span id="espnet2-tts-transformer-transformer"></span><h2>espnet2.tts.transformer.transformer<a class="headerlink" href="#espnet2-tts-transformer-transformer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.transformer.transformer"></span><p>Transformer-TTS related modules.</p>
 <dl class="class">
 <dt id="espnet2.tts.transformer.transformer.Transformer">
@@ -1971,7 +1975,7 @@ with Transformer Network</a>, which convert the sequence of tokens into the sequ
 of Mel-filterbanks.</p>
 <p>Initialize Transformer module.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
@@ -2068,7 +2072,7 @@ guided attention loss.</p></li>
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer/transformer.html#Transformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.transformer.Transformer.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Batch of padded character ids (B, Tmax).</p></li>
 <li><p><strong>text_lengths</strong> (<em>LongTensor</em>) – Batch of lengths of each input batch (B,).</p></li>
@@ -2080,12 +2084,12 @@ guided attention loss.</p></li>
 <li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
 Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tensor</p>
 </dd>
 </dl>
@@ -2096,7 +2100,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer/transformer.html#Transformer.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.transformer.Transformer.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>LongTensor</em>) – Input sequence of characters (T_text,).</p></li>
 <li><p><strong>feats</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Feature sequence to extract style embedding
@@ -2110,7 +2114,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 <li><p><strong>use_teacher_forcing</strong> (<em>bool</em>) – Whether to use teacher forcing.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Output dict including the following items:</dt><dd><ul class="simple">
 <li><p>feat_gen (Tensor): Output sequence of features (T_feats, odim).</p></li>
@@ -2121,7 +2125,7 @@ Tensor: Weight value if not joint training else model outputs.</p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
@@ -2130,8 +2134,8 @@ Tensor: Weight value if not joint training else model outputs.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-tts-transformer-init">
-<span id="id34"></span><h2>espnet2.tts.transformer.__init__<a class="headerlink" href="#espnet2-tts-transformer-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-tts-transformer-init-1">
+<span id="espnet2-tts-transformer-init"></span><h2>espnet2.tts.transformer.__init__<a class="headerlink" href="#espnet2-tts-transformer-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.transformer.__init__"></span></section>
 </section>
 

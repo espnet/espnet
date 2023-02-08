@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet.transform package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -103,17 +107,17 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.transform package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-spectrogram">espnet.transform.spectrogram</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-functional">espnet.transform.functional</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-add-deltas">espnet.transform.add_deltas</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-transformation">espnet.transform.transformation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-wpe">espnet.transform.wpe</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-cmvn">espnet.transform.cmvn</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-transform-interface">espnet.transform.transform_interface</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-init">espnet.transform.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-spec-augment">espnet.transform.spec_augment</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-perturb">espnet.transform.perturb</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-channel-selector">espnet.transform.channel_selector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-spectrogram-1">espnet.transform.spectrogram</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-functional-1">espnet.transform.functional</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-add-deltas-1">espnet.transform.add_deltas</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-transformation-1">espnet.transform.transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-wpe-1">espnet.transform.wpe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-cmvn-1">espnet.transform.cmvn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-transform-interface-1">espnet.transform.transform_interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-init-1">espnet.transform.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-spec-augment-1">espnet.transform.spec_augment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-perturb-1">espnet.transform.perturb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-transform-channel-selector-1">espnet.transform.channel_selector</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
@@ -175,7 +179,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet.transform package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet.transform.rst.txt" rel="nofollow"> View page source</a>
@@ -213,8 +217,8 @@
 <section id="espnet-transform-package">
 <h1>espnet.transform package<a class="headerlink" href="#espnet-transform-package" title="Permalink to this headline">¶</a></h1>
 <p>Initialize main package.</p>
-<section id="espnet-transform-spectrogram">
-<span id="id1"></span><h2>espnet.transform.spectrogram<a class="headerlink" href="#espnet-transform-spectrogram" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-spectrogram-1">
+<span id="espnet-transform-spectrogram"></span><h2>espnet.transform.spectrogram<a class="headerlink" href="#espnet-transform-spectrogram-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.spectrogram"></span><dl class="class">
 <dt id="espnet.transform.spectrogram.IStft">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.spectrogram.</code><code class="sig-name descname">IStft</code><span class="sig-paren">(</span><em class="sig-param">n_shift</em>, <em class="sig-param">win_length=None</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">center=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/spectrogram.html#IStft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.spectrogram.IStft" title="Permalink to this definition">¶</a></dt>
@@ -271,8 +275,8 @@
 <dd></dd></dl>
 
 </section>
-<section id="espnet-transform-functional">
-<span id="id2"></span><h2>espnet.transform.functional<a class="headerlink" href="#espnet-transform-functional" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-functional-1">
+<span id="espnet-transform-functional"></span><h2>espnet.transform.functional<a class="headerlink" href="#espnet-transform-functional-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.functional"></span><dl class="class">
 <dt id="espnet.transform.functional.FuncTrans">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.functional.</code><code class="sig-name descname">FuncTrans</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/functional.html#FuncTrans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.functional.FuncTrans" title="Permalink to this definition">¶</a></dt>
@@ -282,7 +286,7 @@
 <p class="admonition-title">Warning</p>
 <p>Builtin or C/C++ functions may not work properly
 because this class heavily depends on the <cite>inspect</cite> module.</p>
-</div>
+</aside>
 <p>Usage:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">foo_bar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
 <span class="gp">... </span><span class="w">    </span><span class="sd">&#39;&#39;&#39;Foo bar</span>
@@ -316,8 +320,8 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-add-deltas">
-<span id="id3"></span><h2>espnet.transform.add_deltas<a class="headerlink" href="#espnet-transform-add-deltas" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-add-deltas-1">
+<span id="espnet-transform-add-deltas"></span><h2>espnet.transform.add_deltas<a class="headerlink" href="#espnet-transform-add-deltas-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.add_deltas"></span><dl class="class">
 <dt id="espnet.transform.add_deltas.AddDeltas">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.add_deltas.</code><code class="sig-name descname">AddDeltas</code><span class="sig-paren">(</span><em class="sig-param">window=2</em>, <em class="sig-param">order=2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/add_deltas.html#AddDeltas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.add_deltas.AddDeltas" title="Permalink to this definition">¶</a></dt>
@@ -335,8 +339,8 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 <dd></dd></dl>
 
 </section>
-<section id="espnet-transform-transformation">
-<span id="id4"></span><h2>espnet.transform.transformation<a class="headerlink" href="#espnet-transform-transformation" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-transformation-1">
+<span id="espnet-transform-transformation"></span><h2>espnet.transform.transformation<a class="headerlink" href="#espnet-transform-transformation-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.transformation"></span><p>Transformation module.</p>
 <dl class="class">
 <dt id="espnet.transform.transformation.Transformation">
@@ -361,8 +365,8 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-wpe">
-<span id="id5"></span><h2>espnet.transform.wpe<a class="headerlink" href="#espnet-transform-wpe" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-wpe-1">
+<span id="espnet-transform-wpe"></span><h2>espnet.transform.wpe<a class="headerlink" href="#espnet-transform-wpe-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.wpe"></span><dl class="class">
 <dt id="espnet.transform.wpe.WPE">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.wpe.</code><code class="sig-name descname">WPE</code><span class="sig-paren">(</span><em class="sig-param">taps=10</em>, <em class="sig-param">delay=3</em>, <em class="sig-param">iterations=3</em>, <em class="sig-param">psd_context=0</em>, <em class="sig-param">statistics_mode='full'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/wpe.html#WPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.wpe.WPE" title="Permalink to this definition">¶</a></dt>
@@ -370,8 +374,8 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-cmvn">
-<span id="id6"></span><h2>espnet.transform.cmvn<a class="headerlink" href="#espnet-transform-cmvn" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-cmvn-1">
+<span id="espnet-transform-cmvn"></span><h2>espnet.transform.cmvn<a class="headerlink" href="#espnet-transform-cmvn-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.cmvn"></span><dl class="class">
 <dt id="espnet.transform.cmvn.CMVN">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.cmvn.</code><code class="sig-name descname">CMVN</code><span class="sig-paren">(</span><em class="sig-param">stats</em>, <em class="sig-param">norm_means=True</em>, <em class="sig-param">norm_vars=False</em>, <em class="sig-param">filetype='mat'</em>, <em class="sig-param">utt2spk=None</em>, <em class="sig-param">spk2utt=None</em>, <em class="sig-param">reverse=False</em>, <em class="sig-param">std_floor=1e-20</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/cmvn.html#CMVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.cmvn.CMVN" title="Permalink to this definition">¶</a></dt>
@@ -385,8 +389,8 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-transform-interface">
-<span id="id7"></span><h2>espnet.transform.transform_interface<a class="headerlink" href="#espnet-transform-transform-interface" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-transform-interface-1">
+<span id="espnet-transform-transform-interface"></span><h2>espnet.transform.transform_interface<a class="headerlink" href="#espnet-transform-transform-interface-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.transform_interface"></span><dl class="class">
 <dt id="espnet.transform.transform_interface.Identity">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.transform_interface.</code><code class="sig-name descname">Identity</code><a class="reference internal" href="../_modules/espnet/transform/transform_interface.html#Identity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.transform_interface.Identity" title="Permalink to this definition">¶</a></dt>
@@ -407,12 +411,12 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-init">
-<span id="id8"></span><h2>espnet.transform.__init__<a class="headerlink" href="#espnet-transform-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-init-1">
+<span id="espnet-transform-init"></span><h2>espnet.transform.__init__<a class="headerlink" href="#espnet-transform-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.__init__"></span><p>Initialize main package.</p>
 </section>
-<section id="espnet-transform-spec-augment">
-<span id="id9"></span><h2>espnet.transform.spec_augment<a class="headerlink" href="#espnet-transform-spec-augment" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-spec-augment-1">
+<span id="espnet-transform-spec-augment"></span><h2>espnet.transform.spec_augment<a class="headerlink" href="#espnet-transform-spec-augment-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.spec_augment"></span><p>Spec Augment module for preprocessing i.e., data augmentation</p>
 <dl class="class">
 <dt id="espnet.transform.spec_augment.FreqMask">
@@ -420,7 +424,7 @@ because this class heavily depends on the <cite>inspect</cite> module.</p>
 <dd><p>Bases: <a class="reference internal" href="#espnet.transform.functional.FuncTrans" title="espnet.transform.functional.FuncTrans"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.transform.functional.FuncTrans</span></code></a></p>
 <p>freq mask for spec agument</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>n_mask</strong> (<em>int</em>) – the number of masks</p></li>
@@ -442,7 +446,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <div><p><a class="reference external" href="https://arxiv.org/pdf/1904.08779.pdf">https://arxiv.org/pdf/1904.08779.pdf</a></p>
 </div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>resize_mode</strong> (<em>str</em>) – “PIL” (fast, nondifferentiable) or “sparse_image_warp”
@@ -465,7 +469,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <dd><p>Bases: <a class="reference internal" href="#espnet.transform.functional.FuncTrans" title="espnet.transform.functional.FuncTrans"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.transform.functional.FuncTrans</span></code></a></p>
 <p>freq mask for spec agument</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spec</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>n_mask</strong> (<em>int</em>) – the number of masks</p></li>
@@ -490,7 +494,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <div><p>(slow, differentiable)</p>
 </div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Returns numpy.ndarray</dt>
+<dt class="field-odd">Returns numpy.ndarray<span class="colon">:</span></dt>
 <dd class="field-odd"><p>time warped spectrogram (time, freq)</p>
 </dd>
 </dl>
@@ -501,7 +505,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <code class="sig-prename descclassname">espnet.transform.spec_augment.</code><code class="sig-name descname">freq_mask</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">F=30</em>, <em class="sig-param">n_mask=2</em>, <em class="sig-param">replace_with_zero=True</em>, <em class="sig-param">inplace=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/spec_augment.html#freq_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.spec_augment.freq_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>freq mask for spec agument</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>n_mask</strong> (<em>int</em>) – the number of masks</p></li>
@@ -522,7 +526,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <div><p><a class="reference external" href="https://arxiv.org/pdf/1904.08779.pdf">https://arxiv.org/pdf/1904.08779.pdf</a></p>
 </div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>resize_mode</strong> (<em>str</em>) – “PIL” (fast, nondifferentiable) or “sparse_image_warp”
@@ -544,7 +548,7 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <code class="sig-prename descclassname">espnet.transform.spec_augment.</code><code class="sig-name descname">time_mask</code><span class="sig-paren">(</span><em class="sig-param">spec</em>, <em class="sig-param">T=40</em>, <em class="sig-param">n_mask=2</em>, <em class="sig-param">replace_with_zero=True</em>, <em class="sig-param">inplace=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/spec_augment.html#time_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.spec_augment.time_mask" title="Permalink to this definition">¶</a></dt>
 <dd><p>freq mask for spec agument</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>spec</strong> (<em>numpy.ndarray</em>) – (time, freq)</p></li>
 <li><p><strong>n_mask</strong> (<em>int</em>) – the number of masks</p></li>
@@ -568,15 +572,15 @@ default setting is based on LD (Librispeech double) in Table 2</p>
 <div><p>(slow, differentiable)</p>
 </div></blockquote>
 <dl class="field-list simple">
-<dt class="field-odd">Returns numpy.ndarray</dt>
+<dt class="field-odd">Returns numpy.ndarray<span class="colon">:</span></dt>
 <dd class="field-odd"><p>time warped spectrogram (time, freq)</p>
 </dd>
 </dl>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-perturb">
-<span id="id10"></span><h2>espnet.transform.perturb<a class="headerlink" href="#espnet-transform-perturb" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-perturb-1">
+<span id="espnet-transform-perturb"></span><h2>espnet.transform.perturb<a class="headerlink" href="#espnet-transform-perturb-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.perturb"></span><dl class="class">
 <dt id="espnet.transform.perturb.BandpassPerturbation">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.perturb.</code><code class="sig-name descname">BandpassPerturbation</code><span class="sig-paren">(</span><em class="sig-param">lower=0.0</em>, <em class="sig-param">upper=0.75</em>, <em class="sig-param">seed=None</em>, <em class="sig-param">axes=(-1</em>, <em class="sig-param">)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/perturb.html#BandpassPerturbation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.perturb.BandpassPerturbation" title="Permalink to this definition">¶</a></dt>
@@ -620,7 +624,7 @@ i.e pitch and tempo are changed both.</p>
 <p class="admonition-title">Warning</p>
 <p>This function is very slow because of resampling.
 I recommmend to apply speed-perturb outside the training using sox.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="class">
@@ -630,8 +634,8 @@ I recommmend to apply speed-perturb outside the training using sox.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-transform-channel-selector">
-<span id="id11"></span><h2>espnet.transform.channel_selector<a class="headerlink" href="#espnet-transform-channel-selector" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-transform-channel-selector-1">
+<span id="espnet-transform-channel-selector"></span><h2>espnet.transform.channel_selector<a class="headerlink" href="#espnet-transform-channel-selector-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.transform.channel_selector"></span><dl class="class">
 <dt id="espnet.transform.channel_selector.ChannelSelector">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.transform.channel_selector.</code><code class="sig-name descname">ChannelSelector</code><span class="sig-paren">(</span><em class="sig-param">train_channel='random'</em>, <em class="sig-param">eval_channel=0</em>, <em class="sig-param">axis=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/transform/channel_selector.html#ChannelSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.transform.channel_selector.ChannelSelector" title="Permalink to this definition">¶</a></dt>

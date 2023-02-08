@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet2.samplers package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -134,14 +138,14 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.samplers package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-num-elements-batch-sampler">espnet2.samplers.num_elements_batch_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-length-batch-sampler">espnet2.samplers.length_batch_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-build-batch-sampler">espnet2.samplers.build_batch_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-sorted-batch-sampler">espnet2.samplers.sorted_batch_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-abs-sampler">espnet2.samplers.abs_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-init">espnet2.samplers.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-unsorted-batch-sampler">espnet2.samplers.unsorted_batch_sampler</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-folded-batch-sampler">espnet2.samplers.folded_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-num-elements-batch-sampler-1">espnet2.samplers.num_elements_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-length-batch-sampler-1">espnet2.samplers.length_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-build-batch-sampler-1">espnet2.samplers.build_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-sorted-batch-sampler-1">espnet2.samplers.sorted_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-abs-sampler-1">espnet2.samplers.abs_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-init-1">espnet2.samplers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-unsorted-batch-sampler-1">espnet2.samplers.unsorted_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-folded-batch-sampler-1">espnet2.samplers.folded_batch_sampler</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
@@ -172,7 +176,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet2.samplers package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet2.samplers.rst.txt" rel="nofollow"> View page source</a>
@@ -209,8 +213,8 @@
 </style>
 <section id="espnet2-samplers-package">
 <h1>espnet2.samplers package<a class="headerlink" href="#espnet2-samplers-package" title="Permalink to this headline">¶</a></h1>
-<section id="espnet2-samplers-num-elements-batch-sampler">
-<span id="id1"></span><h2>espnet2.samplers.num_elements_batch_sampler<a class="headerlink" href="#espnet2-samplers-num-elements-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-num-elements-batch-sampler-1">
+<span id="espnet2-samplers-num-elements-batch-sampler"></span><h2>espnet2.samplers.num_elements_batch_sampler<a class="headerlink" href="#espnet2-samplers-num-elements-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.num_elements_batch_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.num_elements_batch_sampler.NumElementsBatchSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.num_elements_batch_sampler.</code><code class="sig-name descname">NumElementsBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_bins: int, shape_files: Union[Tuple[str, ...], List[str]], min_batch_size: int = 1, sort_in_batch: str = 'descending', sort_batch: str = 'ascending', drop_last: bool = False, padding: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/num_elements_batch_sampler.html#NumElementsBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.num_elements_batch_sampler.NumElementsBatchSampler" title="Permalink to this definition">¶</a></dt>
@@ -218,8 +222,8 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-length-batch-sampler">
-<span id="id2"></span><h2>espnet2.samplers.length_batch_sampler<a class="headerlink" href="#espnet2-samplers-length-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-length-batch-sampler-1">
+<span id="espnet2-samplers-length-batch-sampler"></span><h2>espnet2.samplers.length_batch_sampler<a class="headerlink" href="#espnet2-samplers-length-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.length_batch_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.length_batch_sampler.LengthBatchSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.length_batch_sampler.</code><code class="sig-name descname">LengthBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_bins: int, shape_files: Union[Tuple[str, ...], List[str]], min_batch_size: int = 1, sort_in_batch: str = 'descending', sort_batch: str = 'ascending', drop_last: bool = False, padding: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/length_batch_sampler.html#LengthBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.length_batch_sampler.LengthBatchSampler" title="Permalink to this definition">¶</a></dt>
@@ -227,14 +231,14 @@
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-build-batch-sampler">
-<span id="id3"></span><h2>espnet2.samplers.build_batch_sampler<a class="headerlink" href="#espnet2-samplers-build-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-build-batch-sampler-1">
+<span id="espnet2-samplers-build-batch-sampler"></span><h2>espnet2.samplers.build_batch_sampler<a class="headerlink" href="#espnet2-samplers-build-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.build_batch_sampler"></span><dl class="function">
 <dt id="espnet2.samplers.build_batch_sampler.build_batch_sampler">
 <code class="sig-prename descclassname">espnet2.samplers.build_batch_sampler.</code><code class="sig-name descname">build_batch_sampler</code><span class="sig-paren">(</span><em class="sig-param">type: str, batch_size: int, batch_bins: int, shape_files: Union[Tuple[str, ...], List[str]], sort_in_batch: str = 'descending', sort_batch: str = 'ascending', drop_last: bool = False, min_batch_size: int = 1, fold_lengths: Sequence[int] = (), padding: bool = True, utt2category_file: str = None</em><span class="sig-paren">)</span> &#x2192; espnet2.samplers.abs_sampler.AbsSampler<a class="reference internal" href="../_modules/espnet2/samplers/build_batch_sampler.html#build_batch_sampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.build_batch_sampler.build_batch_sampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper function to instantiate BatchSampler.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>type</strong> – mini-batch type. “unsorted”, “sorted”, “folded”, “numel”, or, “length”</p></li>
 <li><p><strong>batch_size</strong> – The mini-batch size. Used for “unsorted”, “sorted”, “folded” mode</p></li>
@@ -254,15 +258,15 @@ used for “numel” mode</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-sorted-batch-sampler">
-<span id="id4"></span><h2>espnet2.samplers.sorted_batch_sampler<a class="headerlink" href="#espnet2-samplers-sorted-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-sorted-batch-sampler-1">
+<span id="espnet2-samplers-sorted-batch-sampler"></span><h2>espnet2.samplers.sorted_batch_sampler<a class="headerlink" href="#espnet2-samplers-sorted-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.sorted_batch_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.sorted_batch_sampler.SortedBatchSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.sorted_batch_sampler.</code><code class="sig-name descname">SortedBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int</em>, <em class="sig-param">shape_file: str</em>, <em class="sig-param">sort_in_batch: str = 'descending'</em>, <em class="sig-param">sort_batch: str = 'ascending'</em>, <em class="sig-param">drop_last: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/sorted_batch_sampler.html#SortedBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.sorted_batch_sampler.SortedBatchSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.samplers.abs_sampler.AbsSampler" title="espnet2.samplers.abs_sampler.AbsSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.samplers.abs_sampler.AbsSampler</span></code></a></p>
 <p>BatchSampler with sorted samples by length.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch_size</strong> – </p></li>
 <li><p><strong>shape_file</strong> – </p></li>
@@ -274,8 +278,8 @@ used for “numel” mode</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-abs-sampler">
-<span id="id5"></span><h2>espnet2.samplers.abs_sampler<a class="headerlink" href="#espnet2-samplers-abs-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-abs-sampler-1">
+<span id="espnet2-samplers-abs-sampler"></span><h2>espnet2.samplers.abs_sampler<a class="headerlink" href="#espnet2-samplers-abs-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.abs_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.abs_sampler.AbsSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.abs_sampler.</code><code class="sig-name descname">AbsSampler</code><span class="sig-paren">(</span><em class="sig-param">data_source: Optional[Sized]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/abs_sampler.html#AbsSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.abs_sampler.AbsSampler" title="Permalink to this definition">¶</a></dt>
@@ -288,11 +292,11 @@ used for “numel” mode</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-init">
-<span id="id6"></span><h2>espnet2.samplers.__init__<a class="headerlink" href="#espnet2-samplers-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-init-1">
+<span id="espnet2-samplers-init"></span><h2>espnet2.samplers.__init__<a class="headerlink" href="#espnet2-samplers-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.__init__"></span></section>
-<section id="espnet2-samplers-unsorted-batch-sampler">
-<span id="id7"></span><h2>espnet2.samplers.unsorted_batch_sampler<a class="headerlink" href="#espnet2-samplers-unsorted-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-unsorted-batch-sampler-1">
+<span id="espnet2-samplers-unsorted-batch-sampler"></span><h2>espnet2.samplers.unsorted_batch_sampler<a class="headerlink" href="#espnet2-samplers-unsorted-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.unsorted_batch_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.unsorted_batch_sampler.UnsortedBatchSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.unsorted_batch_sampler.</code><code class="sig-name descname">UnsortedBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int</em>, <em class="sig-param">key_file: str</em>, <em class="sig-param">drop_last: bool = False</em>, <em class="sig-param">utt2category_file: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/unsorted_batch_sampler.html#UnsortedBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.unsorted_batch_sampler.UnsortedBatchSampler" title="Permalink to this definition">¶</a></dt>
@@ -303,7 +307,7 @@ so no length information is required,
 This class is convenient for decoding mode,
 or not seq2seq learning e.g. classification.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch_size</strong> – </p></li>
 <li><p><strong>key_file</strong> – </p></li>
@@ -313,8 +317,8 @@ or not seq2seq learning e.g. classification.</p>
 </dd></dl>
 
 </section>
-<section id="espnet2-samplers-folded-batch-sampler">
-<span id="id8"></span><h2>espnet2.samplers.folded_batch_sampler<a class="headerlink" href="#espnet2-samplers-folded-batch-sampler" title="Permalink to this headline">¶</a></h2>
+<section id="espnet2-samplers-folded-batch-sampler-1">
+<span id="espnet2-samplers-folded-batch-sampler"></span><h2>espnet2.samplers.folded_batch_sampler<a class="headerlink" href="#espnet2-samplers-folded-batch-sampler-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.samplers.folded_batch_sampler"></span><dl class="class">
 <dt id="espnet2.samplers.folded_batch_sampler.FoldedBatchSampler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.folded_batch_sampler.</code><code class="sig-name descname">FoldedBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int, shape_files: Union[Tuple[str, ...], List[str]], fold_lengths: Sequence[int], min_batch_size: int = 1, sort_in_batch: str = 'descending', sort_batch: str = 'ascending', drop_last: bool = False, utt2category_file: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/folded_batch_sampler.html#FoldedBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.folded_batch_sampler.FoldedBatchSampler" title="Permalink to this definition">¶</a></dt>

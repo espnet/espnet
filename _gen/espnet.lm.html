@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>espnet.lm package &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
@@ -29,14 +29,18 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> ESPnet
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
           </a>
               <div class="version">
                 202301
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -106,14 +110,14 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.lm package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-lm-utils">espnet.lm.lm_utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-init">espnet.lm.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-extlm">espnet.lm.pytorch_backend.extlm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-init">espnet.lm.pytorch_backend.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-lm">espnet.lm.pytorch_backend.lm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-extlm">espnet.lm.chainer_backend.extlm</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-init">espnet.lm.chainer_backend.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-lm">espnet.lm.chainer_backend.lm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-lm-utils-1">espnet.lm.lm_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-init-1">espnet.lm.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-extlm-1">espnet.lm.pytorch_backend.extlm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-init-1">espnet.lm.pytorch_backend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-pytorch-backend-lm-1">espnet.lm.pytorch_backend.lm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-extlm-1">espnet.lm.chainer_backend.extlm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-init-1">espnet.lm.chainer_backend.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-lm-chainer-backend-lm-1">espnet.lm.chainer_backend.lm</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
@@ -172,7 +176,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a></li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">espnet.lm package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_gen/espnet.lm.rst.txt" rel="nofollow"> View page source</a>
@@ -210,15 +214,15 @@
 <section id="espnet-lm-package">
 <h1>espnet.lm package<a class="headerlink" href="#espnet-lm-package" title="Permalink to this headline">¶</a></h1>
 <p>Initialize sub package.</p>
-<section id="espnet-lm-lm-utils">
-<span id="id1"></span><h2>espnet.lm.lm_utils<a class="headerlink" href="#espnet-lm-lm-utils" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-lm-utils-1">
+<span id="espnet-lm-lm-utils"></span><h2>espnet.lm.lm_utils<a class="headerlink" href="#espnet-lm-lm-utils-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.lm_utils"></span><dl class="class">
 <dt id="espnet.lm.lm_utils.MakeSymlinkToBestModel">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">MakeSymlinkToBestModel</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">prefix='model'</em>, <em class="sig-param">suffix='best'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#MakeSymlinkToBestModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.MakeSymlinkToBestModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.extension.Extension</span></code></p>
 <p>Extension that makes a symbolic link to the best model</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>key</strong> (<em>str</em>) – Key of value</p></li>
 <li><p><strong>prefix</strong> (<em>str</em>) – Prefix of model files and link target</p></li>
@@ -265,7 +269,7 @@ randomly shuffled.</p>
 <p>It should only serialize the internal state that changes over the
 iteration. It should not serialize what is set manually by
 users such as the batch size.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="method">
@@ -280,7 +284,7 @@ users such as the batch size.</p>
 <code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">compute_perplexity</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#compute_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.compute_perplexity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes and add the perplexity to the LogReport</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>result</strong> (<em>dict</em>) – The current observations</p>
 </dd>
 </dl>
@@ -291,16 +295,16 @@ users such as the batch size.</p>
 <code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">count_tokens</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">unk_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#count_tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.count_tokens" title="Permalink to this definition">¶</a></dt>
 <dd><p>Count tokens and oovs in token ID sequences.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> (<em>list</em><em>[</em><em>np.ndarray</em><em>]</em>) – list of token ID sequences</p></li>
 <li><p><strong>unk_id</strong> (<em>int</em>) – ID of unknown token</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>tuple of number of token occurrences and number of oov tokens</p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
@@ -311,14 +315,14 @@ users such as the batch size.</p>
 <code class="sig-prename descclassname">espnet.lm.lm_utils.</code><code class="sig-name descname">load_dataset</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">label_dict</em>, <em class="sig-param">outdir=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/lm_utils.html#load_dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.lm_utils.load_dataset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load and save HDF5 that contains a dataset and stats for LM</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> (<em>str</em>) – The path of an input text dataset file</p></li>
 <li><p><strong>label_dict</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>int</em><em>]</em>) – dictionary that maps token label string to its ID number</p></li>
 <li><p><strong>outdir</strong> (<em>str</em>) – The path of an output dir</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Tuple of</dt><dd><p>token IDs in np.int32 converted by <cite>read_tokens</cite>
 the number of tokens by <cite>count_tokens</cite>,
@@ -327,7 +331,7 @@ and the number of OOVs by <cite>count_tokens</cite></p>
 </dl>
 </p>
 </dd>
-<dt class="field-odd">Return type</dt>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[list[np.ndarray], int, int]</p>
 </dd>
 </dl>
@@ -350,12 +354,12 @@ and the number of OOVs by <cite>count_tokens</cite></p>
 </dd></dl>
 
 </section>
-<section id="espnet-lm-init">
-<span id="id2"></span><h2>espnet.lm.__init__<a class="headerlink" href="#espnet-lm-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-init-1">
+<span id="espnet-lm-init"></span><h2>espnet.lm.__init__<a class="headerlink" href="#espnet-lm-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.__init__"></span><p>Initialize sub package.</p>
 </section>
-<section id="espnet-lm-pytorch-backend-extlm">
-<span id="id3"></span><h2>espnet.lm.pytorch_backend.extlm<a class="headerlink" href="#espnet-lm-pytorch-backend-extlm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-pytorch-backend-extlm-1">
+<span id="espnet-lm-pytorch-backend-extlm"></span><h2>espnet.lm.pytorch_backend.extlm<a class="headerlink" href="#espnet-lm-pytorch-backend-extlm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.pytorch_backend.extlm"></span><dl class="class">
 <dt id="espnet.lm.pytorch_backend.extlm.LookAheadWordLM">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.lm.pytorch_backend.extlm.</code><code class="sig-name descname">LookAheadWordLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">oov_penalty=0.0001</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/extlm.html#LookAheadWordLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.extlm.LookAheadWordLM" title="Permalink to this definition">¶</a></dt>
@@ -376,7 +380,7 @@ and the number of OOVs by <cite>count_tokens</cite></p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="attribute">
@@ -411,7 +415,7 @@ registered hooks while the latter silently ignores them.</p>
 this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
-</div>
+</aside>
 </dd></dl>
 
 <dl class="attribute">
@@ -427,12 +431,12 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-lm-pytorch-backend-init">
-<span id="id4"></span><h2>espnet.lm.pytorch_backend.__init__<a class="headerlink" href="#espnet-lm-pytorch-backend-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-pytorch-backend-init-1">
+<span id="espnet-lm-pytorch-backend-init"></span><h2>espnet.lm.pytorch_backend.__init__<a class="headerlink" href="#espnet-lm-pytorch-backend-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.pytorch_backend.__init__"></span><p>Initialize sub package.</p>
 </section>
-<section id="espnet-lm-pytorch-backend-lm">
-<span id="id5"></span><h2>espnet.lm.pytorch_backend.lm<a class="headerlink" href="#espnet-lm-pytorch-backend-lm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-pytorch-backend-lm-1">
+<span id="espnet-lm-pytorch-backend-lm"></span><h2>espnet.lm.pytorch_backend.lm<a class="headerlink" href="#espnet-lm-pytorch-backend-lm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.pytorch_backend.lm"></span><p>LM training in pytorch.</p>
 <dl class="class">
 <dt id="espnet.lm.pytorch_backend.lm.BPTTUpdater">
@@ -441,7 +445,7 @@ registered hooks while the latter silently ignores them.</p>
 <p>An updater for a pytorch LM.</p>
 <p>Initialize class.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>train_iter</strong> (<em>chainer.dataset.Iterator</em>) – The train iterator</p></li>
 <li><p><strong>model</strong> (<a class="reference internal" href="espnet.nets.html#espnet.nets.lm_interface.LMInterface" title="espnet.nets.lm_interface.LMInterface"><em>LMInterface</em></a>) – The model to update</p></li>
@@ -498,7 +502,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">compute_perplexity</code><span class="sig-paren">(</span><em class="sig-param">result</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#compute_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.compute_perplexity" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute and add the perplexity to the LogReport.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>result</strong> (<em>dict</em>) – The current observations</p>
 </dd>
 </dl>
@@ -509,14 +513,14 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">concat_examples</code><span class="sig-paren">(</span><em class="sig-param">batch</em>, <em class="sig-param">device=None</em>, <em class="sig-param">padding=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#concat_examples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.concat_examples" title="Permalink to this definition">¶</a></dt>
 <dd><p>Concat examples in minibatch.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch</strong> (<em>np.ndarray</em>) – The batch to concatenate</p></li>
 <li><p><strong>device</strong> (<em>int</em>) – The device to send to</p></li>
 <li><p><strong>padding</strong> (<em>Tuple</em><em>[</em><em>int</em><em>,</em><em>int</em><em>]</em>) – The padding to use</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(inputs, targets)</p>
 </dd>
 </dl>
@@ -528,7 +532,7 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-prename descclassname">espnet.lm.pytorch_backend.lm.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/pytorch_backend/lm.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.pytorch_backend.lm.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Train with the given args.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p></li>
 <li><p><strong>model_class</strong> (<em>type</em>) – LMInterface class for training</p></li>
@@ -538,8 +542,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-lm-chainer-backend-extlm">
-<span id="id6"></span><h2>espnet.lm.chainer_backend.extlm<a class="headerlink" href="#espnet-lm-chainer-backend-extlm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-chainer-backend-extlm-1">
+<span id="espnet-lm-chainer-backend-extlm"></span><h2>espnet.lm.chainer_backend.extlm<a class="headerlink" href="#espnet-lm-chainer-backend-extlm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.chainer_backend.extlm"></span><dl class="class">
 <dt id="espnet.lm.chainer_backend.extlm.LookAheadWordLM">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.extlm.</code><code class="sig-name descname">LookAheadWordLM</code><span class="sig-paren">(</span><em class="sig-param">wordlm</em>, <em class="sig-param">word_dict</em>, <em class="sig-param">subword_dict</em>, <em class="sig-param">oov_penalty=0.0001</em>, <em class="sig-param">open_vocab=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/extlm.html#LookAheadWordLM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.extlm.LookAheadWordLM" title="Permalink to this definition">¶</a></dt>
@@ -583,12 +587,12 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-lm-chainer-backend-init">
-<span id="id7"></span><h2>espnet.lm.chainer_backend.__init__<a class="headerlink" href="#espnet-lm-chainer-backend-init" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-chainer-backend-init-1">
+<span id="espnet-lm-chainer-backend-init"></span><h2>espnet.lm.chainer_backend.__init__<a class="headerlink" href="#espnet-lm-chainer-backend-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.chainer_backend.__init__"></span><p>Initialize sub package.</p>
 </section>
-<section id="espnet-lm-chainer-backend-lm">
-<span id="id8"></span><h2>espnet.lm.chainer_backend.lm<a class="headerlink" href="#espnet-lm-chainer-backend-lm" title="Permalink to this headline">¶</a></h2>
+<section id="espnet-lm-chainer-backend-lm-1">
+<span id="espnet-lm-chainer-backend-lm"></span><h2>espnet.lm.chainer_backend.lm<a class="headerlink" href="#espnet-lm-chainer-backend-lm-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.lm.chainer_backend.lm"></span><dl class="class">
 <dt id="espnet.lm.chainer_backend.lm.BPTTUpdater">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">BPTTUpdater</code><span class="sig-paren">(</span><em class="sig-param">train_iter</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">schedulers</em>, <em class="sig-param">device</em>, <em class="sig-param">accum_grad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#BPTTUpdater"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.BPTTUpdater" title="Permalink to this definition">¶</a></dt>
@@ -641,7 +645,7 @@ registered hooks while the latter silently ignores them.</p>
 <dd><p>Bases: <a class="reference internal" href="espnet.nets.html#espnet.nets.lm_interface.LMInterface" title="espnet.nets.lm_interface.LMInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.lm_interface.LMInterface</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
 <p>Default RNNLM wrapper to compute reduce framewise loss values.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_vocab</strong> (<em>int</em>) – The size of the vocabulary</p></li>
 <li><p><strong>args</strong> (<em>argparse.Namespace</em>) – configurations. see <cite>add_arguments</cite></p></li>
@@ -683,13 +687,13 @@ an infinite loop.</p>
 using <code class="xref py py-class docutils literal notranslate"><span class="pre">FunctionNode</span></code>s inside
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">eval_func</span></code> do not make computational graphs. It is for
 reducing the memory consumption.</p>
-</div>
+</aside>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Result dictionary. This dictionary is further reported via
 <code class="xref py py-func docutils literal notranslate"><span class="pre">report()</span></code> without specifying any observer.</p>
 </dd>
-<dt class="field-even">Return type</dt>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>dict</p>
 </dd>
 </dl>
@@ -703,7 +707,7 @@ reducing the memory consumption.</p>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.link.Chain</span></code></p>
 <p>A chainer RNNLM</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>n_vocab</strong> (<em>int</em>) – The size of the vocabulary</p></li>
 <li><p><strong>n_layers</strong> (<em>int</em>) – The number of layers to create</p></li>
@@ -719,7 +723,7 @@ reducing the memory consumption.</p>
 <code class="sig-prename descclassname">espnet.lm.chainer_backend.lm.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/lm/chainer_backend/lm.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.lm.chainer_backend.lm.train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Train with the given args</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
 </dd>
 </dl>
