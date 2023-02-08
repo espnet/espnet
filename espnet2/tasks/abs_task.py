@@ -1840,6 +1840,7 @@ class AbsTask(ABC):
         else:
             config_file = Path(config_file)
 
+        logging.info("config file: {}".format(config_file))
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
         args = argparse.Namespace(**args)

@@ -38,6 +38,8 @@ fs=16000
 do_data_prep=false
 scp_suffix=
 tgt_lang=
+cachedir=".cache"
+remove_formated_data=false
 
 # Model related configuration
 model_tag=""
@@ -107,7 +109,6 @@ fi
 # shellcheck disable=SC1091
 . ./cmd.sh
 
-echo "${datadir}/text${scp_suffix}"
 # Check the option is valid
 if [ -z "${gt_text}" ] && [ ! -e "${datadir}/text${scp_suffix}" ]; then
     log "--gt_text must be provided if perform scoring."
@@ -130,7 +131,7 @@ fi
 
 # NOTE(jiatong): we assume the formated data,
 #                but we also provide options to prepare data from scratch
-source_wavscp="${datadir}/wav.scp${scp_suffix}"
+source_wavscp="${outdir}/wav/wav.scp"
 
 if ${do_data_prep}; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -141,9 +142,9 @@ if ${do_data_prep}; then
             --cmd "${train_cmd}" \
             --audio-format wav \
             --fs "${fs}" \
-            "${datadir}/wav.scp${scp_suffix}" "${outdir}/tmp"
+            "${outdir}/wav/wav.scp" "${outdir}/tmp"
     fi
-    source_wavscp="${outdir}/tmp/wav.scp${scp_suffix}"
+    source_wavscp="${outdir}/tmp/wav.scp"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -160,7 +161,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
     if [ -n "${model_tag}" ]; then
         # FIXME: workaround until fixing filelock in espnet_model_zoo
-        espnet_model_zoo_download --unpack true "${model_tag}" > /dev/null
+        espnet_model_zoo_download --unpack true "${model_tag}" --cachedir "${cachedir}"> /dev/null
         _opts+=("--model_tag" "${model_tag}")
     fi
 
@@ -202,22 +203,25 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     _scoredir="${outdir}/score_bleu"
     mkdir -p "${_scoredir}"
 
-    if [ -e ${gt_text} ]; then
-        ref_text=${gt_text}
-    else
+    if [ -z ${gt_text} ]; then
         ref_text=${datadir}/text${scp_suffix}
+    else
+        ref_text=${gt_text}
     fi
+
+    log "${ref_text}"
+    log "${datadir}"
 
     paste \
         <(<"${ref_text}" \
-            ${python} -m espnet2.bin.tokenize_text  \
+            python3 -m espnet2.bin.tokenize_text  \
                 -f 2- --input - --output - \
                 --token_type word \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --remove_non_linguistic_symbols true \
                 --cleaner "${cleaner}" \
                 ) \
-        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+        <(<"${datadir}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
             >"${_scoredir}/ref.trn.org"
 
     paste \
@@ -260,6 +264,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 # Remove tmp dir if exists
-rm -rf "${outdir}/tmp"
+if "${remove_formated_data}"; then
+    rm -rf "${outdir}/tmp"
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

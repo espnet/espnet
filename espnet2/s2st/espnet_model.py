@@ -893,7 +893,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
-        assert not return_last_hidden and not return_all_hiddens, \
+        assert not return_last_hidden or not return_all_hiddens, \
              "cannot return both last hiddens or all hiddens"
 
         # 1. Forward decoder

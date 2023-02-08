@@ -78,13 +78,15 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 
 # Discrette unit-related
 use_discrete_unit=false         # Whether to use discrete unit
+clustering_stage=1              # clustering stage
+clustering_stop_stage=4         # clustering stop stage
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
 feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
-clustering_portion=0.5
+clustering_portion=0.5          # the portion of data used for clustering
 feature_num_clusters=500        # Number of feature clusters
 
 
@@ -111,7 +113,7 @@ write_collected_feats=false  # Whether to dump feature in stats collection (for 
 hf_repo= # Huggingface repositary for model uploading
 
 # Decoding related
-batch_size=1
+batch_size=1      # decoding batch size
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
@@ -127,6 +129,8 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 
 # Scoring related
 # NOTE(jiatong): either model_tag or model can be selected for scoring
+score_stage=1                  # score stage
+score_stop_stage=3             # score stop stage
 score_asr_model_tag=""         # Scoring model tag in espnet_model_zoo
 score_asr_model=""             # Scoring asr model file (e.g., *.pth)
 score_lm_model=""              # Scoring lm model file for asr (e.g., *.pth)
@@ -519,7 +523,7 @@ if ! "${skip_data_prep}"; then
                 # NOTE(jiatong): some extra treatment for extra files, including sorting and duplication remove
                 for utt_extra_file in ${utt_extra_files}; do
                     python pyscripts/utils/remove_duplicate_keys.py ${data_feats}${_suf}/${dset}/${utt_extra_file} \
-                        > ${data_feats}/${dset}/${utt_extra_file}.tmp
+                        > ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp
                     mv ${data_feats}${_suf}/${dset}/${utt_extra_file}.tmp ${data_feats}${_suf}/${dset}/${utt_extra_file}
                     sort -o ${data_feats}${_suf}/${dset}/${utt_extra_file} ${data_feats}${_suf}/${dset}/${utt_extra_file}
                 done
@@ -758,7 +762,7 @@ if ! "${skip_data_prep}"; then
             } > "${tgt_token_list}"
 
         elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ] || [ "${tgt_token_type}" = phn ]; then
-            log "Stage 5a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
+            log "Stage 4a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
@@ -850,9 +854,9 @@ if ! "${skip_data_prep}"; then
             log "Stage 5: S2ST discrete unit extraction"
 
             scripts/feats/perform_kmeans.sh \
-                --stage 1 \
-                --stop_stage 4 \
                 --nj ${nj} \
+                --stage ${clustering_stage} \
+                --stop_stage ${clustering_stop_stage} \
                 --scp_suffix ".${tgt_lang}" \
                 --feature_type "s3prl" \
                 --train_set "${train_set}" \
@@ -1395,6 +1399,8 @@ if ! "${skip_eval}"; then
             scripts/utils/evaluate_asr_bleu.sh \
                 --datadir ${_data} \
                 --outdir ${_dir} \
+                --stage ${score_stage} \
+                --stop_stage ${score_stop_stage} \
                 --nj ${inference_nj} \
                 --gpu_inference ${gpu_inference} \
                 --fs ${fs} \
@@ -1411,7 +1417,7 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_translation_result.sh --case $tgt_case "${s2st_exp}" > "${s2st_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case lc.rm "${s2st_exp}" > "${s2st_exp}"/RESULTS.md
         cat "${s2st_exp}"/RESULTS.md
     fi
 else
