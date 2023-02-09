@@ -125,9 +125,12 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
 
         for layer in range(self.dlayers):
             if self.dtype == "lstm":
-                sequence, (
-                    h_next[layer : layer + 1],
-                    c_next[layer : layer + 1],
+                (
+                    sequence,
+                    (
+                        h_next[layer : layer + 1],
+                        c_next[layer : layer + 1],
+                    ),
                 ) = self.decoder[layer](
                     sequence, hx=(h_prev[layer : layer + 1], c_prev[layer : layer + 1])
                 )

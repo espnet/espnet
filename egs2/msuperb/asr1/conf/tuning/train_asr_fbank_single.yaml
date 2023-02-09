@@ -1,4 +1,4 @@
-encoder: conformer
+encoder: transformer
 encoder_conf:
     output_size: 256
     attention_heads: 8
@@ -9,13 +9,7 @@ encoder_conf:
     attention_dropout_rate: 0.1
     input_layer: conv2d2
     normalize_before: true
-    macaron_style: true
-    rel_pos_type: latest
-    pos_enc_layer_type: rel_pos
-    selfattention_layer_type: rel_selfattn
-    activation_type: swish
-    use_cnn_module: true
-    cnn_module_kernel: 15
+
 
 decoder: none
 
@@ -30,14 +24,13 @@ num_workers: 4
 batch_type: sorted
 batch_size: 8
 accum_grad: 4
-max_epoch: 50
 patience: none
 init: none
 best_model_criterion:
 -   - valid
-    - acc
-    - max
-keep_nbest_models: 10
+    - loss
+    - min
+keep_nbest_models: 5
 
 optim: adam
 optim_conf:
@@ -59,3 +52,7 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 10
+
+
+num_iters_per_epoch: 500 # number of iterations per epoch
+max_epoch: 30   
