@@ -1,5 +1,9 @@
 optim: adam
 max_epoch: 10
+iterator_type: chunk
+chunk_length: 24000
+chunk_excluded_key_prefixes:
+- "enroll_ref"
 
 model_conf:
     num_spk: 1

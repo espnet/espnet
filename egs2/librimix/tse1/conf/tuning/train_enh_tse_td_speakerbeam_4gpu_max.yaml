@@ -4,6 +4,8 @@ batch_type: folded
 batch_size: 16
 iterator_type: chunk
 chunk_length: 24000
+chunk_excluded_key_prefixes:
+- "enroll_ref"
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
