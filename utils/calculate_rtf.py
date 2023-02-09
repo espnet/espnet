@@ -61,7 +61,6 @@ def get_parser():
 
 
 def main():
-
     args = get_parser().parse_args()
 
     audio_sec = 0

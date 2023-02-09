@@ -70,8 +70,8 @@ class MultiBlocks(torch.nn.Module):
 
         for idx, block in enumerate(self.blocks):
             if not self.training or (
-               self.keep_probs[idx]
-               >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
+                self.keep_probs[idx]
+                >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
             ):
                 x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
 

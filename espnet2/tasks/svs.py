@@ -420,7 +420,6 @@ class SVSTask(AbsTask):
         model: Optional[ESPnetSVSModel] = None,
         device: str = "cpu",
     ):
-
         logging.info(f"vocoder_config_file: {vocoder_config_file}")
         logging.info(f"vocoder_file: {vocoder_file}")
 
