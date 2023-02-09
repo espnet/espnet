@@ -122,9 +122,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt_mask = tgt_mask & m
 
         memory = hs_pad
-        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[:, None, :].to(
-            memory.device
-        )
+        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[
+            :, None, :
+        ].to(memory.device)
         # Padding for Longformer
         if memory_mask.shape[-1] != memory.shape[1]:
             padlen = memory.shape[1] - memory_mask.shape[-1]

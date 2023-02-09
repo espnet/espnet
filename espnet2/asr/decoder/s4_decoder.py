@@ -115,9 +115,9 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
             olens: (batch, )
         """
         memory = hs_pad
-        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[:, None, :].to(
-            memory.device
-        )
+        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[
+            :, None, :
+        ].to(memory.device)
 
         emb = self.embed(ys_in_pad)
         z, state = self.decoder(

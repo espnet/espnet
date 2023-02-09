@@ -59,10 +59,14 @@ class ESPnetLanguageModel(AbsESPnetModel):
         nll = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         # nll: (BxL,) -> (BxL,)
         if max_length is None:
-            nll.masked_fill_(make_pad_mask_simple(x_lengths).to(nll.device).view(-1), 0.0)
+            nll.masked_fill_(
+                make_pad_mask_simple(x_lengths).to(nll.device).view(-1), 0.0
+            )
         else:
             nll.masked_fill_(
-                make_pad_mask_simple(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
+                make_pad_mask_simple(x_lengths, maxlen=max_length + 1)
+                .to(nll.device)
+                .view(-1),
                 0.0,
             )
         # nll: (BxL,) -> (B, L)

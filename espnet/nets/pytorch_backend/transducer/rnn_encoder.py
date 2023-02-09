@@ -520,12 +520,15 @@ class Encoder(torch.nn.Module):
             enc_out, aux_enc_out = _enc_out[0], _enc_out[1]
             enc_out_len, aux_enc_out_len = _enc_out_len[0], _enc_out_len[1]
 
-            enc_out_mask = to_device(enc_out, make_pad_mask_simple(enc_out_len).unsqueeze(-1))
+            enc_out_mask = to_device(
+                enc_out, make_pad_mask_simple(enc_out_len).unsqueeze(-1)
+            )
             enc_out = enc_out.masked_fill(enc_out_mask, 0.0)
 
             for i in range(len(aux_enc_out)):
                 aux_mask = to_device(
-                    aux_enc_out[i], make_pad_mask_simple(aux_enc_out_len[i]).unsqueeze(-1)
+                    aux_enc_out[i],
+                    make_pad_mask_simple(aux_enc_out_len[i]).unsqueeze(-1),
                 )
                 aux_enc_out[i] = aux_enc_out[i].masked_fill(aux_mask, 0.0)
 

@@ -563,7 +563,9 @@ class AttLoc2D(torch.nn.Module):
         if att_prev is None:
             # B * [Li x att_win]
             # if no bias, 0 0-pad goes 0
-            att_prev = to_device(enc_hs_pad, (1.0 - make_pad_mask_simple(enc_hs_len).float()))
+            att_prev = to_device(
+                enc_hs_pad, (1.0 - make_pad_mask_simple(enc_hs_len).float())
+            )
             att_prev = att_prev / att_prev.new(enc_hs_len).unsqueeze(-1)
             att_prev = att_prev.unsqueeze(1).expand(-1, self.att_win, -1)
 
@@ -682,7 +684,9 @@ class AttLocRec(torch.nn.Module):
         if att_prev_states is None:
             # initialize attention weight with uniform dist.
             # if no bias, 0 0-pad goes 0
-            att_prev = to_device(enc_hs_pad, (1.0 - make_pad_mask_simple(enc_hs_len).float()))
+            att_prev = to_device(
+                enc_hs_pad, (1.0 - make_pad_mask_simple(enc_hs_len).float())
+            )
             att_prev = att_prev / att_prev.new(enc_hs_len).unsqueeze(-1)
 
             # initialize lstm states
