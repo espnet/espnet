@@ -2,6 +2,12 @@
 set -euo pipefail
 [ -f ./path.sh ] && . ./path.sh
 
+
+if ! command conda  &>/dev/null; then
+  echo "Conda comment not found, please follow the instructions on
+  this recipe README.md on how to install ESPNet with conda as the venv."
+fi
+
 # install lhotse from master, we need the most up-to-date one
 pip install git+https://github.com/lhotse-speech/lhotse
 
