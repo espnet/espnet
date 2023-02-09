@@ -122,7 +122,7 @@ class ESPnetASRModel(AbsESPnetModel):
                     # fastemit_lambda=0.0,
                 )
             else:
-                from espnet2.asr_transducer.rnnt_multi_blank.rnnt_multi_blank import MultiblankRNNTLossNumba
+                from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import MultiblankRNNTLossNumba
                 self.criterion_transducer = MultiblankRNNTLossNumba(
                     blank=self.blank_id,
                     big_blank_durations=transducer_multi_blank_durations,
