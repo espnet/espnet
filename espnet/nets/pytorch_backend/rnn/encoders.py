@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple, to_device
 
 
 class RNNP(torch.nn.Module):
@@ -323,7 +323,7 @@ class Encoder(torch.nn.Module):
             current_states.append(states)
 
         # make mask to remove bias value in padded part
-        mask = to_device(xs_pad, make_pad_mask(ilens).unsqueeze(-1))
+        mask = to_device(xs_pad, make_pad_mask_simple(ilens).unsqueeze(-1))
 
         return xs_pad.masked_fill(mask, 0.0), ilens, current_states
 

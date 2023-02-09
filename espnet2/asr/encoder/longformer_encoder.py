@@ -12,7 +12,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
@@ -309,7 +309,7 @@ class LongformerEncoder(ConformerEncoder):
 
         """
 
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        masks = (~make_pad_mask_simple(ilens)[:, None, :]).to(xs_pad.device)
         if (
             isinstance(self.embed, Conv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling1)

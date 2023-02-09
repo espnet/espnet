@@ -20,7 +20,7 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask_simple
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
@@ -439,7 +439,7 @@ class FastSpeech(AbsTTS):
             hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and length regulator
-        d_masks = make_pad_mask(ilens).to(xs.device)
+        d_masks = make_pad_mask_simple(ilens).to(xs.device)
         if is_inference:
             d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
             hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)

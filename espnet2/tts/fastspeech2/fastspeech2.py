@@ -19,7 +19,7 @@ from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask_simple
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
@@ -641,7 +641,7 @@ class FastSpeech2(AbsTTS):
             hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and variance predictors
-        d_masks = make_pad_mask(ilens).to(xs.device)
+        d_masks = make_pad_mask_simple(ilens).to(xs.device)
 
         if self.stop_gradient_from_pitch_predictor:
             p_outs = self.pitch_predictor(hs.detach(), d_masks.unsqueeze(-1))

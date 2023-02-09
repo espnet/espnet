@@ -12,7 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 try:
@@ -158,7 +158,7 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
 
         args = {"return_dict": True}
 
-        mask = (~make_pad_mask(input_lengths)).to(input.device).float()
+        mask = (~make_pad_mask_simple(input_lengths)).to(input.device).float()
 
         if self.extend_attention_mask:
             args["attention_mask"] = _extend_attention_mask(mask)

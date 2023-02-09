@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 from espnet.nets.e2e_asr_common import get_vgg2l_odim
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, to_device
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple, to_device
 
 
 class RNNP(torch.nn.Module):
@@ -520,12 +520,12 @@ class Encoder(torch.nn.Module):
             enc_out, aux_enc_out = _enc_out[0], _enc_out[1]
             enc_out_len, aux_enc_out_len = _enc_out_len[0], _enc_out_len[1]
 
-            enc_out_mask = to_device(enc_out, make_pad_mask(enc_out_len).unsqueeze(-1))
+            enc_out_mask = to_device(enc_out, make_pad_mask_simple(enc_out_len).unsqueeze(-1))
             enc_out = enc_out.masked_fill(enc_out_mask, 0.0)
 
             for i in range(len(aux_enc_out)):
                 aux_mask = to_device(
-                    aux_enc_out[i], make_pad_mask(aux_enc_out_len[i]).unsqueeze(-1)
+                    aux_enc_out[i], make_pad_mask_simple(aux_enc_out_len[i]).unsqueeze(-1)
                 )
                 aux_enc_out[i] = aux_enc_out[i].masked_fill(aux_mask, 0.0)
 
@@ -536,7 +536,7 @@ class Encoder(torch.nn.Module):
             )
         else:
             enc_out_mask = to_device(
-                _enc_out, make_pad_mask(_enc_out_len).unsqueeze(-1)
+                _enc_out, make_pad_mask_simple(_enc_out_len).unsqueeze(-1)
             )
 
             return _enc_out.masked_fill(enc_out_mask, 0.0), _enc_out_len, current_states

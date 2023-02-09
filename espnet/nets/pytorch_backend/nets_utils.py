@@ -60,6 +60,26 @@ def pad_list(xs, pad_value):
 
     return pad
 
+def make_pad_mask_simple(lengths, maxlen=None):
+    """Make mask tensor containing indices of padded part.
+
+    This is a simplified implementation of make_pad_mask without the xs input
+    that supports JIT tracing for applications like exporting models to ONNX.
+    """
+    if isinstance(lengths, list):
+        lengths = torch.Tensor(lengths)
+
+    lengths = lengths.long()
+    bs = lengths.size(0)
+    if maxlen is None:
+            maxlen = lengths.max()
+
+    seq_range = torch.arange(0, maxlen, dtype=torch.int64, device=lengths.device)
+    seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
+    seq_length_expand = seq_range_expand.new(lengths).unsqueeze(-1)
+    mask = seq_range_expand >= seq_length_expand
+
+    return mask
 
 def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     """Make mask tensor containing indices of padded part.

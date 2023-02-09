@@ -18,7 +18,7 @@ from espnet2.uasr.generator.abs_generator import AbsGenerator
 from espnet2.uasr.loss.abs_loss import AbsUASRLoss
 from espnet2.uasr.segmenter.abs_segmenter import AbsSegmenter
 from espnet2.utils.types import str2bool
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -409,7 +409,7 @@ class ESPnetUASRModel(AbsESPnetModel):
         with autocast(False):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        padding_mask = make_pad_mask(feats_lengths).to(feats.device)
+        padding_mask = make_pad_mask_simple(feats_lengths).to(feats.device)
 
         # 2. Apply feats
         if self.use_segmenter:

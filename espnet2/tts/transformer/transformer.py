@@ -17,7 +17,7 @@ from espnet.nets.pytorch_backend.e2e_tts_transformer import (
     GuidedMultiHeadAttentionLoss,
     TransformerLoss,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask_simple
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
@@ -431,7 +431,7 @@ class Transformer(AbsTTS):
         olens = feats_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = make_pad_mask_simple(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate transformer outputs

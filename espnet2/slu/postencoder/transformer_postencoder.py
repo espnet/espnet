@@ -8,7 +8,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
@@ -145,7 +145,7 @@ class TransformerPostEncoder(AbsPostEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        masks = (~make_pad_mask_simple(ilens)[:, None, :]).to(xs_pad.device)
 
         xs_pad = self.embed(xs_pad)
         xs_pad, masks = self.encoders(xs_pad, masks)

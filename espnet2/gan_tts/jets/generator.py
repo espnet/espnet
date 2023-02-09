@@ -23,7 +23,7 @@ from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,
     ScaledPositionalEncoding,
@@ -576,7 +576,7 @@ class JETSGenerator(torch.nn.Module):
             hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward alignment module and obtain duration, averaged pitch, energy
-        h_masks = make_pad_mask(text_lengths).to(hs.device)
+        h_masks = make_pad_mask_simple(text_lengths).to(hs.device)
         log_p_attn = self.alignment_module(hs, feats, h_masks)
         ds, bin_loss = viterbi_decode(log_p_attn, text_lengths, feats_lengths)
         ps = average_by_duration(
@@ -686,7 +686,7 @@ class JETSGenerator(torch.nn.Module):
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
 
-        h_masks = make_pad_mask(text_lengths).to(hs.device)
+        h_masks = make_pad_mask_simple(text_lengths).to(hs.device)
         if use_teacher_forcing:
             # forward alignment module and obtain duration, averaged pitch, energy
             log_p_attn = self.alignment_module(hs, feats, h_masks)

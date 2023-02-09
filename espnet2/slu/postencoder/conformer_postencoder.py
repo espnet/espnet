@@ -12,7 +12,7 @@ from typeguard import check_argument_types
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
@@ -227,7 +227,7 @@ class ConformerPostEncoder(AbsPostEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward."""
         xs_pad = input
-        masks = (~make_pad_mask(input_lengths)).to(input[0].device)
+        masks = (~make_pad_mask_simple(input_lengths)).to(input[0].device)
         # print(mask)
         if self.embed is None:
             xs_pad = xs_pad

@@ -8,7 +8,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
@@ -115,14 +115,14 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         """
         tgt = ys_in_pad
         # tgt_mask: (B, 1, L)
-        tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
+        tgt_mask = (~make_pad_mask_simple(ys_in_lens)[:, None, :]).to(tgt.device)
         # m: (1, L, L)
         m = subsequent_mask(tgt_mask.size(-1), device=tgt_mask.device).unsqueeze(0)
         # tgt_mask: (B, L, L)
         tgt_mask = tgt_mask & m
 
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
+        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[:, None, :].to(
             memory.device
         )
         # Padding for Longformer

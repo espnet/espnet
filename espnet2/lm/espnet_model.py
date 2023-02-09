@@ -7,7 +7,7 @@ from typeguard import check_argument_types
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 
 
 class ESPnetLanguageModel(AbsESPnetModel):
@@ -59,10 +59,10 @@ class ESPnetLanguageModel(AbsESPnetModel):
         nll = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         # nll: (BxL,) -> (BxL,)
         if max_length is None:
-            nll.masked_fill_(make_pad_mask(x_lengths).to(nll.device).view(-1), 0.0)
+            nll.masked_fill_(make_pad_mask_simple(x_lengths).to(nll.device).view(-1), 0.0)
         else:
             nll.masked_fill_(
-                make_pad_mask(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
+                make_pad_mask_simple(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
                 0.0,
             )
         # nll: (BxL,) -> (B, L)

@@ -17,7 +17,7 @@ from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
 )
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
 from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 
@@ -390,7 +390,7 @@ class NaiveRNNDP(AbsSVS):
             hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and length regulator
-        d_masks = make_pad_mask(label_lengths).to(hs.device)
+        d_masks = make_pad_mask_simple(label_lengths).to(hs.device)
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
@@ -518,7 +518,7 @@ class NaiveRNNDP(AbsSVS):
             hs = self._integrate_with_spk_embed(hs, spembs)
 
         # forward duration predictor and length regulator
-        d_masks = None  # make_pad_mask(label_lengths).to(input_emb.device)
+        d_masks = None  # make_pad_mask_simple(label_lengths).to(input_emb.device)
         d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
         d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
 

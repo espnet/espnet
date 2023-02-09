@@ -6,7 +6,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.state_spaces.model import SequenceModel
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.scorer_interface import BatchScorerInterface
 
 
@@ -115,7 +115,7 @@ class S4Decoder(AbsDecoder, BatchScorerInterface):
             olens: (batch, )
         """
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
+        memory_mask = (~make_pad_mask_simple(hlens, maxlen=memory.size(1)))[:, None, :].to(
             memory.device
         )
 

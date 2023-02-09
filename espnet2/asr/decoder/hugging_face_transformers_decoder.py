@@ -12,7 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 
 try:
     from transformers import AutoModelForSeq2SeqLM
@@ -93,11 +93,11 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
             ys_in_pad[:, 0] = 2
 
         args["input_ids"] = ys_in_pad
-        mask = (~make_pad_mask(ys_in_lens)).to(ys_in_pad.device).float()
+        mask = (~make_pad_mask_simple(ys_in_lens)).to(ys_in_pad.device).float()
         args["attention_mask"] = mask
 
         args["encoder_hidden_states"] = self.linear_in(hs_pad)
-        hs_mask = (~make_pad_mask(hlens)).to(hs_pad.device).float()
+        hs_mask = (~make_pad_mask_simple(hlens)).to(hs_pad.device).float()
         args["encoder_attention_mask"] = hs_mask
 
         x = self.decoder(**args).last_hidden_state

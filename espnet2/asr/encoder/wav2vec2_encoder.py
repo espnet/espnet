@@ -13,7 +13,7 @@ from filelock import FileLock
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
@@ -110,7 +110,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = make_pad_mask(ilens).to(xs_pad.device)
+        masks = make_pad_mask_simple(ilens).to(xs_pad.device)
 
         ft = self.freeze_finetune_updates <= self.num_updates
         if self.num_updates <= self.freeze_finetune_updates:

@@ -16,7 +16,7 @@ from espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer import
     ContextualBlockEncoderLayer,
 )
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.embedding import StreamPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -240,7 +240,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        masks = (~make_pad_mask_simple(ilens)[:, None, :]).to(xs_pad.device)
 
         if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
             xs_pad, masks = self.embed(xs_pad, masks)

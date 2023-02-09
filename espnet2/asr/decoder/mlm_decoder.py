@@ -8,7 +8,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
@@ -108,14 +108,14 @@ class MLMDecoder(AbsDecoder):
         """
         tgt = ys_in_pad
         # tgt_mask: (B, 1, L)
-        tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
+        tgt_mask = (~make_pad_mask_simple(ys_in_lens)[:, None, :]).to(tgt.device)
         tgt_max_len = tgt_mask.size(-1)
         # tgt_mask_tmp: (B, L, L)
         tgt_mask_tmp = tgt_mask.transpose(1, 2).repeat(1, 1, tgt_max_len)
         tgt_mask = tgt_mask.repeat(1, tgt_max_len, 1) & tgt_mask_tmp
 
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
+        memory_mask = (~make_pad_mask_simple(hlens))[:, None, :].to(memory.device)
 
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(

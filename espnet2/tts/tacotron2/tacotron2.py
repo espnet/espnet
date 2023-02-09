@@ -17,7 +17,7 @@ from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
     Tacotron2Loss,
 )
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_simple
 from espnet.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
@@ -317,7 +317,7 @@ class Tacotron2(AbsTTS):
         olens = feats_lengths
 
         # make labels for stop prediction
-        labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
+        labels = make_pad_mask_simple(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate tacotron2 outputs
