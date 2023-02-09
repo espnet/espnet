@@ -91,7 +91,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data simulation"
     (
     cd ./data/LibriMix
-    librimix_outdir=./libri_mix_single
+    librimix_outdir=./libri_mix
 
 
     python scripts/augment_train_noise.py --wham_dir ${cdir}/data/wham_noise
