@@ -9,7 +9,7 @@
   - Commit date: ``
 - ASR config: [conf/tuning/train_sot_asr_conformer_wavlm.yaml](conf/tuning/train_sot_asr_conformer_wavlm.yaml)
 - Decode config: [conf/tuning/decode_sot.yaml](conf/tuning/decode_sot.yaml)
-- Pretrained model: 
+- Pretrained model: https://huggingface.co/espnet/pengcheng_librimix_asr_train_sot_asr_conformer_wavlm_raw_en_char_sp
 
 ## asr_train_sot_asr_conformer_wavlm_raw_en_char_sp
 ### WER
@@ -36,74 +36,19 @@
   - Commit date: ``
 - ASR config: [conf/tuning/train_sot_asr_conformer.yaml](conf/tuning/train_sot_asr_conformer.yaml)
 - Decode config: [conf/tuning/decode_sot.yaml](conf/tuning/decode_sot.yaml)
-- Pretrained model: 
+- Pretrained model: https://huggingface.co/espnet/pengcheng_librimix_asr_train_sot_asr_conformer_raw_en_char_sp
 
 ## asr_train_sot_conformer_raw_en_char_sp
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_sot_asr_model_valid.acc.ave/dev|3000|123853|78.0|19.2|2.8|3.0|25.0|99.2|
-|decode_sot_asr_model_valid.acc.ave/test|3000|111243|79.3|18.0|2.7|2.9|23.6|99.0|
+|decode_sot_asr_model_valid.acc.ave/dev|3000|123853|78.3|19.1|2.6|3.0|24.7|99.3|
+|decode_sot_asr_model_valid.acc.ave/test|3000|111243|79.6|17.7|2.6|3.0|23.3|98.7|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_sot_asr_model_valid.acc.ave/dev|3000|670222|89.8|6.3|3.9|3.5|13.7|99.2|
-|decode_sot_asr_model_valid.acc.ave/test|3000|605408|90.5|5.8|3.7|3.2|12.7|99.0|
-
-
-## Environments
-- date: `Fri Jan 27 05:59:04 CST 2023`
-- python version: `3.8.13 (default, Mar 28 2022, 11:38:47)  [GCC 7.5.0]`
-- espnet version: `espnet 202211`
-- pytorch version: `pytorch 1.12.1`
-- Git hash: ``
-  - Commit date: ``
-- ASR config: [conf/tuning/train_pit_asr_transformer_wavlm.yaml](conf/tuning/train_pit_asr_transformer_wavlm.yaml)
-- Decode config: [conf/tuning/decode_pit.yaml](conf/tuning/decode_pit.yaml)
-- Pretrained model: 
-
-## asr_train_pit_asr_transformer_wavlm_raw_en_char_sp
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/dev|6000|123853|81.3|16.5|2.2|2.4|21.1|83.1|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/test|6000|111243|83.5|14.4|2.1|2.2|18.8|79.4|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/dev|6000|655222|91.2|5.5|3.3|2.7|11.4|83.1|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/test|6000|590408|92.3|4.6|3.1|2.3|10.0|79.4|
-
-
-
-## Environments
-- date: `Tue Jan 31 05:28:48 CST 2023`
-- python version: `3.8.13 (default, Mar 28 2022, 11:38:47)  [GCC 7.5.0]`
-- espnet version: `espnet 202211`
-- pytorch version: `pytorch 1.12.1`
-- Git hash: ``
-  - Commit date: ``
-- ASR config: [conf/tuning/train_pit_asr_transformer.yaml](conf/tuning/train_pit_asr_transformer.yaml)
-- Decode config: [conf/tuning/decode_pit.yaml](conf/tuning/decode_pit.yaml)
-- Pretrained model: 
-
-## asr_train_pit_asr_transformer_raw_en_char_sp
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/dev|6000|123853|78.9|18.6|2.5|2.8|23.9|91.0|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/test|6000|111243|79.6|17.8|2.6|2.8|23.2|90.3|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/dev|6000|655222|90.4|5.9|3.7|2.9|12.6|91.0|
-|decode_pit_multi_asrtrue_asr_model_valid.acc.ave/test|6000|590408|90.6|5.5|3.9|2.7|12.1|90.3|
+|decode_sot_asr_model_valid.acc.ave/dev|3000|670222|90.1|6.3|3.6|3.5|13.4|99.3|
+|decode_sot_asr_model_valid.acc.ave/test|3000|605408|90.7|5.7|3.6|3.3|12.6|98.7|
