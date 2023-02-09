@@ -34,12 +34,22 @@ from torch.nn import Module
 from espnet2.asr.transducer.rnnt_multi_blank import rnnt
 from espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils import cpu_rnnt
 
-__all__ = ['rnnt_loss', 'RNNTLossNumba', 'MultiblankRNNTLossNumba']
+__all__ = ["rnnt_loss", "RNNTLossNumba", "MultiblankRNNTLossNumba"]
 
 
 class _RNNTNumba(Function):
     @staticmethod
-    def forward(ctx, acts, labels, act_lens, label_lens, blank, reduction, fastemit_lambda, clamp):
+    def forward(
+        ctx,
+        acts,
+        labels,
+        act_lens,
+        label_lens,
+        blank,
+        reduction,
+        fastemit_lambda,
+        clamp,
+    ):
         """
         log_probs: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
         labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
@@ -72,9 +82,9 @@ class _RNNTNumba(Function):
             num_threads=0,
         )
 
-        if reduction in ['sum', 'mean']:
+        if reduction in ["sum", "mean"]:
             costs = costs.sum().unsqueeze_(-1)
-            if reduction == 'mean':
+            if reduction == "mean":
                 costs /= minibatch_size
 
                 if grads is not None:
@@ -98,7 +108,17 @@ class _MultiblankRNNTNumba(Function):
 
     @staticmethod
     def forward(
-        ctx, acts, labels, act_lens, label_lens, blank, big_blank_durations, reduction, fastemit_lambda, clamp, sigma
+        ctx,
+        acts,
+        labels,
+        act_lens,
+        label_lens,
+        blank,
+        big_blank_durations,
+        reduction,
+        fastemit_lambda,
+        clamp,
+        sigma,
     ):
         """
         big_blank_durations: list of durations for multi-blank transducer, e.g.
@@ -139,9 +159,9 @@ class _MultiblankRNNTNumba(Function):
             num_threads=0,
         )
 
-        if reduction in ['sum', 'mean']:
+        if reduction in ["sum", "mean"]:
             costs = costs.sum().unsqueeze_(-1)
-            if reduction == 'mean':
+            if reduction == "mean":
                 costs /= minibatch_size
 
                 if grads is not None:
@@ -155,11 +175,30 @@ class _MultiblankRNNTNumba(Function):
     def backward(ctx, grad_output):
         if grad_output is not None and ctx.grads is not None:
             grad_output = grad_output.view(-1, 1, 1, 1).to(ctx.grads)
-            return ctx.grads.mul_(grad_output), None, None, None, None, None, None, None, None, None, None
+            return (
+                ctx.grads.mul_(grad_output),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
 
 
 def rnnt_loss(
-    acts, labels, act_lens, label_lens, blank=0, reduction='mean', fastemit_lambda: float = 0.0, clamp: float = 0.0
+    acts,
+    labels,
+    act_lens,
+    label_lens,
+    blank=0,
+    reduction="mean",
+    fastemit_lambda: float = 0.0,
+    clamp: float = 0.0,
 ):
     """RNN Transducer Loss (functional form)
     Args:
@@ -186,7 +225,9 @@ def rnnt_loss(
         # log_softmax is computed within GPU version.
         acts = torch.nn.functional.log_softmax(acts, -1)
 
-    return _RNNTNumba.apply(acts, labels, act_lens, label_lens, blank, reduction, fastemit_lambda, clamp)
+    return _RNNTNumba.apply(
+        acts, labels, act_lens, label_lens, blank, reduction, fastemit_lambda, clamp
+    )
 
 
 def multiblank_rnnt_loss(
@@ -196,7 +237,7 @@ def multiblank_rnnt_loss(
     label_lens,
     blank,
     big_blank_durations=[],
-    reduction='mean',
+    reduction="mean",
     fastemit_lambda: float = 0.0,
     clamp: float = 0.0,
 ):
@@ -233,7 +274,15 @@ def multiblank_rnnt_loss(
         acts = torch.nn.functional.log_softmax(acts, -1)
 
     return _MultiblankRNNTNumba.apply(
-        acts, labels, act_lens, label_lens, blank, big_blank_durations, reduction, fastemit_lambda, clamp
+        acts,
+        labels,
+        act_lens,
+        label_lens,
+        blank,
+        big_blank_durations,
+        reduction,
+        fastemit_lambda,
+        clamp,
     )
 
 
@@ -250,7 +299,9 @@ class RNNTLossNumba(Module):
         clamp: Float value. When set to value >= 0.0, will clamp the gradient to [-clamp, clamp].
     """
 
-    def __init__(self, blank=0, reduction='mean', fastemit_lambda: float = 0.0, clamp: float = -1):
+    def __init__(
+        self, blank=0, reduction="mean", fastemit_lambda: float = 0.0, clamp: float = -1
+    ):
         super(RNNTLossNumba, self).__init__()
         self.blank = blank
         self.fastemit_lambda = fastemit_lambda
@@ -279,7 +330,14 @@ class RNNTLossNumba(Module):
             acts = torch.nn.functional.log_softmax(acts, -1)
 
         return self.loss(
-            acts, labels, act_lens, label_lens, self.blank, self.reduction, self.fastemit_lambda, self.clamp
+            acts,
+            labels,
+            act_lens,
+            label_lens,
+            self.blank,
+            self.reduction,
+            self.fastemit_lambda,
+            self.clamp,
         )
 
 
@@ -306,7 +364,7 @@ class MultiblankRNNTLossNumba(Module):
         self,
         blank,
         big_blank_durations,
-        reduction='mean',
+        reduction="mean",
         fastemit_lambda: float = 0.0,
         clamp: float = -1,
         sigma: float = 0.0,
@@ -400,6 +458,10 @@ def certify_inputs(log_probs, labels, lengths, label_lengths):
     max_U = torch.max(label_lengths)
     T, U = log_probs.shape[1:3]
     if T != max_T:
-        raise ValueError(f"Input length mismatch! Given T: {T}, Expected max T from input lengths: {max_T}")
+        raise ValueError(
+            f"Input length mismatch! Given T: {T}, Expected max T from input lengths: {max_T}"
+        )
     if U != max_U + 1:
-        raise ValueError(f"Output length mismatch! Given U: {U}, Expected max U from target lengths: {max_U} + 1")
+        raise ValueError(
+            f"Output length mismatch! Given U: {U}, Expected max U from target lengths: {max_U} + 1"
+        )

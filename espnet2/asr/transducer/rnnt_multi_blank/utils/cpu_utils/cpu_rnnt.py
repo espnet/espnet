@@ -54,7 +54,9 @@ def log_sum_exp(a: torch.Tensor, b: torch.Tensor):
 
 
 class CpuRNNT_index:
-    def __init__(self, U: int, maxU: int, minibatch: int, alphabet_size: int, batch_first: bool):
+    def __init__(
+        self, U: int, maxU: int, minibatch: int, alphabet_size: int, batch_first: bool
+    ):
         """
         A placeholder Index computation class that emits the resolved index in a flattened tensor,
         mimicing pointer indexing in CUDA kernels on the CPU.
@@ -118,7 +120,9 @@ class CpuRNNT_metadata:
         self.betas = workspace[bytes_used : bytes_used + T * U]
         bytes_used += T * U
 
-        self.log_probs2 = workspace[bytes_used : bytes_used + T * U * 2]  # // only store blank & label
+        self.log_probs2 = workspace[
+            bytes_used : bytes_used + T * U * 2
+        ]  # // only store blank & label
         bytes_used += T * U * 2
 
         self.bytes_used = bytes_used
@@ -126,12 +130,20 @@ class CpuRNNT_metadata:
         self.setup_probs(T, U, labels, blank, log_probs, idx)
 
     def setup_probs(
-        self, T: int, U: int, labels: torch.Tensor, blank: int, log_probs: torch.Tensor, idx: CpuRNNT_index
+        self,
+        T: int,
+        U: int,
+        labels: torch.Tensor,
+        blank: int,
+        log_probs: torch.Tensor,
+        idx: CpuRNNT_index,
     ):
         # initialize the log probs memory for blank and label token.
         for t in range(T):
             for u in range(U):
-                offset = (t * U + u) * 2  # mult with 2 is for selecting either blank or label token. Odd idx is blank.
+                offset = (
+                    t * U + u
+                ) * 2  # mult with 2 is for selecting either blank or label token. Odd idx is blank.
                 self.log_probs2[offset] = log_probs[idx(t, u, blank)]
                 # // labels do not have first blank
                 if u < U - 1:
@@ -218,8 +230,12 @@ class CPURNNT:
         U: int,
         bytes_used: int,
     ):
-        idx = CpuRNNT_index(U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first)
-        rnntm = CpuRNNT_metadata(T, U, self.workspace, bytes_used, self.blank_, labels, log_probs, idx)
+        idx = CpuRNNT_index(
+            U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
+        )
+        rnntm = CpuRNNT_metadata(
+            T, U, self.workspace, bytes_used, self.blank_, labels, log_probs, idx
+        )
 
         if self.batch_first:
             # zero grads
@@ -240,7 +256,9 @@ class CPURNNT:
 
         return -llForward
 
-    def compute_alphas(self, log_probs: torch.Tensor, T: int, U: int, alphas: torch.Tensor):
+    def compute_alphas(
+        self, log_probs: torch.Tensor, T: int, U: int, alphas: torch.Tensor
+    ):
         """
         Compute the probability of the forward variable alpha.
 
@@ -253,16 +271,22 @@ class CPURNNT:
         Returns:
             Loglikelihood of the forward variable alpha.
         """
-        idx = CpuRNNT_index(U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first)
+        idx = CpuRNNT_index(
+            U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
+        )
 
         alphas[0] = 0
         for t in range(T):
             for u in range(U):
                 if u == 0 and t > 0:
-                    alphas[idx(t, 0)] = alphas[idx(t - 1, 0)] + log_probs[idx(t - 1, 0) * 2]
+                    alphas[idx(t, 0)] = (
+                        alphas[idx(t - 1, 0)] + log_probs[idx(t - 1, 0) * 2]
+                    )
 
                 if t == 0 and u > 0:
-                    alphas[idx(0, u)] = alphas[idx(0, u - 1)] + log_probs[idx(0, u - 1) * 2 + 1]
+                    alphas[idx(0, u)] = (
+                        alphas[idx(0, u - 1)] + log_probs[idx(0, u - 1) * 2 + 1]
+                    )
 
                 if t > 0 and u > 0:
                     no_emit = alphas[idx(t - 1, u)] + log_probs[idx(t - 1, u) * 2]
@@ -300,16 +324,22 @@ class CPURNNT:
         Returns:
             Loglikelihood of the forward variable and inplace updates the grad tensor.
         """
-        idx = CpuRNNT_index(U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first)
+        idx = CpuRNNT_index(
+            U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
+        )
         betas[idx(T - 1, U - 1)] = log_probs[idx(T - 1, U - 1) * 2]
 
         for t in range(T - 1, -1, -1):
             for u in range(U - 1, -1, -1):
                 if (u == U - 1) and (t < T - 1):
-                    betas[idx(t, U - 1)] = betas[idx(t + 1, U - 1)] + log_probs[idx(t, U - 1) * 2]
+                    betas[idx(t, U - 1)] = (
+                        betas[idx(t + 1, U - 1)] + log_probs[idx(t, U - 1) * 2]
+                    )
 
                 if (t == T - 1) and (u < U - 1):
-                    betas[idx(T - 1, u)] = betas[idx(T - 1, u + 1)] + log_probs[idx(T - 1, u) * 2 + 1]
+                    betas[idx(T - 1, u)] = (
+                        betas[idx(T - 1, u + 1)] + log_probs[idx(T - 1, u) * 2 + 1]
+                    )
 
                 if (t < T - 1) and (u < U - 1):
                     no_emit = betas[idx(t + 1, u)] + log_probs[idx(t, u) * 2]
@@ -322,12 +352,17 @@ class CPURNNT:
             for u in range(U):
                 if t < T - 1:
                     g = alphas[idx(t, u)] + betas[idx(t + 1, u)]
-                    grad[idx(t, u, self.blank_)] = -torch.exp(log_probs[idx(t, u) * 2] + g - loglike)
+                    grad[idx(t, u, self.blank_)] = -torch.exp(
+                        log_probs[idx(t, u) * 2] + g - loglike
+                    )
 
                 if u < U - 1:
                     g = alphas[idx(t, u)] + betas[idx(t, u + 1)]
                     grad[idx(t, u, labels[u])] = -torch.exp(
-                        math.log1p(self.fastemit_lambda_) + log_probs[idx(t, u) * 2 + 1] + g - loglike
+                        math.log1p(self.fastemit_lambda_)
+                        + log_probs[idx(t, u) * 2 + 1]
+                        + g
+                        - loglike
                     )
 
         # // gradient to the last blank transition
@@ -398,7 +433,9 @@ class CPURNNT:
             if self.batch_first:
                 batch_size = self.maxT_ * self.maxU_ * self.alphabet_size_
 
-            idx = CpuRNNT_index(U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first)
+            idx = CpuRNNT_index(
+                U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
+            )
             rnntm = CpuRNNT_metadata(
                 T,
                 U,

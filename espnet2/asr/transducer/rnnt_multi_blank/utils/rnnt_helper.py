@@ -103,7 +103,9 @@ def copy_data_1d(source: torch.Tensor, dest: torch.Tensor, idx: int):
 
 
 @cuda.jit()
-def compute_costs_data(source: torch.Tensor, dest: torch.Tensor, fastemit_lambda: float):
+def compute_costs_data(
+    source: torch.Tensor, dest: torch.Tensor, fastemit_lambda: float
+):
     block = cuda.blockIdx.x
     tid = cuda.threadIdx.x
     idx = block * cuda.blockDim.x + tid

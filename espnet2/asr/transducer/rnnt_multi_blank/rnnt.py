@@ -80,11 +80,17 @@ def rnnt_loss_cpu(
 
     num_threads = max(1, num_threads)  # have to use at least 1 thread
 
-    gpu_size, status = rnnt_helper.get_workspace_size(maxT, maxU, minibatch_size, gpu=False)
+    gpu_size, status = rnnt_helper.get_workspace_size(
+        maxT, maxU, minibatch_size, gpu=False
+    )
     if status != global_constants.RNNTStatus.RNNT_STATUS_SUCCESS:
-        raise RuntimeError("Invalid parameter passed when calculating working space memory")
+        raise RuntimeError(
+            "Invalid parameter passed when calculating working space memory"
+        )
 
-    cpu_workspace = torch.zeros(gpu_size, device=log_probs.device, dtype=log_probs.dtype, requires_grad=False)
+    cpu_workspace = torch.zeros(
+        gpu_size, device=log_probs.device, dtype=log_probs.dtype, requires_grad=False
+    )
 
     ### VIEW TENSORS AS VECTORS FOR POINTER INDEXING ###
     log_probs, acts_shape = rnnt_helper.flatten_tensor(log_probs)
@@ -170,8 +176,10 @@ def rnnt_loss_gpu(
     maxU = acts.shape[2]
     alphabet_size = acts.shape[3]
 
-    if hasattr(cuda, 'external_stream'):
-        stream = cuda.external_stream(torch.cuda.current_stream(acts.device).cuda_stream)
+    if hasattr(cuda, "external_stream"):
+        stream = cuda.external_stream(
+            torch.cuda.current_stream(acts.device).cuda_stream
+        )
     else:
         stream = cuda.default_stream()
 
@@ -180,13 +188,19 @@ def rnnt_loss_gpu(
 
     num_threads = max(1, num_threads)  # have to use at least 1 thread
 
-    gpu_size, status = rnnt_helper.get_workspace_size(maxT, maxU, minibatch_size, gpu=True)
+    gpu_size, status = rnnt_helper.get_workspace_size(
+        maxT, maxU, minibatch_size, gpu=True
+    )
     if status != global_constants.RNNTStatus.RNNT_STATUS_SUCCESS:
-        raise RuntimeError("Invalid parameter passed when calculating working space memory")
+        raise RuntimeError(
+            "Invalid parameter passed when calculating working space memory"
+        )
 
     # Select GPU index
     cuda.select_device(acts.device.index)
-    gpu_workspace = torch.zeros(gpu_size, device=acts.device, dtype=acts.dtype, requires_grad=False)
+    gpu_workspace = torch.zeros(
+        gpu_size, device=acts.device, dtype=acts.dtype, requires_grad=False
+    )
 
     ### VIEW TENSORS AS VECTORS FOR POINTER INDEXING ###
     acts, acts_shape = rnnt_helper.flatten_tensor(acts)
@@ -279,8 +293,10 @@ def multiblank_rnnt_loss_gpu(
     maxU = acts.shape[2]
     alphabet_size = acts.shape[3]
 
-    if hasattr(cuda, 'external_stream'):
-        stream = cuda.external_stream(torch.cuda.current_stream(acts.device).cuda_stream)
+    if hasattr(cuda, "external_stream"):
+        stream = cuda.external_stream(
+            torch.cuda.current_stream(acts.device).cuda_stream
+        )
     else:
         stream = cuda.default_stream()
 
@@ -289,17 +305,26 @@ def multiblank_rnnt_loss_gpu(
 
     num_threads = max(1, num_threads)  # have to use at least 1 thread
 
-    gpu_size, status = rnnt_helper.get_workspace_size(maxT, maxU, minibatch_size, gpu=True)
+    gpu_size, status = rnnt_helper.get_workspace_size(
+        maxT, maxU, minibatch_size, gpu=True
+    )
 
     if status != global_constants.RNNTStatus.RNNT_STATUS_SUCCESS:
-        raise RuntimeError("Invalid parameter passed when calculating working space memory")
+        raise RuntimeError(
+            "Invalid parameter passed when calculating working space memory"
+        )
 
     # Select GPU index
     cuda.select_device(acts.device.index)
-    gpu_workspace = torch.zeros(gpu_size, device=acts.device, dtype=acts.dtype, requires_grad=False)
+    gpu_workspace = torch.zeros(
+        gpu_size, device=acts.device, dtype=acts.dtype, requires_grad=False
+    )
 
     big_blank_workspace = torch.zeros(
-        len(big_blank_durations), device=acts.device, dtype=torch.long, requires_grad=False
+        len(big_blank_durations),
+        device=acts.device,
+        dtype=torch.long,
+        requires_grad=False,
     )
 
     for i in range(0, len(big_blank_durations)):

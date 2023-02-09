@@ -139,16 +139,21 @@ class BeamSearchTransducer:
             self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
-        
+
         elif search_type == "mbg":
             assert len(multi_blank_durations) == len(multi_blank_index), (
                 "multi_blank_durations and multi_blank_index should have the same length (%s) (%s)"
                 % (len(multi_blank_durations), len(multi_blank_index))
             )
-            assert beam_size == 1, "In multi_blank_greedy search, beam size should be 1 (%d)" % beam_size
-            self.multi_blank_durations, self.multi_blank_index = multi_blank_durations, multi_blank_index
+            assert beam_size == 1, (
+                "In multi_blank_greedy search, beam size should be 1 (%d)" % beam_size
+            )
+            self.multi_blank_durations, self.multi_blank_index = (
+                multi_blank_durations,
+                multi_blank_index,
+            )
             self.search_algorithm = self.multi_blank_greedy_search
-        
+
         else:
             raise NotImplementedError
 
@@ -899,8 +904,8 @@ class BeamSearchTransducer:
         return self.sort_nbest(kept_hyps)
 
     def multi_blank_greedy_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
-        """ Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).
-        
+        """Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).
+
         In this implementation, we assume:
         1. the index of standard blank is the last entry of self.multi_blank_index
            rather than self.blank_id (to avoid too much change on original transducer)
@@ -917,7 +922,7 @@ class BeamSearchTransducer:
 
         """
         big_blank_duration = 1
-        blank_start, blank_end = self.multi_blank_index[0], self.multi_blank_index[-1]        
+        blank_start, blank_end = self.multi_blank_index[0], self.multi_blank_index[-1]
 
         dec_state = self.decoder.init_state(1)
         hyp = Hypothesis(score=0.0, yseq=[blank_end], dec_state=dec_state)

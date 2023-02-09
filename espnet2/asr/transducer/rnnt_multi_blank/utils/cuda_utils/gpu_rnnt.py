@@ -34,7 +34,10 @@ import torch
 from numba import cuda
 
 from espnet2.asr.transducer.rnnt_multi_blank.utils import global_constants, rnnt_helper
-from espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils import gpu_rnnt_kernel, reduce
+from espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils import (
+    gpu_rnnt_kernel,
+    reduce,
+)
 
 
 class GPURNNT:
@@ -152,13 +155,21 @@ class GPURNNT:
         if training:
             grads *= 0.0  # zero grads
 
-        used_offset, (denom, alphas, betas, llForward, llBackward) = self._prepare_workspace()
+        used_offset, (
+            denom,
+            alphas,
+            betas,
+            llForward,
+            llBackward,
+        ) = self._prepare_workspace()
 
         ######## START EXECUTION ########
         self.log_softmax(acts, denom)
 
         # Compute alphas
-        gpu_rnnt_kernel.compute_alphas_kernel[self.minibatch_, self.maxU_, self.stream_, 0](
+        gpu_rnnt_kernel.compute_alphas_kernel[
+            self.minibatch_, self.maxU_, self.stream_, 0
+        ](
             acts,
             denom,
             alphas,
@@ -175,7 +186,9 @@ class GPURNNT:
 
         if training:
             # Compute betas
-            gpu_rnnt_kernel.compute_betas_kernel[self.minibatch_, self.maxU_, self.stream_, 0](
+            gpu_rnnt_kernel.compute_betas_kernel[
+                self.minibatch_, self.maxU_, self.stream_, 0
+            ](
                 acts,
                 denom,
                 betas,
@@ -193,7 +206,9 @@ class GPURNNT:
             # Compute gradient
             grad_blocks_per_grid = self.minibatch_ * self.maxT_ * self.maxU_
             grad_threads_per_block = gpu_rnnt_kernel.GPU_RNNT_THREAD_SIZE
-            gpu_rnnt_kernel.compute_grad_kernel[grad_blocks_per_grid, grad_threads_per_block, self.stream_, 0](
+            gpu_rnnt_kernel.compute_grad_kernel[
+                grad_blocks_per_grid, grad_threads_per_block, self.stream_, 0
+            ](
                 grads,
                 acts,
                 denom,
@@ -246,7 +261,9 @@ class GPURNNT:
         ):
             return global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE
 
-        return self.compute_cost_and_score(acts, grads, costs, pad_labels, label_lengths, input_lengths)
+        return self.compute_cost_and_score(
+            acts, grads, costs, pad_labels, label_lengths, input_lengths
+        )
 
     def score_forward(
         self,
@@ -256,10 +273,18 @@ class GPURNNT:
         label_lengths: torch.Tensor,
         input_lengths: torch.Tensor,
     ):
-        if acts is None or costs is None or pad_labels is None or label_lengths is None or input_lengths is None:
+        if (
+            acts is None
+            or costs is None
+            or pad_labels is None
+            or label_lengths is None
+            or input_lengths is None
+        ):
             return global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE
 
-        return self.compute_cost_and_score(acts, None, costs, pad_labels, label_lengths, input_lengths)
+        return self.compute_cost_and_score(
+            acts, None, costs, pad_labels, label_lengths, input_lengths
+        )
 
     def _prepare_workspace(self) -> Tuple[int, Tuple[torch.Tensor, ...]]:
         """
@@ -272,13 +297,19 @@ class GPURNNT:
         used_offset = 0
 
         # // denom
-        denom = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        denom = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
 
         # // alphas & betas
-        alphas = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        alphas = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
-        betas = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        betas = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
 
         # // logllh
@@ -329,7 +360,16 @@ class MultiblankGPURNNT(GPURNNT):
             stream: Numba Cuda Stream.
         """
         super().__init__(
-            minibatch, maxT, maxU, alphabet_size, workspace, blank, fastemit_lambda, clamp, num_threads, stream
+            minibatch,
+            maxT,
+            maxU,
+            alphabet_size,
+            workspace,
+            blank,
+            fastemit_lambda,
+            clamp,
+            num_threads,
+            stream,
         )
         self.big_blank_workspace = cuda.as_cuda_array(
             big_blank_workspace
@@ -371,13 +411,22 @@ class MultiblankGPURNNT(GPURNNT):
         if training:
             grads *= 0.0  # zero grads
 
-        _, (denom, alphas, betas, llForward, llBackward, bigblank_durations) = self._prepare_workspace()
+        _, (
+            denom,
+            alphas,
+            betas,
+            llForward,
+            llBackward,
+            bigblank_durations,
+        ) = self._prepare_workspace()
 
         ######## START EXECUTION ########
         self.log_softmax(acts, denom)
 
         # Compute alphas
-        gpu_rnnt_kernel.compute_multiblank_alphas_kernel[self.minibatch_, self.maxU_, self.stream_, 0](
+        gpu_rnnt_kernel.compute_multiblank_alphas_kernel[
+            self.minibatch_, self.maxU_, self.stream_, 0
+        ](
             acts,
             denom,
             self.sigma,
@@ -397,7 +446,9 @@ class MultiblankGPURNNT(GPURNNT):
 
         if training:
             # Compute betas
-            gpu_rnnt_kernel.compute_multiblank_betas_kernel[self.minibatch_, self.maxU_, self.stream_, 0](
+            gpu_rnnt_kernel.compute_multiblank_betas_kernel[
+                self.minibatch_, self.maxU_, self.stream_, 0
+            ](
                 acts,
                 denom,
                 self.sigma,
@@ -476,7 +527,9 @@ class MultiblankGPURNNT(GPURNNT):
         ):
             return global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE
 
-        return self.compute_cost_and_score(acts, grads, costs, pad_labels, label_lengths, input_lengths)
+        return self.compute_cost_and_score(
+            acts, grads, costs, pad_labels, label_lengths, input_lengths
+        )
 
     def score_forward(
         self,
@@ -486,10 +539,18 @@ class MultiblankGPURNNT(GPURNNT):
         label_lengths: torch.Tensor,
         input_lengths: torch.Tensor,
     ):
-        if acts is None or costs is None or pad_labels is None or label_lengths is None or input_lengths is None:
+        if (
+            acts is None
+            or costs is None
+            or pad_labels is None
+            or label_lengths is None
+            or input_lengths is None
+        ):
             return global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE
 
-        return self.compute_cost_and_score(acts, None, costs, pad_labels, label_lengths, input_lengths)
+        return self.compute_cost_and_score(
+            acts, None, costs, pad_labels, label_lengths, input_lengths
+        )
 
     def _prepare_workspace(self) -> (int, Tuple[torch.Tensor]):
         """
@@ -502,13 +563,19 @@ class MultiblankGPURNNT(GPURNNT):
         used_offset = 0
 
         # // denom
-        denom = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        denom = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
 
         # // alphas & betas
-        alphas = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        alphas = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
-        betas = self.gpu_workspace[used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_]
+        betas = self.gpu_workspace[
+            used_offset : used_offset + self.maxT_ * self.maxU_ * self.minibatch_
+        ]
         used_offset += self.maxT_ * self.maxU_ * self.minibatch_
 
         # // logllh
@@ -519,4 +586,11 @@ class MultiblankGPURNNT(GPURNNT):
 
         bigblank_durations = self.big_blank_workspace[: self.num_big_blanks]
 
-        return used_offset, (denom, alphas, betas, llForward, llBackward, bigblank_durations)
+        return used_offset, (
+            denom,
+            alphas,
+            betas,
+            llForward,
+            llBackward,
+            bigblank_durations,
+        )
