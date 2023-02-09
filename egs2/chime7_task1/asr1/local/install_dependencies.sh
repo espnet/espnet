@@ -4,7 +4,7 @@ set -euo pipefail
 
 
 if ! command conda  &>/dev/null; then
-  echo "Conda comment not found, please follow the instructions on
+  echo "Conda command not found, please follow the instructions on
   this recipe README.md on how to install ESPNet with conda as the venv."
 fi
 
