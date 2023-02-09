@@ -2,6 +2,12 @@
 set -euo pipefail
 [ -f ./path.sh ] && . ./path.sh
 
+
+if ! command conda  &>/dev/null; then
+  echo "Conda command not found, please follow the instructions on
+  this recipe README.md on how to install ESPNet with conda as the venv."
+fi
+
 # install lhotse from master, we need the most up-to-date one
 pip install git+https://github.com/lhotse-speech/lhotse
 
@@ -13,11 +19,11 @@ if ! command -v wav-reverberate &>/dev/null; then
 fi
 
 # install s3prl
-./tools/installers/install_s3prl.sh
+${MAIN_ROOT}/tools/installers/install_s3prl.sh
 
 if ! command -v gss &>/dev/null; then
   conda install -yc conda-forge cupy=10.2
-  ./${MAIN_ROOT}/tools/install_gss.sh
+  ${MAIN_ROOT}/tools/installers/install_gss.sh.
 fi
 
 sox_conda=`command -v ../../../tools/venv/bin/sox 2>/dev/null`
