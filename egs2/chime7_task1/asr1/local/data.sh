@@ -28,7 +28,7 @@ gss_dsets=$(echo $gss_dsets | tr "," " ") # split by commas
 
 if [ $decode_only == 1 ]; then
   # stop after gss
-  stop_stage = 1
+  stop_stage=1
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

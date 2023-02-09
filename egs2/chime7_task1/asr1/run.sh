@@ -166,7 +166,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
 
   pretrained_affix=
-  if ! [ -z $use_pretrained ]; then
+  if [ -z "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep true --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
