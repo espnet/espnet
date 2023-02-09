@@ -223,13 +223,16 @@ class SeparateSpeech:
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
         lengths = to_device(lengths, device=self.device)
-        feats_aux, flens_aux = zip(
-            *[
-                # self.enh_model.encoder_aux(enroll_ref[spk], aux_lengths[spk])
-                self.enh_model.encoder(enroll_ref[spk], aux_lengths[spk])
-                for spk in range(len(enroll_ref))
-            ]
-        )
+        if self.enh_model.share_encoder:
+            feats_aux, flens_aux = zip(
+                *[
+                    self.enh_model.encoder(enroll_ref[spk], aux_lengths[spk])
+                    for spk in range(len(enroll_ref))
+                ]
+            )
+        else:
+            feats_aux = enroll_ref
+            flens_aux = aux_lengths
 
         if self.segmenting and lengths[0] > self.segment_size * fs:
             # Segment-wise speech enhancement/separation
@@ -505,7 +508,7 @@ def inference(
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         waves = separate_speech(**batch)
-        for (spk, w) in enumerate(waves):
+        for spk, w in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
 

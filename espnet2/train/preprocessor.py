@@ -142,6 +142,7 @@ class CommonPreprocessor(AbsPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names: Collection[str] = None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
@@ -155,6 +156,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.rir_apply_prob = rir_apply_prob
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
+        self.aux_task_names = aux_task_names
 
         if token_type is not None:
             if token_list is None:
@@ -329,6 +331,14 @@ class CommonPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        if self.aux_task_names is not None and self.tokenizer is not None:
+            for name in self.aux_task_names:
+                if name in data:
+                    text = data[name]
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    data[name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
@@ -443,6 +453,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names: Collection[str] = None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
@@ -465,6 +476,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
             short_noise_thres=short_noise_thres,
+            aux_task_names=aux_task_names,
             speech_volume_normalize=speech_volume_normalize,
             speech_name=speech_name,
             fs=fs,
@@ -484,6 +496,14 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[text_n] = np.array(text_ints, dtype=np.int64)
+        if self.aux_task_names is not None and self.tokenizer is not None:
+            for name in self.aux_task_names:
+                if name in data:
+                    text = data[name]
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    data[name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
@@ -609,7 +629,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         mixture_source_name: str = None,
         utt2spk: str = None,
     ):
-
         super().__init__(train)
         self.source_scp = source_scp
         self.ref_num = ref_num
@@ -678,7 +697,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         return source_keys[1:]
 
     def _read_source_(self, key, speech_length):
-
         source, _ = soundfile.read(
             self.sources[key],
             dtype=np.float32,
@@ -696,7 +714,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         return source
 
     def _mix_speech_(self, uid, data):
-
         # pick sources
         source_keys = self._pick_source_utterances_(uid)
 
@@ -726,7 +743,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-
         # TODO(Chenda): need to test for multi-channel data.
         assert (
             len(data[self.mixture_source_name].shape) == 1
@@ -876,6 +892,7 @@ class EnhPreprocessor(CommonPreprocessor):
                 (sref[detect_non_silence(sref)] ** 2).mean() for sref in speech_ref
             ]
 
+            speech_mix = data[self.speech_name]
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
                 speech_ref, rir_ref = zip(
@@ -919,7 +936,10 @@ class EnhPreprocessor(CommonPreprocessor):
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = data[speech_ref_name]
 
-            speech_mix = sum(speech_ref)
+                # NOTE(Wangyou): Must be careful here in case that the original
+                # `speech_ref` dones not sum up to `speech_mix`
+                # (such as in the TSE task)
+                speech_mix = sum(speech_ref)
             power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
 
             # 2. Add Noise
@@ -1245,6 +1265,14 @@ class TSEPreprocessor(EnhPreprocessor):
         self.load_spk_embedding = load_spk_embedding
         # If False, only one of the speakers in each mixture sample will be loaded
         self.load_all_speakers = load_all_speakers
+
+        if train and rir_scp is not None and rir_apply_prob > 0:
+            logging.warning(
+                "Be cautious when applying RIRs on the fly in the TSE task! "
+                "Please ensure `speech_ref` sums up to `speech_mix` for each sample. "
+                "Otherwise, the preprocessed training data will be wrong after the "
+                "line:\n        data = super()._speech_process(data)"
+            )
 
         if train:
             if train_spk2enroll is None:
