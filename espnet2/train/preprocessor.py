@@ -597,7 +597,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         mixture_source_name: str = None,
         utt2spk: str = None,
     ):
-
         super().__init__(train)
         self.source_scp = source_scp
         self.ref_num = ref_num
@@ -666,7 +665,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         return source_keys[1:]
 
     def _read_source_(self, key, speech_length):
-
         source, _ = soundfile.read(
             self.sources[key],
             dtype=np.float32,
@@ -684,7 +682,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         return source
 
     def _mix_speech_(self, uid, data):
-
         # pick sources
         source_keys = self._pick_source_utterances_(uid)
 
@@ -714,7 +711,6 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-
         # TODO(Chenda): need to test for multi-channel data.
         assert (
             len(data[self.mixture_source_name].shape) == 1
@@ -869,9 +865,13 @@ class EnhPreprocessor(CommonPreprocessor):
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
                 if self.noise_ref_name_prefix + "1" in data:
                     noise = data[self.noise_ref_name_prefix + "1"]
-                    np.testing.assert_allclose(sum(speech_ref) + noise, speech_mix)
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref) + noise), np.squeeze(speech_mix)
+                    )
                 else:
-                    np.testing.assert_allclose(sum(speech_ref), speech_mix)
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref)), np.squeeze(speech_mix)
+                    )
 
                 speech_ref, rir_ref = zip(
                     *[
