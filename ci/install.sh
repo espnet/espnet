@@ -36,6 +36,9 @@ python3 -c "import matplotlib.pyplot"
 #   See: https://github.com/psf/black/issues/1707
 python3 -m pip uninstall -y typing
 
+# NOTE(kamo): Workaround for pip resolve issue (I think this is a bug of pip)
+python3 -m pip install "hacking>=2.0.0" "flake8>=3.7.8"
+
 # install espnet
 python3 -m pip install -e ".[test]"
 python3 -m pip install -e ".[doc]"
