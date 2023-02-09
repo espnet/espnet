@@ -119,7 +119,7 @@ class ESPnetASRModel(AbsESPnetModel):
                 from warprnnt_pytorch import RNNTLoss
                 self.criterion_transducer = RNNTLoss(
                     blank=self.blank_id,
-                    # fastemit_lambda=0.0,
+                    fastemit_lambda=0.0,
                 )
             else:
                 from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import MultiblankRNNTLossNumba
