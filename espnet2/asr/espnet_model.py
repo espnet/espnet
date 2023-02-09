@@ -147,6 +147,9 @@ class ESPnetASRModel(AbsESPnetModel):
                 assert (
                     decoder is not None
                 ), "decoder should not be None when attention is used"
+            else:
+                decoder = None
+                logging.warning("Set decoder to none as ctc_weight==1.0")
 
             self.decoder = decoder
 
