@@ -760,6 +760,14 @@ class AbsTask(ABC):
             help="Shuffle in the specified number of chunks and generate mini-batches "
             "More larger this value, more randomness can be obtained.",
         )
+        group.add_argument(
+            "--chunk_excluded_key_prefixes",
+            type=str,
+            action="append",
+            default=[],
+            help="List of key prefixes that will be excluded from the length "
+            "consistency check in ChunkIterFactory",
+        )
 
         group = parser.add_argument_group("Dataset related")
         _data_path_and_name_and_type_help = (
@@ -1622,6 +1630,7 @@ class AbsTask(ABC):
             chunk_length=args.chunk_length,
             chunk_shift_ratio=args.chunk_shift_ratio,
             num_cache_chunks=num_cache_chunks,
+            excluded_key_prefixes=args.chunk_excluded_key_prefixes,
         )
 
     # NOTE(kamo): Not abstract class
