@@ -1,0 +1,1 @@
+../../TEMPLATE/st1/st.sh
