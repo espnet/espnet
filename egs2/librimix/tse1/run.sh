@@ -13,13 +13,13 @@ train_set="train"
 valid_set="dev"
 test_sets="test "
 
-./tse.sh \
-	--is_tse_task true \
+./enh.sh \
+    --is_tse_task true \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
-	--ref_num 2 \
+    --ref_num 2 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --lang en \
     --ngpu 4 \
