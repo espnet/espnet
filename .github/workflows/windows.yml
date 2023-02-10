@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9]
-        pytorch-version: [1.12.1]
+        pytorch-version: [1.13.1]
     defaults:
       run:
         shell: bash

@@ -13,6 +13,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 try:
     from transformers import AutoModel
@@ -29,6 +30,8 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         self,
         input_size: int,
         model_name_or_path: str,
+        length_adaptor_n_layers: int = 0,
+        lang_token_id: int = -1,
     ):
         """Initialize the module."""
         assert check_argument_types()
@@ -48,12 +51,44 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         else:
             self.transformer = model
 
+        self.lang_token_embed = None
+
         if hasattr(self.transformer, "embed_tokens"):
+            if lang_token_id != -1:
+                self.lang_token_embed = (
+                    self.transformer.embed_tokens(torch.tensor(lang_token_id))
+                    .detach()
+                    .cpu()
+                )
             del self.transformer.embed_tokens
         if hasattr(self.transformer, "wte"):
+            if lang_token_id != -1:
+                self.lang_token_embed = (
+                    self.transformer.wte(torch.tensor(lang_token_id)).detach().cpu()
+                )
             del self.transformer.wte
         if hasattr(self.transformer, "word_embedding"):
+            if lang_token_id != -1:
+                self.lang_token_embed = (
+                    self.transformer.word_embedding(torch.tensor(lang_token_id))
+                    .detach()
+                    .cpu()
+                )
             del self.transformer.word_embedding
+        if hasattr(model, "embeddings") and hasattr(
+            model.embeddings, "word_embeddings"
+        ):
+            if lang_token_id != -1:
+                self.lang_token_embed = (
+                    model.embeddings.word_embeddings(torch.tensor(lang_token_id))
+                    .detach()
+                    .cpu()
+                )
+
+        if self.lang_token_embed is not None and hasattr(
+            self.transformer, "embed_scale"
+        ):
+            self.lang_token_embed *= self.transformer.embed_scale
 
         self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
 
@@ -74,11 +109,52 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
             input_size, self.transformer.config.hidden_size
         )
 
+        # Length Adaptor as in https://aclanthology.org/2021.acl-long.68.pdf
+
+        if length_adaptor_n_layers > 0:
+            length_adaptor_layers = []
+            for _ in range(length_adaptor_n_layers):
+                length_adaptor_layers.append(
+                    torch.nn.Conv1d(input_size, input_size, 2, 2)
+                )
+                length_adaptor_layers.append(torch.nn.ReLU())
+        else:
+            length_adaptor_layers = [torch.nn.Identity()]
+
+        self.length_adaptor = torch.nn.Sequential(*length_adaptor_layers)
+        self.length_adaptor_ratio = 2**length_adaptor_n_layers
+
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward."""
+        if input.size(1) < self.length_adaptor_ratio:
+            raise TooShortUttError(
+                f"has {input.size(1)} frames and is too short for subsampling "
+                + f"(it needs at least {self.length_adaptor_ratio} frames), "
+                + "return empty results",
+                input.size(1),
+                self.length_adaptor_ratio,
+            )
+
+        input = input.permute(0, 2, 1)
+        input = self.length_adaptor(input)
+        input = input.permute(0, 2, 1)
+
+        input_lengths = (
+            input_lengths.float().div(self.length_adaptor_ratio).floor().long()
+        )
+
         input = self.linear_in(input)
+
+        if self.lang_token_embed is not None:
+            lang_token_embed = (
+                self.lang_token_embed.unsqueeze(0)
+                .unsqueeze(0)
+                .repeat(input.size(0), 1, 1)
+            )
+            input = torch.cat([lang_token_embed.to(input.device), input], dim=1)
+            input_lengths = input_lengths + 1
 
         args = {"return_dict": True}
 

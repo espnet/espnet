@@ -50,11 +50,17 @@ def get_parser():
         help="String marking end of decoding in logfile, e.g., "
         "'prediction' (espnet1) and 'best hypo' (espnet2)",
     )
+    parser.add_argument(
+        "--inf-num",
+        type=int,
+        default=1,
+        help="number of inference hypothesis for each utterance, e.g. "
+        ">1 in multi-speaker asr.",
+    )
     return parser
 
 
 def main():
-
     args = get_parser().parse_args()
 
     audio_sec = 0
@@ -76,6 +82,11 @@ def main():
                     start_times += [parser.parse(x.split("(")[0])]
                 elif end_times_marker in x:
                     end_times += [parser.parse(x.split("(")[0])]
+
+        if args.inf_num > 1:
+            # When inf_num > 1, select the last speaker's end as end time
+            end_times = end_times[args.inf_num - 1 :: args.inf_num]
+
         assert len(audio_durations) == len(end_times), (
             len(audio_durations),
             len(end_times),

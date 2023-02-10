@@ -6,4 +6,4 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-python3 -m pip install transformers>=4.9.1
+python3 -m pip install "transformers>=4.9.1"

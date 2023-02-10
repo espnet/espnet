@@ -128,7 +128,7 @@ def prepare_files(dest_folder, audio_folder, transcriptions, fnames, utt_ids):
             f.write(line)
             f.write("\n")
     with open(os.path.join(dest_folder, "wav.scp"), "w", encoding="utf-8") as f:
-        for (idx, fname) in zip(utt_ids, fnames):
+        for idx, fname in zip(utt_ids, fnames):
             fpath = os.path.join(audio_folder, fname + ".wav")
             line = idx + " " + fpath
             f.write(line)

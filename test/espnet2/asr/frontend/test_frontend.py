@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 
 
 def test_frontend_repr():
@@ -38,6 +39,7 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
         frontend.train()
     else:
         frontend.eval()
+    set_all_random_seed(14)
     x = torch.randn(2, 1000, 2, requires_grad=True)
     x_lengths = torch.LongTensor([1000, 980])
     y, y_lengths = frontend(x, x_lengths)
