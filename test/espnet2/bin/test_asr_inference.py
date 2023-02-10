@@ -47,7 +47,7 @@ def asr_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
-            "--encoder",
+            "--decoder",
             "rnn",
         ]
     )
@@ -216,6 +216,8 @@ def enh_asr_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--asr_decoder",
+            "rnn",
         ]
     )
     return tmp_path / "enh_asr" / "config.yaml"
