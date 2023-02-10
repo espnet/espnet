@@ -142,10 +142,24 @@ class ESPnetSVSModel(AbsESPnetModel):
             # duration :
             #   input-> phone-id seqence
             #   output -> frame level(take mode from window) or syllable level
+
+            # cut length
             for i in range(feats.size(0)):
-                if feats_lengths[i] > sum(duration_phn[i]):
-                    feats_lengths[i] = sum(duration_phn[i])
-                # NOTE(Yuning): success when feat > sum(dur)
+                dur_len = sum(duration_phn[i])
+                if feats_lengths[i] > dur_len:
+                    feats_lengths[i] = dur_len
+                else:  # decrease duration at the end of sequence
+                    delta = dur_len - feats_lengths[i]
+                    end = duration_phn_lengths[i] - 1
+                    while delta > 0 and end >= 0:
+                        new = duration_phn[i][end] - delta
+                        if new < 0:  # keep on decreasing the previous one
+                            delta -= duration_phn[i][end]
+                            duration_phn[i][end] = 0
+                            end -= 1
+                        else:  # stop
+                            delta -= duration_phn[i][end] - new
+                            duration_phn[i][end] = new
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
