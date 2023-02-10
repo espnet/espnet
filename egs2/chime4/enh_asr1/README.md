@@ -47,7 +47,7 @@
 |enhanced_et05_simu_isolated_6ch_track|94.93|16.08|16.08|0.00|13.98|
 
 
-# RESULTS
+# IRIS (ConvTasNet-Enh, WavLM_Large + SpecAug + Transformer-ASR with Transformer-LM)
 ## Environments
 - date: `Thu Apr 28 00:09:17 EDT 2022`
 - python version: `3.7.11 (default, Jul 27 2021, 14:32:16)  [GCC 7.5.0]`
@@ -57,7 +57,12 @@
   - Commit date: `Wed Apr 27 10:13:03 2022 -0400`
 
 ## enh_asr_train_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_lr1e-4_accum1_adam_specaug_bypass0_raw_en_char
+- Enh pre-training config: [../enh1/conf/tuning/train_enh_convtasnet_small.yaml](../enh1/conf/tuning/train_enh_convtasnet_small.yaml)
+- ASR pre-training config: [../asr1/conf/tuning/train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k.yaml](../asr1/conf/tuning/train_asr_transformer_wavlm_lr1e-3_specaug_accum1_preenc128_warmup20k.yaml)
+- Enh-ASR finetuning config: [./conf/tuning/train_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_lr1e-4_accum1_adam_specaug_bypass0.yaml](./conf/tuning/train_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_lr1e-4_accum1_adam_specaug_bypass0.yaml)
+- LM config: [./conf/train_lm_transformer.yaml](./conf/train_lm_transformer.yaml)
 - Pretrained model: https://huggingface.co/espnet/simpleoier_chime4_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_raw_en_char
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -101,6 +106,8 @@
 
 
 ## enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
+- Enh-ASR finetuning config: [./conf/train_enh_asr_convtasnet_fbank_transformer.yaml](./conf/train_enh_asr_convtasnet_fbank_transformer.yaml)
+- LM config: [./conf/train_lm_transformer.yaml](./conf/train_lm_transformer.yaml)
 - Pretrained model: https://huggingface.co/espnet/simpleoier_chime4_enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
 
 ### WER

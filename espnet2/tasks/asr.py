@@ -37,6 +37,9 @@ from espnet2.asr.encoder.hubert_encoder import (
 from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.encoder.transformer_encoder_multispkr import (
+    TransformerEncoder as TransformerEncoderMultiSpkr,
+)
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -46,6 +49,7 @@ from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.maskctc_model import MaskCTCModel
+from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
@@ -65,7 +69,11 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.preprocessor import (
+    AbsPreprocessor,
+    CommonPreprocessor,
+    CommonPreprocessor_multi,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -84,27 +92,39 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug,),
+    classes=dict(
+        specaug=SpecAug,
+    ),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN,),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
 )
 model_choices = ClassChoices(
     "model",
-    classes=dict(espnet=ESPnetASRModel, maskctc=MaskCTCModel,),
+    classes=dict(
+        espnet=ESPnetASRModel,
+        maskctc=MaskCTCModel,
+        pit_espnet=PITESPnetModel,
+    ),
     type_check=AbsESPnetModel,
     default="espnet",
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection,),
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
@@ -114,6 +134,7 @@ encoder_choices = ClassChoices(
     classes=dict(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
+        transformer_multispkr=TransformerEncoderMultiSpkr,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
@@ -129,7 +150,9 @@ encoder_choices = ClassChoices(
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
-    classes=dict(hugging_face_transformers=HuggingFaceTransformersPostEncoder,),
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+    ),
     type_check=AbsPostEncoder,
     default=None,
     optional=True,
@@ -149,6 +172,15 @@ decoder_choices = ClassChoices(
     ),
     type_check=AbsDecoder,
     default="rnn",
+)
+preprocessor_choices = ClassChoices(
+    "preprocessor",
+    classes=dict(
+        default=CommonPreprocessor,
+        multi=CommonPreprocessor_multi,
+    ),
+    type_check=AbsPreprocessor,
+    default="default",
 )
 
 
@@ -174,6 +206,8 @@ class ASRTask(AbsTask):
         postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -334,7 +368,17 @@ class ASRTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = CommonPreprocessor(
+
+            try:
+                _ = getattr(args, "preprocessor")
+            except AttributeError:
+                setattr(args, "preprocessor", "default")
+                setattr(args, "preprocessor_conf", dict())
+            except Exception as e:
+                raise e
+
+            preprocessor_class = preprocessor_choices.get_class(args.preprocessor)
+            retval = preprocessor_class(
                 train=train,
                 token_type=args.token_type,
                 token_list=args.token_list,
@@ -360,6 +404,7 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
+                **args.preprocessor_conf,
             )
         else:
             retval = None
@@ -381,7 +426,10 @@ class ASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        MAX_REFERENCE_NUM = 4
+        retval = []
+        retval += ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = tuple(retval)
         assert check_return_type(retval)
         return retval
 
@@ -457,7 +505,11 @@ class ASRTask(AbsTask):
         decoder_class = decoder_choices.get_class(args.decoder)
 
         if args.decoder == "transducer":
-            decoder = decoder_class(vocab_size, embed_pad=0, **args.decoder_conf,)
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
 
             joint_network = JointNetwork(
                 vocab_size,

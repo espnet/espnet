@@ -32,9 +32,11 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description='Utilities to format from MFA to ESPnet.\n'
                     'Usage: python scripts/utils/mfa_format.py ACTION [dataset] [options]\n'
-                    'python scripts/utils/mfa_format.py labs ljspeech\n'
+                    'python scripts/utils/mfa_format.py labs --dataset ljspeech --wavs_dir downloads/LJSpeech-1.1/wavs\n'
                     'python scripts/utils/mfa_format.py validate\n'
-                    'python scripts/utils/mfa_format.py durations\n'
+                    'python scripts/utils/mfa_format.py durations \
+                        --wavs_dir downloads/LJSpeech-1.1/wavs \
+                        --text\n'
     )
 
     parser.add_argument('type', help='Must be "labs, "validate" or "durations')

@@ -24,7 +24,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.tts.fastspeech import FastSpeech
-from espnet2.tts.fastspeech2 import FastSpeech2
+from espnet2.tts.fastspeech2 import FastSpeech2, FS2Prosody
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
@@ -91,6 +91,7 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
+        fs2_prosody=FS2Prosody,
         # NOTE(kan-bayashi): available only for inference
         vits=VITS,
         joint_text2wav=JointText2Wav,
@@ -277,7 +278,7 @@ class TTSTask(AbsTask):
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
-                token_list = [line.rstrip() for line in f]
+                token_list = [line[0] + line[1:].rstrip() for line in f]
 
             # "args" is saved as it is in a yaml file by BaseTask.main().
             # Overwriting token_list to keep it as "portable".

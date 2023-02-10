@@ -1462,7 +1462,7 @@ if ! "${skip_eval}"; then
             for spk in $(seq "${spk_num}"); do
                 for f in token token_int score text; do
                     for i in $(seq "${_nj}"); do
-                        cat "${_logdir}/output.${i}/1best_recog_spk${spk}/${f}"
+                        cat "${_logdir}/output.${i}/1best_recog/${f}_spk${spk}"
                     done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
                 done
             done
