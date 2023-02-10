@@ -46,9 +46,9 @@ fi
 if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
   echo "Stage 4: Enhance segments using GSS"
 
-  affix=()
+  affix=
   if ! [ $channels == all  ]; then
-    affix+=("--channels=$channels")
+    affix+="--channels=$channels"
   fi
 
   $cmd JOB=1:$nj  ${exp_dir}/${dset_name}/${dset_part}/log/enhance.JOB.log \
@@ -66,5 +66,5 @@ if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
       --num-workers 4 \
       --force-overwrite \
       --duration-tolerance 3.0 \
-       "${affix[@]}" || exit 1
+       ${affix} || exit 1
 fi
