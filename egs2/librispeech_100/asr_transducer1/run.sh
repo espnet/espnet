@@ -14,9 +14,6 @@ inference_model=valid.loss.ave_10best.pth
 
 ./asr.sh \
     --asr_task asr_transducer \
-    --skip_data_prep false \
-    --skip_train false \
-    --skip_eval false \
     --lang en \
     --ngpu 1 \
     --nj 32 \

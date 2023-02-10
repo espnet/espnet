@@ -55,41 +55,41 @@
   - Decoding config: conf/decode.yaml
   - GPU: Nvidia A100 40Gb
   - CPU: AMD EPYC 7502P 32c
-  - Peak VRAM usage during training: 36.4Gb
-  - Training time: ~ 26 hours
-  - Decoding time (32 jobs, 1 thread): ~9 minutes
+  - Peak VRAM usage during training: 37.09 Gb
+  - Training time: ~ 35 hours
+  - Decoding time (32 jobs, 1 thread): ~15,6 minutes w/ default beam search.
 
 - Environments
-  - date: `Fri Oct  7 12:02:29 UTC 2022`
-  - python version: `3.8.10 (default, Jun 22 2022, 20:18:18)  [GCC 9.4.0]`
-  - espnet version: `espnet 202209`
+  - date: `Fri Feb 10 09:27:45 UTC 2023`
+  - python version: `3.8.10 (default, Nov 14 2022, 12:59:47)  [GCC 9.4.0]`
+  - espnet version: `espnet 202301`
   - pytorch version: `pytorch 1.8.1+cu111`
-  - Git hash: `2db74a9587a32b659cf4e1abb6b611d9f9551e09`
-  - Commit date: `Thu Oct 6 15:01:23 2022 +0000`
+  - Git hash: `01893f855ca1a3a3645547ee4d3eaf461f7601bf`
+  - Commit date: `Thu Feb 9 10:04:57 2023 +0000`
 
 ## WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|54402|94.7|4.8|0.4|0.6|5.9|55.1|
-|decode_asr_model_valid.loss.ave_10best/dev_other|2864|50948|84.2|14.1|1.7|1.8|17.6|80.2|
-|decode_asr_model_valid.loss.ave_10best/test_clean|2620|52576|94.3|5.2|0.6|0.7|6.4|56.8|
-|decode_asr_model_valid.loss.ave_10best/test_other|2939|52343|83.9|14.2|1.9|1.8|17.9|81.5|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|54402|94.9|4.7|0.5|0.6|5.8|53.6|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|50948|84.9|13.4|1.6|1.8|16.9|78.9|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|52576|94.6|4.8|0.6|0.6|6.0|54.8|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|52343|84.7|13.6|1.8|1.6|17.0|80.1|
 
 ## CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|288456|98.4|0.9|0.7|0.6|2.2|55.1|
-|decode_asr_model_valid.loss.ave_10best/dev_other|2864|265951|93.4|3.9|2.7|1.9|8.5|80.2|
-|decode_asr_model_valid.loss.ave_10best/test_clean|2620|281530|98.2|1.0|0.8|0.6|2.3|56.8|
-|decode_asr_model_valid.loss.ave_10best/test_other|2939|272758|93.5|3.8|2.7|1.8|8.3|81.5|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|288456|98.4|0.9|0.6|0.6|2.1|53.6|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|265951|93.8|3.7|2.4|1.8|8.0|78.9|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|281530|98.4|0.9|0.7|0.5|2.2|54.8|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|272758|93.9|3.6|2.5|1.7|7.9|80.1|
 
 ## TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|107929|95.4|3.4|1.2|0.6|5.2|55.1|
-|decode_asr_model_valid.loss.ave_10best/dev_other|2864|98610|85.5|11.0|3.5|2.1|16.6|80.2|
-|decode_asr_model_valid.loss.ave_10best/test_clean|2620|105724|95.1|3.4|1.4|0.6|5.5|56.8|
-|decode_asr_model_valid.loss.ave_10best/test_other|2939|101026|85.3|10.9|3.9|2.0|16.7|81.5|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|107929|95.5|3.4|1.1|0.6|5.0|53.6|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|98610|86.2|10.6|3.2|2.0|15.9|78.9|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|105724|95.5|3.2|1.3|0.6|5.1|54.8|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|101026|86.0|10.4|3.5|1.9|15.9|80.1|
