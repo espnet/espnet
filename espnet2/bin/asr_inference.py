@@ -176,7 +176,6 @@ class Speech2Text:
 
         # 4. Build BeamSearch object
         if asr_model.use_transducer_decoder:
-
             # In multi-blank RNNT, we assume all big blanks are just before the standard blank in token_list
             multi_blank_durations = getattr(
                 asr_model, "transducer_multi_blank_durations", []
