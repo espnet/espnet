@@ -121,7 +121,8 @@ popd
 # finally check md5sum
 pushd ${odir}
 echo "check MD5 hash value for generated audios"
-md5sum -c ${SYNC_PATH}/audio_md5sums.txt || echo "check https://github.com/chimechallenge/chime6-synchronisation"
+sed 's+audio+${odir}/audio+g' ${SYNC_PATH}/audio_md5sums.txt > ${SYNC_PATH}/audio_md5sums_abs.txt
+md5sum -c ${SYNC_PATH}/audio_md5sums_abs.txt || echo "check https://github.com/chimechallenge/chime6-synchronisation"
 popd
 
 echo "`basename $0` Done."
