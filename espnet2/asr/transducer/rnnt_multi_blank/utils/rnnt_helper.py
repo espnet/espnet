@@ -120,7 +120,6 @@ def compute_costs_data(
 def get_workspace_size(
     maxT: int, maxU: int, minibatch: int, gpu: bool
 ) -> Tuple[Optional[int], global_constants.RNNTStatus]:
-
     if minibatch <= 0 or maxT <= 0 or maxU <= 0:
         return (None, global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE)
 
