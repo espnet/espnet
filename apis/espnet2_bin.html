@@ -975,7 +975,7 @@ Optimizer related:
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
   --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}
-                        The decoder type (default: rnn)
+                        The decoder type (default: None)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})
   --preprocessor {default,multi}
@@ -2823,7 +2823,7 @@ Optimizer related:
   --asr_postencoder_conf ASR_POSTENCODER_CONF
                         The keyword arguments for asr_postencoder (default: {})
   --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm,whisper,hugging_face_transformers,s4,None}
-                        The asr_decoder type (default: rnn)
+                        The asr_decoder type (default: None)
   --asr_decoder_conf ASR_DECODER_CONF
                         The keyword arguments for asr_decoder (default: {})
   --st_preencoder {sinc,linear,None}
