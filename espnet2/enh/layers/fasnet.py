@@ -74,7 +74,6 @@ class BF_module(nn.Module):
         self.BN = nn.Conv1d(self.input_dim, self.feature_dim, 1, bias=False)
 
     def forward(self, input, num_mic):
-
         # input: (B, ch, N, T)
         batch_size, ch, N, seq_length = input.shape
 
@@ -318,7 +317,6 @@ class FaSNet_TAC(FaSNet_base):
         self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=1e-8)
 
     def forward(self, input, num_mic):
-
         batch_size = input.size(0)
         nmic = input.size(1)
 
@@ -425,7 +423,6 @@ def test_model(model):
 
 
 if __name__ == "__main__":
-
     model_TAC = FaSNet_TAC(
         enc_dim=64,
         feature_dim=64,

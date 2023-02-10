@@ -2,12 +2,28 @@
 
 This recipe can be used to build E2E Speech Summarization models using restricted self-attention on the HowTo corpus of instructional videos. 
 
-HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe. 
+# Data Download and Preparation
+HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe. Please raise data related issues on the How-2 dataset (Github)[https://github.com/srvk/how2-dataset]
+
+You can request the use of this data using our (data request form)[https://docs.google.com/forms/d/e/1FAIpQLSfW2i8UnjuoH2KKSU0BvcKRbhnk_vL3HcNlM0QLsJGb_UEDVQ/viewform]
+
+For ASR and Summarization, please request the data labeled "(audio_2000) fbank+pitch features in Kaldi scp/ark format for 2000 hours"
+
+You will recieve a data download link shortly after you submit the form.
+Then you can prepare the data directory by providing your link as follows:
+
+
+```bash
+./run.sh --local_data_opts "--data_url <insert-link-here>"
+```
+
+# Two-stage Training 
 
 Training is done in two stages, (a) ASR Pretraining, and (b) Summarization fine-tuning
 
 First run ASR pretraining as follows:
 The recipe is based on asr1
+
 ```bash
 local/run_asr.sh --asr_tag asr_pretrain
 ``` 
@@ -58,13 +74,15 @@ Then run the finetuning on summarization using the previously trained model as t
 
 Please cite the following paper if you use this recipe:
 ```Bibtex
-@misc{sharma2022speech,
-      title={Speech Summarization using Restricted Self-Attention}, 
-      author={Roshan Sharma and Shruti Palaskar and Alan W Black and Florian Metze},
-      year={2022},
-      eprint={2110.06263},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@inproceedings{sharma2022speech,
+  author={Sharma, Roshan and Palaskar, Shruti and Black, Alan W and Metze, Florian},
+  booktitle={ICASSP 2022 - 2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
+  title={End-to-End Speech Summarization Using Restricted Self-Attention}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={8072-8076},
+  doi={10.1109/ICASSP43922.2022.9747320}}
 }
 
 ```

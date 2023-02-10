@@ -16,7 +16,6 @@ from espnet2.enh.loss.criterions.time_domain import (
     "criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss, MultiResL1SpecLoss]
 )
 def test_tf_domain_criterion_forward(criterion_class):
-
     criterion = criterion_class()
 
     batch = 2
@@ -30,7 +29,6 @@ def test_tf_domain_criterion_forward(criterion_class):
 @pytest.mark.parametrize("criterion_class", [TimeDomainL1, TimeDomainMSE])
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_domain_l1_l2_forward(criterion_class, input_ch):
-
     criterion = criterion_class()
 
     batch = 2

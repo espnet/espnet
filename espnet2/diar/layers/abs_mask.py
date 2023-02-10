@@ -15,5 +15,4 @@ class AbsMask(torch.nn.Module, ABC):
     def forward(
         self, input, ilens, bottleneck_feat, num_spk,
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
-
         raise NotImplementedError

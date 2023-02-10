@@ -38,7 +38,6 @@ MAXFILELEN = 100
 
 
 def add_pyreverb(clean_speech, rir):
-
     reverb_speech = signal.fftconvolve(clean_speech, rir, mode="full")
 
     # make reverb_speech same length as clean_speech
@@ -86,7 +85,6 @@ def build_audio(is_clean, params, index, audio_samples_length=-1):
     # iterate through multiple clips until we have a long enough signal
     tries_left = MAXTRIES
     while remaining_length > 0 and tries_left > 0:
-
         # read next audio file and resample if necessary
 
         idx = (idx + 1) % np.size(source_files)
@@ -583,5 +581,4 @@ def main_body():
 
 
 if __name__ == "__main__":
-
     main_body()

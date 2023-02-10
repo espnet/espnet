@@ -85,11 +85,19 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
             : Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
 
         """
-        h_n = torch.zeros(self.dlayers, batch_size, self.dunits, device=self.device,)
+        h_n = torch.zeros(
+            self.dlayers,
+            batch_size,
+            self.dunits,
+            device=self.device,
+        )
 
         if self.dtype == "lstm":
             c_n = torch.zeros(
-                self.dlayers, batch_size, self.dunits, device=self.device,
+                self.dlayers,
+                batch_size,
+                self.dunits,
+                device=self.device,
             )
 
             return (h_n, c_n)
@@ -119,7 +127,10 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
             if self.dtype == "lstm":
                 (
                     sequence,
-                    (h_next[layer : layer + 1], c_next[layer : layer + 1],),
+                    (
+                        h_next[layer : layer + 1],
+                        c_next[layer : layer + 1],
+                    ),
                 ) = self.decoder[layer](
                     sequence, hx=(h_prev[layer : layer + 1], c_prev[layer : layer + 1])
                 )

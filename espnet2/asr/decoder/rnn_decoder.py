@@ -30,7 +30,6 @@ def build_attention_list(
     han_conv_filts: int = 100,
     han_win: int = 5,
 ):
-
     att_list = torch.nn.ModuleList()
     if num_encs == 1:
         for i in range(num_att):

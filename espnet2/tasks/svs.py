@@ -10,6 +10,7 @@ import torch
 import yaml
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
@@ -20,6 +21,12 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
+from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
+
+# TODO(Yuning): Models to be added
+# from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
+# from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
+# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -28,14 +35,10 @@ from espnet2.train.trainer import Trainer
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 
-# TODO(Yuning): Models to be added
-# from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
-# from espnet2.svs.mlp_singer.mlp_singer import MLPSinger
-# from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer
-# from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 # from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing_noDP
 # from espnet2.svs.bytesing.bytesing import ByteSing
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
@@ -48,7 +51,11 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
     type_check=AbsFeatsExtract,
     default="fbank",
 )
@@ -105,12 +112,13 @@ svs_choices = ClassChoices(
         # bytesing=ByteSing,
         naive_rnn=NaiveRNN,
         naive_rnn_dp=NaiveRNNDP,
-        # mlp=MLPSinger,
-        # xiaoice=XiaoiceSing,
+        xiaoice=XiaoiceSing,
         # xiaoice_noDP=XiaoiceSing_noDP,
+        vits=VITS,
+        # mlp=MLPSinger,
     ),
     type_check=AbsSVS,
-    default="transformer",
+    default="naive_rnn",
 )
 
 
@@ -263,8 +271,7 @@ class SVSTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 fs=args.fs,
-                time_shift=args.feats_extract_conf["hop_length"]
-                / args.feats_extract_conf["fs"],
+                hop_length=args.feats_extract_conf["hop_length"],
             )
         else:
             retval = None
@@ -278,10 +285,10 @@ class SVSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("text", "singing", "midi", "label")
+            retval = ("text", "singing", "score", "label")
         else:
             # Inference mode
-            retval = ("text", "midi", "label")
+            retval = ("text", "score", "label")
         return retval
 
     @classmethod
@@ -292,7 +299,7 @@ class SVSTask(AbsTask):
             retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = ("spembs", "singing", "durations", "sids", "lids")
+            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
         return retval
 
     @classmethod
@@ -413,7 +420,6 @@ class SVSTask(AbsTask):
         model: Optional[ESPnetSVSModel] = None,
         device: str = "cpu",
     ):
-
         logging.info(f"vocoder_config_file: {vocoder_config_file}")
         logging.info(f"vocoder_file: {vocoder_file}")
 

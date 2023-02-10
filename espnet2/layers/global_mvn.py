@@ -52,8 +52,17 @@ class GlobalMVN(AbsNormalize, InversibleInterface):
             var = sum_square_v / count - mean * mean
         std = np.sqrt(np.maximum(var, eps))
 
-        self.register_buffer("mean", torch.from_numpy(mean))
-        self.register_buffer("std", torch.from_numpy(std))
+        if isinstance(mean, np.ndarray):
+            mean = torch.from_numpy(mean)
+        else:
+            mean = torch.tensor(mean).float()
+        if isinstance(std, np.ndarray):
+            std = torch.from_numpy(std)
+        else:
+            std = torch.tensor(std).float()
+
+        self.register_buffer("mean", mean)
+        self.register_buffer("std", std)
 
     def extra_repr(self):
         return (

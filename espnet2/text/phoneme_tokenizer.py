@@ -6,6 +6,7 @@ from typing import Iterable, List, Optional, Union
 
 import g2p_en
 import jamo
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
@@ -62,13 +63,18 @@ def pyopenjtalk_g2p(text) -> List[str]:
     return phones
 
 
-def pyopenjtalk_g2p_accent(text) -> List[str]:
-    import re
-
+def _extract_fullcontext_label(text):
     import pyopenjtalk
 
+    if V(pyopenjtalk.__version__) >= V("0.3.0"):
+        return pyopenjtalk.make_label(pyopenjtalk.run_frontend(text))
+    else:
+        return pyopenjtalk.run_frontend(text)[1]
+
+
+def pyopenjtalk_g2p_accent(text) -> List[str]:
     phones = []
-    for labels in pyopenjtalk.run_frontend(text)[1]:
+    for labels in _extract_fullcontext_label(text):
         p = re.findall(r"\-(.*?)\+.*?\/A:([0-9\-]+).*?\/F:.*?_([0-9]+)", labels)
         if len(p) == 1:
             phones += [p[0][0], p[0][2], p[0][1]]
@@ -76,12 +82,8 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
-    import re
-
-    import pyopenjtalk
-
     phones = []
-    for labels in pyopenjtalk.run_frontend(text)[1]:
+    for labels in _extract_fullcontext_label(text):
         if labels.split("-")[1].split("+")[0] == "pau":
             phones += ["pau"]
             continue
@@ -120,9 +122,7 @@ def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> Lis
         modeling for neural TTS`: https://doi.org/10.1587/transinf.2020EDP7104
 
     """
-    import pyopenjtalk
-
-    labels = pyopenjtalk.run_frontend(text)[1]
+    labels = _extract_fullcontext_label(text)
     N = len(labels)
 
     phones = []
@@ -221,15 +221,18 @@ def pypinyin_g2p_phone_without_prosody(text) -> List[str]:
         initial = get_initials(phone[0], strict=False)
         final = get_finals(phone[0], strict=False)
         if len(initial) != 0:
-            phones.append(initial)
             if initial in ["x", "y", "j", "q"]:
                 if final == "un":
                     final = "vn"
                 elif final == "uan":
                     final = "van"
+                elif final == "u":
+                    final = "v"
             if final == "ue":
                 final = "ve"
-        phones.append(final)
+            phones.append(initial + "_" + final)
+        else:
+            phones.append(final)
     return phones
 
 
@@ -617,11 +620,24 @@ class PhonemeTokenizer(AbsTokenizer):
         # If needed, customed_dic can be changed into extra input
         customed_dic = {
             "へ": ["h", "e"],
+            "は": ["h", "a"],
+            "シ": ["sh", "I"],
             "ヴぁ": ["v", "a"],
             "ヴぃ": ["v", "i"],
             "ヴぇ": ["v", "e"],
-            "ヴぉ": ["v", "i"],
+            "ヴぉ": ["v", "o"],
             "でぇ": ["dy", "e"],
+            "くぁ": ["k", "w", "a"],
+            "くぃ": ["k", "w", "i"],
+            "くぅ": ["k", "w", "u"],
+            "くぇ": ["k", "w", "e"],
+            "くぉ": ["k", "w", "o"],
+            "ぐぁ": ["g", "w", "a"],
+            "ぐぃ": ["g", "w", "i"],
+            "ぐぅ": ["g", "w", "u"],
+            "ぐぇ": ["g", "w", "e"],
+            "ぐぉ": ["g", "w", "o"],
+            "くぉっ": ["k", "w", "o", "cl"],
         }
         tokens = self.g2p(syllable)
         if syllable in customed_dic:

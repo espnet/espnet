@@ -99,7 +99,6 @@ def get_mfcc_feature(feats_dir, fs, nj, portion):
 
 
 def get_hubert_feature(feats_dir, fs, portion, url, dir, layer):
-
     reader = HubertFeatureReader(fs, url, dir, layer)
     generator, num = get_path_iterator(f"{feats_dir}/wav.scp", portion)
     iterator = generator()
