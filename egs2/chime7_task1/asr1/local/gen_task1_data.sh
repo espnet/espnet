@@ -20,7 +20,7 @@ mixer6_root=
 . ./utils/parse_options.sh || exit 1
 
 
-if ! [ -d chime5_root ]; then
+if ! [ -d $chime5_root ]; then
   skip_stages="1" # if chime5 undefined skip chime6 generation
 fi
 
@@ -41,7 +41,7 @@ fi
 
 if [ ${stage} -le 1 ] && ! contains $skip_stages 1; then
   # from CHiME5 create CHiME6
-  ./generate_chime6_data.sh --cmd "$cmd" \
+  ./local/generate_chime6_data.sh --cmd "$cmd" \
     $chime5_root \
     $chime6_root
 fi

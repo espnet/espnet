@@ -56,7 +56,13 @@ sessions1="S01 S02 S03 S04 S05 S06 S07"
 sessions2="S08 S09 S12 S13 S16 S17 S18"
 sessions3="S19 S20 S21 S22 S23 S24"
 
-CONDA_PATH=${MAIN_ROOT}/tools/venv/bin/sox
+CONDA_PATH=${MAIN_ROOT}/tools/venv/bin/
+CONDA_SOX=${MAIN_ROOT}/tools/venv/bin/sox
+if [ -z "${CONDA_SOX}" ]; then
+  echo "Please run ./local/install_dependencies.sh to install sox via conda"
+  exit 1
+fi
+
 IN_PATH=${sdir}/audio
 OUT_PATH=${odir}/audio
 TMP_PATH=${odir}/audio_tmp
@@ -94,17 +100,17 @@ wait
 echo "Sox processing for correcting clock drift"
 for session in ${sessions1}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 for session in ${sessions2}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 for session in ${sessions3}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 
