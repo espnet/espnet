@@ -13,7 +13,7 @@ from espnet2.text.korean_cleaner import KoreanCleaner
 
 try:
     from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
-except ImportError:
+except (ImportError, SyntaxError):
     BasicTextNormalizer = None
 
 

@@ -184,6 +184,7 @@ decoder_choices = ClassChoices(
     ),
     type_check=AbsDecoder,
     default="rnn",
+    optional=True,
 )
 preprocessor_choices = ClassChoices(
     "preprocessor",
@@ -372,6 +373,13 @@ class ASRTask(AbsTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--aux_ctc_tasks",
+            type=str,
+            nargs="+",
+            default=[],
+            help="Auxillary tasks to train on using CTC loss. ",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -395,7 +403,6 @@ class ASRTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-
             try:
                 _ = getattr(args, "preprocessor")
             except AttributeError:
@@ -431,6 +438,9 @@ class ASRTask(AbsTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
+                aux_task_names=args.aux_ctc_tasks
+                if hasattr(args, "aux_ctc_tasks")
+                else None,
                 **args.preprocessor_conf,
             )
         else:
@@ -454,9 +464,11 @@ class ASRTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         MAX_REFERENCE_NUM = 4
-        retval = []
-        retval += ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+
+        retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)
+
+        logging.info(f"Optional Data Names: {retval }")
         assert check_return_type(retval)
         return retval
 
@@ -540,28 +552,31 @@ class ASRTask(AbsTask):
             postencoder = None
 
         # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
+        if getattr(args, "decoder", None) is not None:
+            decoder_class = decoder_choices.get_class(args.decoder)
 
-        if args.decoder == "transducer":
-            decoder = decoder_class(
-                vocab_size,
-                embed_pad=0,
-                **args.decoder_conf,
-            )
+            if args.decoder == "transducer":
+                decoder = decoder_class(
+                    vocab_size,
+                    embed_pad=0,
+                    **args.decoder_conf,
+                )
 
-            joint_network = JointNetwork(
-                vocab_size,
-                encoder.output_size(),
-                decoder.dunits,
-                **args.joint_net_conf,
-            )
+                joint_network = JointNetwork(
+                    vocab_size,
+                    encoder.output_size(),
+                    decoder.dunits,
+                    **args.joint_net_conf,
+                )
+            else:
+                decoder = decoder_class(
+                    vocab_size=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.decoder_conf,
+                )
+                joint_network = None
         else:
-            decoder = decoder_class(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.decoder_conf,
-            )
-
+            decoder = None
             joint_network = None
 
         # 6. CTC

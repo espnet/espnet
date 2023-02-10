@@ -375,12 +375,14 @@ if ! "${skip_data_prep}"; then
             fi
 
             for spk in ${_spk_list} "wav" ; do
-                if ${is_tse_task} && [ "${dset}" = "${train_set}" ] && [ "${spk}" = "enroll_spk${i}" ]; then
+                if ${is_tse_task} && [[ "${spk}" == *enroll_spk* ]]; then
                     audio_path=$(head -n 1 "data/${dset}/${spk}.scp" | awk '{print $2}')
-                    if [ "${audio_path:0:1}" = "*" ]; then
-                        # a special format in `enroll_spk?.scp`:
+                    if [[ ("${dset}" == "${train_set}" && "${audio_path:0:1}" == "*") || "${audio_path: -4}" == ".npy" ]]; then
+                        # In case of
+                        # 1. a special format in `enroll_spk?.scp`:
                         # MIXTURE_UID *UID SPEAKER_ID
-                        cp "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        # 2. speaker embeddings instead of enrollment audios in `enroll_spk?.scp`
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/spk1.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
                         continue
                     fi
                 fi
@@ -587,7 +589,7 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${enh_stats_dir}"
 
     fi
 
@@ -1118,7 +1120,6 @@ if [ -z "${download_model}" ]; then
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.md \
-            --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi

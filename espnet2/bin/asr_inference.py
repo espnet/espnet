@@ -415,7 +415,6 @@ class Speech2Text:
                 results.append(ret)
 
         else:
-
             # Normal ASR
             if isinstance(enc, tuple):
                 enc = enc[0]
@@ -682,7 +681,6 @@ def inference(
                             ibest_writer[f"text_spk{spk}"][key] = text
 
             else:
-
                 # Normal ASR
                 for n, (text, token, token_int, hyp) in zip(
                     range(1, nbest + 1), results

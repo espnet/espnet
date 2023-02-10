@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 @torch.no_grad()
 def collect_stats(
-    model: AbsESPnetModel,
+    model: Union[AbsESPnetModel, None],
     train_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
     valid_iter: DataLoader and Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
     output_dir: Path,
@@ -63,44 +63,45 @@ def collect_stats(
                             map(str, data.shape)
                         )
 
-                # 2. Extract feats
-                if ngpu <= 1:
-                    data = model.collect_feats(**batch)
-                else:
-                    # Note that data_parallel can parallelize only "forward()"
-                    data = data_parallel(
-                        ForwardAdaptor(model, "collect_feats"),
-                        (),
-                        range(ngpu),
-                        module_kwargs=batch,
-                    )
+                if model is not None:
+                    # 2. Extract feats
+                    if ngpu <= 1:
+                        data = model.collect_feats(**batch)
+                    else:
+                        # Note that data_parallel can parallelize only "forward()"
+                        data = data_parallel(
+                            ForwardAdaptor(model, "collect_feats"),
+                            (),
+                            range(ngpu),
+                            module_kwargs=batch,
+                        )
 
-                # 3. Calculate sum and square sum
-                for key, v in data.items():
-                    for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
-                        # Truncate zero-padding region
-                        if f"{key}_lengths" in data:
-                            length = data[f"{key}_lengths"][i]
-                            # seq: (Length, Dim, ...)
-                            seq = seq[:length]
-                        else:
-                            # seq: (Dim, ...) -> (1, Dim, ...)
-                            seq = seq[None]
-                        # Accumulate value, its square, and count
-                        sum_dict[key] += seq.sum(0)
-                        sq_dict[key] += (seq**2).sum(0)
-                        count_dict[key] += len(seq)
+                    # 3. Calculate sum and square sum
+                    for key, v in data.items():
+                        for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
+                            # Truncate zero-padding region
+                            if f"{key}_lengths" in data:
+                                length = data[f"{key}_lengths"][i]
+                                # seq: (Length, Dim, ...)
+                                seq = seq[:length]
+                            else:
+                                # seq: (Dim, ...) -> (1, Dim, ...)
+                                seq = seq[None]
+                            # Accumulate value, its square, and count
+                            sum_dict[key] += seq.sum(0)
+                            sq_dict[key] += (seq**2).sum(0)
+                            count_dict[key] += len(seq)
 
-                        # 4. [Option] Write derived features as npy format file.
-                        if write_collected_feats:
-                            # Instantiate NpyScpWriter for the first iteration
-                            if (key, mode) not in npy_scp_writers:
-                                p = output_dir / mode / "collect_feats"
-                                npy_scp_writers[(key, mode)] = NpyScpWriter(
-                                    p / f"data_{key}", p / f"{key}.scp"
-                                )
-                            # Save array as npy file
-                            npy_scp_writers[(key, mode)][uttid] = seq
+                            # 4. [Option] Write derived features as npy format file.
+                            if write_collected_feats:
+                                # Instantiate NpyScpWriter for the first iteration
+                                if (key, mode) not in npy_scp_writers:
+                                    p = output_dir / mode / "collect_feats"
+                                    npy_scp_writers[(key, mode)] = NpyScpWriter(
+                                        p / f"data_{key}", p / f"{key}.scp"
+                                    )
+                                # Save array as npy file
+                                npy_scp_writers[(key, mode)][uttid] = seq
 
                 if iiter % log_interval == 0:
                     logging.info(f"Niter: {iiter}")

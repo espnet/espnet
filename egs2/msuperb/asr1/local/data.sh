@@ -86,7 +86,38 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
              utils/utt2spk_to_spk2utt.pl \
                  data/${x}_${duration}_${single_lang}/utt2spk \
                  > data/${x}_${duration}_${single_lang}/spk2utt
-             utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
+
+            if [ "${single_lang}" == "cmn" ]; then
+                g2p=pypinyin_g2p_phone
+            elif [ "${single_lang}" == "jpn" ]; then
+                g2p=pyopenjtalk
+                # check extra module installation
+                if ! python3 -c "import pyopenjtalk" > /dev/null; then
+                    echo "Error: pyopenjtalk is not installed (but need for jpn)." >&2
+                    echo "Installing with ESPnet Makefile"
+                    msuperb_dir=$(pwd)
+                    cd "${MAIN_ROOT}"/tools && make pyopenjtalk.done
+                    cd "${msuperb_dir}"
+                fi
+            else
+                g2p=none
+            fi
+
+            utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
+
+            if [ "${single_lang}" == "cmn" ] || [ "${single_lang}" == "jpn" ]; then
+                python -m espnet2.bin.tokenize_text --token_type "phn" -f 2- \
+                    --input "data/${x}_${duration}_${single_lang}/text"    \
+                    --output "data/${x}_${duration}_${single_lang}/phn_text" \
+                    --cleaner "none" \
+                    --g2p "${g2p}"
+                paste -d " " <(cut -f1 -d" " data/${x}_${duration}_${single_lang}/wav.scp) \
+                    <(cat data/${x}_${duration}_${single_lang}/phn_text) \
+                    > data/${x}_${duration}_${single_lang}/text
+                utils/fix_data_dir.sh data/${x}_${duration}_${single_lang}
+            fi
+
+
         done
     fi
 fi
