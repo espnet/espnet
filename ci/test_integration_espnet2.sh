@@ -27,7 +27,7 @@ for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
+            --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
     done
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
