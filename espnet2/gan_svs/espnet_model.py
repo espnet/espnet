@@ -381,6 +381,25 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 singing,
                 singing_lengths,
             )
+            
+        # cut length
+        for i in range(feats.size(0)):
+            dur_len = sum(duration_phn[i])
+            if feats_lengths[i] > dur_len:
+                feats_lengths[i] = dur_len
+            else:  # decrease duration at the end of sequence
+                delta = dur_len - feats_lengths[i]
+                end = duration_phn_lengths[i] - 1
+                while delta > 0 and end >= 0:
+                    new = duration_phn[i][end] - delta
+                    if new < 0:  # keep on decreasing the previous one
+                        delta -= duration_phn[i][end]
+                        duration_phn[i][end] = 0
+                        end -= 1
+                    else:  # stop
+                        delta -= duration_phn[i][end] - new
+                        duration_phn[i][end] = new
+        feats = feats[:, : feats_lengths.max()]
 
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
