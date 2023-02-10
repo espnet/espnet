@@ -21,7 +21,7 @@ if "${multilingual}"; then
     fi
     train_set=train_${duration}${suffix}
     train_dev=dev_${duration}${suffix}
-    test_set="${train_dev}${suffix} test_${duration}${suffix}"
+    test_set="${train_dev} test_${duration}${suffix}"
     lang="multilingual"   
 else
     train_set=train_${duration}_${single_lang}
