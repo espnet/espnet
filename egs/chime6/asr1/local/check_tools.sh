@@ -68,11 +68,4 @@ if [ -z "${sox_conda}" ]; then
   conda install -c conda-forge sox
 fi
 
-sox=../../../tools/venv/bin/sox
-sox_version=`$sox --version 2>&1| head -1 | sed -e 's?.*: ??' -e 's?.* ??'`
-if [[ ! $sox_version =~ v14.4.* ]]; then
-  echo "Unsupported sox version $sox_version found on path. You will need version v14.4.0 and higher."
-  exit 1
-fi
-
 exit  0
