@@ -12,7 +12,7 @@ log() {
 # CHiME-7 Task 1 SUB-TASK baseline system script: GSS + ASR using oracle diarization
 ######################################################################################
 
-stage=3
+stage=0
 stop_stage=100
 
 # NOTE, use absolute paths !

@@ -1,13 +1,15 @@
 import argparse
-import lhotse
-import torchaudio
-import torch
-from copy import deepcopy
-import tqdm
-from pathlib import Path
 import os
-from torch.utils.data import DataLoader, Dataset
+from copy import deepcopy
+from pathlib import Path
+
+import lhotse
 import soundfile as sf
+import torch
+import torchaudio
+import tqdm
+from torch.utils.data import DataLoader, Dataset
+
 
 class EnvelopeVariance(torch.nn.Module):
     """
@@ -87,15 +89,15 @@ class MicRanking(Dataset):
     def __len__(self):
         return len(self.supervisions)
 
-    def _get_read_chans(self,
-                        c_recordings,
-                        start,
-                        duration,
-                        fs=16000):
+    def _get_read_chans(self, c_recordings, start, duration, fs=16000):
         to_tensor = []
         chan_indx = []
         for recording in c_recordings.sources:
-            c_wav, _ = sf.read(recording.source, start=int(start * fs), stop=int(start * fs) + int(duration * fs))
+            c_wav, _ = sf.read(
+                recording.source,
+                start=int(start * fs),
+                stop=int(start * fs) + int(duration * fs),
+            )
             c_wav = torch.from_numpy(c_wav).float().unsqueeze(0)
             assert (
                 c_wav.shape[0] == 1
@@ -103,7 +105,11 @@ class MicRanking(Dataset):
 
             if len(to_tensor) > 0:
                 if c_wav.shape[-1] != to_tensor[0].shape[-1]:
-                    print("Discarded {} because there is a difference of length of {}".format(recording, c_wav.shape[-1] - to_tensor[0].shape[-1]))
+                    print(
+                        "Discarded {} because there is a difference of length of {}".format(
+                            recording, c_wav.shape[-1] - to_tensor[0].shape[-1]
+                        )
+                    )
                     continue
             to_tensor.append(c_wav)
 
