@@ -14,6 +14,7 @@ chime6_root= # will be created automatically from chime5
 # but if you have it already you can use your existing one.
 dipco_root=
 mixer6_root=
+gen_eval=0
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
@@ -49,5 +50,5 @@ fi
 
 if [ ${stage} -le 2 ] && ! contains $skip_stages 2; then
   python local/gen_task1_data.py -c $chime6_root \
-      -d $dipco_root -m $mixer6_root -o $chime7_root --eval_opt 0
+      -d $dipco_root -m $mixer6_root -o $chime7_root --eval_opt $gen_eval
 fi
