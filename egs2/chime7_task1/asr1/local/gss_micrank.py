@@ -7,7 +7,7 @@ import tqdm
 from pathlib import Path
 import os
 from torch.utils.data import DataLoader, Dataset
-
+import soundfile as sf
 
 class EnvelopeVariance(torch.nn.Module):
     """
@@ -87,22 +87,30 @@ class MicRanking(Dataset):
     def __len__(self):
         return len(self.supervisions)
 
-    def _get_read_chans(self, c_recordings, start, duration, fs=16000):
+    def _get_read_chans(self,
+                        c_recordings,
+                        start,
+                        duration,
+                        fs=16000):
         to_tensor = []
         chan_indx = []
         for recording in c_recordings.sources:
-            c_wav, _ = torchaudio.load(
-                recording.source,
-                frame_offset=int(start * fs),
-                num_frames=int(duration * fs),
-            )
+            c_wav, _ = sf.read(recording.source, start=int(start * fs), stop=int(start * fs) + int(duration * fs))
+            c_wav = torch.from_numpy(c_wav).float().unsqueeze(0)
             assert (
                 c_wav.shape[0] == 1
             ), "Input audio should be mono for channel selection in this script."
+
+            if len(to_tensor) > 0:
+                if c_wav.shape[-1] != to_tensor[0].shape[-1]:
+                    print("Discarded {} because there is a difference of length of {}".format(recording, c_wav.shape[-1] - to_tensor[0].shape[-1]))
+                    continue
             to_tensor.append(c_wav)
+
             chan_indx.append(recording.channels[0])
 
         all_channels = torch.stack(to_tensor).transpose(0, 1)
+
         return all_channels, chan_indx
 
     def __getitem__(self, item):
@@ -123,10 +131,10 @@ class MicRanking(Dataset):
             c_scores = ranker(all_channels)
         c_scores = c_scores[0].numpy().tolist()
         c_scores = [(x, y) for x, y in zip(c_scores, chan_indx)]
-        c_scores = sorted(c_scores, key=lambda x: x[0])
+        c_scores = sorted(c_scores, key=lambda x: x[0], reverse=True)
         c_scores = c_scores[: int(len(c_scores) * self.top_k)]
         new_sup = deepcopy(c_supervision)
-        new_sup.channel = sorted([x[-1] for x in c_scores])
+        new_sup.channel = [x[-1] for x in c_scores]
         return new_sup
 
 
