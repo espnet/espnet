@@ -20,7 +20,7 @@ mixer6_root=
 . ./utils/parse_options.sh || exit 1
 
 
-if ! [ -d $chime5_root ]; then
+if [ -z "$chime5_root" ]; then
   skip_stages="1" # if chime5 undefined skip chime6 generation
 fi
 

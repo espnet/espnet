@@ -126,10 +126,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       exit
     fi
 
-    if [ ${dset_name} == dipco ]; then
-      channels=2,5,9,12,16,19,23,26,30,33 # in dipco only using opposite mics on each array, works better
-    elif [ ${dset_name} == chime6 ] && [ ${dset_part} == dev ]; then # use only outer mics
-      channels=0,3,4,7,8,11,12,15,16,19
+    if [ ${dset_part} == dev ]; then # use only outer mics
+      use_selection=1
+    else
+      use_selection=0
     fi
 
     if [ ${dset_part} == train ]; then
@@ -144,7 +144,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
           --nj $ngpu \
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
-          --channels $channels
+          --channels $channels \
+          --use-selection $use_selection
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
@@ -167,7 +168,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -z "$use_pretrained" ]; then
-    pretrained_affix+="--skip_data_prep true --skip_train true "
+    pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
 

@@ -26,7 +26,7 @@ if ! command -v gss &>/dev/null; then
   ${MAIN_ROOT}/tools/installers/install_gss.sh
 fi
 
-sox_conda=`command -v ../../../tools/venv/bin/sox 2>/dev/null`
+sox_conda=`command -v $(dirname $(which python))/sox 2>/dev/null`
 if [ -z "${sox_conda}" ]; then
   echo "install conda sox (v14.4.2)"
   conda install -c conda-forge sox
