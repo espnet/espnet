@@ -26,12 +26,12 @@ if [ $use_selection == 1 ]; then
   echo "Stage 0: Selecting a subset of channels"
   python local/gss_micrank.py -r ${manifests_dir}/${dset_name}/${dset_part}/${dset_name}-mdm_recordings_${dset_part}.jsonl.gz \
       -s ${manifests_dir}/${dset_name}/${dset_part}/${dset_name}-mdm_supervisions_${dset_part}.jsonl.gz \
-      -o  ${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_{dset_part}_selected \
+      -o  ${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_${dset_part}_selected \
       -k $top_k \
       --nj $sel_nj \
 
-  recordings=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_{dset_part}_selected_recordings.jsonl.gz
-  supervisions=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_{dset_part}_selected_supervisions.jsonl.gz
+  recordings=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_${dset_part}_selected_recordings.jsonl.gz
+  supervisions=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}_${dset_part}_selected_supervisions.jsonl.gz
 else
   recordings=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}-mdm_recordings_${dset_part}.jsonl.gz
   supervisions=${manifests_dir}/${dset_name}/${dset_part}/${dset_name}-mdm_supervisions_${dset_part}.jsonl.gz
