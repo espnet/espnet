@@ -89,7 +89,7 @@ class MicRanking(Dataset):
     def __len__(self):
         return len(self.supervisions)
 
-    def _get_read_chans(self, c_recordings, start, duration, fs=16000):
+    def _get_read_chans(self, c_supervision, c_recordings, start, duration, fs=16000):
         to_tensor = []
         chan_indx = []
         for recording in c_recordings.sources:
@@ -99,15 +99,22 @@ class MicRanking(Dataset):
                 stop=int(start * fs) + int(duration * fs),
             )
             c_wav = torch.from_numpy(c_wav).float().unsqueeze(0)
-            assert (
-                c_wav.shape[0] == 1
-            ), "Input audio should be mono for channel selection in this script."
+            assert c_wav.shape[0] == 1, (
+                "Input audio should be mono for " "channel selection in this script."
+            )
 
             if len(to_tensor) > 0:
                 if c_wav.shape[-1] != to_tensor[0].shape[-1]:
                     print(
-                        "Discarded {} because there is a difference of length of {}".format(
-                            recording, c_wav.shape[-1] - to_tensor[0].shape[-1]
+                        "Discarded recording {} from {} supervision "
+                        "because there is "
+                        "a difference of length of {} (samples)"
+                        "with the other recordings. "
+                        "Is the audio file corrupted ?"
+                        "".format(
+                            c_supervision.id,
+                            recording,
+                            abs(c_wav.shape[-1] - to_tensor[0].shape[-1]),
                         )
                     )
                     continue
@@ -126,7 +133,7 @@ class MicRanking(Dataset):
         c_recordings = recordings[c_supervision.recording_id]
         fs = c_recordings.sampling_rate
         all_channels, chan_indx = self._get_read_chans(
-            c_recordings, start, duration, fs
+            c_supervision, c_recordings, start, duration, fs
         )
 
         assert all_channels.ndim == 3
@@ -146,7 +153,7 @@ class MicRanking(Dataset):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        "We use this script to select a subset of " "microphones to feed to GSS."
+        "We use this script to select a subset of" "microphones to feed to GSS."
     )
     parser.add_argument(
         "-r,--recordings",
@@ -167,9 +174,10 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="out_name",
-        help="Name and path for the new output manifests with the reduced "
+        help="Name and path for the new output manifests with the reduced"
         "channels. E.g. /tmp/chime6_selected --> will create "
-        "chime6_selected_recordings.jsonl.gz  and chime6_selected_supervisions.jsonl.gz",
+        "chime6_selected_recordings.jsonl.gz  "
+        "and chime6_selected_supervisions.jsonl.gz",
     )
     parser.add_argument(
         "-k, --top_k",
@@ -177,7 +185,8 @@ if __name__ == "__main__":
         type=int,
         metavar="INT",
         dest="top_k",
-        help="Percentage of best microphones to keep (e.g. 20 -> 20% of all microphones)",
+        help="Percentage of best microphones to keep "
+        "(e.g. 20 -> 20% of all microphones)",
     )
     parser.add_argument(
         "--nj",
