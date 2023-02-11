@@ -26,9 +26,11 @@ mixer6_root=/raid/users/popcornell/mixer6/
 # DATAPREP CONFIG
 manifests_root=./data/lhotse # dir where to save lhotse manifests
 cmd_dprep=run.pl
+dprep_stage=0
+gen_eval=0 # please not generate eval before release of mixer 6 eval
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
-dprep_stage=0
+
 gss_dump_root=./exp/gss
 ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
@@ -37,9 +39,8 @@ train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 # GSS CONFIG
 gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
-gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev" # no mixer6 train in baseline
-# but you can try to add it.
-
+gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+# we do not train with mixer 6 training + GSS here, but you can try.
 
 # ASR CONFIG
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
@@ -62,7 +63,6 @@ decode_only=0
 . ./cmd.sh
 . ./utils/parse_options.sh
 
-
 # ESPNet does not scale parameters with num of GPUs by default, doing it
 # here for you
 asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
@@ -81,7 +81,8 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
-	  --train_cmd $cmd_dprep
+	  --train_cmd $cmd_dprep \
+	  --gen-eval $gen_eval
 fi
 
 
@@ -171,8 +172,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
-
-
 
   ./asr.sh \
     --lang en \
