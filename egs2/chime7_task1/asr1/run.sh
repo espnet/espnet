@@ -154,11 +154,20 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
-  # ASR training and inference on dev set
   asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
   asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
   asr_tt_set="kaldi/chime6/dev/gss/ kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+
+  pretrained_affix=
+  if [ -n "$use_pretrained" ]; then
+    asr_train_set=kaldi/dipco/dev/gss # dummy one, it is not used
+    # unfortunately espnet requires it.
+    pretrained_affix+="--skip_data_prep false --skip_train true "
+    pretrained_affix+="--download_model ${use_pretrained}"
+  fi
+
+
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
@@ -167,11 +176,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
 
-  pretrained_affix=
-  if [ -z "$use_pretrained" ]; then
-    pretrained_affix+="--skip_data_prep false --skip_train true "
-    pretrained_affix+="--download_model ${use_pretrained}"
-  fi
 
   ./asr.sh \
     --lang en \
