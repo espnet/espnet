@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eou pipefail
+function contains ()  { [[ $1 =~ (^|[[:space:]])"$2"($|[[:space:]]) ]]; }
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -31,7 +32,7 @@ if [ $decode_only == 1 ]; then
   skip_stages="1"
 fi
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 0 ] && ! contains $skip_stages 0; then
   log "Dumping all lhotse manifests to kaldi manifests and merging everything for dev set close mics,
   you may want these for validation."
   cv_kaldi_manifests_ihm=()
@@ -48,7 +49,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   ./utils/fix_data_dir.sh data/kaldi/dev_ihm_all
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 1 ] && ! contains $skip_stages 1; then
   all_tr_manifests=()
   all_tr_manifests_ihm=()
   log "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
@@ -83,7 +84,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 
-if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
+if [ $stage -le 2 ] && ! contains $skip_stages 2; then
   log "Augmenting close-talk data with MUSAN and CHiME-6 extracted noises."
   local/extract_noises.py ${chime6_root}/audio/train ${chime6_root}/transcriptions/train \
     local/distant_audio_list distant_noises
@@ -121,7 +122,7 @@ if [ $stage -le 2 ] && [ $stop_stage -ge 2 ]; then
 fi
 
 
-if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
+if [ ${stage} -le 3 ] && ! contains $skip_stages 3; then
     # Preparing ASR training and validation data;
     log "Parsing the GSS output to Kaldi manifests"
     cv_kaldi_manifests_gss=()
@@ -164,7 +165,7 @@ fi
 
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+if [ ${stage} -le 4 ] && ! contains $skip_stages 4; then
     log "stage 2: Create non linguistic symbols: ${nlsyms_file}"
     if [ -f "${nlsyms_file}" ]; then
       echo "${nlsyms_file} exists, please delete it or move it. exiting !"
