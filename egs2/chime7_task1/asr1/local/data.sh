@@ -165,7 +165,7 @@ fi
 
 
 if [ ${stage} -le 4 ] && ! [[ " ${skip_stages[*]} " =~ " 4 " ]]; then
-    log "stage 2: Create non linguistic symbols: ${nlsyms_file}"
+    log "stage 4: Create non linguistic symbols: ${nlsyms_file}"
     if [ -f "${nlsyms_file}" ]; then
       echo "${nlsyms_file} exists already, SKIPPING (please remove if you want to
       override it) !"
