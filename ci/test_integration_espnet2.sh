@@ -27,13 +27,13 @@ for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
+            --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
     done
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
     --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
 
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
@@ -45,12 +45,12 @@ if python3 -c "import k2" &> /dev/null; then
     echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --num_paths 500 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
         --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
+        --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
 
     echo "==== use_k2, num_paths == nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --num_paths 20 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
        --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-       --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
+       --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
 fi
 
 if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
@@ -164,7 +164,7 @@ fi
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh_asr1
     echo "==== [ESPnet2] ENH_ASR ==="
-    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1" --python "${python}"
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1 --asr_decoder rnn" --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
