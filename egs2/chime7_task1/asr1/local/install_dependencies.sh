@@ -11,6 +11,9 @@ fi
 # install lhotse from master, we need the most up-to-date one
 pip install git+https://github.com/lhotse-speech/lhotse
 
+# jiwer
+pip install jiwer
+
 #check if kaldi has been installed and compiled
 if ! command -v wav-reverberate &>/dev/null; then
   echo "It seems that wav-reverberate Kaldi command cannot be found.
@@ -26,7 +29,7 @@ if ! command -v gss &>/dev/null; then
   ${MAIN_ROOT}/tools/installers/install_gss.sh
 fi
 
-sox_conda=`command -v $(dirname $(which python))/sox 2>/dev/null`
+sox_conda=`command -v ${CONDA_PREFIX}/bin/sox 2>/dev/null`
 if [ -z "${sox_conda}" ]; then
   echo "install conda sox (v14.4.2)"
   conda install -c conda-forge sox
@@ -44,3 +47,5 @@ if [ ! -z "$ffmpeg" ]; then
     exit 1
   fi
 fi
+
+echo "All dependencies installed successfully"
