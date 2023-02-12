@@ -20,7 +20,7 @@ chime7_root=${PWD}/chime7_task1
 chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
 # but if you have it already it will be skipped, please put your own path
-dipco_root=${PWD}/../../chime7/task1/datasets/dipco # this will be automatically downloaded
+dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
 mixer6_root=/raid/users/popcornell/mixer6/
 
 # DATAPREP CONFIG
@@ -46,7 +46,7 @@ gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
 asr_stage=0 # starts at 13 for inference only
 asr_dprep_stage=0
-bpe_nlsyms="" # in the baseline these are handled by the dataprep
+bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 lm_config="conf/train_lm.yaml"
@@ -163,7 +163,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   if [ -n "$use_pretrained" ]; then
     asr_train_set=kaldi/dipco/dev/gss # dummy one, it is not used
     # unfortunately espnet requires it.
-    pretrained_affix+="--skip_data_prep false --skip_train true "
+    pretrained_affix+="--skip_data_prep true --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
 
