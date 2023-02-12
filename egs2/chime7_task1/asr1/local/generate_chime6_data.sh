@@ -56,7 +56,7 @@ sessions1="S01 S02 S03 S04 S05 S06 S07"
 sessions2="S08 S09 S12 S13 S16 S17 S18"
 sessions3="S19 S20 S21 S22 S23 S24"
 
-CONDA_SOX=$(dirname $(which python))
+CONDA_SOX=${CONDA_PREFIX}/bin/sox
 if [ -z "${CONDA_SOX}" ]; then
   echo "Please run ./local/install_dependencies.sh to install sox via conda"
   exit 1
@@ -81,7 +81,22 @@ if [ -f ${odir}/audio/dev/S02_P05.wav ]; then
 fi
 
 pushd ${SYNC_PATH}
-
+echo "Correct for frame dropping"
+for session in ${sessions1}; do
+  $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+done
+wait
+for session in ${sessions2}; do
+  $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+done
+wait
+for session in ${sessions3}; do
+  $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+done
+wait
 
 echo "Sox processing for correcting clock drift"
 for session in ${sessions1}; do
