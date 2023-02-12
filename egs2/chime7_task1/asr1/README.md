@@ -55,25 +55,20 @@ git clone https://github.com/espnet/espnet/
 Next, ESPNet must be installed, go to espnet/tools. <br />
 This will install a new environment called espnet with Python 3.9.2
 ```bash
-cd espnet
-bash ./tools/setup_anaconda.sh venv espnet 3.9.2
+cd espnet/tools
+./setup_anaconda.sh venv "" 3.9.2
 ```
 Activate this new environment.
 ```bash
-source ./tools/venv/bin/activate
-conda activate espnet
+source ./venv/bin/activate
 ```
 Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for **cudatoolkit**. 
 ```bash
 make TH_VERSION=1.13.1 CUDA_VERSION=11.6
 ```
-Go to tools/kaldi and follow the instructions in INSTALL for installing Kaldi. 
-```bash
-cd ./tools/kaldi
-```
 Finally, get in this recipe folder and install other baseline required packages (e.g. lhotse) using this script: 
 ```bash
-cd egs2/chime7_task1/asr1
+cd ../egs2/chime7_task1/asr1
 ./local/install_dependencies.sh
 ```
 You should be good to go !
@@ -93,7 +88,6 @@ these are:
 1. CHiME-6 Challenge [1]
 2. Amazon Alexa Dinner Party Corpus (DiPCO) [2]
 3. LDC Mixer 6 Speech (here we use a new re-annotated version) [3]
-
 
 Unfortunately, only DiPCo can be downloaded automatically, the others must be 
 downloaded manually and then processed via our scripts here. <br>
@@ -213,7 +207,9 @@ Mixer6 Speech dev | GSS-all | TBA        |
 
 1. `AssertionError: Torch not compiled with CUDA enabled` <br> for some reason you installed Pytorch without CUDA support. <br>
  Please install Pytorch with CUDA support as explained in [pytorch website](https://pytorch.org/).
-
+2. `ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: 'YOUR_PATH/espnet/tools/venv/lib/pyth
+on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy installation getting corrupted for some reason.
+You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
 
 
 [sox]:
