@@ -26,7 +26,7 @@ mkdir -p "${MINI_LIBRISPEECH}"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo " Stage 0: prepare data"
 
-    local/download_and_untar.sh "${MINI_LIBRISPEECH}" "${mini_librispeech_url}" train-clean-5
+    #local/download_and_untar.sh "${MINI_LIBRISPEECH}" "${mini_librispeech_url}" train-clean-5
 
     if [ ! -f "${MINI_LIBRISPEECH}"/train_clean_5.done ]; then
         local/data_prep.sh "${MINI_LIBRISPEECH}"/LibriSpeech/train-clean-5 data/train_clean_5 || exit 1
@@ -37,7 +37,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "Stage 1: Prepare Kaldi-style train-test"
     ./utils/copy_data_dir.sh data/train_clean_5 data/train
-    awk 'NR % 5 != 0' data/train_clean_5/text > data/train/text
+    awk 'NR % 5 == 2 || NR % 5 == 1' data/train_clean_5/text > data/train/text
     ./utils/fix_data_dir.sh data/train
 
     ./utils/copy_data_dir.sh data/train_clean_5 data/test
