@@ -15,6 +15,7 @@ stop_stage=100
 python=python3       # Specify python to execute espnet commands.
 train_set=
 dev_set=
+test_sets=
 datadir=dump/raw
 feat_dir=dump/hubert_feats
 km_tag=
@@ -81,7 +82,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         _ngpu=0
     fi
 
-    for dset in "${train_set}" "${dev_set}"; do
+    for dset in "${train_set}" "${dev_set}" ${test_sets}; do
         echo "dump ${feature_type} features at ${dset}"
 
         # 1. Split the key file
@@ -176,7 +177,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "KMeans stage 3: Generate K-means pseudo-labels"
 
-    for dset in ${train_set} ${dev_set}; do
+    for dset in ${train_set} ${dev_set} ${test_sets}; do
         label_dir="${feat_dir}/${feature_type}/${suffix}${dset}/pseudo_labels"
 
         nutt=$(<"${feat_dir}/${feature_type}/${suffix}${dset}/"feats.scp${scp_suffix} wc -l)
@@ -210,13 +211,21 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     sos_eos="<sos/eos>" # sos and eos symbole
 
     mkdir -p ${dictdir}
+    touch ${dictdir}/token.txt
 
-    <${datadir}/${dset}/text.km.${km_tag}${scp_suffix} cut -d" " -f2- | \
-        awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
-            sort -n -r -k 2  | \
-            awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
-                '{print($1)} END{print(oov); print(sos_eos)}' \
-            > ${dictdir}/tokens.txt
+    for i in $(seq 0 $((nclusters-1)))
+    do
+        echo $i >> ${dictdir}/tokens.txt
+    done
+    echo "${sos_eos}\n${oov}" >> ${dictdir}/tokens.txt
+
+    # NOTE(jiatong): need discussion on why we use count to sort
+    # <${datadir}/${train_set}/text.km.${km_tag}${scp_suffix} cut -d" " -f2- | \
+    #     awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
+    #         sort -n -r -k 2  | \
+    #         awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
+    #             '{print($1)} END{print(oov); print(sos_eos)}' \
+    #         > ${dictdir}/tokens.txt
 
     log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
 
