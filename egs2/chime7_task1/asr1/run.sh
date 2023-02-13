@@ -9,7 +9,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 ######################################################################################
-# CHiME-7 Task 1 SUB-TASK 1 baseline system script: GSS + ASR using oracle diarization
+# CHiME-7 Task 1 SUB-TASK baseline system script: GSS + ASR using oracle diarization
 ######################################################################################
 
 stage=3
@@ -19,7 +19,7 @@ stop_stage=100
 chime7_root=${PWD}/chime7_task1
 chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
-# but if you have it already it will be skipped
+# but if you have it already it will be skipped, please put your own path
 dipco_root=${PWD}/../../chime7/task1/datasets/dipco # this will be automatically downloaded
 mixer6_root=/raid/users/popcornell/mixer6/
 
@@ -38,6 +38,7 @@ train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev" # no mixer6 train in baseline
+# but you can try to add it.
 
 
 # ASR CONFIG
@@ -52,26 +53,31 @@ use_lm=false
 use_word_lm=false
 word_vocab_size=65000
 nbpe=500
-
-
-# and not contribute much (but you may use all)
 asr_max_epochs=8
-# ESPNet does not scale parameters with num of GPUs by default, doing it
-# here for you
+# put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
+use_pretrained=
+decode_only=0
 
 . ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
 
+
+# ESPNet does not scale parameters with num of GPUs by default, doing it
+# here for you
 asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
+if [ $decode_only == 1 ]; then
+  # apply gss only on dev
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
+fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
   local/gen_task1_data.sh --chime6-root $chime6_root --stage $dprep_stage  --chime7-root $chime7_root \
-    --chime5_root $chime5_root \
+    --chime5_root "$chime5_root" \
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
@@ -86,6 +92,11 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
+
+      if [ $decode_only == 1 ] && [ $dset_part == train ]; then
+        continue
+      fi
+
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
@@ -117,7 +128,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ ${dset_name} == dipco ]; then
       channels=2,5,9,12,16,19,23,26,30,33 # in dipco only using opposite mics on each array, works better
-    elif [ ${dset_name} == chime6 ] && [ ${dset_part} == dev ]; then
+    elif [ ${dset_name} == chime6 ] && [ ${dset_part} == dev ]; then # use only outer mics
       channels=0,3,4,7,8,11,12,15,16,19
     fi
 
@@ -140,6 +151,8 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+
+  # ASR training and inference on dev set
   asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
   asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
@@ -147,9 +160,18 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
+  data_opts+=" --decode-only $decode_only"
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
+
+  pretrained_affix=
+  if [ -z "$use_pretrained" ]; then
+    pretrained_affix+="--skip_data_prep true --skip_train true "
+    pretrained_affix+="--download_model ${use_pretrained}"
+  fi
+
+
 
   ./asr.sh \
     --lang en \
@@ -177,5 +199,5 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --valid_set "${asr_cv_set}" \
     --test_sets "${asr_tt_set}" \
     --bpe_train_text "data/${asr_train_set}/text" \
-    --lm_train_text "data/${asr_train_set}/text" "$@"
+    --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
 fi
