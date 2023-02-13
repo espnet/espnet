@@ -14,7 +14,7 @@ max_batch_duration=90 # adjust based on your GPU VRAM, here 40GB
 max_segment_length=200
 channels=
 sel_nj=32
-top_k=25
+top_k=80
 use_selection=0
 
 . ./path.sh
