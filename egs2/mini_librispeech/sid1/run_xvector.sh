@@ -14,10 +14,13 @@ train_set=train
 valid_set=dev
 test_sets=test
 
-train_config=conf/train_sid_transformer.yaml
+train_config=conf/train_sid_transformer_xvector.yaml
 decode_config=conf/decode_sid.yaml
 
 ./asr.sh \
+    --stage 10 \
+    --feats_type extracted \
+    --feats_normalize utterance_mvn \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \

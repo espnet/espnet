@@ -20,7 +20,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.0
-    input_layer: conv2d
+    input_layer: linear
     normalize_before: true
 
 decoder: transformer
