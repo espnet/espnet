@@ -381,7 +381,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 singing,
                 singing_lengths,
             )
-            
+
         # cut length
         for i in range(feats.size(0)):
             dur_len = sum(duration_phn[i])
