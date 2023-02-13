@@ -17,7 +17,6 @@ def md5_file(fname):
 
 
 def glob_check(root_folder, has_eval=False, input_json=None):
-
     all_files = []
     for ext in [".json", ".uem", ".wav", ".flac"]:
         all_files.extend(
