@@ -23,13 +23,13 @@ def get_parser():
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
     parser.add_argument(
         "--toolkit",
         type=str,
         help="Toolkit for Extracting X-vectors.",
         choices=["espnet", "speechbrain", "rawnet"],
     )
+    parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrained model.")
     parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
     parser.add_argument(
@@ -47,10 +47,11 @@ class XVExtractor:
     def __init__(self, args, device):
         self.toolkit = args.toolkit
         self.device = device
-        from speechbrain.dataio.preprocess import AudioNormalizer
 
-        self.audio_norm = AudioNormalizer()
         if self.toolkit == "speechbrain":
+            from speechbrain.dataio.preprocess import AudioNormalizer
+
+            self.audio_norm = AudioNormalizer()
             from speechbrain.pretrained import EncoderClassifier
 
             self.model = EncoderClassifier.from_hparams(
@@ -73,13 +74,17 @@ class XVExtractor:
                 norm_sinc="mean",
                 grad_mult=1,
             )
-            tools_dir = Path(os.getcwd()).parent.parent.parent / "tools"
-            self.model.load_state_dict(
-                torch.load(
-                    tools_dir / "RawNet/python/RawNet3/models/weights/model.pt",
-                    map_location=lambda storage, loc: storage,
-                )["model"]
-            )
+            if args.pretrained_model is not None:
+                tools_dir = Path(os.getcwd()).parent.parent.parent / "tools"
+                self.model.load_state_dict(
+                    torch.load(
+                        tools_dir / "RawNet/python/RawNet3/models/weights/model.pt",
+                        map_location=lambda storage, loc: storage,
+                    )["model"]
+                 )
+            else:
+                self.model.load_state_dict(torch.load(args.pretrained_model, map_location=lambda storage, loc: storage,)["model"])
+
             self.model.to(device).eval()
 
     def rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
@@ -105,7 +110,9 @@ class XVExtractor:
     def __call__(self, wav, in_sr):
         if self.toolkit == "speechbrain":
             wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
-            embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
+            embeds = self.model.encode_batch(wav)
+            embeds = embeds.detach().cpu().numpy()[0]
+           
         elif self.toolkit == "rawnet":
             wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
             embeds = self.rawnet_extract_embd(wav)

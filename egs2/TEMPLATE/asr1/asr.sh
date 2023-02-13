@@ -293,6 +293,8 @@ elif [ "${feats_type}" = fbank ]; then
     data_feats=${dumpdir}/fbank
 elif [ "${feats_type}" == extracted ]; then
     data_feats=${dumpdir}/extracted
+elif [ "${feats_type}" == extracted_speechbrain ]; then
+    data_feats=${dumpdir}/extracted_speechbrain
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
