@@ -130,6 +130,9 @@ using:
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
 --decode_only 1 
 ```
+You should be able to replicate our results detailed in Section 3.1.2 with the 
+top 80% envelope variance automatic channel selection (a bit more than 34% WER on CHiME-6). <br>
+Note that results may differ a little because GSS inference is not deterministic. 
 ### <a id="data_description">2.2 Quick Data Overview</a>
 The generated dataset folder after running the script should look like this: 
 ```
