@@ -37,7 +37,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "Stage 1: Prepare Kaldi-style train-test"
     ./utils/copy_data_dir.sh data/train_clean_5 data/train
-    awk 'NR % 5 == 2 || NR % 5 == 1' data/train_clean_5/utt2spk > data/train/text
+    awk 'NR % 5 == 2' data/train_clean_5/utt2spk > data/train/text
     ./utils/fix_data_dir.sh data/train
 
     ./utils/copy_data_dir.sh data/train_clean_5 data/dev
