@@ -21,15 +21,14 @@ chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
 # but if you have it already it will be skipped, please put your own path
 dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
-mixer6_root=/raid/users/popcornell/mixer6/
+mixer6_root=/raid/users/popcornell/mixer6/ # put yours here
 
 # DATAPREP CONFIG
 manifests_root=./data/lhotse # dir where to save lhotse manifests
 cmd_dprep=run.pl
 dprep_stage=0
 gen_eval=0 # please not generate eval before release of mixer 6 eval
-# note with run.pl your GPUs need to be in exclusive mode otherwise it fails
-# to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
+
 
 gss_dump_root=./exp/gss
 ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
@@ -39,6 +38,8 @@ train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 # GSS CONFIG
 gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
+# note with run.pl your GPUs need to be in exclusive mode otherwise it fails
+# to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
 # we do not train with mixer 6 training + GSS here, but you can try.
 
@@ -166,7 +167,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
 
-
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
@@ -174,7 +174,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
-
 
   ./asr.sh \
     --lang en \
