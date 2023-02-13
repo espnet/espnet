@@ -21,7 +21,7 @@
 
 <img src="https://www.chimechallenge.org/current/task1/images/task_overview.png" width="450" height="230" />
 
-This CHiME-7 Challenge Task inherits diretly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/). 
+This CHiME-7 Challenge Task inherits directly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/). 
 Its focus is on distant automatic speech transcription and segmentation with multiple recording devices.
 
 The goal of each participant is to devise an automated system that can tackle this problem, and is able to generalize across different array topologies and different application scenarios: meetings, dinner parties and interviews.
@@ -331,7 +331,12 @@ selection results. <br>
 One of our hopes is that participants can devise new techniques to improve in such regard and devise
 better channel selection/fusion strategies. 
 
-## <a id="eval_script">4. Evaluation Script [Work in Progress]
+## <a id="eval_script"> 4. Evaluation Script </a>
+
+Will be added together with the diarization baseline. 
+Evaluation will be performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription. 
+by computing SA-WER for each speaker, where the hypothesis are re-ordered based on the best reordering defined by diarization error rate.
+
 
 ## <a id="common_issues"> 5. Common Issues </a>
 
