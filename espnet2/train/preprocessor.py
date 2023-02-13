@@ -1077,13 +1077,11 @@ class SVSPreprocessor(AbsPreprocessor):
 
             # Calculate features
             index_lab = 0
-            offset = lab_timeseq[0][0]
 
             for st, et, syb, note, phns in syb_info:
                 dur = et - st
                 _duration_syb = int(dur / self.time_shift + 0.5)
                 phone = phns.split("_")
-                phone_ints = self.token_id_converter.tokens2ids(phone)
                 phn_num = len(phone)
                 phn_cnt.append(phn_num)
                 pre_seg = 0

@@ -22,7 +22,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
