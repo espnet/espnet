@@ -56,7 +56,7 @@ sessions1="S01 S02 S03 S04 S05 S06 S07"
 sessions2="S08 S09 S12 S13 S16 S17 S18"
 sessions3="S19 S20 S21 S22 S23 S24"
 
-CONDA_SOX=${CONDA_PREFIX}/bin/sox
+CONDA_SOX=${CONDA_PREFIX}/bin/
 if [ -z "${CONDA_SOX}" ]; then
   echo "Please run ./local/install_dependencies.sh to install sox via conda"
   exit 1
