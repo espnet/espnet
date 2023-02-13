@@ -18,7 +18,7 @@ for dset in train dev test; do
     outdir=dump/extracted/${dset}
     cp -r ${datadir} ${outdir}
     python3 pyscripts/utils/extract_xvectors.py --toolkit rawnet \
-        --pretrained_model model.pt --keep_sequence true \
+        --pretrained_model model.pt \
        ${datadir} ${outdir}
 
     cp ${outdir}/xvector.scp ${outdir}/feats.scp
