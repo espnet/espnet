@@ -170,11 +170,13 @@ if [ ${stage} -le 4 ] && ! [[ " ${skip_stages[*]} " =~ " 4 " ]]; then
       echo "${nlsyms_file} exists already, SKIPPING (please remove if you want to
       override it) !"
     else
-      cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms_file}
+      # (popcornell) || true is needed to avoid exiting when grep returns none
+      cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms_file} || true
       cat ${nlsyms_file}
     fi
 fi
 
 
 log "ASR data preparation successfully finished. [elapsed=${SECONDS}s]"
+
 
