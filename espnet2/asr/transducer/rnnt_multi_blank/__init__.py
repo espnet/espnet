@@ -15,3 +15,5 @@
 from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import (
     MultiblankRNNTLossNumba,
 )
+
+__all__ = [MultiblankRNNTLossNumba]
