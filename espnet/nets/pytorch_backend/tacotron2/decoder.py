@@ -573,6 +573,9 @@ class Decoder(torch.nn.Module):
                     forward_window=forward_window,
                 )
 
+            if type(att_w) is list: # for multihead attention (used for translatotron in s2st)
+                att_w = torch.stack(att_w, dim=1)
+
             att_ws += [att_w]
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)

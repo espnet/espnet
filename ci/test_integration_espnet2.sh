@@ -90,6 +90,7 @@ done
     --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
         --ctc_conf reduce=False --encoder transformer_multispkr \
         --encoder_conf num_blocks=2 --encoder_conf num_blocks_sd=2 --encoder_conf num_inf=2 \
+        --decoder rnn \
         --model pit_espnet --model_conf num_inf=2 --model_conf num_ref=2 \
         --preprocessor multi --preprocessor_conf text_name='['text', 'text_spk2']'" \
     --inference-args "--multi_asr true"

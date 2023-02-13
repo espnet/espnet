@@ -86,7 +86,6 @@ def get_km_model(
 
 
 def load_feature_shard(rspecifier, in_filetype, percent):
-
     feats = []
     for utt, feat in file_reader_helper(rspecifier, in_filetype):
         feats.append(feat)

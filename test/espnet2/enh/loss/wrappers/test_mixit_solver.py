@@ -13,7 +13,6 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 @pytest.mark.parametrize("inf_num, time_domain", [(4, True), (4, False)])
 def test_MixITSolver_forward(inf_num, time_domain):
-
     batch = 2
     if time_domain:
         solver = MixITSolver(TimeDomainL1())
@@ -61,7 +60,6 @@ def test_MixITSolver_forward(inf_num, time_domain):
     [(4, True), (4, False)],
 )
 def test_MixITSolver_complex_forward(inf_num, torch_complex):
-
     batch = 2
     solver = MixITSolver(FrequencyDomainL1())
 

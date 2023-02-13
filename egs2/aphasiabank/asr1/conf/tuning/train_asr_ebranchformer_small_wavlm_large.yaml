@@ -34,7 +34,7 @@ encoder_conf:
   positional_dropout_rate: 0.1
   attention_dropout_rate: 0.1
   layer_drop_rate: 0.1
-  input_layer: conv2d2 # subsampling rate = 2
+  input_layer: conv2d2 # subsampling rate = 2 (WavLM) * 2 (conv2d2)
   macaron_ffn: true
   pos_enc_layer_type: rel_pos
   attention_layer_type: rel_selfattn

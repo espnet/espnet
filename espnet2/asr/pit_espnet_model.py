@@ -103,7 +103,6 @@ class PITLossWrapper(AbsLossWrapper):
         num_ref = None
 
         for arg in args:  # (batch, num_inf, ...)
-
             if batch_size is None:
                 batch_size, num_ref = arg.shape[:2]
             else:
