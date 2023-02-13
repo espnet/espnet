@@ -5,7 +5,10 @@
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/chimechallenge.svg?style=social&label=Follow%20%40chimechallenge)](https://twitter.com/chimechallenge)
 [![Slack][slack-badge]][slack-invite]
 
+
 ---
+
+#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only)
 ### Sections
 1. <a href="#description">Short Description </a>
 2. <a href="#data_creation">Data Download and Creation</a>
@@ -36,7 +39,7 @@ Participants can possibly exploit commonly used open-source datasets (e.g. Libri
 If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
 We have also a [CHiME Slack Workspace][slack-invite].<br>
 Follow us on [Twitter][Twitter], we will also use that to make announcements. <br>
-**If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one registration per team).**
+
 
 
 ## <a id="installation">2. Installation </a>
