@@ -109,8 +109,7 @@ class MicRanking(Dataset):
                         "Discarded recording {} from {} supervision "
                         "because there is "
                         "a difference of length of {} (samples)"
-                        "with the other recordings. "
-                        "Is the audio file corrupted ?"
+                        "with the other recordings."
                         "".format(
                             c_supervision.id,
                             recording,
