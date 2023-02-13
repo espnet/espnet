@@ -162,8 +162,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
     asr_train_set=kaldi/dipco/dev/gss # dummy one, it is not used
-    # unfortunately espnet requires it.
-    pretrained_affix+="--skip_data_prep true --skip_train true "
+    pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
 
