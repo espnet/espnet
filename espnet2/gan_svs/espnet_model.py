@@ -75,6 +75,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
@@ -137,8 +139,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         """
         with autocast(False):
             # Extract features
-            feats = None
-            if self.feats_extract is not None:
+            if self.feats_extract is not None and feats is None:
                 feats, feats_lengths = self.feats_extract(
                     singing,
                     singing_lengths,
@@ -380,7 +381,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 singing,
                 singing_lengths,
             )
-
         # cut length
         for i in range(feats.size(0)):
             dur_len = sum(duration_phn[i])
