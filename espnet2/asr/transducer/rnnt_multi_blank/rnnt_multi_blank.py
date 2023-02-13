@@ -51,13 +51,18 @@ class _RNNTNumba(Function):
         clamp,
     ):
         """
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
+            containing output from network
+        labels: 2 dimensional Tensor containing all the targets of
+            the batch with zero padded
+        act_lens: Tensor of size (batch) containing size of each
+            output sequence from the network
         label_lens: Tensor of (batch) containing label length of each example
         fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-            FastEmit: Low-latency Streaming ASR with Sequence-level Emission Regularization.
+            FastEmit: Low-latency Streaming ASR with Sequence-level
+            Emission Regularization.
         """
+
         is_cuda = acts.is_cuda
 
         certify_inputs(acts, labels, act_lens, label_lens)
@@ -129,6 +134,7 @@ class _MultiblankRNNTNumba(Function):
             the above parameters;
         For other parameters for this class, refer to comment for class _RNNTNumba
         """
+
         is_cuda = acts.is_cuda
 
         certify_inputs(acts, labels, act_lens, label_lens)
@@ -202,9 +208,12 @@ def rnnt_loss(
 ):
     """RNN Transducer Loss (functional form)
     Args:
-        acts: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        acts: Tensor of (batch x seqLength x labelLength x outputDim)
+            containing output from network
+        labels: 2 dimensional Tensor containing all the targets of
+            the batch with zero padded
+        act_lens: Tensor of size (batch) containing size of each
+            output sequence from the network
         label_lens: Tensor of (batch) containing label length of each example
         blank (int, optional): blank label. Default: 0.
         reduction (string, optional): Specifies the reduction to apply to the output:
@@ -212,11 +221,14 @@ def rnnt_loss(
             'mean': the output losses will be divided by the target lengths and
             then the mean over the batch is taken. Default: 'mean'
     """
+
     if not acts.is_cuda:
-        # Since CPU requires log_softmax to be computed explicitly, we need to perform grad clipping
+        # Since CPU requires log_softmax to be computed explicitly,
+        # we need to perform grad clipping
         # *after* we have obtained the gradients of loss(logsoftmax()).
-        # This is highly wasteful since it requires a copy of the entire joint tensor which is expensive.
-        # CUDA version is much more efficient since it performs an inplace logsoftmax, and therefore
+        # This is highly wasteful since it requires a copy of the entire joint
+        # tensor which is expensive. CUDA version is much more efficient since
+        # it performs an inplace logsoftmax, and therefore
         # can inplace clamp the gradient.
         if clamp > 0.0:
             acts = cpu_rnnt.LogSoftmaxGradModification.apply(acts, clamp)
@@ -242,11 +254,15 @@ def multiblank_rnnt_loss(
     clamp: float = 0.0,
 ):
     """
-    Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf) Loss (functional form)
+    Multi-blank RNN Transducer (https://arxiv.org/pdf/2211.03541.pdf)
+        Loss (functional form)
     Args:
-        acts: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        acts: Tensor of (batch x seqLength x labelLength x outputDim) containing
+        output from network
+        labels: 2 dimensional Tensor containing all the targets of the batch with
+            zero padded
+        act_lens: Tensor of size (batch) containing size of each output
+            sequence from the network
         label_lens: Tensor of (batch) containing label length of each example
         blank (int): standard blank label.
         big_blank_durations: list of durations for multi-blank transducer, e.g.
@@ -260,12 +276,15 @@ def multiblank_rnnt_loss(
             'mean': the output losses will be divided by the target lengths and
             then the mean over the batch is taken. Default: 'mean'
     """
+
     if not acts.is_cuda:
-        # Since CPU requires log_softmax to be computed explicitly, we need to perform grad clipping
+        # Since CPU requires log_softmax to be computed explicitly,
+        # we need to perform grad clipping
         # *after* we have obtained the gradients of loss(logsoftmax()).
-        # This is highly wasteful since it requires a copy of the entire joint tensor which is expensive.
-        # CUDA version is much more efficient since it performs an inplace logsoftmax, and therefore
-        # can inplace clamp the gradient.
+        # This is highly wasteful since it requires a copy of the entire
+        # joint tensor which is expensive.
+        # CUDA version is much more efficient since it performs an inplace
+        # logsoftmax, and therefore can inplace clamp the gradient.
         if clamp > 0.0:
             acts = cpu_rnnt.LogSoftmaxGradModification.apply(acts, clamp)
 
@@ -295,8 +314,10 @@ class RNNTLossNumba(Module):
             'mean': the output losses will be divided by the target lengths and
             then the mean over the batch is taken. Default: 'mean'
         fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-                FastEmit: Low-latency Streaming ASR with Sequence-level Emission Regularization.
-        clamp: Float value. When set to value >= 0.0, will clamp the gradient to [-clamp, clamp].
+            FastEmit: Low-latency Streaming ASR with Sequence-level
+            Emission Regularization.
+        clamp: Float value. When set to value >= 0.0, will clamp the
+            gradient to [-clamp, clamp].
     """
 
     def __init__(
@@ -311,17 +332,23 @@ class RNNTLossNumba(Module):
 
     def forward(self, acts, labels, act_lens, label_lens):
         """
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
+            containing output from network
+        labels: 2 dimensional Tensor containing all the targets of the
+            batch with zero padded
+        act_lens: Tensor of size (batch) containing size of each output
+            sequence from the network
         label_lens: Tensor of (batch) containing label length of each example
         """
+
         if not acts.is_cuda:
-            # Since CPU requires log_softmax to be computed explicitly, we need to perform grad clipping
+            # Since CPU requires log_softmax to be computed explicitly,
+            # we need to perform grad clipping
             # *after* we have obtained the gradients of loss(logsoftmax()).
-            # This is highly wasteful since it requires a copy of the entire joint tensor which is expensive.
-            # CUDA version is much more efficient since it performs an inplace logsoftmax, and therefore
-            # can inplace clamp the gradient.
+            # This is highly wasteful since it requires a copy of the entire
+            # joint tensor which is expensive.
+            # CUDA version is much more efficient since it performs an
+            # inplace logsoftmax, and therefore can inplace clamp the gradient.
             if self.clamp > 0.0:
                 acts = cpu_rnnt.LogSoftmaxGradModification.apply(acts, self.clamp)
 
@@ -356,8 +383,10 @@ class MultiblankRNNTLossNumba(Module):
             'mean': the output losses will be divided by the target lengths and
             then the mean over the batch is taken. Default: 'mean'
         fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-                FastEmit: Low-latency Streaming ASR with Sequence-level Emission Regularization.
-        clamp: Float value. When set to value >= 0.0, will clamp the gradient to [-clamp, clamp].
+            FastEmit: Low-latency Streaming ASR with Sequence-level
+            Emission Regularization.
+        clamp: Float value. When set to value >= 0.0, will clamp the
+            gradient to [-clamp, clamp].
     """
 
     def __init__(
@@ -380,17 +409,23 @@ class MultiblankRNNTLossNumba(Module):
 
     def forward(self, acts, labels, act_lens, label_lens):
         """
-        log_probs: Tensor of (batch x seqLength x labelLength x outputDim) containing output from network
-        labels: 2 dimensional Tensor containing all the targets of the batch with zero padded
-        act_lens: Tensor of size (batch) containing size of each output sequence from the network
+        log_probs: Tensor of (batch x seqLength x labelLength x outputDim)
+            containing output from network
+        labels: 2 dimensional Tensor containing all the targets of
+            the batch with zero padded
+        act_lens: Tensor of size (batch) containing size of each output
+            sequence from the network
         label_lens: Tensor of (batch) containing label length of each example
         """
+
         if not acts.is_cuda:
-            # Since CPU requires log_softmax to be computed explicitly, we need to perform grad clipping
+            # Since CPU requires log_softmax to be computed explicitly,
+            # we need to perform grad clipping
             # *after* we have obtained the gradients of loss(logsoftmax()).
-            # This is highly wasteful since it requires a copy of the entire joint tensor which is expensive.
-            # CUDA version is much more efficient since it performs an inplace logsoftmax, and therefore
-            # can inplace clamp the gradient.
+            # This is highly wasteful since it requires a copy of the entire
+            # joint tensor which is expensive.
+            # CUDA version is much more efficient since it performs an
+            # inplace logsoftmax, and therefore can inplace clamp the gradient.
             if self.clamp > 0.0:
                 acts = cpu_rnnt.LogSoftmaxGradModification.apply(acts, self.clamp)
 
@@ -459,9 +494,11 @@ def certify_inputs(log_probs, labels, lengths, label_lengths):
     T, U = log_probs.shape[1:3]
     if T != max_T:
         raise ValueError(
-            f"Input length mismatch! Given T: {T}, Expected max T from input lengths: {max_T}"
+            f"Input length mismatch! Given T: {T}, Expected max T from input \
+             lengths: {max_T}"
         )
     if U != max_U + 1:
         raise ValueError(
-            f"Output length mismatch! Given U: {U}, Expected max U from target lengths: {max_U} + 1"
+            f"Output length mismatch! Given U: {U}, Expected max U from target \
+             lengths: {max_U} + 1"
         )

@@ -58,8 +58,8 @@ class CpuRNNT_index:
         self, U: int, maxU: int, minibatch: int, alphabet_size: int, batch_first: bool
     ):
         """
-        A placeholder Index computation class that emits the resolved index in a flattened tensor,
-        mimicing pointer indexing in CUDA kernels on the CPU.
+        A placeholder Index computation class that emits the resolved index in a
+        flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.
 
         Args:
             U: Length of the current target sample (without padding).
@@ -68,6 +68,7 @@ class CpuRNNT_index:
             alphabet_size: Size of the vocabulary including RNNT blank - V+1.
             batch_first: Bool flag determining if batch index is first or third.
         """
+
         super(CpuRNNT_index, self).__init__()
         self.U = U
         self.maxU = maxU
@@ -80,7 +81,8 @@ class CpuRNNT_index:
         if v is None:
             return t * self.U + u
         else:
-            # otherwise, t, u, v are provided to index particular value in the vocabulary.
+            # otherwise, t, u, v are provided to index particular value
+            # in the vocabulary.
             if self.batch_first:
                 return (t * self.maxU + u) * self.alphabet_size + v
             else:
@@ -106,12 +108,14 @@ class CpuRNNT_metadata:
             T: Length of the acoustic sequence (without padding).
             U: Length of the target sequence (without padding).
             workspace: Working space memory for the CPU.
-            bytes_used: Number of bytes currently used for indexing the working space memory. Generally 0.
+            bytes_used: Number of bytes currently used for indexing the working
+                space memory. Generally 0.
             blank: Index of the blank token in the vocabulary.
             labels: Ground truth padded labels matrix of shape [B, U]
             log_probs: Log probs / activation matrix of flattented shape [B, T, U, V+1]
             idx:
         """
+
         super(CpuRNNT_metadata, self).__init__()
 
         self.alphas = workspace[bytes_used : bytes_used + T * U]
@@ -141,9 +145,9 @@ class CpuRNNT_metadata:
         # initialize the log probs memory for blank and label token.
         for t in range(T):
             for u in range(U):
-                offset = (
-                    t * U + u
-                ) * 2  # mult with 2 is for selecting either blank or label token. Odd idx is blank.
+                # mult with 2 is for selecting either blank or label token.
+                # Odd idx is blank.
+                offset = (t * U + u) * 2
                 self.log_probs2[offset] = log_probs[idx(t, u, blank)]
                 # // labels do not have first blank
                 if u < U - 1:
@@ -192,23 +196,30 @@ class CPURNNT:
 
         Args:
             minibatch: Size of the minibatch b.
-            maxT: The maximum possible acoustic sequence length. Represents T in the logprobs tensor.
-            maxU: The maximum possible target sequence length. Represents U in the logprobs tensor.
+            maxT: The maximum possible acoustic sequence length.
+                Represents T in the logprobs tensor.
+            maxU: The maximum possible target sequence length.
+                Represents U in the logprobs tensor.
             alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).
-            workspace: An allocated chunk of memory that will be sliced off and reshaped into required
-                blocks used as working memory.
-            blank: Index of the RNNT blank token in the vocabulary. Generally the first or last token in the vocab.
+            workspace: An allocated chunk of memory that will be sliced off and
+                reshaped into required blocks used as working memory.
+            blank: Index of the RNNT blank token in the vocabulary.
+                Generally the first or last token in the vocab.
             fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to
-                FastEmit: Low-latency Streaming ASR with Sequence-level Emission Regularization.
-            clamp: Float value. When set to value >= 0.0, will clamp the gradient to [-clamp, clamp].
+                FastEmit: Low-latency Streaming ASR with Sequence-level
+                Emission Regularization.
+            clamp: Float value. When set to value >= 0.0, will clamp the
+                gradient to [-clamp, clamp].
             num_threads: Number of OMP threads to launch.
             batch_first: Bool that decides if batch dimension is first or third.
         """
+
         self.minibatch_ = minibatch
         self.maxT_ = maxT
         self.maxU_ = maxU
         self.alphabet_size_ = alphabet_size
-        self.workspace = workspace  # a flat vector of floatX numbers that represents allocated memory slices
+        # a flat vector of floatX numbers that represents allocated memory slices
+        self.workspace = workspace
         self.blank_ = blank
         self.fastemit_lambda_ = fastemit_lambda
         self.clamp_ = abs(clamp)
@@ -271,6 +282,7 @@ class CPURNNT:
         Returns:
             Loglikelihood of the forward variable alpha.
         """
+
         idx = CpuRNNT_index(
             U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
         )
@@ -308,8 +320,8 @@ class CPURNNT:
         logll: torch.Tensor,
     ):
         """
-        Compute backward variable beta as well as gradients of the activation matrix wrt loglikelihood
-        of forward variable.
+        Compute backward variable beta as well as gradients of the activation
+        matrix wrt loglikelihood of forward variable.
 
         Args:
             grad: Working space memory of flattened shape [B, T, U, V+1]
@@ -324,6 +336,7 @@ class CPURNNT:
         Returns:
             Loglikelihood of the forward variable and inplace updates the grad tensor.
         """
+
         idx = CpuRNNT_index(
             U, self.maxU_, self.minibatch_, self.alphabet_size_, self.batch_first
         )

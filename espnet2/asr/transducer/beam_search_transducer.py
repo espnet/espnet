@@ -142,7 +142,8 @@ class BeamSearchTransducer:
 
         elif search_type == "mbg":
             assert len(multi_blank_durations) == len(multi_blank_index), (
-                "multi_blank_durations and multi_blank_index should have the same length (%s) (%s)"
+                "multi_blank_durations and multi_blank_index should have \
+                 the same length (%s) (%s)"
                 % (len(multi_blank_durations), len(multi_blank_index))
             )
             assert beam_size == 1, (
