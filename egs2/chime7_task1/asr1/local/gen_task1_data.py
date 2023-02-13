@@ -348,11 +348,11 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
     if eval_opt > 0:
         splits = ["eval"]
     else:
-        splits = ["train_calls", "train_intv", "dev"]
+        splits = ["train_call", "train_intv", "dev"]
     audio_files = glob.glob(
         os.path.join(
             root_dir,
-            "export/common/data/corpora/LDC/LDC2013S03/data/pcm_flac",
+            "data/pcm_flac",
             "**/*.flac",
         ),
         recursive=True,
