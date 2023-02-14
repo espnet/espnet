@@ -349,7 +349,7 @@ def prepare_mixer6(
     if mic == "ihm":
         assert dset_part in [
             "train_intv",
-            "train_calls",
+            "train_call",
             "dev",
         ], "No close-talk microphones on evaluation set."
 
@@ -586,7 +586,7 @@ if __name__ == "__main__":
             if args.dset_part.startswith("train"):
                 supervisions = []
                 recordings = []
-                for dset_part in ["train_intv", "train_calls"]:
+                for dset_part in ["train_intv", "train_call"]:
                     c_manifest = prepare_mixer6(
                         os.path.join(args.chime7_root, args.dset_name),
                         None,
