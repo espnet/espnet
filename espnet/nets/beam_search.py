@@ -349,7 +349,7 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, pre_x: torch.Tensor = None
+        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, pre_x: torch.Tensor = None, sa2: bool = False, pre_x2: torch.Tensor = None, md2: bool = False,
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -368,10 +368,15 @@ class BeamSearch(torch.nn.Module):
 
         """
         # set length bounds
-        if pre_x is not None:
-            inp = pre_x
-        else:
+        if md2:
             inp = x
+        else:
+            if pre_x is not None:
+                inp = pre_x
+                if sa2:
+                    inp = x
+            else:
+                inp = x
         if maxlenratio == 0:
             maxlen = inp.shape[0]
         elif maxlenratio < 0:
@@ -384,11 +389,20 @@ class BeamSearch(torch.nn.Module):
         logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(x if pre_x is None else pre_x)
+        if md2:
+            running_hyps = self.init_hyp(x)
+        else:
+            if sa2:
+                running_hyps = self.init_hyp(x)
+            else:
+                running_hyps = self.init_hyp(x if pre_x is None else pre_x)
         ended_hyps = []
         for i in range(maxlen):
             logging.debug("position " + str(i))
-            best = self.search(running_hyps, x, pre_x=pre_x)
+            if pre_x2 is not None:
+                best = self.search(running_hyps, x, pre_x=pre_x, pre_x2=pre_x2, md2=md2)
+            else:
+                best = self.search(running_hyps, x, pre_x=pre_x)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             # end detection
