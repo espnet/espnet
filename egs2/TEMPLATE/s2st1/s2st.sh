@@ -1282,19 +1282,35 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _feats_type="$(<${_data}/feats_type)"
+
             if [ "${_feats_type}" = raw ]; then
+                # src related
                 _src_scp=wav.scp.${src_lang}
-                _tgt_scp=wav.scp.${tgt_lang}
                 if [[ "${audio_format}" == *ark* ]]; then
-                    _type=kaldi_ark
+                    _src_type=kaldi_ark
                 else
-                    _type=sound
+                    _src_type=sound
                 fi
+
+                # tgt related
+                if "${use_discrete_unit}"; then
+                    _tgt_scp=text.km.${km_tag}.${tgt_lang}.unique
+                    _tgt_type=text
+                else
+                    _tgt_scp=wav.scp.${tgt_lang}
+                    if [[ "${audio_format}" == *ark* ]]; then
+                        _tgt_type=kaldi_ark
+                    else
+                        # "sound" supports "wav", "flac", etc.
+                        _tgt_type=sound
+                    fi
+                fi
+
             else
-                _src_scp=feats.scp.${src_lang}
-                _tgt_scp=feats.scp.${tgt_lang}
-                _type=kaldi_ark
+                log "Error: not supported feature type '${_feats_type}'"
+                exit 2
             fi
+
 
             _ex_opts=""
 
@@ -1332,8 +1348,8 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.s2st_inference \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/${_src_scp},src_speech,${_type}" \
-                    --data_path_and_name_and_type "${_data}/${_tgt_scp},tgt_speech,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${_src_scp},src_speech,${_src_type}" \
+                    --data_path_and_name_and_type "${_data}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${s2st_exp}"/config.yaml \
                     --model_file "${s2st_exp}"/"${inference_s2st_model}" \

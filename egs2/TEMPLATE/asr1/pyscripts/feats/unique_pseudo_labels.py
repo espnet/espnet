@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import torch
 
 import numpy as np
 
@@ -28,7 +29,8 @@ def main(args):
     input_scp = load_num_sequence_text(args.input_label, loader_type="text_int")
     with open(args.output_label, "w", encoding="utf-8") as fout:
         for key in input_scp.keys():
-            value_seq = list(map(str, np.unique(input_scp[key])))
+            value = torch.tensor(input_scp[key])
+            value_seq = list(map(str, torch.unique_consecutive(value).detach().cpu().numpy()))
             fout.write("{} {}\n".format(key, " ".join(value_seq)))
 
 
