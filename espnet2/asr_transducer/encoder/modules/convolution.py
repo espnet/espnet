@@ -11,7 +11,7 @@ class ConformerConvolution(torch.nn.Module):
     Args:
         channels: The number of channels.
         kernel_size: Size of the convolving kernel.
-        activation: Type of activation function.
+        activation: Activation function.
         norm_args: Normalization module arguments.
         causal: Whether to use causal convolution (set to True if streaming).
 

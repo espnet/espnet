@@ -141,14 +141,12 @@ class EBranchformer(torch.nn.Module):
 
         x2 = self.channel_proj1(x2)
         x2, _ = self.conv_mod(x2, mask=mask)
-        x2 = self.channel_proj2(x2)
-
-        x2 = self.dropout(x2)
+        x2 = self.dropout(self.channel_proj2(x2))
 
         x_concat = torch.cat([x1, x2], dim=-1)
         x_depth, _ = self.depthwise_conv_mod(x_concat, mask=mask)
 
-        x = x + self.dropout(self.merge_proj(x_concat + x_depth))
+        x = x + self.merge_proj(x_concat + x_depth)
 
         residual = x
 
