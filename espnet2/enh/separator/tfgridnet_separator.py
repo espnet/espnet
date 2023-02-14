@@ -25,15 +25,15 @@ class TFGridNet(AbsSeparator):
     "TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation",
     in arXiv preprint arXiv:2211.12433, 2022.
     [2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
-    "TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural Speaker Separation",
-    in arXiv preprint arXiv:2209.03952, 2022.
+    "TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
+    Speaker Separation", in arXiv preprint arXiv:2209.03952, 2022.
 
     NOTES:
-    As outlined in the Reference, this model works best when trained with variance normalized
-    mixture input and target, e.g., with mixture of shape [batch, samples, microphones], you
-    normalize it by dividing with torch.std(mixture, (1, 2)). You must do the same for the
-    target signals. It is encouraged to do so when not using scale-invariant loss functions
-    such as SI-SDR.
+    As outlined in the Reference, this model works best when trained with variance
+    normalized mixture input and target, e.g., with mixture of shape [batch, samples,
+    microphones], you normalize it by dividing with torch.std(mixture, (1, 2)). You
+    must do the same for the target signals. It is encouraged to do so when not using
+    scale-invariant loss functions such as SI-SDR.
 
     Args:
         input_dim: placeholder, not used
@@ -258,9 +258,11 @@ class GridNetBlock(nn.Module):
         self.n_head = n_head
 
     def forward(self, x):
-        """
-        x: [B, C, T, Q]
-        out: [B, C, T, Q]
+        """GridNetBlock Forward.
+
+        Args:
+            x: [B, C, T, Q]
+            out: [B, C, T, Q]
         """
         B, C, old_T, old_Q = x.shape
         T = math.ceil((old_T - self.emb_ks) / self.emb_hs) * self.emb_hs + self.emb_ks
