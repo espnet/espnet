@@ -41,9 +41,9 @@ asr_decoder_conf:
 # ST CTC
 st_ctc: true
 
-# ASR Decoder
-asr_decoder: transformer
-asr_decoder_conf:
+# ST Decoder
+st_decoder: transformer
+st_decoder_conf:
     input_layer: "embed"
     num_blocks: 2
     linear_units: 2048
@@ -104,14 +104,14 @@ scheduler_conf:
 
 # Batching
 batch_type: sorted
-batch_size: 8
+batch_size: 32
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
 # num_iters_per_epoch: 1000
 max_epoch: 500
-num_workers: 1
+num_workers: 2
 log_interval: null
 seed: 0
 num_att_plot: 0
