@@ -1,0 +1,122 @@
+batch_type: numel
+batch_bins: 25000000
+accum_grad: 2
+max_epoch: 20
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+# use_amp: true       # automatic mixed precision (amp)
+# num_workers: 4
+
+encoder: contextual_block_conformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 18
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    # rel_pos_type: latest
+    # pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
+    cnn_module_kernel: 31
+    block_size: 40      # streaming configuration
+    hop_size: 16        # streaming configuration
+    look_ahead: 16      # streaming configuration
+    init_average: true  # streaming configuration
+    ctx_pos_enc: true   # streaming configuration
+
+# hier_encoder: contextual_block_conformer
+# hier_encoder_conf:
+#     input_layer: null
+#     num_blocks: 6
+#     linear_units: 2048
+#     dropout_rate: 0.1
+#     positional_dropout_rate: 0.1
+#     attention_dropout_rate: 0.1
+#     normalize_before: true
+#     macaron_style: true
+#     # rel_pos_type: latest
+#     # pos_enc_layer_type: rel_pos
+#     selfattention_layer_type: rel_selfattn
+#     activation_type: swish
+#     use_cnn_module: true
+#     cnn_module_kernel: 31
+#     block_size: 40      # streaming configuration
+#     hop_size: 16         # streaming configuration
+#     look_ahead: 16       # streaming configuration
+#     init_average: true  # streaming configuration
+#     ctx_pos_enc: true   # streaming configuration
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+extra_asr_decoder: transformer
+extra_asr_decoder_conf:
+    num_blocks: 6
+    linear_units: 2048
+    dropout_rate: 0.1
+    # positional_dropout_rate: 0.1
+    # self_attention_dropout_rate: 0.1
+    # src_attention_dropout_rate: 0.1
+
+model_conf:
+    asr_weight: 0.0
+    mt_weight: 0.0
+    mtlalpha: 0.3
+    st_mtlalpha: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.002
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+frontend_conf:
+  n_fft: 400
+  hop_length: 160
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+num_att_plot: 0
+
+ignore_init_mismatch: true
+init_param:
+    - "/exp/byan/espnet-yj/egs2/must_c_v2//asr1/exp/asr_train_asr_streaming_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:encoder:encoder"
+    # - "/exp/byan/espnet-yj/egs2/must_c_v2//asr1/exp/asr_train_asr_streaming_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:decoder:extra_asr_decoder"
+    # - "/exp/byan/espnet-yj/egs2/must_c_v2//asr1/exp/asr_train_asr_streaming_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:ctc:ctc"
