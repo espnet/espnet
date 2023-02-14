@@ -22,6 +22,11 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -39,6 +44,9 @@ class Speech2Speech:
         use_att_constraint: bool = False,
         backward_window: int = 1,
         forward_window: int = 3,
+        nbest: int = 1,
+        beam_size: int = 5,
+        penalty: float = 0.0,
         vocoder_config: Union[Path, str] = None,
         vocoder_file: Union[Path, str] = None,
         dtype: str = "float32",
@@ -62,6 +70,8 @@ class Speech2Speech:
         self.s2st_type = self.model.s2st_type
         self.preprocess_fn = S2STTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
+        self.maxlenratio = maxlenratio
+        self.minlenratio = minlenratio
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
@@ -78,22 +88,66 @@ class Speech2Speech:
             logging.info(f"Vocoder:\n{self.vocoder}")
 
         # setup decoding config
-        decode_conf = {}
-        decode_conf.update(use_teacher_forcing=use_teacher_forcing)
+        self.decode_conf = {}  # use for specotrogram-based decoding
+        scorers = {}  # use for beam-search decoding
         if self.s2st_type == "translatotron":
-            decode_conf.update(
+            self.decode_conf.update(
                 threshold=threshold,
                 maxlenratio=maxlenratio,
                 minlenratio=minlenratio,
                 use_att_constraint=use_att_constraint,
                 forward_window=forward_window,
                 backward_window=backward_window,
+                use_teacher_forcing=use_teacher_forcing,
             )
+        elif self.s2st_type == "discrete_unit":
+
+            decoder = model.synthesizer
+            token_list = model.unit_token_list
+            scorers.update(decoder=decoder, length_bonus=LengthBonus(len(token_list)))
+            weights = dict(
+                decoder=1.0,
+                length_bonus=penalty,
+            )
+
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=model.unit_sos,
+                eos=model.unit_eos,
+                vocab_size=len(token_list),
+                token_list=None,  # No need to print out the lengthy discrete unit
+                pre_beam_score_key="full",
+            )
+
+            # TODO(karita): make all scorers batchfied
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            if len(non_batch) == 0:
+                beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
+            else:
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
+
+            self.beam_search = beam_search
+
         else:
             raise NotImplementedError(
                 "Not recognized s2st type of {}".format(self.s2st_type)
             )
-        self.decode_conf = decode_conf
 
     @torch.no_grad()
     def __call__(
@@ -142,19 +196,38 @@ class Speech2Speech:
         # inference
         if self.always_fix_seed:
             set_all_random_seed(self.seed)
-        output_dict = self.model.inference(**batch, **cfg)
 
-        # apply vocoder (mel-to-wav)
-        if self.vocoder is not None:
-            if (
-                self.prefer_normalized_feats
-                or output_dict.get("feat_gen_denorm") is None
-            ):
-                input_feat = output_dict["feat_gen"]
-            else:
-                input_feat = output_dict["feat_gen_denorm"]
-            wav = self.vocoder(input_feat)
-            output_dict.update(wav=wav)
+        if self.s2st_type == "translatotron":
+            output_dict = self.model.inference(**batch, **cfg)
+            # apply vocoder (mel-to-wav)
+            if self.vocoder is not None:
+                if (
+                    self.prefer_normalized_feats
+                    or output_dict.get("feat_gen_denorm") is None
+                ):
+                    input_feat = output_dict["feat_gen"]
+                else:
+                    input_feat = output_dict["feat_gen_denorm"]
+                wav = self.vocoder(input_feat)
+                output_dict.update(wav=wav)
+        elif self.s2st_type == "discrete_unit":
+            output_dict = {}
+            # Forward Encoder
+            enc, _ = self.model.encode(batch["src_speech"], batch["src_speech_lengths"])
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            # TODO(jiatong): get nbest list instead of just best hyp
+            best_hyp = nbest_hyps[0]  # just use the best
+            # remove sos/eos and get results
+            token_int = np.array(best_hyp.yseq[1:-1].tolist())
+            output_dict.update(feat_gen=torch.tensor(token_int))
+
+            logging.info("token_int: {}".format(token_int.shape))
+
+            if self.vocoder is not None:
+                wav = self.vocoder(torch.tensor(token_int).view(-1, 1))
+                output_dict.update(wav=wav)
 
         return output_dict
 
@@ -255,6 +328,9 @@ def inference(
     backward_window: int,
     forward_window: int,
     always_fix_seed: bool,
+    nbest: int,
+    beam_size: int,
+    penalty: float,
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str],
     vocoder_file: Optional[str],
@@ -290,6 +366,9 @@ def inference(
         use_att_constraint=use_att_constraint,
         backward_window=backward_window,
         forward_window=forward_window,
+        nbest=nbest,
+        beam_size=beam_size,
+        penalty=penalty,
         vocoder_config=vocoder_config,
         vocoder_file=vocoder_file,
         dtype=dtype,
@@ -437,6 +516,7 @@ def inference(
 
             if output_dict.get("wav") is not None:
                 # TODO(kamo): Write scp
+                logging.info("wav {}".format(output_dict["wav"].size()))
                 sf.write(
                     f"{output_dir}/wav/{key}.wav",
                     output_dict["wav"].cpu().numpy(),
@@ -555,6 +635,8 @@ def get_parser():
         default=0.0,
         help="Minimum length ratio in decoding",
     )
+
+    group = parser.add_argument_group("Spectrogram-based generation related")
     group.add_argument(
         "--threshold",
         type=float,
@@ -591,6 +673,11 @@ def get_parser():
         default=False,
         help="Whether to always fix seed",
     )
+
+    group = parser.add_argument_group("Beam-search (discrete unit/multi-pass) related")
+    group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
+    group.add_argument("--beam_size", type=int, default=20, help="Beam size")
+    group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(

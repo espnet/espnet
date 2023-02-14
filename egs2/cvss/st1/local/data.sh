@@ -76,7 +76,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         ln -sf text.en data/"${part}_${src_lang}"/text
         ln -sf wav.scp.en data/"${part}_${src_lang}"/wav.scp
 
-        utt_extra_files="wav.scp.${src_lang} wav.scp.en text.${src_lang} text.en"
+
+        ln -sf text.en data/"${part}_${src_lang}"/text.lc.rm.en
+        ln -sf text.es.${src_lang} data/"${part}_${src_lang}"/text.lc.rm.${src_lang}
+        utt_extra_files="text.lc.rm.en text.lc.rm.${src_lang}"
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}
     done
 fi

@@ -53,6 +53,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         asr_decoder: Optional[AbsDecoder],
         st_decoder: Optional[AbsDecoder],
         aux_attention: Optional[AbsS2STAuxAttention],
+        unit_encoder: Optional[AbsEncoder],
         synthesizer: Optional[AbsSynthesizer],
         asr_ctc: Optional[CTC],
         st_ctc: Optional[CTC],
@@ -78,6 +79,8 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.eos = tgt_vocab_size - 1 if tgt_vocab_size else None
         self.src_sos = src_vocab_size - 1 if src_vocab_size else None
         self.src_eos = src_vocab_size - 1 if src_vocab_size else None
+        self.unit_sos = unit_vocab_size - 1 if unit_vocab_size else None
+        self.unit_eos = unit_vocab_size - 1 if unit_vocab_size else None
         self.tgt_vocab_size = tgt_vocab_size
         self.src_vocab_size = src_vocab_size
         self.unit_vocab_size = unit_vocab_size
@@ -98,6 +101,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self.asr_decoder = asr_decoder
         self.st_decoder = st_decoder
         self.aux_attention = aux_attention
+        self.unit_encoder = unit_encoder
         self.synthesizer = synthesizer
         self.asr_ctc = asr_ctc
         self.st_ctc = st_ctc
@@ -448,6 +452,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 syn_bce_loss=bce_loss.item() if bce_loss is not None else None,
             )
 
+        #########################
+        # Discrete unit Forward #
+        #########################
         elif self.s2st_type == "discrete_unit":
             # discrete unit-based synthesis
             # Reference: https://arxiv.org/pdf/2107.05604.pdf
@@ -557,11 +564,12 @@ class ESPnetS2STModel(AbsESPnetModel):
                 unit_attn_loss=unit_attn_loss.item()
                 if unit_attn_loss is not None
                 else None,
-                acc_unit_attn=acc_unit_attn
-                if acc_unit_attn is not None
-                else None,
+                acc_unit_attn=acc_unit_attn if acc_unit_attn is not None else None,
             )
 
+        #################
+        # Unity Forward #
+        #################
         elif self.s2st_type == "unity":
             # unity
             # Reference: https://arxiv.org/pdf/2212.08055.pdf
@@ -598,10 +606,24 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
             loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
 
+            assert (
+                self.unit_encoder is not None
+            ), "unit_encoder is necessary for unity-based model"
+
+            unit_encoder_out, unit_encoder_out_lengths, _ = self.unit_encoder(
+                decoder_out, tgt_text_lengths + 1
+            )
+
             # synthesizer
             unit_attn_loss, acc_unit_attn = self._calc_unit_att_loss(
-                decoder_out, tgt_text_lengths + 1, tgt_speech, tgt_speech_lengths
+                unit_encoder_out,
+                unit_encoder_out_lengths,
+                tgt_speech,
+                tgt_speech_lengths,
             )
+            loss_record.append(unit_attn_loss * self.losses["synthesis"].weight)
+
+            loss = sum(loss_record)
 
             stats = dict(
                 loss=loss.item(),
@@ -612,14 +634,10 @@ class ESPnetS2STModel(AbsESPnetModel):
                 else None,
                 acc_tgt_attn=acc_tgt_attn,
                 bleu_tgt_attn=bleu_tgt_attn,
-                st_ctc_loss=st_ctc_loss.item() if st_ctc_loss is not None else None,
-                cer_st_ctc=cer_st_ctc,
                 unit_attn_loss=unit_attn_loss.item()
                 if unit_attn_loss is not None
                 else None,
-                acc_unit_attn=acc_unit_attn.item()
-                if acc_unit_attn is not None
-                else None,
+                acc_unit_attn=acc_unit_attn if acc_unit_attn is not None else None,
             )
 
         else:
@@ -703,12 +721,9 @@ class ESPnetS2STModel(AbsESPnetModel):
                 forward_window,
                 use_teacher_forcing,
             )
-        elif self.s2st_type == "discrete_unit":
-            assert encoder_out.size(0) == 1
-            # TODO (use beam search decoder)
         else:
             raise ValueError(
-                "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
+                "Not supported s2st type {}, available type include ('translatotron', 'translatotron2')"
             )
 
         if self.tgt_normalize is not None and output_dict.get("feat_gen") is not None:
@@ -757,11 +772,15 @@ class ESPnetS2STModel(AbsESPnetModel):
                 "src_feats_lengths": src_speech_lengths,
                 "tgt_feats_lengths": tgt_speech_lengths,
             }
-        
+
         return return_dict
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor, return_all_hiddens: bool = False,
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        return_all_hiddens: bool = False,
+        **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by st_inference.py
 
@@ -788,7 +807,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, return_all_hiddens=return_all_hiddens)
+        encoder_out, encoder_out_lens, _ = self.encoder(
+            feats, feats_lengths, return_all_hiddens=return_all_hiddens
+        )
         if return_all_hiddens:
             encoder_out, inter_encoder_out = encoder_out
 
@@ -847,7 +868,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         return_last_hidden: bool = False,
         return_all_hiddens: bool = False,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            ys_pad, self.unit_sos, self.unit_eos, self.ignore_id
+        )
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -893,8 +916,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
-        assert not return_last_hidden or not return_all_hiddens, \
-             "cannot return both last hiddens or all hiddens"
+        assert (
+            not return_last_hidden or not return_all_hiddens
+        ), "cannot return both last hiddens or all hiddens"
 
         # 1. Forward decoder
         decoder_outs, decoder_out_lengths, = self.st_decoder(

@@ -5,7 +5,7 @@
 """Translatotron Synthesizer related modules for ESPnet2."""
 
 import logging
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -14,10 +14,12 @@ from typeguard import check_argument_types
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-class TransformerDiscreteSynthesizer(AbsSynthesizer):
+class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
     """Discrete unit Synthesizer related modules for speech-to-speech translation.
 
     This is a module of discrete unit prediction network in discrete-unit described
@@ -124,7 +126,6 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             layer_drop_rate=layer_drop_rate,
         )
 
-
     def forward(
         self,
         enc_outputs: torch.Tensor,
@@ -194,8 +195,14 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             hs = hs + lid_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        return self.decoder(hs, hlens, ys, olens, return_last_hidden=return_last_hidden, return_all_hiddens=return_all_hiddens)
-
+        return self.decoder(
+            hs,
+            hlens,
+            ys,
+            olens,
+            return_last_hidden=return_last_hidden,
+            return_all_hiddens=return_all_hiddens,
+        )
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
@@ -223,6 +230,84 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer):
             raise NotImplementedError("support only add or concat.")
 
         return hs
-    
+
+    def forward_one_step(
+        self,
+        tgt: torch.Tensor,
+        tgt_mask: torch.Tensor,
+        memory: torch.Tensor,
+        cache: List[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """Forward one step.
+
+        Args:
+            tgt: input token ids, int64 (batch, maxlen_out)
+            tgt_mask: input token mask,  (batch, maxlen_out)
+                      dtype=torch.uint8 in PyTorch 1.2-
+                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)
+            memory: encoded memory, float32  (batch, maxlen_in, feat)
+            cache: cached output list of (batch, max_time_out-1, size)
+        Returns:
+            y, cache: NN output value and cache per `self.decoders`.
+            y.shape` is (batch, maxlen_out, token)
+        """
+        # FIXME(jiatong): the spk/lang embedding may be execute too many times
+        # consider add before the search
+        if self.spks is not None:
+            sid_embs = self.sid_emb(sids.view(-1))
+            memory = memory + sid_embs.unsqueeze(1)
+        if self.langs is not None:
+            lid_embs = self.lid_emb(lids.view(-1))
+            memory = memory + lid_embs.unsqueeze(1)
+        if self.spk_embed_dim is not None:
+            memory = self._integrate_with_spk_embed(memory, spembs)
+
+        return self.decoder.forward_one_step(tgt, tgt_mask, memory, cache)
+
+    def score(self, ys, state, x):
+        """Score."""
+        ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        logp, state = self.forward_one_step(
+            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
+        )
+        return logp.squeeze(0), state
+
+    def batch_score(
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        """Score new token batch.
+
+        Args:
+            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
+            states (List[Any]): Scorer states for prefix tokens.
+            xs (torch.Tensor):
+                The encoder feature that generates ys (n_batch, xlen, n_feat).
+
+        Returns:
+            tuple[torch.Tensor, List[Any]]: Tuple of
+                batchfied scores for next token with shape of `(n_batch, n_vocab)`
+                and next state list for ys.
+
+        """
+        # merge states
+        n_batch = len(ys)
+        n_layers = len(self.decoder.decoders)
+        if states[0] is None:
+            batch_state = None
+        else:
+            # transpose state of [batch, layer] into [layer, batch]
+            batch_state = [
+                torch.stack([states[b][i] for b in range(n_batch)])
+                for i in range(n_layers)
+            ]
+
+        # batch decoding
+        ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
+        logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
+
+        # transpose state of [layer, batch] into [batch, layer]
+        state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
+        return logp, state_list
+
     def inference(self):
         pass

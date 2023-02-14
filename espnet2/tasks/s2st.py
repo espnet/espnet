@@ -192,6 +192,22 @@ aux_attention_choices = ClassChoices(
     ),
     type_check=AbsS2STAuxAttention,
 )
+unit_encoder_choices = ClassChoices(
+    "unit_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+        wav2vec2=FairSeqWav2Vec2Encoder,
+        hubert=FairseqHubertEncoder,
+        hubert_pretrain=FairseqHubertPretrainEncoder,
+        linear=LinearEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+)
 synthesizer_choices = ClassChoices(
     "synthesizer",
     classes=dict(
@@ -241,6 +257,8 @@ class S2STTask(STTask):
         st_decoder_choices,
         # --aux_attention and --aux_attention_conf
         aux_attention_choices,
+        # --unit_encoder and --unit_encoder_conf
+        unit_encoder_choices,
         # --synthesizer and --synthesizer_conf
         synthesizer_choices,
         loss_choices,
@@ -499,7 +517,11 @@ class S2STTask(STTask):
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
                 token_type=[args.tgt_token_type, args.src_token_type, unit_token_type],
-                token_list=[args.tgt_token_list, args.src_token_list, args.unit_token_list],
+                token_list=[
+                    args.tgt_token_list,
+                    args.src_token_list,
+                    args.unit_token_list,
+                ],
                 bpemodel=[args.tgt_bpemodel, args.src_bpemodel, None],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
@@ -586,7 +608,7 @@ class S2STTask(STTask):
             logging.info(f"Source vocabulary size: {src_vocab_size }")
         else:
             src_token_list, src_vocab_size = None, None
-        
+
         if args.unit_token_list is not None:
             if isinstance(args.unit_token_list, str):
                 with open(args.unit_token_list, encoding="utf-8") as f:
@@ -625,8 +647,9 @@ class S2STTask(STTask):
             output_size = tgt_feats_extract.output_size()
         else:
             # NOTE(jiatong): discrete unit cases
-            assert unit_vocab_size is not None, \
-                "need a discrete unit token list for non-spectrograms target speech"
+            assert (
+                unit_vocab_size is not None
+            ), "need a discrete unit token list for non-spectrograms target speech"
             output_size = unit_vocab_size
             tgt_feats_extract = None
 
@@ -726,7 +749,17 @@ class S2STTask(STTask):
         else:
             aux_attention = None
 
-        # 7. Synthesizer
+        # 8. Unit encoder
+        if args.unit_encoder:
+            unit_encoder_class = unit_encoder_choices.get_class(args.unit_encoder)
+            unit_encoder = unit_encoder_class(
+                input_size=encoder_output_size,
+                **args.unit_encoder_conf,
+            )
+        else:
+            unit_encoder = None
+
+        # 9. Synthesizer
         synthesizer_class = synthesizer_choices.get_class(args.synthesizer)
         synthesizer_idim = (
             encoder_output_size
@@ -742,7 +775,7 @@ class S2STTask(STTask):
             idim=synthesizer_idim, odim=output_size, **args.synthesizer_conf
         )
 
-        # 8. Loss definition
+        # 10. Loss definition
         losses = {}
         if getattr(args, "losses", None) is not None:
             # This check is for the compatibility when load models
@@ -765,7 +798,7 @@ class S2STTask(STTask):
                     loss = loss_choices.get_class(ctr["type"])(**ctr["conf"])
                 losses[ctr["name"]] = loss
 
-        # 9. Build model
+        # 11. Build model
         model = ESPnetS2STModel(
             s2st_type=args.s2st_type,
             frontend=frontend,
@@ -779,6 +812,7 @@ class S2STTask(STTask):
             asr_decoder=asr_decoder,
             st_decoder=st_decoder,
             aux_attention=aux_attention,
+            unit_encoder=unit_encoder,
             synthesizer=synthesizer,
             asr_ctc=asr_ctc,
             st_ctc=st_ctc,

@@ -121,7 +121,6 @@ class UnitYSynthesizer(AbsSynthesizer):
             layer_drop_rate=layer_drop_rate,
         )
 
-
     def forward(
         self,
         enc_outputs: torch.Tensor,
@@ -195,8 +194,14 @@ class UnitYSynthesizer(AbsSynthesizer):
             hs = hs + lid_embs.unsqueeze(1)
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
-        return self.decoder(hs, hlens, ys, olens, return_last_hidden=return_last_hidden, return_all_hiddens=return_all_hiddens)
-
+        return self.decoder(
+            hs,
+            hlens,
+            ys,
+            olens,
+            return_last_hidden=return_last_hidden,
+            return_all_hiddens=return_all_hiddens,
+        )
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor

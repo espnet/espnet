@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     check_short_utt,
 )
 
+
 class LinearEncoder(AbsEncoder):
     """Linear encoder module.
 
@@ -62,7 +63,9 @@ class LinearEncoder(AbsEncoder):
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsampling8(input_size, output_size, dropout_rate)
         elif input_layer == "embed":
-            self.embed = torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
+            self.embed = (
+                torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
+            )
         elif input_layer is None:
             if input_size == output_size:
                 self.embed = None
@@ -74,7 +77,6 @@ class LinearEncoder(AbsEncoder):
         self.normalize_before = normalize_before
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
-
 
     def output_size(self) -> int:
         return self._output_size
