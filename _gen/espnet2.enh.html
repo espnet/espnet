@@ -203,6 +203,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dpcl-separator-1">espnet2.enh.separator.dpcl_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dptnet-separator-1">espnet2.enh.separator.dptnet_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-asteroid-models-1">espnet2.enh.separator.asteroid_models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tfgridnet-separator-1">espnet2.enh.separator.tfgridnet_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-tcn-separator-1">espnet2.enh.separator.tcn_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-dprnn-separator-1">espnet2.enh.separator.dprnn_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-fasnet-separator-1">espnet2.enh.separator.fasnet_separator</a></li>
@@ -5643,6 +5644,152 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <dl class="method">
 <dt id="espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.num_spk">
 <em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-enh-separator-tfgridnet-separator-1">
+<span id="espnet2-enh-separator-tfgridnet-separator"></span><h2>espnet2.enh.separator.tfgridnet_separator<a class="headerlink" href="#espnet2-enh-separator-tfgridnet-separator-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.tfgridnet_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.tfgridnet_separator.GridNetBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">GridNetBlock</code><span class="sig-paren">(</span><em class="sig-param">emb_dim</em>, <em class="sig-param">emb_ks</em>, <em class="sig-param">emb_hs</em>, <em class="sig-param">n_freqs</em>, <em class="sig-param">hidden_channels</em>, <em class="sig-param">n_head=4</em>, <em class="sig-param">approx_qk_dim=512</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#GridNetBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.GridNetBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.GridNetBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#GridNetBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.GridNetBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>GridNetBlock Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – [B, C, T, Q]</p></li>
+<li><p><strong>out</strong> – [B, C, T, Q]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnet_separator.LayerNormalization4D">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">LayerNormalization4D</code><span class="sig-paren">(</span><em class="sig-param">input_dimension</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#LayerNormalization4D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.LayerNormalization4D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.LayerNormalization4D.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#LayerNormalization4D.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.LayerNormalization4D.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnet_separator.LayerNormalization4DCF">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">LayerNormalization4DCF</code><span class="sig-paren">(</span><em class="sig-param">input_dimension</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#LayerNormalization4DCF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.LayerNormalization4DCF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.LayerNormalization4DCF.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#LayerNormalization4DCF.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.LayerNormalization4DCF.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.separator.tfgridnet_separator.TFGridNet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">TFGridNet</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">n_srcs=2</em>, <em class="sig-param">n_fft=128</em>, <em class="sig-param">stride=64</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">n_imics=1</em>, <em class="sig-param">n_layers=6</em>, <em class="sig-param">lstm_hidden_units=192</em>, <em class="sig-param">attn_n_head=4</em>, <em class="sig-param">attn_approx_qk_dim=512</em>, <em class="sig-param">emb_dim=48</em>, <em class="sig-param">emb_ks=4</em>, <em class="sig-param">emb_hs=1</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#TFGridNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Offline TFGridNet</p>
+<p>Reference:
+[1] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+“TF-GridNet: Integrating Full- and Sub-Band Modeling for Speech Separation”,
+in arXiv preprint arXiv:2211.12433, 2022.
+[2] Z.-Q. Wang, S. Cornell, S. Choi, Y. Lee, B.-Y. Kim, and S. Watanabe,
+“TF-GridNet: Making Time-Frequency Domain Models Great Again for Monaural
+Speaker Separation”, in arXiv preprint arXiv:2209.03952, 2022.</p>
+<p>NOTES:
+As outlined in the Reference, this model works best when trained with variance
+normalized mixture input and target, e.g., with mixture of shape [batch, samples,
+microphones], you normalize it by dividing with torch.std(mixture, (1, 2)). You
+must do the same for the target signals. It is encouraged to do so when not using
+scale-invariant loss functions such as SI-SDR.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – placeholder, not used</p></li>
+<li><p><strong>n_srcs</strong> – number of output sources/speakers.</p></li>
+<li><p><strong>n_fft</strong> – stft window size.</p></li>
+<li><p><strong>stride</strong> – stft stride.</p></li>
+<li><p><strong>window</strong> – stft window type choose between ‘hamming’, ‘hanning’ or None.</p></li>
+<li><p><strong>n_imics</strong> – number of microphones channels (only fixed-array geometry supported).</p></li>
+<li><p><strong>n_layers</strong> – number of TFGridNet blocks.</p></li>
+<li><p><strong>lstm_hidden_units</strong> – number of hidden units in LSTM.</p></li>
+<li><p><strong>attn_n_head</strong> – number of heads in self-attention</p></li>
+<li><p><strong>attn_approx_qk_dim</strong> – approximate dimention of frame-level key and value tensors</p></li>
+<li><p><strong>emb_dim</strong> – embedding dimension</p></li>
+<li><p><strong>emb_ks</strong> – kernel size for unfolding and deconv1D</p></li>
+<li><p><strong>emb_hs</strong> – hop size for unfolding and deconv1D</p></li>
+<li><p><strong>activation</strong> – activation function to use in the whole TFGridNet model,
+you can use any torch supported activation e.g. ‘relu’ or ‘elu’.</p></li>
+<li><p><strong>eps</strong> – small epsilon for normalization layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.TFGridNet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">additional: Optional[Dict] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[List[torch.Tensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#TFGridNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – batched multi-channel audio tensor with
+M audio channels and N samples [B, N, M]</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [B]</p></li>
+<li><p><strong>additional</strong> (<em>Dict</em><em> or </em><em>None</em>) – other data, currently unused in this model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>[(B, T), …] list of len n_srcs</dt><dd><p>of mono audio tensors with T samples.</p>
+</dd>
+</dl>
+<p>ilens (torch.Tensor): (B,)
+additional (Dict or None): other data, currently unused in this model,</p>
+<blockquote>
+<div><p>we return it also in output.</p>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>enhanced (List[Union(torch.Tensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.TFGridNet.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.tfgridnet_separator.TFGridNet.pad2">
+<em class="property">static </em><code class="sig-name descname">pad2</code><span class="sig-paren">(</span><em class="sig-param">input_tensor</em>, <em class="sig-param">target_len</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#TFGridNet.pad2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet.pad2" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -664,6 +664,17 @@ espnet2.enh.separator.asteroid_models
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.tfgridnet_separator:
+
+espnet2.enh.separator.tfgridnet_separator
+-----------------------------------------
+
+.. automodule:: espnet2.enh.separator.tfgridnet_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.separator.tcn_separator:
 
 espnet2.enh.separator.tcn_separator
