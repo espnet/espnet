@@ -217,16 +217,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     do
         echo $i >> ${dictdir}/tokens.txt
     done
-    echo "${sos_eos}\n${oov}" >> ${dictdir}/tokens.txt
+    echo "${sos_eos}" >> ${dictdir}/tokens.txt
+    echo "${oov}" >> ${dictdir}/tokens.txt
 
-    # NOTE(jiatong): need discussion on why we use count to sort
-    # <${datadir}/${train_set}/text.km.${km_tag}${scp_suffix} cut -d" " -f2- | \
-    #     awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
-    #         sort -n -r -k 2  | \
-    #         awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
-    #             '{print($1)} END{print(oov); print(sos_eos)}' \
-    #         > ${dictdir}/tokens.txt
-
+    # NOTE(jiatong): we do not need to maintain the fairseq style token_dict
     log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
 
 fi
