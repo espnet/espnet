@@ -200,7 +200,6 @@ def main(argv):
             fig.suptitle("t-sne visualization for {}".format(args.toolkit))
             ax.scatter(Y[:, 0], Y[:, 1], c=np.array(all_spks))
             plt.savefig(os.path.join(args.out_folder, "tsne.png"))
-            plt.show()
             plt.close()
 
 
