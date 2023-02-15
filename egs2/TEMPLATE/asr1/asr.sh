@@ -293,6 +293,8 @@ elif [ "${feats_type}" = fbank ]; then
     data_feats=${dumpdir}/fbank
 elif [ "${feats_type}" == extracted ]; then
     data_feats=${dumpdir}/extracted
+elif [ "${feats_type}" == extracted_speechbrain ]; then
+    data_feats=${dumpdir}/extracted_speechbrain
 else
     log "${help_message}"
     log "Error: not supported: --feats_type ${feats_type}"
@@ -620,8 +622,14 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+                if [ ! -f data/"${dset}"/wav.scp ]; then 
+		    if [ ! -f data/"${dset}"/segments ]; then 
+		        <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                    else
+		        <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
+		    fi
+		fi
+		utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # Copy reference text files if there is more than 1 reference
                 # shellcheck disable=SC2068
