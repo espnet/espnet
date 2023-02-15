@@ -29,7 +29,7 @@ def glob_check(root_folder, has_eval=False, input_json=None):
             continue
 
         if not input_json[str(Path(f).relative_to(root_folder))] == digest:
-            print(
+            raise RuntimeError(
                 "MD5 Checksum for {} is not the same. "
                 "Data has not been generated correctly."
                 "You can retry to generate it or re-download it."
