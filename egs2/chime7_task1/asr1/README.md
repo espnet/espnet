@@ -8,7 +8,7 @@
 
 ---
 
-#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only)
+#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only, we will use it to handle submission see [official website, submission page](https://www.chimechallenge.org/current/task1/submission))
 ### Sections
 1. <a href="#description">Short Description </a>
 2. <a href="#data_creation">Data Download and Creation</a>
