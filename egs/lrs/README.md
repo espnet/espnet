@@ -266,7 +266,7 @@ The main code for the recognition system is the <code>run.sh</code> script. In t
   * Build a tokenizer using Sentencepiece: https://github.com/google/sentencepiece
 
 ##### Stage 5: Reliability measures generation
-  * Stage 5.0: Creat dump file for MFCC features
+  * Stage 5.0: Create dump file for MFCC features
   * Stage 5.1: Video augmentation with Gaussian blur and salt&pepper noise
   * Stage 5.2: OpenFace face recognition for facial recognition (especially the mouth region, for further details see documentation in avsr1/local folder )
   * Stage 5.3: Extract video frames

@@ -46,7 +46,7 @@ local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
 feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+audio_format=wav     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
@@ -82,7 +82,7 @@ svs_stats_dir=""   # Specify the direcotry path for statistics. If empty, automa
 num_splits=1       # Number of splitting for svs corpus.
 teacher_dumpdir="" # Directory of teacher outpus
 write_collected_feats=false # Whether to dump features in stats collection.
-svs_task=svs                # SVS task (svs or gan_svs, now only support svs)
+svs_task=svs                # SVS task (svs or gan_svs)
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 
@@ -616,6 +616,10 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
 
+        if [ "${feats_normalize}" != global_mvn ]; then
+            # Skip summerizaing stats if not using global MVN
+            _opts+="--skip_sum_stats"
+        fi
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${svs_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
@@ -643,6 +647,7 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
+            log "CASE 1: AR model training"
             #####################################
             #     CASE 1: AR model training     #
             #####################################
@@ -710,8 +715,6 @@ if ! "${skip_train}"; then
                 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${svs_stats_dir}/train/singing_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/durations_shape "
-                _opts+="--train_shape_file ${svs_stats_dir}/train/score_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
@@ -719,10 +722,8 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score.scp,score,score "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/durations_shape "
-            _opts+="--valid_shape_file ${svs_stats_dir}/valid/score_shape "
         else
-
+            log "CASE 2: Non-AR model training"
             #####################################
             #   CASE 2: Non-AR model training   #
             #####################################
@@ -860,7 +861,7 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
-		--init_param ${pretrained_model} \
+                --init_param ${pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
@@ -982,17 +983,21 @@ if ! "${skip_eval}"; then
                     --model_file "${svs_exp}"/"${inference_model}" \
                     --train_config "${svs_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-		    --vocoder_checkpoint "${vocoder_file}" \
+                    --vocoder_checkpoint "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
             mkdir -p "${_dir}"/{norm,denorm,wav}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/norm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/denorm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+
+            if [ ${svs_task} == svs ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/norm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/denorm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            fi
+
             for i in $(seq "${_nj}"); do
                  cat "${_logdir}/output.${i}/speech_shape/speech_shape"
             done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"

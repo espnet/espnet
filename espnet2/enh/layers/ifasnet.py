@@ -58,7 +58,6 @@ class iFaSNet(FaSNet_base):
         self.gen_output = nn.Conv1d(self.feature_dim, self.enc_dim, 1)
 
     def forward(self, input, num_mic):
-
         batch_size = input.size(0)
         nmic = input.size(1)
 

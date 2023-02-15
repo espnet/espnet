@@ -15,23 +15,20 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 class LinearProjection(AbsPreEncoder):
     """Linear Projection Preencoder."""
 
-    def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-    ):
+    def __init__(self, input_size: int, output_size: int, dropout: float = 0.0):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
 
         self.output_dim = output_size
         self.linear_out = torch.nn.Linear(input_size, output_size)
+        self.dropout = torch.nn.Dropout(dropout)
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward."""
-        output = self.linear_out(input)
+        output = self.linear_out(self.dropout(input))
         return output, input_lengths  # no state in this layer
 
     def output_size(self) -> int:

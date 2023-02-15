@@ -18,8 +18,7 @@ asr_config=conf/train_asr_conformer.yaml
     --test_sets ${test_set} \
     --feats_type extracted \
     --use_lm false \
-    --nbpe 82 \
+    --token_type char \
     --asr_config ${asr_config} \
-    --stage 1 \
     --ngpu 4 \
     --gpu_inference true \

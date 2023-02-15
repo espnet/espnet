@@ -9,7 +9,9 @@ from espnet2.asr.espnet_model import ESPnetASRModel
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
-def test_espnet_model(encoder_arch):
+@pytest.mark.parametrize("decoder_arch", [TransformerDecoder, None])
+@pytest.mark.parametrize("aux_ctc", [None, {"0": "lid"}])
+def test_espnet_model(encoder_arch, decoder_arch, aux_ctc):
     vocab_size = 5
     enc_out = 4
     encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
@@ -28,6 +30,7 @@ def test_espnet_model(encoder_arch):
         decoder=decoder,
         ctc=ctc,
         joint_network=None,
+        aux_ctc=aux_ctc,
     )
 
     inputs = dict(

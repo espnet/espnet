@@ -63,8 +63,9 @@ ref_num=2   # Number of references for training.
 inf_num=    # Number of inferences output by the model
             # Note that if it is not specified, it will be the same as ref_num. Otherwise, it will be overwritten.
             # In MixIT, number of outputs is larger than that of references.
-noise_type_num=1
-dereverb_ref_num=1
+noise_type_num=1    # Number of noise types in the input audio 
+dereverb_ref_num=1  # Number of reference signals for deverberation
+is_tse_task=false   # Whether perform the target speaker extraction task or normal speech enhancement/separation tasks
 
 # Training data related
 use_dereverb_ref=false
@@ -151,6 +152,7 @@ Options:
                  # In MixIT, number of outputs is larger than that of references.
     --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
     --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
+    --is_tse_task     # Whether perform the target speaker extraction task or normal speech enhancement/separation tasks (default="${is_tse_task}")
 
     # Training data related
     --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
@@ -219,6 +221,20 @@ utt_extra_files="utt2category"
 
 data_feats=${dumpdir}/raw
 
+if $is_tse_task; then
+    if $use_noise_ref; then
+        log "--use_noise_ref must be false for the target speaker extraction (TSE) task"
+        exit 1
+    fi
+    if $use_dereverb_ref; then
+        log "--use_dereverb_ref must be false for the target speaker extraction (TSE) task"
+        exit 1
+    fi
+    if [ -n "$inf_num" ] && [ "$inf_num" != "$ref_num" ]; then
+        log "The value of '--inf_num' must be equal to that of '--ref_num' for the target speaker extraction (TSE) task"
+        exit 1
+    fi
+fi
 inf_num=${inf_num:=${ref_num}}
 
 # Set tag for naming of model directory
@@ -345,6 +361,9 @@ if ! "${skip_data_prep}"; then
             _spk_list=" "
             for i in $(seq ${ref_num}); do
                 _spk_list+="spk${i} "
+                if $is_tse_task; then
+                    _spk_list+="enroll_spk${i} "
+                fi
             done
             if $use_noise_ref && [ -n "${_suf}" ]; then
                 # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
@@ -356,6 +375,17 @@ if ! "${skip_data_prep}"; then
             fi
 
             for spk in ${_spk_list} "wav" ; do
+                if ${is_tse_task} && [[ "${spk}" == *enroll_spk* ]]; then
+                    audio_path=$(head -n 1 "data/${dset}/${spk}.scp" | awk '{print $2}')
+                    if [[ ("${dset}" == "${train_set}" && "${audio_path:0:1}" == "*") || "${audio_path: -4}" == ".npy" ]]; then
+                        # In case of
+                        # 1. a special format in `enroll_spk?.scp`:
+                        # MIXTURE_UID *UID SPEAKER_ID
+                        # 2. speaker embeddings instead of enrollment audios in `enroll_spk?.scp`
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/spk1.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        continue
+                    fi
+                fi
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --out-filename "${spk}.scp" \
@@ -397,6 +427,10 @@ if ! "${skip_data_prep}"; then
             for i in $(seq ${ref_num}); do
                 _spk_list+="spk${i} "
                 _scp_list+="spk${i}.scp "
+                if $is_tse_task; then
+                    _spk_list+="enroll_spk${i} "
+                    _scp_list+="enroll_spk${i}.scp "
+                fi
             done
             if $use_noise_ref; then
                 # references for denoising ("noise1 noise2 ... niose${noise_type_num} ")
@@ -506,6 +540,12 @@ if ! "${skip_train}"; then
         for spk in $(seq "${ref_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+
+            # for target-speaker extraction
+            if $is_tse_task; then
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/enroll_spk${spk}.scp,enroll_ref${spk},text "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/enroll_spk${spk}.scp,enroll_ref${spk},text "
+            fi
         done
 
         if $use_dereverb_ref; then
@@ -527,10 +567,14 @@ if ! "${skip_train}"; then
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
 
-
+        if $is_tse_task; then
+            train_module=espnet2.bin.enh_tse_train
+        else
+            train_module=espnet2.bin.enh_train
+        fi
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.enh_train \
+            ${python} -m ${train_module} \
                 --collect_stats true \
                 ${_train_data_param} \
                 ${_valid_data_param} \
@@ -545,7 +589,7 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${enh_stats_dir}"
 
     fi
 
@@ -582,12 +626,25 @@ if ! "${skip_train}"; then
         for spk in $(seq "${ref_num}"); do
             _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+            _fold_length_param+="--fold_length ${_fold_length} "
+
+            # for target-speaker extraction
+            if $is_tse_task; then
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/enroll_spk${spk}.scp,enroll_ref${spk},text "
+                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/enroll_ref${spk}_shape "
+                _fold_length_param+="--fold_length ${_fold_length} "
+            fi
         done
 
         for spk in $(seq "${ref_num}"); do
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
-            _fold_length_param+="--fold_length ${_fold_length} "
+
+            # for target-speaker extraction
+            if $is_tse_task; then
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/enroll_spk${spk}.scp,enroll_ref${spk},text "
+                _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/enroll_ref${spk}_shape "
+            fi
         done
 
         if $use_dereverb_ref; then
@@ -622,6 +679,11 @@ if ! "${skip_train}"; then
         else
             jobname="${enh_exp}/train.log"
         fi
+        if $is_tse_task; then
+            train_module=espnet2.bin.enh_tse_train
+        else
+            train_module=espnet2.bin.enh_train
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
@@ -630,7 +692,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.enh_train \
+            ${python} -m ${train_module} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \
@@ -677,6 +739,13 @@ if ! "${skip_eval}"; then
                 _type=sound
             fi
 
+            # for target-speaker extraction
+            _data_param="--data_path_and_name_and_type ${_data}/${_scp},speech_mix,${_type} "
+            if $is_tse_task; then
+                for spk in $(seq "${ref_num}"); do
+                    _data_param+="--data_path_and_name_and_type ${_data}/enroll_spk${spk}.scp,enroll_ref${spk},text "
+                done
+            fi
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
@@ -689,12 +758,17 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
+            if $is_tse_task; then
+                infer_module=espnet2.bin.enh_tse_inference
+            else
+                infer_module=espnet2.bin.enh_inference
+            fi
             # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
-                ${python} -m espnet2.bin.enh_inference \
+                ${python} -m ${infer_module} \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
-                    --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
+                    ${_data_param} \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_exp}"/config.yaml \
                     ${inference_enh_config:+--inference_config "$inference_enh_config"} \
@@ -709,8 +783,7 @@ if ! "${skip_eval}"; then
             done
 
             # 3. Concatenates the output files from each jobs
-            for spk in ${_spk_list} ;
-            do
+            for spk in ${_spk_list} ; do
                 for i in $(seq "${_nj}"); do
                     cat "${_logdir}/output.${i}/${spk}.scp"
                 done | LC_ALL=C sort -k1 > "${_dir}/${spk}.scp"
@@ -1047,7 +1120,6 @@ if [ -z "${download_model}" ]; then
             --train_config "${enh_exp}"/config.yaml \
             --model_file "${enh_exp}"/"${inference_model}" \
             --option "${enh_exp}"/RESULTS.md \
-            --option "${enh_stats_dir}"/train/feats_stats.npz  \
             --option "${enh_exp}"/images \
             --outpath "${packed_model}"
     fi
