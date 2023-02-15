@@ -15,7 +15,7 @@ for dset in train dev test; do
     outdir=dump/extracted_speechbrain/${dset}
     cp -r ${datadir} ${outdir}
     python3 pyscripts/utils/extract_xvectors.py --toolkit speechbrain \
-       --pretrained_model speechbrain/spkrec-xvect-voxceleb \
+       --pretrained_model speechbrain/spkrec-xvect-voxceleb --draw_tsne true --tsne_n_spk 10 \
        ${datadir} ${outdir}
 
     cp ${outdir}/xvector.scp ${outdir}/feats.scp

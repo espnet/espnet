@@ -15,7 +15,8 @@ import torch
 from tqdm.contrib import tqdm
 
 from espnet2.fileio.sound_scp import SoundScpReader
-
+from sklearn import manifold
+import matplotlib.pyplot as plt
 
 def get_parser():
     """Construct the parser."""
@@ -32,6 +33,8 @@ def get_parser():
     parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrained model.")
     parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
+    parser.add_argument("--draw_tsne", type=bool, default=False, help="draw tsne picture")
+    parser.add_argument("--tsne_n_spk", type=int, default=3, help="number of speaker visualization for tsne")
     parser.add_argument(
         "in_folder", type=Path, help="Path to the input kaldi data directory."
     )
@@ -111,7 +114,7 @@ class XVExtractor:
         if self.toolkit == "speechbrain":
             wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
             embeds = self.model.encode_batch(wav)
-            embeds = embeds.detach().cpu().numpy()[0]
+            embeds = embeds.detach().cpu().numpy()[0][0]
            
         elif self.toolkit == "rawnet":
             wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
@@ -159,6 +162,10 @@ def main(argv):
         )
 
         xv_extractor = XVExtractor(args, device)
+        if args.draw_tsne:
+            all_xvectors = list()
+            all_spks = list()
+            spks = set()
 
         for speaker in tqdm(spk2utt):
             xvectors = list()
@@ -171,12 +178,31 @@ def main(argv):
                 embeds = xv_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)
                 xvectors.append(embeds)
+            if args.draw_tsne and len(spks) < args.tsne_n_spk:
+                all_xvectors.extend(xvectors)
+                all_spks.extend([len(spks)] * len(xvectors))
+                spks.add(speaker)
 
             # Speaker Normalization
             embeds = np.mean(np.stack(xvectors, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()
+
+        if args.draw_tsne:
+            tsne = manifold.TSNE(
+                n_components=2,
+                init="random",
+                random_state=0,
+            )
+            Y = tsne.fit_transform(np.stack(all_xvectors, 0))
+            fig, ax = plt.subplots(figsize=(6,6), facecolor="white", tight_layout=True)
+            fig.suptitle("t-sne visualization for {}".format(args.toolkit))
+            ax.scatter(Y[:, 0], Y[:, 1], c=np.array(all_spks))
+            plt.savefig(os.path.join(args.out_folder, "tsne.png"))
+            plt.show()
+            plt.close()
+
 
     elif args.toolkit == "espnet":
         raise NotImplementedError(
