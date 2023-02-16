@@ -58,7 +58,7 @@ class BeamSearchTransducer:
         expansion_gamma: int = 2.3,
         expansion_beta: int = 2,
         multi_blank_durations: List[int] = [],
-        multi_blank_index: List[int] = [],
+        multi_blank_indices: List[int] = [],
         score_norm: bool = True,
         nbest: int = 1,
         token_list: Optional[List[str]] = None,
@@ -79,8 +79,8 @@ class BeamSearchTransducer:
             expansion_beta:
               Number of additional candidates for expanded hypotheses selection. (mAES)
             expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
-            multi_blank_durations: the durations of each blank token (MBG)
-            multi_blank_index: the index of each blank token in token_list (MBG)
+            multi_blank_durations: The duration of each blank token. (MBG)
+            multi_blank_indices: The index of each blank token in token_list. (MBG)
             score_norm: Normalize final scores by length. ("default")
             nbest: Number of final hypothesis.
 
@@ -97,7 +97,13 @@ class BeamSearchTransducer:
 
         self.blank_id = decoder.blank_id
 
-        if self.beam_size <= 1 and search_type != "mbg":
+        if search_type == "mbg":
+            self.beam_size = 1
+            self.multi_blank_durations = multi_blank_durations
+            self.multi_blank_indices = multi_blank_indices
+            self.search_algorithm = self.multi_blank_greedy_search
+
+        elif self.beam_size <= 1:
             self.search_algorithm = self.greedy_search
         elif search_type == "default":
             self.search_algorithm = self.default_beam_search
@@ -139,21 +145,6 @@ class BeamSearchTransducer:
             self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
-
-        elif search_type == "mbg":
-            assert len(multi_blank_durations) == len(multi_blank_index), (
-                "multi_blank_durations and multi_blank_index should have \
-                 the same length (%s) (%s)"
-                % (len(multi_blank_durations), len(multi_blank_index))
-            )
-            assert beam_size == 1, (
-                "In multi_blank_greedy search, beam size should be 1 (%d)" % beam_size
-            )
-            self.multi_blank_durations, self.multi_blank_index = (
-                multi_blank_durations,
-                multi_blank_index,
-            )
-            self.search_algorithm = self.multi_blank_greedy_search
 
         else:
             raise NotImplementedError
@@ -908,9 +899,9 @@ class BeamSearchTransducer:
         """Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).
 
         In this implementation, we assume:
-        1. the index of standard blank is the last entry of self.multi_blank_index
+        1. the index of standard blank is the last entry of self.multi_blank_indices
            rather than self.blank_id (to avoid too much change on original transducer)
-        2. other entries in self.multi_blank_index are big blanks that account for
+        2. other entries in self.multi_blank_indices are big blanks that account for
            multiple frames.
 
         Based on https://arxiv.org/abs/2211.03541
@@ -919,17 +910,19 @@ class BeamSearchTransducer:
             enc_out: Encoder output sequence. (T, D_enc)
 
         Returns:
-            nbest_hyps: N-best hypothesis.
+            hyp: 1-best hypothesis.
 
         """
+
         big_blank_duration = 1
-        blank_start, blank_end = self.multi_blank_index[0], self.multi_blank_index[-1]
+        blank_start = self.multi_blank_indices[0]
+        blank_end = self.multi_blank_indices[-1]
 
         dec_state = self.decoder.init_state(1)
         hyp = Hypothesis(score=0.0, yseq=[blank_end], dec_state=dec_state)
         cache = {}
 
-        for t, enc_out_t in enumerate(enc_out):
+        for enc_out_t in enc_out:
             # case 1: skip frames until big_blank_duration == 1
             if big_blank_duration > 1:
                 big_blank_duration -= 1

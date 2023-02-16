@@ -116,7 +116,7 @@ class ESPnetASRModel(AbsESPnetModel):
             self.decoder = decoder
             self.joint_network = joint_network
 
-            if len(transducer_multi_blank_durations) == 0:
+            if not transducer_multi_blank_durations:
                 from warprnnt_pytorch import RNNTLoss
 
                 self.criterion_transducer = RNNTLoss(

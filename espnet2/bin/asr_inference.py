@@ -181,7 +181,7 @@ class Speech2Text:
             multi_blank_durations = getattr(
                 asr_model, "transducer_multi_blank_durations", []
             )[::-1] + [1]
-            multi_blank_index = [
+            multi_blank_indices = [
                 asr_model.blank_id - i + 1
                 for i in range(len(multi_blank_durations), 0, -1)
             ]
@@ -193,7 +193,7 @@ class Speech2Text:
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
                 multi_blank_durations=multi_blank_durations,
-                multi_blank_index=multi_blank_index,
+                multi_blank_indices=multi_blank_indices,
                 token_list=token_list,
                 **transducer_conf,
             )
