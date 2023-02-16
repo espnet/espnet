@@ -205,7 +205,6 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             )
             all_uem[tsplit].append(c_uem)
 
-
     for k in all_uem.keys():
         c_uem = all_uem[k]
         if len(c_uem) > 0:
