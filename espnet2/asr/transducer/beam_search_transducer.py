@@ -153,6 +153,9 @@ class BeamSearchTransducer:
         self.lm = lm
         self.lm_weight = lm_weight
 
+        if self.use_lm and self.beam_size == 1:
+            logging.warning("LM is provided but not used, since this is greedy search.")
+
         self.score_norm = score_norm
         self.nbest = nbest
 
