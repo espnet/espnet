@@ -128,6 +128,7 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
         )
         Path(os.path.join(out_dir, "uem", split)).mkdir(parents=True, exist_ok=True)
 
+    all_uem = {k: [] for k in splits}
     for split in splits:
         json_dir = os.path.join(root_dir, "transcriptions", split)
         ann_json = glob.glob(os.path.join(json_dir, "*.json"))
@@ -149,7 +150,7 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 sess2audio[session_name].append(x)
 
         # for each json file
-        all_uem = []
+
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
@@ -202,9 +203,15 @@ def prep_chime6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "{:.3f}".format(float(first)),
                 "{:.3f}".format(end / 16000),
             )
+            all_uem[tsplit].append(c_uem)
 
-            with open(os.path.join(out_dir, "uem", tsplit, "all.uem"), "a+") as f:
-                f.write(c_uem)
+
+    for k in all_uem.keys():
+        c_uem = all_uem[k]
+        if len(c_uem) > 0:
+            c_uem = sorted(c_uem)
+            with open(os.path.join(out_dir, "uem", k, "all.uem"), "w") as f:
+                f.writelines(c_uem)
 
 
 def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
