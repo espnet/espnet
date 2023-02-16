@@ -73,6 +73,9 @@ class Speech2TextStreaming:
         encoded_feat_length_limit=0,
         time_sync: bool = False,
         incremental_decode: bool = False,
+        blank_penalty: float = 1.0,
+        hold_n: int = 0,
+        transducer_conf: dict = None,
     ):
         assert check_argument_types()
 
@@ -92,6 +95,11 @@ class Speech2TextStreaming:
             ctc = CTCPrefixScorer(ctc=st_model.st_ctc, eos=st_model.eos)
         else:
             ctc = None
+        # if hasattr(st_model, "st_joint_network"):
+        #     joint = st_model.st_joint_network
+        # else:
+        #     joint = None
+            
         token_list = st_model.token_list
         scorers.update(
             decoder=decoder,
@@ -112,6 +120,7 @@ class Speech2TextStreaming:
             ctc=ctc_weight,
             lm=lm_weight,
             length_bonus=penalty,
+            blank_penalty=blank_penalty,
         )
 
         assert "encoder_conf" in st_train_args
@@ -124,41 +133,27 @@ class Speech2TextStreaming:
 
         assert batch_size == 1
 
-        if time_sync:
-            if not hasattr(st_model, "st_ctc"):
-                raise NotImplementedError(
-                    "BeamSearchTimeSync without CTC is not supported."
-                )
-            if batch_size != 1:
-                raise NotImplementedError(
-                    "BeamSearchTimeSync with batching is not yet supported."
-                )
-            logging.info("BeamSearchTimeSync implementation is selected.")
+        beam_search = BatchBeamSearchOnline(
+            beam_size=beam_size,
+            weights=weights,
+            scorers=scorers,
+            sos=st_model.sos,
+            eos=st_model.eos,
+            vocab_size=len(token_list),
+            token_list=token_list,
+            pre_beam_score_key="full",
+            disable_repetition_detection=disable_repetition_detection,
+            decoder_text_length_limit=decoder_text_length_limit,
+            encoded_feat_length_limit=encoded_feat_length_limit,
+            incremental_decode=incremental_decode,
+            time_sync=time_sync,
+            ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
+            hold_n = hold_n,
+            transducer_conf=transducer_conf,
+            joint_network=st_model.st_joint_network if hasattr(st_model, "st_joint_network") else None,
+        )
 
-            scorers["ctc"] = st_model.st_ctc
-            beam_search = BeamSearchTimeSync(
-                beam_size=beam_size,
-                weights=weights,
-                scorers=scorers,
-                sos=st_model.sos,
-                token_list=token_list,
-            )
-        else:
-            beam_search = BatchBeamSearchOnline(
-                beam_size=beam_size,
-                weights=weights,
-                scorers=scorers,
-                sos=st_model.sos,
-                eos=st_model.eos,
-                vocab_size=len(token_list),
-                token_list=token_list,
-                pre_beam_score_key="full",
-                disable_repetition_detection=disable_repetition_detection,
-                decoder_text_length_limit=decoder_text_length_limit,
-                encoded_feat_length_limit=encoded_feat_length_limit,
-                incremental_decode=incremental_decode,
-            )
-
+        if transducer_conf is None:
             non_batch = [
                 k
                 for k, v in beam_search.full_scorers.items()
@@ -324,12 +319,12 @@ class Speech2TextStreaming:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        try:
-            feats, feats_lengths, self.frontend_states = self.apply_frontend(
-                speech, self.frontend_states, is_final=is_final
-            )
-        except:
-            import pdb;pdb.set_trace()
+        feats, feats_lengths, self.frontend_states = self.apply_frontend(
+            speech, self.frontend_states, is_final=is_final
+        )
+
+        logging.debug("feats length:" + str(feats_lengths.item()))
+
         enc, enc_lengths, self.encoder_states = self.st_model.encoder(
             feats,
             feats_lengths,
@@ -337,6 +332,11 @@ class Speech2TextStreaming:
             is_final=is_final,
             infer_mode=True,
         )
+
+        logging.debug("enc length:" + str(enc_lengths.item()))
+
+        # if enc_lengths.item() != 0:
+        #     import pdb;pdb.set_trace()
 
         if hasattr(self.st_model, "hier_encoder") and self.st_model.hier_encoder is not None:
             enc, enc_lengths, self.hier_encoder_states = self.st_model.hier_encoder(
@@ -346,6 +346,11 @@ class Speech2TextStreaming:
                 is_final=is_final,
                 infer_mode=True,
             )
+
+            logging.debug("enc2 length:" + str(enc_lengths.item()))
+
+        # if enc_lengths.item() != 0:
+        #     import pdb;pdb.set_trace()
 
         nbest_hyps = self.beam_search(
             x=enc[0],
@@ -416,6 +421,9 @@ def inference(
     decoder_text_length_limit: int,
     time_sync: bool,
     incremental_decode: bool,
+    blank_penalty: float,
+    hold_n: int,
+    transducer_conf: Optional[dict],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -460,6 +468,9 @@ def inference(
         encoded_feat_length_limit=encoded_feat_length_limit,
         time_sync=time_sync,
         incremental_decode=incremental_decode,
+        blank_penalty=blank_penalty,
+        hold_n=hold_n,
+        transducer_conf=transducer_conf,
     )
 
     # 3. Build data-iterator
@@ -647,17 +658,34 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
-    # group.add_argument(
-    #     "--time_sync",
-    #     type=str2bool,
-    #     default=False,
-    #     help="Time synchronous beam search.",
-    # )
+    group.add_argument(
+        "--time_sync",
+        type=str2bool,
+        default=False,
+        help="Time synchronous beam search.",
+    )
     group.add_argument(
         "--incremental_decode",
         type=str2bool,
         default=False,
         help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--blank_penalty",
+        type=float,
+        default=1.0,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--hold_n",
+        type=int,
+        default=0,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--transducer_conf",
+        default=None,
+        help="The keyword arguments for transducer beam search.",
     )
 
     return parser
