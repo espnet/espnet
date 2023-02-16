@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -87,8 +88,10 @@ class ChunkIterFactory(AbsIterFactory):
         self.batch_size = batch_size
         self.seed = seed
         self.shuffle = shuffle
-        self.excluded_key_prefixes = (
-            () if excluded_key_prefixes is None else tuple(excluded_key_prefixes)
+        self.excluded_key_pattern = (
+            "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
+            if excluded_key_prefixes is not None
+            else None
         )
 
     def build_iter(
@@ -122,7 +125,9 @@ class ChunkIterFactory(AbsIterFactory):
             id_ = ids[0]
 
             for key in sequence_keys:
-                if key.startswith(self.excluded_key_prefixes):
+                if self.excluded_key_pattern is not None and re.fullmatch(
+                    self.excluded_key_pattern, key
+                ):
                     # ignore length inconsistency for `excluded_key_prefixes`
                     continue
                 if len(batch[key]) != len(batch[sequence_keys[0]]):
