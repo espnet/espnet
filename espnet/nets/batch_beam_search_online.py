@@ -12,7 +12,8 @@ from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
 from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
-
+from espnet.nets.beam_search_timesync_streaming import BeamSearchTimeSync
+from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
 
 class BatchBeamSearchOnline(BatchBeamSearch):
     """Online beam search implementation.
@@ -36,6 +37,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         encoded_feat_length_limit=0,
         decoder_text_length_limit=0,
         incremental_decode=False,
+        time_sync=False,
+        ctc=None,
+        hold_n=0,
+        transducer_conf=None,
+        joint_network=None,
         **kwargs,
     ):
         """Initialize beam search."""
@@ -47,6 +53,33 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.encoded_feat_length_limit = encoded_feat_length_limit
         self.decoder_text_length_limit = decoder_text_length_limit
         self.incremental_decode = incremental_decode
+        self.time_sync = time_sync
+        self.ctc = ctc
+
+        if time_sync:
+            if transducer_conf is not None:
+                self.time_sync_search = BeamSearchTransducer(
+                    decoder=self.scorers["decoder"],
+                    joint_network=joint_network,
+                    beam_size=self.beam_size,
+                    token_list=self.token_list,
+                    hold_n=hold_n,
+                    **transducer_conf,
+                )
+                del self.scorers["decoder"]
+                self.t = 0
+            else:
+                scorers = self.scorers.copy()
+                scorers["ctc"] = ctc
+                self.time_sync_search = BeamSearchTimeSync(
+                    beam_size=self.beam_size,
+                    weights=self.weights,
+                    scorers=scorers,
+                    sos=self.sos,
+                    token_list=self.token_list,
+                    hold_n=hold_n,
+                )
+                self.t = 0
 
         self.reset()
 
@@ -163,13 +196,16 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
-            ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+            if self.time_sync:
+                ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
+            else:
+                ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
             logging.debug("Finished processing block: %d", self.processed_block)
             self.processed_block += 1
             
             # prune running_hyps, taking top as an incremental decoding
             if self.incremental_decode:
-                logging.debug("Hyps befor  e incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                logging.debug("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
                 if self.running_hyps.yseq.shape[0] > 0:
                     self.running_hyps = self._batch_select(self.running_hyps, [0])
                 logging.debug("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
@@ -185,6 +221,44 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.prev_output = ret
             # N-best results
             return ret
+
+    def process_one_block_time_sync(self, h, is_final, maxlen, maxlenratio):
+        # import pdb;pdb.set_trace()
+        hyps = self.time_sync_search(h, start_idx=self.t, is_final=is_final, incremental_decode=self.incremental_decode)
+        logging.debug("time:" + str(self.t))
+        logging.debug("best_hyp:" + "".join([self.token_list[x] for x in hyps[0].yseq]))
+        if is_final:
+            self.t = 0
+        else:
+            self.t = len(h)
+        # import pdb;pdb.set_trace()
+        return hyps
+        # self.extend(h, self.running_hyps)
+        # import pdb;pdb.set_trace()
+        # from itertools import groupby
+        # lpz = self.ctc.argmax(self.encbuffer.unsqueeze(0))
+        # logging.info("ctc length:"+str(lpz.shape[-1])+"\n")
+        # collapsed_indices = [x[0] for x in groupby(lpz[0])]
+        # hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
+        # if self.token_list is not None:
+        #     logging.info(
+        #         "ctc greedy encbuffer: "
+        #         + "".join([self.token_list[x] for x in hyp])
+        #         + "\n"
+        #     )
+
+        # lpz = self.ctc.argmax(h.unsqueeze(0))
+        # logging.info("ctc length:"+str(lpz.shape[-1])+"\n")
+        # collapsed_indices = [x[0] for x in groupby(lpz[0])]
+        # hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
+        # if self.token_list is not None:
+        #     logging.info(
+        #         "ctc greedy h: "
+        #         + "".join([self.token_list[x] for x in hyp])
+        #         + "\n"
+        #     )
+        # nbest_hyps = [{"score": 0.0, "yseq": [self.st_model.sos] + hyp + [self.st_model.eos]}]
+        # self.process_one_block(h, is_final, maxlen, maxlenratio)
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
         """Recognize one block."""
