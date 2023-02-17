@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
@@ -61,7 +63,9 @@ def test_ChunkIterFactory_partial_chunking():
 
     for key, batch in iter_factory.build_iter(0):
         for k, v in batch.items():
-            if k.startswith(iter_factory.excluded_key_prefixes):
+            if iter_factory.excluded_key_pattern is not None and re.fullmatch(
+                iter_factory.excluded_key_pattern, k
+            ):
                 assert v.shape in ((2, 2), (2, 4))
             else:
                 assert v.shape == (2, 3)

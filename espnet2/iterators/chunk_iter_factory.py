@@ -166,7 +166,9 @@ class ChunkIterFactory(AbsIterFactory):
                     cache_chunks[k] = []
                 if k in sequence_keys:
                     # Shift chunks with overlapped length for data augmentation
-                    if k.startswith(self.excluded_key_prefixes):
+                    if self.excluded_key_pattern is not None and re.fullmatch(
+                        self.excluded_key_pattern, k
+                    ):
                         for _ in range(N):
                             cache_chunks[k].append(v)
                     else:
