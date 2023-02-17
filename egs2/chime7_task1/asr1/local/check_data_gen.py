@@ -29,7 +29,7 @@ def glob_check(root_folder, has_eval=False, input_json=None):
             continue
 
         if not input_json[str(Path(f).relative_to(root_folder))] == digest:
-            print(
+            raise RuntimeError(
                 "MD5 Checksum for {} is not the same. "
                 "Data has not been generated correctly."
                 "You can retry to generate it or re-download it."
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-i,--input_json",
         type=str,
-        default="local/chime7_dasr_md5.json",
+        default="./local/chime7_dasr_md5.json",
         dest="input_json",
         required=False,
         help="Input JSON file to check against containing md5 checksums for each file.",
