@@ -317,12 +317,14 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             "score": torch.tensor([8, 5], dtype=torch.long),
         },
         duration={
-            "lab": torch.randint(1, idim, (2, 8)),
-            "score_phn": torch.tensor(
+            "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
             ),
+            "score_phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 1], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
             "score_syb": torch.tensor(
-                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+                [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
         duration_lengths={
@@ -388,14 +390,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -450,14 +445,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -648,12 +636,14 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
             "score": torch.tensor([8, 5], dtype=torch.long),
         },
         duration={
-            "lab": torch.randint(1, idim, (2, 8)),
-            "score_phn": torch.tensor(
+            "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
             ),
+            "score_phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 1], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
             "score_syb": torch.tensor(
-                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+                [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
         duration_lengths={
@@ -725,14 +715,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -793,14 +776,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -991,12 +967,14 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             "score": torch.tensor([8, 5], dtype=torch.long),
         },
         duration={
-            "lab": torch.randint(1, idim, (2, 8)),
-            "score_phn": torch.tensor(
+            "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
             ),
+            "score_phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 1], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
             "score_syb": torch.tensor(
-                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+                [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
         duration_lengths={
@@ -1065,14 +1043,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -1128,14 +1099,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -1331,12 +1295,14 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
             "score": torch.tensor([8, 5], dtype=torch.long),
         },
         duration={
-            "lab": torch.randint(1, idim, (2, 8)),
-            "score_phn": torch.tensor(
+            "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
             ),
+            "score_phn": torch.tensor(
+                [[1, 2, 2, 3, 1, 3, 2, 1], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
+            ),
             "score_syb": torch.tensor(
-                [[3, 3, 5, 5, 4, 4, 4, 4], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
+                [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
         duration_lengths={
@@ -1411,14 +1377,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
@@ -1480,14 +1439,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 ),
             },
             duration={
-                "lab": torch.randint(
-                    1,
-                    idim,
-                    (
-                        1,
-                        5,
-                    ),
-                ),
+                "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
