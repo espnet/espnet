@@ -219,43 +219,12 @@ The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 #### 3.1.2 Sub-Track 1: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
 Detailed decoding results (insertions, deletions etc) are available in the model Huggingface repository
-see [channel selection log top 25%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection.txt%20), [channel selection log top 80%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection_80.txt).
+see [channel selection log top 80%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection_80.txt).
 
-Here we report the results obtained using channel selection (25% of all channels and 
-80% respectively) prior to performing GSS and decoding with the baseline pre-trained 
+Here we report the results obtained using channel selection (
+retining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
 ASR model. 
 
-<table>
-<thead>
-  <tr>
-    <th>Dataset</th>
-    <th>split</th>
-    <th>front-end</th>
-    <th>SA-WER (%)</th>
-    <th>macro SA-WER (%)</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td>CHiME-6</td>
-    <td rowspan="3">dev</td>
-    <td>GSS (EV top 25%)</td>
-    <td>44.5 </td>
-    <td rowspan="3">37.4<br></td>
-  </tr>
-  <tr>
-    <td>DiPCo</td>
-    <td>GSS (EV top 25%)</td>
-    <td>40.1</td>
-  </tr>
-  <tr>
-    <td>Mixer-6</td>
-    <td>GSS (EV top 25%)</td>
-    <td>27.7</td>
-  </tr>
-</tbody>
-</table>
-
 
 <table>
 <thead>
@@ -272,66 +241,27 @@ ASR model.
     <td>CHiME-6</td>
     <td rowspan="3">dev</td>
     <td>GSS (EV top 80%)</td>
-    <td>34.5</td>
-    <td rowspan="3">30.8</td>
-  </tr>
-  <tr>
-    <td>DiPCo</td>
-    <td>GSS (EV top 80%)</td>
-    <td>36.8</td>
-  </tr>
-  <tr>
-    <td>Mixer-6</td>
-    <td>GSS (EV top 80%)</td>
-    <td>21.2</td>
-  </tr>
-</tbody>
-</table>
-
-Such baseline system would rank four on dev set based on the rules of the past CHiME-6 Challenge 
-on Track 1 (unconstrained LM). 
-The system with top 80% mics and EV selection will be used as the baseline also for evaluation.  
-
-
-Here we present results when only the outer microphones are used on CHiME-6 and DiPCO, while Mixer 6 uses all microphones. <br> 
-**However such system will be against the rules set for this Challenge as such 
-manual microphone selection based on the domain accounts for domain identification.** 
-It is however worth to report these results. <br>
-Here all outer for DiPCo means we used channels `2,5,9,12,16,19,23,26,30,33` (diametrically opposite mics on each array).
-<table>
-<thead>
-  <tr>
-    <th>Dataset</th>
-    <th>split</th>
-    <th>front-end</th>
-    <th>SA-WER (%)</th>
-    <th>macro SA-WER (%)</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td>CHiME-6</td>
-    <td rowspan="3">dev</td>
-    <td>GSS (all outer)</td>
-    <td>35.5</td>
+    <td>37.1</td>
     <td rowspan="3">31.8</td>
   </tr>
   <tr>
     <td>DiPCo</td>
-    <td>GSS (all outer)</td>
-    <td>39.3</td>
+    <td>GSS (EV top 80%)</td>
+    <td>36.9</td>
   </tr>
   <tr>
     <td>Mixer-6</td>
-    <td>GSS (all)</td>
-    <td>20.6</td>
+    <td>GSS (EV top 80%)</td>
+    <td>21.4</td>
   </tr>
 </tbody>
 </table>
 
-As seen it seems that for Mixer 6 Speech using all microphones will be better, but this is not true for CHiME-6 and DiPCo as seen by the channel 
-selection results. <br>
-One of our hopes is that participants can devise new techniques to improve in such regard and devise
+Such baseline system would rank sixth on dev set based on the rules of the past CHiME-6 Challenge 
+on Track 1 (unconstrained LM). 
+This system with top 80% mics and EV selection will be used as the baseline also for evaluation.  
+
+One of our hopes is that participants can devise new techniques for
 better channel selection/fusion strategies. 
 
 ## <a id="eval_script"> 4. Evaluation Script </a>
