@@ -135,8 +135,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
-        return_last_hidden: bool = False,
-        return_all_hiddens: bool = False,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
@@ -169,8 +169,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
             spembs=spembs,
             sids=sids,
             lids=lids,
-            return_last_hidden=return_last_hidden,
-            return_all_hiddens=return_all_hiddens,
+            return_hs=return_hs,
+            return_all_hs=return_all_hs,
         )
 
         return hs, hlens
@@ -184,8 +184,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
         spembs: torch.Tensor,
         sids: torch.Tensor,
         lids: torch.Tensor,
-        return_last_hidden: bool = False,
-        return_all_hiddens: bool = False,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         if self.spks is not None:
             sid_embs = self.sid_emb(sids.view(-1))
@@ -200,8 +200,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
             hlens,
             ys,
             olens,
-            return_last_hidden=return_last_hidden,
-            return_all_hiddens=return_all_hiddens,
+            return_hs=return_hs,
+            return_all_hs=return_all_hs,
         )
 
     def _integrate_with_spk_embed(

@@ -211,7 +211,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         # 1. Encoder
         if self.s2st_type == "discrete_unit":
             (encoder_out, inter_encoder_out), encoder_out_lens = self.encode(
-                src_speech, src_speech_lengths, return_all_hiddens=True
+                src_speech, src_speech_lengths, return_all_hs=True
             )
         else:
             encoder_out, encoder_out_lens = self.encode(src_speech, src_speech_lengths)
@@ -381,7 +381,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                     encoder_out_lens,
                     tgt_text,
                     tgt_text_lengths,
-                    return_last_hidden=True,
+                    return_hs=True,
                 )
                 loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
             else:
@@ -522,7 +522,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 encoder_out_lens,
                 tgt_speech,
                 tgt_speech_lengths,
-                return_all_hiddens=True,
+                return_all_hs=True,
             )
 
             loss_record.append(unit_attn_loss * self.losses["synthesis"].weight)
@@ -602,7 +602,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 encoder_out_lens,
                 tgt_text,
                 tgt_text_lengths,
-                return_last_hidden=True,
+                return_hs=True,
             )
             loss_record.append(tgt_attn_loss * self.losses["tgt_attn"].weight)
 
@@ -779,7 +779,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        return_all_hiddens: bool = False,
+        return_all_hs: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by st_inference.py
@@ -808,9 +808,9 @@ class ESPnetS2STModel(AbsESPnetModel):
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.encoder(
-            feats, feats_lengths, return_all_hiddens=return_all_hiddens
+            feats, feats_lengths, return_all_hs=return_all_hs
         )
-        if return_all_hiddens:
+        if return_all_hs:
             encoder_out, inter_encoder_out = encoder_out
 
         # Post-encoder, e.g. NLU
@@ -828,7 +828,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             encoder_out_lens.max(),
         )
 
-        if return_all_hiddens:
+        if return_all_hs:
             return (encoder_out, inter_encoder_out), encoder_out_lens
         else:
             return encoder_out, encoder_out_lens
@@ -865,8 +865,8 @@ class ESPnetS2STModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
-        return_last_hidden: bool = False,
-        return_all_hiddens: bool = False,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(
             ys_pad, self.unit_sos, self.unit_eos, self.ignore_id
@@ -882,11 +882,11 @@ class ESPnetS2STModel(AbsESPnetModel):
             spembs,
             sids,
             lids,
-            return_last_hidden=return_last_hidden,
-            return_all_hiddens=return_all_hiddens,
+            return_hs=return_hs,
+            return_all_hs=return_all_hs,
         )
 
-        if return_last_hidden or return_all_hiddens:
+        if return_hs or return_all_hs:
             (decoder_out, decoder_hidden) = decoder_outs
         else:
             decoder_out = decoder_outs
@@ -899,7 +899,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ignore_label=self.ignore_id,
         )
 
-        if return_last_hidden or return_all_hiddens:
+        if return_hs or return_all_hs:
             return loss_att, acc_att, decoder_hidden, decoder_out_lengths
         else:
             return loss_att, acc_att
@@ -910,14 +910,14 @@ class ESPnetS2STModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
-        return_last_hidden: bool = False,
-        return_all_hiddens: bool = False,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         assert (
-            not return_last_hidden or not return_all_hiddens
+            not return_hs or not return_all_hs
         ), "cannot return both last hiddens or all hiddens"
 
         # 1. Forward decoder
@@ -926,11 +926,11 @@ class ESPnetS2STModel(AbsESPnetModel):
             encoder_out_lens,
             ys_in_pad,
             ys_in_lens,
-            return_last_hidden=return_last_hidden,
-            return_all_hiddens=return_all_hiddens,
+            return_hs=return_hs,
+            return_all_hs=return_all_hs,
         )
 
-        if return_last_hidden or return_all_hiddens:
+        if return_hs or return_all_hs:
             (decoder_out, decoder_hidden) = decoder_outs
         else:
             decoder_out = decoder_outs
@@ -950,7 +950,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ys_hat = decoder_out.argmax(dim=-1)
             bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        if return_last_hidden:
+        if return_hs:
             return loss_att, acc_att, bleu_att, decoder_hidden, decoder_out_lengths
         else:
             return loss_att, acc_att, bleu_att

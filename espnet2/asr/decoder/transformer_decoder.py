@@ -95,8 +95,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         hlens: torch.Tensor,
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
-        return_last_hidden: bool = False,
-        return_all_hiddens: bool = False,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
@@ -108,9 +108,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
-            return_last_hidden: (bool) whether to return the last hidden output
+            return_hs: (bool) whether to return the last hidden output
                                   before output layer
-            return_all_hiddens: (bool) whether to return all the hidden intermediates
+            return_all_hs: (bool) whether to return all the hidden intermediates
         Returns:
             (tuple): tuple containing:
 
@@ -145,19 +145,19 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             x, tgt_mask, memory, memory_mask = decoder_layer(
                 x, tgt_mask, memory, memory_mask
             )
-            if return_all_hiddens:
+            if return_all_hs:
                 intermediate_outs.append(x)
         if self.normalize_before:
             x = self.after_norm(x)
+        if return_hs:
+            hidden = x
         if self.output_layer is not None:
-            if return_last_hidden:
-                hidden = x
             x = self.output_layer(x)
 
         olens = tgt_mask.sum(1)
-        if return_last_hidden:
+        if return_hs:
             return (x, hidden), olens
-        elif return_all_hiddens:
+        elif return_all_hs:
             return (x, intermediate_outs), olens
         return x, olens
 
@@ -167,6 +167,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
         cache: List[torch.Tensor] = None,
+        return_hs: bool = False,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
@@ -195,21 +196,31 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             y = self.after_norm(x[:, -1])
         else:
             y = x[:, -1]
+        if return_hs:
+            hidden = y
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
-
+        
+        if return_hs:
+            return (y, hidden), new_cache
         return y, new_cache
 
-    def score(self, ys, state, x):
+    def score(self, ys, state, x, return_hs=False):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
-        logp, state = self.forward_one_step(
-            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
-        )
-        return logp.squeeze(0), state
+        if return_hs:
+            logp, state = self.forward_one_step(
+                ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state, return_hs=return_hs
+            )
+            return logp.squeeze(0), hs, state
+        else:
+            logp, state = self.forward_one_step(
+                ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state, return_hs=return_hs
+            )
+            return logp.squeeze(0), state
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, return_hs: bool = False
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -239,10 +250,15 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-        logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
+        if return_hs:
+            logp, hs, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
+        else:
+            logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
+        if return_hs:
+            return logp, hs, state_list
         return logp, state_list
 
 

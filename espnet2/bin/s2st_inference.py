@@ -40,6 +40,8 @@ class Speech2Speech:
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
+        subtask_maxlenratio: float = 0.0,
+        subtask_minlenratio: float = 0.0,
         use_teacher_forcing: bool = False,
         use_att_constraint: bool = False,
         backward_window: int = 1,
@@ -47,6 +49,9 @@ class Speech2Speech:
         nbest: int = 1,
         beam_size: int = 5,
         penalty: float = 0.0,
+        subtask_beam_size: int = 5,
+        subtask_penalty: float = 0.0,
+        subtask_nbest: int = 1,
         vocoder_config: Union[Path, str] = None,
         vocoder_file: Union[Path, str] = None,
         dtype: str = "float32",
@@ -90,6 +95,7 @@ class Speech2Speech:
         # setup decoding config
         self.decode_conf = {}  # use for specotrogram-based decoding
         scorers = {}  # use for beam-search decoding
+        subtask_scorers = {} # use for beam-search in subtask
         if self.s2st_type == "translatotron":
             self.decode_conf.update(
                 threshold=threshold,
@@ -100,7 +106,7 @@ class Speech2Speech:
                 backward_window=backward_window,
                 use_teacher_forcing=use_teacher_forcing,
             )
-        elif self.s2st_type == "discrete_unit":
+        elif self.s2st_type == "discrete_unit" or self.s2st_type == "unity":
 
             decoder = model.synthesizer
             token_list = model.unit_token_list
@@ -143,6 +149,52 @@ class Speech2Speech:
             logging.info(f"Decoding device={device}, dtype={dtype}")
 
             self.beam_search = beam_search
+
+            # Further define subtask decoder
+            if self.s2st_type == "unity":
+                subtask_decoder = model.st_decoder
+                subtask_scorers.update(
+                    decoder=subtask_decoder,
+                    length_bonus=LengthBonus(len(model.tgt_token_list))
+                )
+                subtask_weights = {
+                    "decoder": 1.0,
+                    "length_bonus": subtask_penalty,
+                }
+                subtask_beam_search = BeamSearch(
+                    beam_size=subtask_beam_size,
+                    weights=subtask_weights,
+                    scorers=subtask_scorers,
+                    sos=model.tgt_sos,
+                    eos=model.tgt_eos,
+                    vocab_size=len(model.tgt_token_list),
+                    pre_beam_score_key="full",
+                    return_hs=True,
+                )
+                # TODO(karita): make all subtask_scorers batchfied
+                non_batch = [
+                    k
+                    for k, v in subtask_beam_search.full_scorers.items()
+                    if not isinstance(v, BatchScorerInterface)
+                ]
+                if len(non_batch) == 0:
+                    subtask_beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+                else:
+                    logging.warning(
+                        f"As non-batch subtask_scorers {non_batch} are found, "
+                        f"fall back to non-batch implementation."
+                    )
+                subtask_beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+                for subtask_scorers in subtask_scorers.values():
+                    if isinstance(subtask_scorers, torch.nn.Module):
+                        subtask_scorers.to(device=device, dtype=getattr(torch, dtype)).eval()
+                logging.info(f"Subtask Beam_search: {subtask_beam_search}")
+                logging.info(f"Subtask Decoding device={device}, dtype={dtype}")
+
+                self.subtask_beam_search = subtask_beam_search
+
+
 
         else:
             raise NotImplementedError(
@@ -223,11 +275,21 @@ class Speech2Speech:
             token_int = np.array(best_hyp.yseq[1:-1].tolist())
             output_dict.update(feat_gen=torch.tensor(token_int))
 
-            logging.info("token_int: {}".format(token_int.shape))
+            logging.info("token_int: {}".format(token_int))
 
             if self.vocoder is not None:
                 wav = self.vocoder(torch.tensor(token_int).view(-1, 1))
                 output_dict.update(wav=wav)
+        
+        elif self.s2st_type == "unity":
+            output_dict = {}
+            # Forward Encoder
+            enc, _ = self.model.encode(batch["src_speech"], batch["src_speech_lengths"])
+
+            subtask_nbest_hyps = self.subtask_beam_search(
+                x=enc[0], maxlenratio=self.subtask_maxlenratio, mminlenratio=self.subtask_minlenratio,
+            )
+            best
 
         return output_dict
 
