@@ -763,10 +763,13 @@ class AbsTask(ABC):
         group.add_argument(
             "--chunk_excluded_key_prefixes",
             type=str,
-            action="append",
+            nargs="+",
             default=[],
-            help="List of key prefixes that will be excluded from the length "
-            "consistency check in ChunkIterFactory",
+            help="List of key prefixes. Keys that satisfy either condition below "
+            "will be excluded from the length consistency check in ChunkIterFactory:\n"
+            "  - exactly match one of the prefixes in `chunk_excluded_key_prefixes`\n"
+            "  - have one of the prefixes in `chunk_excluded_key_prefixes` and "
+            "end with numbers",
         )
 
         group = parser.add_argument_group("Dataset related")

@@ -4,6 +4,8 @@ batch_type: folded
 batch_size: 16
 iterator_type: chunk
 chunk_length: 24000
+# exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+# from the length consistency check in ChunkIterFactory
 chunk_excluded_key_prefixes:
 - "enroll_ref"
 num_workers: 4

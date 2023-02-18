@@ -88,6 +88,11 @@ class ChunkIterFactory(AbsIterFactory):
         self.batch_size = batch_size
         self.seed = seed
         self.shuffle = shuffle
+
+        # keys that satisfy either condition below will be excluded from the length
+        # consistency check:
+        #  - exactly match one of the prefixes in `excluded_key_prefixes`
+        #  - have one of the prefixes in `excluded_key_prefixes` and end with numbers
         self.excluded_key_pattern = (
             "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
             if excluded_key_prefixes is not None
