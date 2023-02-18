@@ -7,7 +7,7 @@ log() {
 }
 SECONDS=0
 stage=0
-stop_stage=100
+skip_stages=("-1")
 nlsyms_file=data/nlsyms.txt
 chime6_root=
 train_set=
@@ -15,6 +15,7 @@ gss_dsets=
 manifests_root=
 gss_dump_root=
 augm_num_data_reps=4
+decode_only=0
 foreground_snrs="20:10:15:5:0"
 background_snrs="20:10:15:5:0"
 
@@ -25,7 +26,12 @@ background_snrs="20:10:15:5:0"
 gss_dsets=$(echo $gss_dsets | tr "," " ") # split by commas
 
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ $decode_only == 1 ]; then
+  # stop after gss
+  skip_stages=("1" "2")
+fi
+
+if [ ${stage} -le 0 ] && ! [[ " ${skip_stages[*]} " =~ " 0 " ]]; then
   log "Dumping all lhotse manifests to kaldi manifests and merging everything for dev set close mics,
   you may want these for validation."
   cv_kaldi_manifests_ihm=()
@@ -42,8 +48,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   ./utils/fix_data_dir.sh data/kaldi/dev_ihm_all
 fi
 
-
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 1 ] && ! [[ " ${skip_stages[*]} " =~ " 1 " ]]; then
   all_tr_manifests=()
   all_tr_manifests_ihm=()
   log "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
@@ -78,7 +83,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 
-if [ $stage -le 2 ] && [ $stop_stage -ge 3 ]; then
+if [ $stage -le 2 ] && ! [[ " ${skip_stages[*]} " =~ " 2 " ]]; then
   log "Augmenting close-talk data with MUSAN and CHiME-6 extracted noises."
   local/extract_noises.py ${chime6_root}/audio/train ${chime6_root}/transcriptions/train \
     local/distant_audio_list distant_noises
@@ -116,7 +121,7 @@ if [ $stage -le 2 ] && [ $stop_stage -ge 3 ]; then
 fi
 
 
-if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
+if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
     # Preparing ASR training and validation data;
     log "Parsing the GSS output to Kaldi manifests"
     cv_kaldi_manifests_gss=()
@@ -136,11 +141,11 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
       ./utils/fix_data_dir.sh data/kaldi/${dset_name}/${dset_part}/gss
 
       if [ $dset_part == train ]; then
-         tr_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss")
+         tr_kaldi_manifests_gss+=( "data/kaldi/${dset_name}/${dset_part}/gss")
       fi
 
       if [ $dset_part == dev ]; then
-         cv_kaldi_manifests_gss+=( "data/kaldi/${dset}/${dset_part}/gss")
+         cv_kaldi_manifests_gss+=( "data/kaldi/${dset_name}/${dset_part}/gss")
       fi
     done
 
@@ -158,16 +163,20 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "stage 2: Create non linguistic symbols: ${nlsyms_file}"
+
+if [ ${stage} -le 4 ] && ! [[ " ${skip_stages[*]} " =~ " 4 " ]]; then
+    log "stage 4: Create non linguistic symbols: ${nlsyms_file}"
     if [ -f "${nlsyms_file}" ]; then
-      echo "${nlsyms_file} exists, please delete it or move it. exiting !"
-      echo "You can resume from this local/data.sh stage using --asr-dprep-stage 4 !"
-      exit
+      echo "${nlsyms_file} exists already, SKIPPING (please remove if you want to
+      override it) !"
+    else
+      # (popcornell) || true is needed to avoid exiting when grep returns none
+      cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms_file} || true
+      cat ${nlsyms_file}
     fi
-    cut -f 2- data/${train_set}/text | tr " " "\n" | sort | uniq | grep "\[" > ${nlsyms_file}
-    cat ${nlsyms_file}
 fi
 
+
 log "ASR data preparation successfully finished. [elapsed=${SECONDS}s]"
+
 
