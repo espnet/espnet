@@ -278,8 +278,11 @@ class Speech2Speech:
             logging.info("token_int: {}".format(token_int))
 
             if self.vocoder is not None:
-                wav = self.vocoder(torch.tensor(token_int).view(-1, 1))
-                output_dict.update(wav=wav)
+                if len(token_int) == 0:
+                    output_dict.update(wav=torch.tensor([0] * 100))
+                else:
+                    wav = self.vocoder(torch.tensor(token_int).view(-1, 1))
+                    output_dict.update(wav=wav)
         
         elif self.s2st_type == "unity":
             output_dict = {}
@@ -289,7 +292,7 @@ class Speech2Speech:
             subtask_nbest_hyps = self.subtask_beam_search(
                 x=enc[0], maxlenratio=self.subtask_maxlenratio, mminlenratio=self.subtask_minlenratio,
             )
-            best
+            
 
         return output_dict
 
