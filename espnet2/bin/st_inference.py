@@ -31,9 +31,9 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.st.espnet_model_seqattn2 import ESPnetSTModelSA2
-from espnet2.st.espnet_model_seqattn4 import ESPnetSTModelSA4
-from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
+# from espnet2.st.espnet_model_seqattn2 import ESPnetSTModelSA2
+# from espnet2.st.espnet_model_seqattn4 import ESPnetSTModelSA4
+# from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
 
 
 class Speech2Text:
@@ -400,7 +400,7 @@ class Speech2Text:
             md_enc, _, _ = self.st_model.md_encoder(asr_hs, asr_hs_lengths)
             x = md_enc[0]
             pre_x = enc[0]
-
+        
         # c. Passed the encoder result and the beam search
         if self.ctc_greedy:
             from itertools import groupby
@@ -413,18 +413,18 @@ class Speech2Text:
                             yseq=torch.tensor(hyp["yseq"]),
                         ) for hyp in nbest_hyps]
         elif self.st_model.use_multidecoder and self.st_model.use_speech_attn:
-            if isinstance(self.st_model, ESPnetSTModelSA2):
-                nbest_hyps = self.beam_search(
-                    x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=x, sa2=True
-                )
-            elif isinstance(self.st_model, ESPnetSTModelSA4):
-                nbest_hyps = self.beam_search(
-                    x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=asr_enc[0], sa2=True, pre_x2=x
-                )
-            else:
-                nbest_hyps = self.beam_search(
-                    x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=pre_x, md2=isinstance(self.st_model, ESPnetSTModelMD2)
-                )
+            # if isinstance(self.st_model, ESPnetSTModelSA2):
+            #     nbest_hyps = self.beam_search(
+            #         x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=x, sa2=True
+            #     )
+            # elif isinstance(self.st_model, ESPnetSTModelSA4):
+            #     nbest_hyps = self.beam_search(
+            #         x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=asr_enc[0], sa2=True, pre_x2=x
+            #     )
+            # else:
+            nbest_hyps = self.beam_search(
+                x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=pre_x
+            )
         elif self.beam_search_transducer:
             logging.info("encoder output length: " + str(x.shape[0]))
             nbest_hyps = self.beam_search_transducer(x)
