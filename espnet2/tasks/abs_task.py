@@ -170,6 +170,7 @@ class IteratorOptions:
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
     train: bool
+    filtered_key_file: str
 
 
 class AbsTask(ABC):
@@ -688,6 +689,22 @@ class AbsTask(ABC):
             type=int_or_none,
             default=None,
             help="If not given, the value of --batch_bins is used",
+        )
+        group.add_argument(
+            "--filtered_train_key_file",
+            type=str,
+            default=None,
+            help="Filtering samples by specified the key names (ID names) "
+            "from the data set, which is specified by shape files. "
+            "The file can specify the key name by each line",
+        )
+        group.add_argument(
+            "--filtered_valid_key_file",
+            type=str,
+            default=None,
+            help="Filtering samples by specified the key names (ID names) "
+            "from the data set, which is specified by shape files. "
+            "The file can specify the key name by each line",
         )
 
         group.add_argument("--train_shape_file", type=str, action="append", default=[])
@@ -1238,6 +1255,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    filtered_key_file=args.filtered_train_key_file,
                 ),
                 valid_iter=cls.build_streaming_iterator(
                     data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -1249,6 +1267,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    filtered_key_file=args.filtered_valid_key_file,
                 ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
@@ -1380,6 +1399,7 @@ class AbsTask(ABC):
             num_batches = None
             num_iters_per_epoch = args.num_iters_per_epoch
             train = True
+            filtered_key_file = args.filtered_train_key_file
 
         elif mode == "valid":
             preprocess_fn = cls.build_preprocess_fn(args, train=False)
@@ -1409,6 +1429,7 @@ class AbsTask(ABC):
             num_batches = None
             num_iters_per_epoch = None
             train = False
+            filtered_key_file = args.filtered_valid_key_file
 
         elif mode == "plot_att":
             preprocess_fn = cls.build_preprocess_fn(args, train=False)
@@ -1426,6 +1447,7 @@ class AbsTask(ABC):
             distributed = False
             num_iters_per_epoch = None
             train = False
+            filtered_key_file = args.filtered_valid_key_file
         else:
             raise NotImplementedError(f"mode={mode}")
 
@@ -1443,6 +1465,7 @@ class AbsTask(ABC):
             distributed=distributed,
             num_iters_per_epoch=num_iters_per_epoch,
             train=train,
+            filtered_key_file=filtered_key_file,
         )
 
     @classmethod
@@ -1548,6 +1571,7 @@ class AbsTask(ABC):
             if iter_options.distributed
             else 1,
             utt2category_file=utt2category_file,
+            filtered_key_file=iter_options.filtered_key_file,
         )
 
         batches = list(batch_sampler)
@@ -1610,7 +1634,11 @@ class AbsTask(ABC):
         else:
             key_file = iter_options.shape_files[0]
 
-        batch_sampler = UnsortedBatchSampler(batch_size=1, key_file=key_file)
+        batch_sampler = UnsortedBatchSampler(
+            batch_size=1,
+            key_file=key_file,
+            filtered_key_file=iter_options.filtered_key_file,
+        )
         batches = list(batch_sampler)
         if iter_options.num_batches is not None:
             batches = batches[: iter_options.num_batches]
@@ -1790,6 +1818,7 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
+        filtered_key_file: str = None,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()
@@ -1804,6 +1833,8 @@ class AbsTask(ABC):
             float_dtype=dtype,
             preprocess=preprocess_fn,
             key_file=key_file,
+            filtered_key_file=filtered_key_file,
+            allow_zero_iter=True,
         )
         if dataset.apply_utt2category:
             kwargs.update(batch_size=1)

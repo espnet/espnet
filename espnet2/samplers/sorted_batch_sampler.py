@@ -24,6 +24,7 @@ class SortedBatchSampler(AbsSampler):
         sort_in_batch: str = "descending",
         sort_batch: str = "ascending",
         drop_last: bool = False,
+        filtered_key_file: str = None,
     ):
         assert check_argument_types()
         assert batch_size > 0
@@ -32,6 +33,7 @@ class SortedBatchSampler(AbsSampler):
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
         self.drop_last = drop_last
+        self.filtered_key_file = filtered_key_file
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -50,6 +52,23 @@ class SortedBatchSampler(AbsSampler):
             )
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_file}")
+
+        if filtered_key_file is not None:
+            filtered_keys = set(
+                line.rstrip().split(maxsplit=1)[0]
+                for line in open(filtered_key_file, encoding="utf-8")
+            )
+            org_num_keys = len(keys)
+            keys = [k for k in keys if k not in filtered_keys]
+            logging.info(
+                f"Filtered by --filtered_key_file {filtered_key_file}: "
+                f"{org_num_keys} -> {len(keys)}"
+            )
+            if len(keys) == 0:
+                raise RuntimeError(
+                    "No samples remain after filtering. "
+                    f"Please check {shape_file} and {filtered_key_file}"
+                )
 
         # Apply max(, 1) to avoid 0-batches
         N = max(len(keys) // batch_size, 1)

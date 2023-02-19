@@ -26,43 +26,38 @@ def shape_files(tmp_path):
     return str(p1), str(p2)
 
 
+@pytest.fixture()
+def filtered_key_file(tmp_path):
+    p1 = tmp_path / "filtered_keys.txt"
+    with p1.open("w") as f:
+        f.write("a\n")
+        f.write("f\n")
+    return str(p1)
+
+
 @pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
 @pytest.mark.parametrize("drop_last", [True, False])
-def test_SortedBatchSampler(shape_files, sort_in_batch, sort_batch, drop_last):
+@pytest.mark.parametrize("filtered", [True, False])
+def test_SortedBatchSampler(
+    shape_files,
+    sort_in_batch,
+    sort_batch,
+    drop_last,
+    filtered_key_file,
+    filtered,
+):
     sampler = SortedBatchSampler(
         2,
         shape_file=shape_files[0],
         sort_in_batch=sort_in_batch,
         sort_batch=sort_batch,
         drop_last=drop_last,
+        filtered_key_file=filtered_key_file if filtered else None,
     )
     list(sampler)
-
-
-@pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
-@pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
-@pytest.mark.parametrize("drop_last", [True, False])
-def test_SortedBatchSampler_repr(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = SortedBatchSampler(
-        2,
-        shape_file=shape_files[0],
-        sort_in_batch=sort_in_batch,
-        sort_batch=sort_batch,
-        drop_last=drop_last,
-    )
     print(sampler)
-
-
-@pytest.mark.parametrize("sort_in_batch", ["descending", "ascending"])
-@pytest.mark.parametrize("sort_batch", ["descending", "ascending"])
-@pytest.mark.parametrize("drop_last", [True, False])
-def test_SortedBatchSampler_len(shape_files, sort_in_batch, sort_batch, drop_last):
-    sampler = SortedBatchSampler(
-        2,
-        shape_file=shape_files[0],
-        sort_in_batch=sort_in_batch,
-        sort_batch=sort_batch,
-        drop_last=drop_last,
-    )
-    len(sampler)
+    if filtered:
+        assert len(sampler) == 2
+    else:
+        assert len(sampler) == 3

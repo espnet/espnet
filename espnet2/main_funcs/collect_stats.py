@@ -47,6 +47,7 @@ def collect_stats(
         sq_dict = defaultdict(lambda: 0)
         count_dict = defaultdict(lambda: 0)
 
+        batch = None
         with DatadirWriter(output_dir / mode) as datadir_writer:
             for iiter, (keys, batch) in enumerate(itr, 1):
                 batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
@@ -116,8 +117,10 @@ def collect_stats(
 
         # batch_keys and stats_keys are used by aggregate_stats_dirs.py
         with (output_dir / mode / "batch_keys").open("w", encoding="utf-8") as f:
-            f.write(
-                "\n".join(filter(lambda x: not x.endswith("_lengths"), batch)) + "\n"
-            )
+            if batch is not None:
+                f.write(
+                    "\n".join(filter(lambda x: not x.endswith("_lengths"), batch))
+                    + "\n"
+                )
         with (output_dir / mode / "stats_keys").open("w", encoding="utf-8") as f:
             f.write("\n".join(sum_dict) + "\n")

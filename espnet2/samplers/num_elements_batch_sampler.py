@@ -1,3 +1,4 @@
+import logging
 from typing import Iterator, List, Tuple, Union
 
 import numpy as np
@@ -17,6 +18,7 @@ class NumElementsBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
+        filtered_key_file: str = None,
     ):
         assert check_argument_types()
         assert batch_bins > 0
@@ -34,6 +36,7 @@ class NumElementsBatchSampler(AbsSampler):
         self.sort_in_batch = sort_in_batch
         self.sort_batch = sort_batch
         self.drop_last = drop_last
+        self.filtered_key_file = filtered_key_file
 
         # utt2shape: (Length, ...)
         #    uttA 100,...
@@ -54,6 +57,24 @@ class NumElementsBatchSampler(AbsSampler):
         keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
+
+        if filtered_key_file is not None:
+            filtered_keys = set(
+                line.rstrip().split(maxsplit=1)[0]
+                for line in open(filtered_key_file, encoding="utf-8")
+            )
+            org_num_keys = len(keys)
+            keys = [k for k in keys if k not in filtered_keys]
+            logging.info(
+                f"Filtered by --filtered_key_file {filtered_key_file}: "
+                f"{org_num_keys} -> {len(keys)}"
+            )
+            if len(keys) == 0:
+                raise RuntimeError(
+                    "No samples remain after filtering. "
+                    f"Please check {shape_files[0]} and {filtered_key_file}"
+                )
+
         if padding:
             # If padding case, the feat-dim must be same over whole corpus,
             # therefore the first sample is referred

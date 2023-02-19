@@ -76,6 +76,8 @@ class IterableESPnetDataset(IterableDataset):
         float_dtype: str = "float32",
         int_dtype: str = "long",
         key_file: str = None,
+        filtered_key_file: str = None,
+        allow_zero_iter: bool = False,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -89,6 +91,8 @@ class IterableESPnetDataset(IterableDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.key_file = key_file
+        self.allow_zero_iter = allow_zero_iter
+        self.filtered_key_file = filtered_key_file
 
         self.debug_info = {}
         non_iterable_list = []
@@ -147,6 +151,14 @@ class IterableESPnetDataset(IterableDataset):
         else:
             uid_iter = iter(self.non_iterable_dataset)
 
+        if self.filtered_key_file is not None:
+            filtered_keys = set(
+                line.rstrip().split(maxsplit=1)[0]
+                for line in open(self.filtered_key_file, encoding="utf-8")
+            )
+        else:
+            filtered_keys = set()
+
         files = [open(lis[0], encoding="utf-8") for lis in self.path_name_type_list]
 
         worker_info = torch.utils.data.get_worker_info()
@@ -190,6 +202,9 @@ class IterableESPnetDataset(IterableDataset):
                 if len(keys) == 0 or keys[0] == uid:
                     break
 
+            if filtered_keys is not None and uid in filtered_keys:
+                continue
+
             # 2. Load the entry from each line and create a dict
             data = {}
             # 2.a. Load data streamingly
@@ -228,5 +243,5 @@ class IterableESPnetDataset(IterableDataset):
 
             yield uid, data
 
-        if count == 0:
+        if count == 0 and not self.allow_zero_iter:
             raise RuntimeError("No iteration")
