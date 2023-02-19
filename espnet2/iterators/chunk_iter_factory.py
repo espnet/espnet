@@ -98,6 +98,11 @@ class ChunkIterFactory(AbsIterFactory):
             if excluded_key_prefixes is not None
             else None
         )
+        if self.excluded_key_pattern:
+            logging.info(
+                f"Data keys with the following patterns will be excluded from the "
+                f"length consistency check:\n{self.excluded_key_pattern}"
+            )
 
     def build_iter(
         self,
