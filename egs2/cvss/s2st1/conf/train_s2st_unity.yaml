@@ -2,6 +2,8 @@
 # Network Architecture
 # =====================
 
+s2st_type: unity
+
 # Frontend
 frontend: default
 frontend_conf:
@@ -9,47 +11,55 @@ frontend_conf:
     win_length: 400
     hop_length: 160
 
+# Tgt feats extract
+tgt_feats_extract: None
+output_size: 500
+
 # Encoder
 encoder: transformer
 encoder_conf:
     input_layer: "conv2d"
-    num_blocks: 8
+    num_blocks: 16
     linear_units: 2048
     dropout_rate: 0.1
     output_size: 256
     attention_heads: 4
     attention_dropout_rate: 0.0
-
-# ASR Decoder
-asr_decoder: transformer
-asr_decoder_conf:
-    input_layer: "embed"
-    num_blocks: 2
-    linear_units: 2048
-    dropout_rate: 0.1
+    normalize_before: true
 
 # ASR CTC
 asr_ctc: true
+
+# ST CTC
+st_ctc: true
 
 # ST Decoder
 st_decoder: transformer
 st_decoder_conf:
     input_layer: "embed"
+    num_blocks: 4
+    linear_units: 2048
+    attention_heads: 4
+
+# Unit Encoder
+unit_encoder: transformer
+unit_encoder_conf:
+    input_layer: "linear"
     num_blocks: 2
     linear_units: 2048
     dropout_rate: 0.1
+    output_size: 256
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+    normalize_before: true
 
 # Synthesizer
-synthesizer: translatotron
+synthesizer: discrete_unit
 synthesizer_conf:
-    embed_dim: 512
-    atype: forward
-    adim: 512
-    aconv_chans: 32
-    dlayers: 6
-    dunits: 1024
-    prenet_units: 32
-    reduction_factor: 1
+    input_layer: "embed"
+    num_blocks: 2
+    linear_units: 2048
+    attention_heads: 8
 
 # =====================
 # Training Related
@@ -57,57 +67,58 @@ synthesizer_conf:
 
 # Loss-related
 losses:
-    - name: src_ctc
+    - name: asr_ctc
       type: ctc
       conf:
-        weight: 0.1
+        weight: 1.6
     - name: src_attn
       type: attention
       conf:
-        weight: 0.1
-        smoothing: 0.1
+        weight: 8.0
+        smoothing: 0.2
         padding_idx: -1
     - name: tgt_attn
       type: attention
       conf:
-        weight: 0.3
-        smoothing: 0.1
+        weight: 8.0
+        smoothing: 0.2
         padding_idx: -1
+    - name: st_ctc
+      type: ctc
+      conf:
+        weight: 1.6
     - name: synthesis
-      type: tacotron
+      type: attention
       conf:
-        weight: 1.0
-        loss_type: "L1+L2"
-        bce_pos_weight: 10.0
-    - name: syn_guided_attn
-      type: guided_attention
-      conf:
-        weight: 1.0
-        sigma: 0.4
-        alpha: 1.0
-    
+        weight: 1.6
+        smoothing: 0.2
+        padding_idx: -1
+
 # Optimization
 optim: adamw
-accum_grad: 1
+accum_grad: 4
 grad_clip: 1.0
 grad_noise: false
-max_epoch: 50
 optim_conf:
-    lr: 1.0e-03
+    lr: 0.0005
     eps: 1.0e-06
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 10000
 
 # Batching
 batch_type: sorted
-batch_size: 8
+batch_size: 32
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
-num_iters_per_epoch: 500
+# num_iters_per_epoch: 1000
 max_epoch: 500
-num_workers: 1
+num_workers: 2
 log_interval: null
 seed: 0
+num_att_plot: 0
 best_model_criterion:
 -   - valid
     - loss
@@ -116,3 +127,4 @@ best_model_criterion:
     - loss
     - min
 keep_nbest_models: 5
+unused_parameters: true    # set as true if some params are unused in DDP

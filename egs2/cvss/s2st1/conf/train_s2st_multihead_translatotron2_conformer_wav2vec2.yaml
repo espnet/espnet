@@ -5,11 +5,22 @@
 s2st_type: translatotron2
 
 # Frontend
-frontend: default
+# frontend: default
+# frontend_conf:
+#     n_fft: 512
+#     win_length: 400
+#     hop_length: 160
+frontend: s3prl
 frontend_conf:
-    n_fft: 512
-    win_length: 400
-    hop_length: 160
+    frontend_conf:
+        upstream: wav2vec2_conformer_large_s2st_en_librilight
+    download_dir: ./hub
+    multilayer_feature: False
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024
+    output_size: 256
 
 # Tgt feats extract
 tgt_feats_extract: fbank
@@ -19,23 +30,29 @@ tgt_feats_extract_conf:
     hop_length: 160
 
 # Encoder
-encoder: conformer
+# encoder: transformer
+# encoder_conf:
+#     input_layer: "conv2d"
+#     num_blocks: 16
+#     linear_units: 1024
+#     dropout_rate: 0.1
+#     output_size: 256
+#     attention_heads: 4
+#     attention_dropout_rate: 0.0
+#     normalize_before: true
+#     rel_pos_type: latest
+#     pos_enc_layer_type: rel_pos
+#     selfattention_layer_type: rel_selfattn
+#     activation_type: swish
+#     macaron_style: true
+#     use_cnn_module: true
+#     cnn_module_kernel: 31
+encoder: linear
 encoder_conf:
-    input_layer: "conv2d"
-    num_blocks: 16
-    linear_units: 1024
-    dropout_rate: 0.1
-    output_size: 144
-    attention_heads: 4
-    attention_dropout_rate: 0.0
+    input_layer: linear
+    output_size: 256
+    dropout_rate: 0.
     normalize_before: true
-    rel_pos_type: latest
-    pos_enc_layer_type: rel_pos
-    selfattention_layer_type: rel_selfattn
-    activation_type: swish
-    macaron_style: true
-    use_cnn_module: true
-    cnn_module_kernel: 31
 
 # ASR CTC
 asr_ctc: true
@@ -44,7 +61,7 @@ asr_ctc: true
 st_decoder: transformer
 st_decoder_conf:
     input_layer: "embed"
-    num_blocks: 6
+    num_blocks: 4
     linear_units: 1024
     dropout_rate: 0.1
 
@@ -76,43 +93,43 @@ losses:
     - name: asr_ctc
       type: ctc
       conf:
-        weight: 0.1
+        weight: 1.0
     - name: tgt_attn
       type: attention
       conf:
-        weight: 0.3
+        weight: 1.0
         smoothing: 0.1
         padding_idx: -1
     - name: synthesis
       type: tacotron
       conf:
-        weight: 1.0
+        weight: 0.0
         loss_type: "L1+L2"
-        bce_pos_weight: 10.0
+        bce_pos_weight: 20.0
 
 # Optimization
 optim: adamw
-accum_grad: 2
+accum_grad: 3
 grad_clip: 1.0
 grad_noise: false
 optim_conf:
-    lr: 2.2e-03
+    lr: 1.0e-03
     eps: 1.0e-06
 scheduler: warmuplr
 scheduler_conf:
-   warmup_steps: 20000
+   warmup_steps: 10000
 
 # Batching
 batch_type: sorted
-batch_size: 8
+batch_size: 3
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
 # num_iters_per_epoch: 1000
-max_epoch: 500
-num_workers: 1
-log_interval: null
+max_epoch: 100
+num_workers: 4
+log_interval: 100
 seed: 0
 num_att_plot: 0
 best_model_criterion:
@@ -140,3 +157,6 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 10
+
+use_amp: true
+unused_parameters: true    # set as true if some params are unused in DDP
