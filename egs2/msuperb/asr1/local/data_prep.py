@@ -258,11 +258,7 @@ if __name__ == "__main__":
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
-                            args.source,
-                            dataset,
-                            lang,
-                            "wav",
-                            "{}.wav".format(utt_id),
+                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                         ),
                     )
                 )
@@ -286,11 +282,7 @@ if __name__ == "__main__":
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
-                            args.source,
-                            dataset,
-                            lang,
-                            "wav",
-                            "{}.wav".format(utt_id),
+                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                         ),
                     )
                 )

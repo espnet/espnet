@@ -36,26 +36,30 @@ class InternalNode(TreeNode):
             else:
                 self.num -= 1
         self.children.pop(name, None)
-    
+
     def __str__(self) -> str:
-        return f"name: {self.name}\n" + \
-            f"par: {self.par.name if self.par is not None else None}\n" + \
-            f"level: {self.level}\n" + \
-            f"num: {self.num}\n" + \
-            f"children: {list(self.children.keys())}\n"
+        return (
+            f"name: {self.name}\n"
+            + f"par: {self.par.name if self.par is not None else None}\n"
+            + f"level: {self.level}\n"
+            + f"num: {self.num}\n"
+            + f"children: {list(self.children.keys())}\n"
+        )
 
 
 class LeafNode(TreeNode):
-    def __init__(self, name: str, iso: str=""):
+    def __init__(self, name: str, iso: str = ""):
         super().__init__(name)
         self.iso = iso
 
     def __str__(self) -> str:
-        return f"name: {self.name}\n" + \
-            f"par: {self.par.name if self.par is not None else None}\n" + \
-            f"level: {self.level}\n" + \
-            f"iso: {self.iso}\n" + \
-            f"ancestors: {[node.name for node in self.get_ancestors()]}\n"
+        return (
+            f"name: {self.name}\n"
+            + f"par: {self.par.name if self.par is not None else None}\n"
+            + f"level: {self.level}\n"
+            + f"iso: {self.iso}\n"
+            + f"ancestors: {[node.name for node in self.get_ancestors()]}\n"
+        )
 
 
 class LanguageTree(object):
@@ -71,13 +75,13 @@ class LanguageTree(object):
 
     def size(self):
         return len(self.iso2node)
-    
+
     def build_from_json(self, path):
-        with open(path, 'r', encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             info = json.load(f)
         self.root = InternalNode(name="ROOT")
         self.__build(self.root, info)
-    
+
     def __build(self, root: InternalNode, data):
         for k, v in data.items():
             if k == "lang":
@@ -102,18 +106,22 @@ class LanguageTree(object):
         # elif tag == "name":
         #     return self.name2node[key]
         else:
-            raise NotImplementedError(f"Searching not supported. Support tags: \"iso\", \"name\".")
+            raise NotImplementedError(
+                f'Searching not supported. Support tags: "iso", "name".'
+            )
 
     def __str__(self) -> str:
-        return f"Total languages: {self.size()}\n" + \
-            f"Total families: {len(self.root.children)}\n"
+        return (
+            f"Total languages: {self.size()}\n"
+            + f"Total families: {len(self.root.children)}\n"
+        )
 
     def lca(self, iso1, iso2):
         node1 = self.iso2node[iso1]
         node2 = self.iso2node[iso2]
         if iso1 == iso2:
             return node1.level, node1.name
-        
+
         anc1 = node1.get_ancestors()
         anc2 = node2.get_ancestors()
         st = 0
@@ -132,7 +140,7 @@ if __name__ == "__main__":
     node = tree.get_node("iso", "deu")
     print(node)
     print(tree.lca("eng", "deu"))
-    with open('macro.json', 'r', encoding='utf-8') as f:
+    with open("macro.json", "r", encoding="utf-8") as f:
         macro_info = json.load(f)
     # for k, v in macro_info.items():
     #     for iso in v:

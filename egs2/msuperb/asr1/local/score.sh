@@ -33,23 +33,16 @@ set -o pipefail
 log "Linguistic scoring started"
 log "$0 $*"
 
-
-# if [ -n "${inference_config}" ]; then
-#         inference_tag="$(basename "${inference_config}" .yaml)"
-# else
-#     inference_tag=inference
-# fi
-
-# inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+mkdir -p local/downloads
+if [ ! -f local/downloads/linguistic.json ]; then
+    wget -O local/downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
+fi
+if [ ! -f local/downloads/macro.json ]; then
+    wget -O local/downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
+fi
+if [ ! -f local/downloads/exception.json ]; then
+    wget -O local/downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true 
+fi
 
 python local/multilingual_analysis.py \
     --dir ${asr_exp}
-
-# for dset in ${test_sets}; do
-#     for _type in "cer" "wer"; do
-#         _scoredir="${asr_exp}/${inference_tag}/${dset}/score_${_type}"
-
-#         python local/multilingual_analysis.py \
-#             --dir ${dir}
-#     done
-# done
