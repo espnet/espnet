@@ -172,7 +172,7 @@ class BatchBeamSearch(BeamSearch):
         states = dict()
         for k, d in self.full_scorers.items():
             if 'decoder' in k and self.return_hs:
-                scores[k], hs, states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, return_hs=self.return_hs)
+                (scores[k], hs), states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, return_hs=self.return_hs)
             elif 'decoder' in k and pre_x is not None:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, pre_x)
             else:

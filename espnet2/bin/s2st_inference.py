@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union, List
 
 import numpy as np
 import soundfile as sf
@@ -40,7 +40,7 @@ class Speech2Speech:
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
-        subtask_maxlenratio: float = 0.0,
+        subtask_maxlenratio: float = 1.5,
         subtask_minlenratio: float = 0.0,
         use_teacher_forcing: bool = False,
         use_att_constraint: bool = False,
@@ -77,6 +77,8 @@ class Speech2Speech:
         self.use_teacher_forcing = use_teacher_forcing
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
+        self.subtask_maxlenratio = subtask_maxlenratio
+        self.subtask_minlenratio = subtask_minlenratio
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
@@ -161,12 +163,13 @@ class Speech2Speech:
                     "decoder": 1.0,
                     "length_bonus": subtask_penalty,
                 }
+                logging.info("model sos eos: {}".format(model.eos))
                 subtask_beam_search = BeamSearch(
                     beam_size=subtask_beam_size,
                     weights=subtask_weights,
                     scorers=subtask_scorers,
-                    sos=model.tgt_sos,
-                    eos=model.tgt_eos,
+                    sos=model.sos,
+                    eos=model.eos,
                     vocab_size=len(model.tgt_token_list),
                     pre_beam_score_key="full",
                     return_hs=True,
@@ -193,8 +196,6 @@ class Speech2Speech:
                 logging.info(f"Subtask Decoding device={device}, dtype={dtype}")
 
                 self.subtask_beam_search = subtask_beam_search
-
-
 
         else:
             raise NotImplementedError(
@@ -281,7 +282,11 @@ class Speech2Speech:
                 if len(token_int) == 0:
                     output_dict.update(wav=torch.tensor([0] * 100))
                 else:
-                    wav = self.vocoder(torch.tensor(token_int).view(-1, 1))
+                    input_discrete_unit = to_device(torch.tensor(token_int).view(-1, 1), device=self.device)
+                    # NOTE(jiatong): we default take the last token in the token list as <unk>
+                    # see scripts/feats/performa_kemans.sh for details
+                    input_discrete_unit = input_discrete_unit[input_discrete_unit != self.model.unit_vocab_size - 1].view(-1, 1)
+                    wav = self.vocoder(input_discrete_unit)
                     output_dict.update(wav=wav)
         
         elif self.s2st_type == "unity":
@@ -290,9 +295,56 @@ class Speech2Speech:
             enc, _ = self.model.encode(batch["src_speech"], batch["src_speech_lengths"])
 
             subtask_nbest_hyps = self.subtask_beam_search(
-                x=enc[0], maxlenratio=self.subtask_maxlenratio, mminlenratio=self.subtask_minlenratio,
+                x=enc[0], maxlenratio=self.subtask_maxlenratio, minlenratio=self.subtask_minlenratio,
             )
-            
+
+            logging.info("subtask_token_int: {}".format(subtask_nbest_hyps[0].yseq[1: -1].tolist()))
+
+            subtask_result = []
+            for hyp in subtask_nbest_hyps:
+                assert isinstance(hyp, Hypothesis), type(hyp)
+
+                # remove sos/eos and get results
+                if isinstance(hyp.hs, List):
+                    subtask_hs = torch.stack(hyp.hs)
+                else:
+                    subtask_hs = hyp.hs
+                
+                # subtask_token_int = hyp.yseq[1:-1].tolist()
+                # subtask_token = self.subtask_converter.ids2tokens(subtask_token_int)
+                # if self.subtask_tokenizer is not None:
+                #     subtask_hyp_text = self.subtask_tokenizer.tokens2text(subtask_token)
+                # else:
+                #     subtask_hyp_text = None
+                
+                # subtask_result.append((subtask_hyp_text, subtask_token, subtask_token_int, subtask_hs))
+                subtask_result.append(subtask_hs)
+
+            # encoder 1best subtask result
+            subtask_hs = subtask_result[0].unsqueeze(0)
+            subtask_hs = to_device(subtask_hs, device=self.device)
+            subtask_hs_lengths = subtask_hs.new_full([1], dtype=torch.long, fill_value=subtask_hs.size(1))
+            md_enc, _, _ = self.model.unit_encoder(subtask_hs, subtask_hs_lengths)
+            nbest_hyps = self.beam_search(md_enc[0], maxlenratio=self.maxlenratio * 100, minlenratio=self.minlenratio)
+
+            # TODO(jiatong): get nbest list instead of just best hyp
+            best_hyp = nbest_hyps[0]  # just use the best
+            # remove sos/eos and get results
+            token_int = np.array(best_hyp.yseq[1:-1].tolist())
+            output_dict.update(feat_gen=torch.tensor(token_int))
+
+            logging.info("token_int: {}".format(token_int))
+
+            if self.vocoder is not None:
+                if len(token_int) == 0:
+                    output_dict.update(wav=torch.tensor([0] * 100))
+                else:
+                    input_discrete_unit = to_device(torch.tensor(token_int).view(-1, 1), device=self.device)
+                    # NOTE(jiatong): we default take the last token in the token list as <unk>
+                    # see scripts/feats/performa_kemans.sh for details
+                    input_discrete_unit = input_discrete_unit[input_discrete_unit != self.model.unit_vocab_size - 1].view(-1, 1)
+                    wav = self.vocoder(input_discrete_unit)
+                    output_dict.update(wav=wav)
 
         return output_dict
 
@@ -388,6 +440,8 @@ def inference(
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
+    subtask_minlenratio: float,
+    subtask_maxlenratio: float,
     use_teacher_forcing: bool,
     use_att_constraint: bool,
     backward_window: int,
@@ -396,6 +450,9 @@ def inference(
     nbest: int,
     beam_size: int,
     penalty: float,
+    subtask_nbest: int,
+    subtask_beam_size: int,
+    subtask_penalty: float,
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str],
     vocoder_file: Optional[str],
@@ -427,6 +484,8 @@ def inference(
         threshold=threshold,
         maxlenratio=maxlenratio,
         minlenratio=minlenratio,
+        subtask_maxlenratio=subtask_maxlenratio,
+        subtask_minlenratio=subtask_minlenratio,
         use_teacher_forcing=use_teacher_forcing,
         use_att_constraint=use_att_constraint,
         backward_window=backward_window,
@@ -434,6 +493,9 @@ def inference(
         nbest=nbest,
         beam_size=beam_size,
         penalty=penalty,
+        subtask_nbest=subtask_nbest,
+        subtask_beam_size=subtask_beam_size,
+        subtask_penalty=subtask_penalty,
         vocoder_config=vocoder_config,
         vocoder_file=vocoder_file,
         dtype=dtype,
@@ -700,6 +762,18 @@ def get_parser():
         default=0.0,
         help="Minimum length ratio in decoding",
     )
+    group.add_argument(
+        "--subtask_maxlenratio",
+        type=float,
+        default=1.5,
+        help="Maximum length ratio in decoding",
+    )
+    group.add_argument(
+        "--subtask_minlenratio",
+        type=float,
+        default=0.1,
+        help="Minimum length ratio in decoding",
+    )
 
     group = parser.add_argument_group("Spectrogram-based generation related")
     group.add_argument(
@@ -743,6 +817,9 @@ def get_parser():
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
+    group.add_argument("--subtask_nbest", type=int, default=1, help="Output N-best hypotheses")
+    group.add_argument("--subtask_beam_size", type=int, default=5, help="Beam size")
+    group.add_argument("--subtask_penalty", type=float, default=0.0, help="Insertion penalty")
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(

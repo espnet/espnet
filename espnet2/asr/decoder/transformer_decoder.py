@@ -251,14 +251,14 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
         if return_hs:
-            logp, hs, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
+            (logp, hs), states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
         else:
             logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
         if return_hs:
-            return logp, hs, state_list
+            return (logp, hs), state_list
         return logp, state_list
 
 
