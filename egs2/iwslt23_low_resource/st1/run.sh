@@ -27,8 +27,6 @@ tgt_case=tc
 
 ./st.sh \
     --ignore_init_mismatch true \
-    --stage 1 \
-    --stop_stage 1 \
     --max_wav_duration 60 \
     --use_lm true \
     --token_joint false \
