@@ -817,8 +817,8 @@ if ! "${skip_data_prep}"; then
                 echo "${blank}"
                 echo "${oov}"
                 # Remove <unk>, <s>, </s> from the vocabulary
-                <${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-                echo "${sos_eos}
+                <${src_bpeprefix}.vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+                echo "${sos_eos}"
                 } > "${src_token_list}"
 
             elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ] || [ "${tgt_token_type}" = phn ]; then
