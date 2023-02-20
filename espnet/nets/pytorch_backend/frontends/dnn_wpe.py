@@ -5,7 +5,7 @@ from pytorch_wpe import wpe_one_iteration
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 class DNN_WPE(torch.nn.Module):
@@ -84,7 +84,7 @@ class DNN_WPE(torch.nn.Module):
                 inverse_power=self.inverse_power,
             )
 
-            enhanced.masked_fill_(make_pad_mask(ilens, enhanced.real), 0)
+            enhanced.masked_fill_(make_pad_mask_with_reference(ilens, enhanced.real), 0)
 
         # (B, F, C, T) -> (B, T, C, F)
         enhanced = enhanced.permute(0, 3, 2, 1)

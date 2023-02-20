@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 class FeatureTransform(torch.nn.Module):
@@ -126,7 +126,7 @@ class LogMel(torch.nn.Module):
 
         logmel_feat = (mel_feat + 1e-20).log()
         # Zero padding
-        logmel_feat = logmel_feat.masked_fill(make_pad_mask(ilens, logmel_feat, 1), 0.0)
+        logmel_feat = logmel_feat.masked_fill(make_pad_mask_with_reference(ilens, logmel_feat, 1), 0.0)
         return logmel_feat, ilens
 
 
@@ -181,7 +181,7 @@ class GlobalMVN(torch.nn.Module):
         # feat: (B, T, D)
         if self.norm_means:
             x += self.bias.type_as(x)
-            x.masked_fill(make_pad_mask(ilens, x, 1), 0.0)
+            x.masked_fill(make_pad_mask_with_reference(ilens, x, 1), 0.0)
 
         if self.norm_vars:
             x *= self.scale.type_as(x)
@@ -236,7 +236,7 @@ def utterance_mvn(
         x_ = x - mean[:, None, :]
 
     # Zero padding
-    x_.masked_fill(make_pad_mask(ilens, x_, 1), 0.0)
+    x_.masked_fill(make_pad_mask_with_reference(ilens, x_, 1), 0.0)
     if norm_vars:
         var = x_.pow(2).sum(dim=1) / ilens_[:, None]
         var = torch.clamp(var, min=eps)

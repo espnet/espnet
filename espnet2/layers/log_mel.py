@@ -3,7 +3,7 @@ from typing import Tuple
 import librosa
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask_with_reference
 
 
 class LogMel(torch.nn.Module):
@@ -75,7 +75,7 @@ class LogMel(torch.nn.Module):
         # Zero padding
         if ilens is not None:
             logmel_feat = logmel_feat.masked_fill(
-                make_pad_mask(ilens, logmel_feat, 1), 0.0
+                make_pad_mask_with_reference(ilens, logmel_feat, 1), 0.0
             )
         else:
             ilens = feat.new_full(
