@@ -76,7 +76,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         cut -d ' ' -f 2- data/${set}/text.spa > data/${set}/spa.org
         # tokenize
-        tokenizer.perl -l en -q < data/${set}/spa.org > data/${set}/spa.tok
+        tokenizer.perl -l es -q < data/${set}/spa.org > data/${set}/spa.tok
         paste -d ' ' data/${set}/uttlist data/${set}/spa.tok > data/${set}/text.tc.spa
 
         # remove empty lines that were previously only punctuation

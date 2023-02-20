@@ -26,13 +26,8 @@ src_case=lc.rm
 tgt_case=tc
 
 ./st.sh \
-    --ignore_init_mismatch true \
     --max_wav_duration 60 \
     --use_lm true \
-    --token_joint false \
-    --audio_format "flac.ark" \
-    --nj 40 \
-    --inference_nj 40 \
     --audio_format "flac.ark" \
     --lm_config conf/rnn_lm.yaml \
     --src_lang ${src_lang} \
