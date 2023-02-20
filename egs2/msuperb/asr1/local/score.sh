@@ -33,15 +33,15 @@ set -o pipefail
 log "Linguistic scoring started"
 log "$0 $*"
 
-mkdir -p local/downloads
-if [ ! -f local/downloads/linguistic.json ]; then
-    wget -O local/downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
+mkdir -p downloads
+if [ ! -f downloads/linguistic.json ]; then
+    wget -O downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
 fi
-if [ ! -f local/downloads/macro.json ]; then
-    wget -O local/downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
+if [ ! -f downloads/macro.json ]; then
+    wget -O downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
 fi
-if [ ! -f local/downloads/exception.json ]; then
-    wget -O local/downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true 
+if [ ! -f downloads/exception.json ]; then
+    wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true 
 fi
 
 python local/multilingual_analysis.py \
