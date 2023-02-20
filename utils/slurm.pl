@@ -346,20 +346,44 @@ my @time = split('-', $job_time);
 my $size = @time;
 
 # days
+my $days_specified = 0;
 if ($size > 1) {
     $hours += $time[0] * 24;
+    $days_specified = 1;
 }
+
 my $time = $time[-1];
 @time = split(':', $time);
 $size = @time;
+if ($days_specified) {
+  # hours
+  $hours += $time[0];
 
-# minutes
-if ($size >= 2) {
-    $hours += $time[-2] / 60;
-}
-# hours
-if ($size >= 3) {
-    $hours += $time[-3];
+  if ($size >= 2) {
+    # minutes
+    $hours += $time[1] / 60;
+  }
+  if ($size == 3) {
+    # seconds
+    $hours += $time[2] / 3600;
+  }
+} else {
+  # minutes
+  if ($size <= 2) {
+    $hours += $time[0] / 60;
+  } else {
+    $hours += $time[1] / 60;
+  }
+
+  # seconds
+  if ($size >= 2) {
+    $hours += $time[-1] / 3600;
+  }
+
+  # hours
+  if ($size > 2) {
+    $hours += $time[0];
+  }
 }
 $hours *= $resource_multiplier;
 print STDERR "$0: Job time is $hours hours\n";
