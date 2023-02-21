@@ -574,7 +574,7 @@ def inference(
         output_dir / "focus_rates/focus_rates", "w"
     ) as focus_rate_writer, DatadirWriter(
         output_dir / "st_subtask"
-    ) st_subtask_wrtier as :
+    ) as st_subtask_wrtier :
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -853,10 +853,10 @@ def get_parser():
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument("--st_subtask_nbest", type=int, default=1, help="Output N-best hypotheses")
-    group.add_argument("--st_subtask_beam_size", type=int, default=5, help="Beam size")
-    group.add_argument("--st_subtask_penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument("--st_subtask_token_type", type=str, default=)
+    group.add_argument("--st_subtask_nbest", type=int, default=1, help="Output N-best hypotheses for st subtask")
+    group.add_argument("--st_subtask_beam_size", type=int, default=5, help="Beam size for st subtask")
+    group.add_argument("--st_subtask_penalty", type=float, default=0.0, help="Insertion penalty for st subtask")
+    group.add_argument("--st_subtask_token_type", type=str, default=None, help="Token type for st subtask")
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(

@@ -1605,6 +1605,8 @@ if ! "${skip_upload}"; then
         fi
         if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${tgt_bpemodel} "
+        fi
+        if [ "${src_token_type}" = bpe ]; then
             _opts+="--option ${src_bpemodel} "
         fi
         if [ "${nlsyms_txt}" != none ]; then
