@@ -76,6 +76,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("svs", SVSPackedContents),
         ("enh_s2t", EnhS2TPackedContents),
         ("ssl", SSLPackedContents),
+        ("s2st", S2STPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,
