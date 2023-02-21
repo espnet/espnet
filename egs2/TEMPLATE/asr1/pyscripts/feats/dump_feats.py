@@ -79,6 +79,7 @@ def get_parser():
 def dump_feature(
     reader, in_filetype, rspecifier, out_filetype, wspecifier, write_num_frames=None
 ):
+    count = 0
     with file_writer_helper(
         wspecifier,
         filetype=out_filetype,
@@ -92,6 +93,9 @@ def dump_feature(
             nsample = len(mat)
             feat = reader.get_feats(mat, nsample).numpy()
             writer[utt] = feat
+            count += 1
+            if count % 1000 == 0:
+                logging.info("process {}".format(count))
     logger.info("finished successfully")
 
 

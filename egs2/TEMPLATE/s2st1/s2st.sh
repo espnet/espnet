@@ -86,7 +86,7 @@ use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
 feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
-clustering_portion=0.5          # the portion of data used for clustering
+clustering_portion=0.1          # the portion of data used for clustering
 feature_num_clusters=500        # Number of feature clusters
 
 
@@ -118,7 +118,7 @@ inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
-inference_s2st_model=valid.loss.best.pth # S2ST model path for decoding.
+inference_s2st_model=train.loss.best.pth # S2ST model path for decoding.
                                       # e.g.
                                       # inference_s2st_model=train.loss.best.pth
                                       # inference_s2st_model=3epoch.pth
@@ -138,6 +138,7 @@ score_asr_inference_config=""  # Scoring asr inference config file
 score_asr_inference_args=""    # Scoring asr inference arguments
 score_nlsyms_text=none         # Scoring asr nlsyms text file for filtering
 score_cleaner=none             # Scoring cleaner for text normalizing
+score_st_subtask=false         # Whether to score st subtask
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -260,6 +261,7 @@ Options:
     --score_asr_inference_args    # Scoring asr inference arguments (default="${score_asr_inference_args}").
     --score_nlsyms_text           # Scoring asr nlsyms text file for filtering (default="${score_nlsyms_text}").
     --score_cleaner               # Scoring cleaner for text normalizing (default="${score_cleaner}").
+    --score_st_subtask            # Whether to score st subtask (default="${score_st_subtask}").
     
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -397,9 +399,9 @@ fi
 # Set tag for KMeans direcotry
 if [ -z "${km_tag}" ]; then
     km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
-    km_dir="dump/${km_tag}"
-    unit_tokendir="${token_listdir}"/discrete_unit.${km_tag}
 fi
+km_dir="dump/${km_tag}"
+unit_tokendir="${token_listdir}"/discrete_unit.${km_tag}
 
 # Set tag for naming of model directory
 if [ -z "${s2st_tag}" ]; then
@@ -468,7 +470,8 @@ if ! "${skip_data_prep}"; then
             # If nothing is need, then format_wav_scp.sh does nothing:
             # i.e. the input file format and rate is same as the output.
 
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            # for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            for dset in ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
                 else
@@ -1104,8 +1107,8 @@ if ! "${skip_train}"; then
         if [ "${src_feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--src_normalize=global_mvn --src_normalize_conf stats_file=${s2st_stats_dir}/train/src_feats_stats.npz "
-       fi
-        if [ "${tgt_feats_normalize}" = global_mvn ]; then
+        fi
+        if [ "${tgt_feats_normalize}" = global_mvn ] && [ ${use_discrete_unit} = false ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--tgt_normalize=global_mvn --tgt_normalize_conf stats_file=${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
@@ -1361,18 +1364,18 @@ if ! "${skip_eval}"; then
             if [ -e "${_logdir}/output.${_nj}/norm" ]; then
                 mkdir -p "${_dir}"/norm
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/norm/feats.scp"
+                    cat "${_logdir}/output.${i}/norm/feats.scp"
                 done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
             fi
             if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
                 mkdir -p "${_dir}"/denorm
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/denorm/feats.scp"
+                    cat "${_logdir}/output.${i}/denorm/feats.scp"
                 done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
             fi
             if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
                 for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                    cat "${_logdir}/output.${i}/speech_shape/speech_shape"
                 done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
             fi
             if [ -e "${_logdir}/output.${_nj}/wav" ]; then
@@ -1397,6 +1400,14 @@ if ! "${skip_eval}"; then
                 for i in $(seq "${_nj}"); do
                     mv -u "${_logdir}/output.${i}"/probs/*.png "${_dir}"/probs
                     rm -rf "${_logdir}/output.${i}"/probs
+                done
+            fi
+            if [ -e "${_logdir}/output.${_nj}/st_subtask" ]; then
+                mkdir -p "${_dir}"/st_subtask
+                for st_result_file in token token_int text; do
+                    for i in $(seq "${_nj}"); do
+                        cat "${_logdir}/output.${i}/st_subtask/${st_result_file}"
+                    done | LC_ALL=C sort -k1 > "${_dir}/st_subtask/${st_result_file}"
                 done
             fi
         done
@@ -1430,6 +1441,55 @@ if ! "${skip_eval}"; then
                 --inference_args "${score_asr_inference_args}" \
                 --nlsyms_txt "${score_nlsyms_text}" \
                 --cleaner "${score_cleaner}"
+            
+            if [ -e "${_dir}/st_subtak/text" ] || ${score_st_subtask} ; then
+                _scoredir="${_dir}/score_st_subtask_bleu"
+                mkdir -p ${_scoredir}
+
+                paste \
+                    <(<"${_data}/text.${tgt_lang}" \
+                        ${python} -m espnet2.bin.tokenize_text  \
+                            -f 2- --input - --output - \
+                            --token_type word \
+                            --non_linguistic_symbols "${nlsyms_txt}" \
+                            --remove_non_linguistic_symbols true \
+                            --cleaner "${cleaner}" \
+                            ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref.trn.org"
+
+                # NOTE(kamo): Don't use cleaner for hyp
+                paste \
+                    <(<"${_dir}/st_subtak/text"  \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp.trn.org"
+
+                # remove utterance id
+                perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+                perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+
+                # detokenizer
+                detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+                detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+
+                # detokenize & remove punctuation except apostrophe
+                remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
+                remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+                echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
+                sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
+                            -i "${_scoredir}/hyp.trn.detok.lc.rm" \
+                            -m bleu chrf ter \
+                            >> ${_scoredir}/result.lc.txt
+                log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
+
+                # TODO(jiatong): add multi-references cases
+            fi
         done
 
         # Show results in Markdown syntax
@@ -1450,11 +1510,13 @@ if ! "${skip_upload}"; then
         if [ "${src_feats_normalize}" = global_mvn ]; then
             _opts+="--option ${s2st_stats_dir}/train/src_feats_stats.npz "
         fi
-        if [ "${tgt_feats_normalize}" = global_mvn ]; then
+        if [ "${tgt_feats_normalize}" = global_mvn ] && [ ${use_discrete_unit} = false ]; then
             _opts+="--option ${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
         if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${tgt_bpemodel} "
+        fi
+        if [ "${src_token_type}" = bpe ]; then
             _opts+="--option ${src_bpemodel} "
         fi
         if [ "${nlsyms_txt}" != none ]; then

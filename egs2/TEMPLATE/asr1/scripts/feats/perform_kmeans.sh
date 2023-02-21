@@ -65,6 +65,9 @@ fi
 
 if [ "${feature_type}" = "hubert" ] || [ "${feature_type}" = "s3prl" ]; then
     suffix="layer${layer}/"
+    if [ "${feature_type}" = "s3prl" ]; then
+        suffix="${s3prl_upstream_name}_${suffix}"
+    fi
 else
     suffix=""
     use_gpu=false  # mfcc feature does not require GPU.
@@ -211,7 +214,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     sos_eos="<sos/eos>" # sos and eos symbole
 
     mkdir -p ${dictdir}
-    touch ${dictdir}/token.txt
+    if [ -e ${dictdir}/tokens.txt ]; then
+        rm -rf ${dictdir}/tokens.txt
+    fi
+    touch ${dictdir}/tokens.txt
 
     for i in $(seq 0 $((nclusters-1)))
     do
