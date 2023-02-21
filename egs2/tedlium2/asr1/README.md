@@ -116,6 +116,78 @@
 |decode_asr_asr_model_valid.acc.ave/test|1155|52113|95.0|2.6|2.5|0.9|5.9|64.2|
 
 
+# E-Branchformer with Transducer, 12 layers
+## Environments
+- date: `Thu Feb  9 01:29:33 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `478ba004e114e7862b05fb01112de7f7e1da3996`
+  - Commit date: `Tue Feb 7 00:50:49 2023 +0000`
+
+## asr_train_asr_transducer_e_branchformer_e12_raw_en_bpe500_sp
+- ASR config: [conf/tuning/train_asr_transducer_e_branchformer_e12.yaml](conf/tuning/train_asr_transducer_e_branchformer_e12.yaml)
+- Params: 26.26M
+- Model link: [https://huggingface.co/pyf98/tedlium2_transducer_e_branchformer](https://huggingface.co/pyf98/tedlium2_transducer_e_branchformer)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|14671|93.4|4.3|2.3|1.0|7.6|71.7|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|27500|93.6|4.0|2.4|1.0|7.4|63.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|78259|97.1|0.9|2.0|0.9|3.8|71.7|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|145066|97.1|0.9|2.1|0.9|3.9|63.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|28296|94.7|3.1|2.3|0.8|6.2|71.7|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|52113|95.1|2.6|2.2|0.9|5.8|63.5|
+
+
+# Conformer with Transducer, 12 layers, 2048 linear units
+## Environments
+- date: `Wed Feb  8 22:07:40 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `478ba004e114e7862b05fb01112de7f7e1da3996`
+  - Commit date: `Tue Feb 7 00:50:49 2023 +0000`
+
+## asr_train_asr_transducer_conformer_e12_linear2048_raw_en_bpe500_sp
+- ASR config: [conf/tuning/train_asr_transducer_conformer_e12_linear2048.yaml](conf/tuning/train_asr_transducer_conformer_e12_linear2048.yaml)
+- Params: 34.62M
+- Model link: [https://huggingface.co/pyf98/tedlium2_transducer_conformer_e12_linear2048](https://huggingface.co/pyf98/tedlium2_transducer_conformer_e12_linear2048)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|14671|93.3|4.5|2.3|1.1|7.8|71.2|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|27500|93.2|4.2|2.6|1.0|7.8|65.6|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|78259|97.0|0.9|2.1|1.0|3.9|71.2|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|145066|96.9|0.9|2.2|0.9|4.0|65.6|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transducer_asr_model_valid.loss.ave/dev|466|28296|94.6|3.0|2.4|0.9|6.3|71.2|
+|decode_asr_transducer_asr_model_valid.loss.ave/test|1155|52113|94.8|2.7|2.5|0.9|6.0|65.6|
+
+
 
 # E-Branchformer with CTC, 12 layers
 ## Environments
