@@ -10,6 +10,7 @@ from espnet2.bin.uasr_inference import Speech2Text, get_parser, main
 from espnet2.tasks.uasr import UASRTask
 from espnet.nets.beam_search import Hypothesis
 
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
@@ -18,7 +19,7 @@ def test_main():
     with pytest.raises(SystemExit):
         main()
 
-    
+
 @pytest.fixture()
 def token_list(tmp_path: Path):
     with (tmp_path / "tokens.txt").open("w") as f:
@@ -61,9 +62,7 @@ def uasr_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(uasr_config_file):
-    speech2text = Speech2Text(
-        uasr_train_config=uasr_config_file, beam_size=1
-    )
+    speech2text = Speech2Text(uasr_train_config=uasr_config_file, beam_size=1)
     speech = np.random.randn(100, 512)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:

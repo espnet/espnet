@@ -11,6 +11,7 @@ import k2
 from espnet2.bin.uasr_inference_k2 import k2Speech2Text, get_parser, main
 from espnet2.tasks.uasr import UASRTask
 
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
@@ -19,7 +20,7 @@ def test_main():
     with pytest.raises(SystemExit):
         main()
 
-    
+
 @pytest.fixture()
 def token_list(tmp_path: Path):
     with (tmp_path / "tokens.txt").open("w") as f:
@@ -58,7 +59,7 @@ def decoding_graph(tmp_path: Path):
     arcs += f"{final_state}"
     graph = k2.Fsa.from_str(arcs, num_aux_labels=1)
     graph = k2.arc_sort(graph)
-    torch.save(graph.as_dict(), tmp_path / "HLG.pt" )
+    torch.save(graph.as_dict(), tmp_path / "HLG.pt")
     return str(tmp_path / "HLG.pt")
 
 
@@ -91,9 +92,9 @@ def uasr_config_file(tmp_path: Path, token_list):
 
 
 @pytest.mark.execution_timeout(5)
-def test_Speech2Text(uasr_config_file, decoding_graph,  token_list_file):
+def test_Speech2Text(uasr_config_file, decoding_graph, token_list_file):
     speech2text = k2Speech2Text(
-        uasr_train_config=uasr_config_file, 
+        uasr_train_config=uasr_config_file,
         decoding_graph=decoding_graph,
         beam_size=1,
         token_list_file=token_list_file,
