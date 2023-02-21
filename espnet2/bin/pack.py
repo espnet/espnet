@@ -52,6 +52,11 @@ class SSLPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
+class S2STPackedContents(PackedContents):
+    # These names must be consistent with the argument of inference functions
+    files = ["s2st_model_file"]
+    yaml_files = ["s2st_train_config"]
+
 
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
