@@ -2,13 +2,13 @@ import string
 from argparse import ArgumentParser
 from pathlib import Path
 
+import k2
 import numpy as np
 import pytest
+import torch
 import yaml
 
-import torch
-import k2
-from espnet2.bin.uasr_inference_k2 import k2Speech2Text, get_parser, main
+from espnet2.bin.uasr_inference_k2 import get_parser, k2Speech2Text, main
 from espnet2.tasks.uasr import UASRTask
 
 
