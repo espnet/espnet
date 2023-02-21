@@ -38,8 +38,8 @@ def main():
         "train"
     ]
     save_kaldi_format("data/dev", ds.select(range(1000)))
-    save_kaldi_format("data/test", ds.select(range(1000, 2000)))
-    save_kaldi_format("data/train", ds.select(range(2000, ds.num_rows)))
+    save_kaldi_format("data/test", ds.select(range(1000, 1100)))
+    save_kaldi_format("data/train", ds.select(range(1100, ds.num_rows)))
 
 
 if __name__ == "__main__":
