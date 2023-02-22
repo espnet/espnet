@@ -69,15 +69,15 @@ def family_analysis(iso_results, linguistic_info):
 
 def few_shot_analysis(iso_results):
     errs = {}
-    errs['reserved'] = []
-    errs['trained'] = []
-    errs['all'] = []
+    errs["reserved"] = []
+    errs["trained"] = []
+    errs["all"] = []
     for iso, vs in iso_results.items():
         if iso in RESERVE_LANG:
-            errs['reserved'].extend([float(v["err"]) for v in vs])
+            errs["reserved"].extend([float(v["err"]) for v in vs])
         else:
-            errs['trained'].extend([float(v["err"]) for v in vs])
-        errs['all'].extend([float(v["err"]) for v in vs])
+            errs["trained"].extend([float(v["err"]) for v in vs])
+        errs["all"].extend([float(v["err"]) for v in vs])
     return errs
 
 
@@ -136,7 +136,7 @@ def main(args):
                 f.write(f"{k}: {sum(v) / len(v):.2f}%\n")
 
         errs = few_shot_analysis(iso_results)
-        with open(output_path, 'a', encoding='utf-8') as f:
+        with open(output_path, "a", encoding="utf-8") as f:
             f.write("\n\n")
             for k, v in errs.items():
                 f.write(f"{k}: {sum(v) / len(v):.2f}%\n")

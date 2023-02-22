@@ -63,7 +63,6 @@ class LeafNode(TreeNode):
 
 
 class LanguageTree(object):
-
     nodes: List[Union[InternalNode, LeafNode]]
     iso2node: Dict[str, LeafNode]
     # name2node: Dict[str, Union[InternalNode, LeafNode]]
