@@ -478,6 +478,8 @@ def inference(
     st_subtask_nbest: int,
     st_subtask_beam_size: int,
     st_subtask_penalty: float,
+    st_subtask_token_type: Optional[str],
+    st_subtask_bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str],
     vocoder_file: Optional[str],
@@ -521,6 +523,8 @@ def inference(
         st_subtask_nbest=st_subtask_nbest,
         st_subtask_beam_size=st_subtask_beam_size,
         st_subtask_penalty=st_subtask_penalty,
+        st_subtask_token_type=st_subtask_token_type,
+        st_subtask_bpemodel=st_subtask_bpemodel,
         vocoder_config=vocoder_config,
         vocoder_file=vocoder_file,
         dtype=dtype,
@@ -856,7 +860,6 @@ def get_parser():
     group.add_argument("--st_subtask_nbest", type=int, default=1, help="Output N-best hypotheses for st subtask")
     group.add_argument("--st_subtask_beam_size", type=int, default=5, help="Beam size for st subtask")
     group.add_argument("--st_subtask_penalty", type=float, default=0.0, help="Insertion penalty for st subtask")
-    group.add_argument("--st_subtask_token_type", type=str, default=None, help="Token type for st subtask")
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(
