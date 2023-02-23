@@ -180,7 +180,7 @@ def test_pit_process(etype, dtype, num_spkrs, m_str, data_idx):
     assert min_loss == true_losses[data_idx]
     assert torch.equal(min_perm, true_perm[data_idx])
 
-    
+
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize(
     ("use_frontend", "use_beamformer", "bnmask", "num_spkrs", "m_str"),
