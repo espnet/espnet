@@ -1,10 +1,9 @@
 import argparse
-import os
 import glob
 import json
+import os
 
 from linguistic_tree import LanguageTree
-
 
 RESERVE_LANG = [
     "dan",
