@@ -1,5 +1,6 @@
 import kaldiio
 import numpy as np
+import pytest
 
 from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
