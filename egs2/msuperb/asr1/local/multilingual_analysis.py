@@ -103,8 +103,10 @@ def main(args):
                         results.append(line2result(line.strip()))
                     if "Corr" in line and "Sub" in line and "Del" in line:
                         anchored = True
-                except:
-                    print("Oops! Should break earlier...")
+                except Exception:
+                    print(
+                        "Oops! Should break earlier, this is caused by format mismatch when parsing results.txt."
+                    )
                     break
         iso_results = {}
         for res in results:
