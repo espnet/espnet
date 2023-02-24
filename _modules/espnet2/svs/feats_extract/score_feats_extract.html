@@ -294,10 +294,8 @@
         <span class="n">label_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -313,25 +311,22 @@
 <span class="sd">            label_lengths: (Batch)</span>
 <span class="sd">            midi: (Batch, Nsamples)</span>
 <span class="sd">            midi_lengths: (Batch)</span>
-<span class="sd">            tempo: (Batch, Nsamples)</span>
-<span class="sd">            tempo_lengths: (Batch)</span>
+<span class="sd">            duration: (Batch, Nsamples)</span>
+<span class="sd">            duration_lengths: (Batch)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            output: (Batch, Frames)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">label</span><span class="p">,</span> <span class="n">label_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregate</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">label_lengths</span><span class="p">)</span>
         <span class="n">midi</span><span class="p">,</span> <span class="n">midi_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregate</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="p">)</span>
-        <span class="n">tempo</span><span class="p">,</span> <span class="n">tempo_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregate</span><span class="p">(</span><span class="n">tempo</span><span class="p">,</span> <span class="n">tempo_lengths</span><span class="p">)</span>
-        <span class="n">beat</span><span class="p">,</span> <span class="n">beat_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregate</span><span class="p">(</span><span class="n">beat</span><span class="p">,</span> <span class="n">beat_lengths</span><span class="p">)</span>
+        <span class="n">duration</span><span class="p">,</span> <span class="n">duration_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregate</span><span class="p">(</span><span class="n">duration</span><span class="p">,</span> <span class="n">duration_lengths</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">label</span><span class="p">,</span>
             <span class="n">label_lengths</span><span class="p">,</span>
             <span class="n">midi</span><span class="p">,</span>
             <span class="n">midi_lengths</span><span class="p">,</span>
-            <span class="n">tempo</span><span class="p">,</span>
-            <span class="n">tempo_lengths</span><span class="p">,</span>
-            <span class="n">beat</span><span class="p">,</span>
-            <span class="n">beat_lengths</span><span class="p">,</span>
+            <span class="n">duration</span><span class="p">,</span>
+            <span class="n">duration_lengths</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 
 
@@ -383,10 +378,8 @@
         <span class="n">label_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">seq</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">label_lengths</span><span class="p">):</span>
@@ -405,29 +398,24 @@
         <span class="n">lengths</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">seg_label</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">seg_midi</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">seg_tempo</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">seg_beat</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">seg_duration</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lengths</span><span class="p">):</span>
             <span class="n">l</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">seq</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
             <span class="n">tmp_label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="n">l</span><span class="p">:</span><span class="n">r</span><span class="p">][(</span><span class="n">r</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
             <span class="n">tmp_midi</span> <span class="o">=</span> <span class="n">midi</span><span class="p">[</span><span class="n">l</span><span class="p">:</span><span class="n">r</span><span class="p">][(</span><span class="n">r</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
-            <span class="n">tmp_tempo</span> <span class="o">=</span> <span class="n">tempo</span><span class="p">[</span><span class="n">l</span><span class="p">:</span><span class="n">r</span><span class="p">][(</span><span class="n">r</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
-            <span class="n">tmp_beat</span> <span class="o">=</span> <span class="n">beat</span><span class="p">[</span><span class="n">l</span><span class="p">:</span><span class="n">r</span><span class="p">][(</span><span class="n">r</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">tmp_duration</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="n">l</span><span class="p">:</span><span class="n">r</span><span class="p">][(</span><span class="n">r</span> <span class="o">-</span> <span class="n">l</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
 
             <span class="n">seg_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_label</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
             <span class="n">seg_midi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_midi</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-            <span class="n">seg_tempo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_tempo</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-            <span class="n">seg_beat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_beat</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="n">seg_duration</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_duration</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">seg_label</span><span class="p">,</span>
             <span class="n">lengths</span><span class="p">,</span>
             <span class="n">seg_midi</span><span class="p">,</span>
             <span class="n">lengths</span><span class="p">,</span>
-            <span class="n">seg_tempo</span><span class="p">,</span>
-            <span class="n">lengths</span><span class="p">,</span>
-            <span class="n">seg_beat</span><span class="p">,</span>
+            <span class="n">seg_duration</span><span class="p">,</span>
             <span class="n">lengths</span><span class="p">,</span>
         <span class="p">)</span></div>
 
@@ -437,13 +425,9 @@
         <span class="n">label_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">tempo_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">beat_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -458,31 +442,22 @@
 <span class="sd">            label_lengths: (Batch)</span>
 <span class="sd">            midi: (Batch, Nsamples)</span>
 <span class="sd">            midi_lengths: (Batch)</span>
-<span class="sd">            tempo: (Batch, Nsamples)</span>
-<span class="sd">            tempo_lengths: (Batch)</span>
-<span class="sd">            beat: (Batch, Nsamples)</span>
-<span class="sd">            beat_lengths: (Batch)</span>
-
+<span class="sd">            duration: (Batch, Nsamples)</span>
+<span class="sd">            duration_lengths: (Batch)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            output: (Batch, Frames)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">label</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">midi</span><span class="o">.</span><span class="n">shape</span>
-            <span class="ow">and</span> <span class="n">midi</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">tempo</span><span class="o">.</span><span class="n">shape</span>
-            <span class="ow">and</span> <span class="n">tempo</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">beat</span><span class="o">.</span><span class="n">shape</span>
-        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">label</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">midi</span><span class="o">.</span><span class="n">shape</span> <span class="ow">and</span> <span class="n">midi</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">duration</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">assert</span> <span class="p">(</span>
             <span class="n">label_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">shape</span>
-            <span class="ow">and</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">tempo_lengths</span><span class="o">.</span><span class="n">shape</span>
-            <span class="ow">and</span> <span class="n">tempo_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">beat_lengths</span><span class="o">.</span><span class="n">shape</span>
+            <span class="ow">and</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">duration_lengths</span><span class="o">.</span><span class="n">shape</span>
         <span class="p">)</span>
 
         <span class="n">bs</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">seg_label</span><span class="p">,</span> <span class="n">seg_label_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
         <span class="n">seg_midi</span><span class="p">,</span> <span class="n">seg_midi_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">seg_tempo</span><span class="p">,</span> <span class="n">seg_tempo_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">seg_beat</span><span class="p">,</span> <span class="n">seg_beat_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">seg_duration</span><span class="p">,</span> <span class="n">seg_duration_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bs</span><span class="p">):</span>
             <span class="n">seg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_segments</span><span class="p">(</span>
@@ -490,39 +465,83 @@
                 <span class="n">label_lengths</span><span class="o">=</span><span class="n">label_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                 <span class="n">midi</span><span class="o">=</span><span class="n">midi</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                 <span class="n">midi_lengths</span><span class="o">=</span><span class="n">midi_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                <span class="n">tempo</span><span class="o">=</span><span class="n">tempo</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                <span class="n">tempo_lengths</span><span class="o">=</span><span class="n">tempo_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                <span class="n">beat</span><span class="o">=</span><span class="n">beat</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                <span class="n">beat_lengths</span><span class="o">=</span><span class="n">beat_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">duration_lengths</span><span class="o">=</span><span class="n">duration_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">seg_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">seg_label_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
             <span class="n">seg_midi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
             <span class="n">seg_midi_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
-            <span class="n">seg_tempo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
-            <span class="n">seg_tempo_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
-            <span class="n">seg_beat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
-            <span class="n">seg_beat_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">seg_duration</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">seg_duration_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
 
         <span class="n">seg_label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seg_label</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">seg_label_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seg_label_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">seg_midi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seg_midi</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">seg_midi_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seg_midi_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">seg_tempo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seg_tempo</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">seg_tempo_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seg_tempo_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">seg_beat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seg_beat</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">seg_beat_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seg_beat_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">seg_duration</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seg_duration</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">seg_duration_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seg_duration_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">seg_label</span><span class="p">,</span>
             <span class="n">seg_label_lengths</span><span class="p">,</span>
             <span class="n">seg_midi</span><span class="p">,</span>
             <span class="n">seg_midi_lengths</span><span class="p">,</span>
-            <span class="n">seg_tempo</span><span class="p">,</span>
-            <span class="n">seg_tempo_lengths</span><span class="p">,</span>
-            <span class="n">seg_beat</span><span class="p">,</span>
-            <span class="n">seg_beat_lengths</span><span class="p">,</span>
+            <span class="n">seg_duration</span><span class="p">,</span>
+            <span class="n">seg_duration_lengths</span><span class="p">,</span>
         <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="expand_to_frame"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.feats_extract.score_feats_extract.expand_to_frame">[docs]</a><span class="k">def</span> <span class="nf">expand_to_frame</span><span class="p">(</span><span class="n">expand_len</span><span class="p">,</span> <span class="n">len_size</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">midi</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+    <span class="c1"># expand phone to frame level</span>
+    <span class="n">bs</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">seq_label</span><span class="p">,</span> <span class="n">seq_label_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">seq_midi</span><span class="p">,</span> <span class="n">seq_midi_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">seq_duration</span><span class="p">,</span> <span class="n">seq_duration_lengths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bs</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">expand_len</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">seq_label_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+        <span class="n">seq_midi_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+        <span class="n">seq_duration_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
+
+        <span class="n">seq_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">label</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_size</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_len</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">seq_midi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">midi</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_size</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_len</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">seq_duration</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">duration</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_size</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_len</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]))</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="n">seq_label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seq_label</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">seq_label_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seq_label_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">seq_midi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seq_midi</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">seq_midi_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seq_midi_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">seq_duration</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">ListsToTensor</span><span class="p">(</span><span class="n">seq_duration</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">seq_duration_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">seq_duration_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">label</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">seq_label</span><span class="p">,</span>
+        <span class="n">seq_label_lengths</span><span class="p">,</span>
+        <span class="n">seq_midi</span><span class="p">,</span>
+        <span class="n">seq_midi_lengths</span><span class="p">,</span>
+        <span class="n">seq_duration</span><span class="p">,</span>
+        <span class="n">seq_duration_lengths</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
            </div>

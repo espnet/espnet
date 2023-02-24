@@ -1176,13 +1176,6 @@
         <span class="n">midi_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;score&quot;</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">hop_length</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
-        <span class="n">align</span><span class="p">:</span> <span class="nb">list</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">&quot;singing&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;label_lab&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;midi_lab&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;tempo_lab&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;beat_lab&quot;</span><span class="p">,</span>
-        <span class="p">],</span>  <span class="c1"># TODO(Tao): add to args</span>
         <span class="n">phn_seg</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
             <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
@@ -1199,7 +1192,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">fs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="n">hop_length</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="o">=</span> <span class="n">singing_volume_normalize</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">align</span> <span class="o">=</span> <span class="n">align</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span> <span class="o">=</span> <span class="n">phn_seg</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">=</span> <span class="n">hop_length</span> <span class="o">/</span> <span class="n">fs</span>
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1253,76 +1245,42 @@
 
             <span class="n">label</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
             <span class="n">midi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
-            <span class="n">beat_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
-            <span class="n">beat_ruled_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
-            <span class="n">beat_syb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
+            <span class="n">duration_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
+            <span class="n">duration_ruled_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
+            <span class="n">duration_syb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
             <span class="c1"># Load score info</span>
             <span class="n">tempo</span><span class="p">,</span> <span class="n">syb_info</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span><span class="p">]</span>
             <span class="n">phn_cnt</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="c1"># Calculate features</span>
-            <span class="n">nsamples_score</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">syb_info</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">syb_info</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
-            <span class="n">labelseq_score_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_score</span><span class="p">))</span>
-            <span class="n">midiseq_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_score</span><span class="p">))</span>
-            <span class="n">beatseq_score_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_score</span><span class="p">))</span>
-            <span class="n">beatseq_score_syb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_score</span><span class="p">))</span>
-            <span class="n">temposeq_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nsamples_score</span><span class="p">,</span> <span class="n">tempo</span><span class="p">)</span>
             <span class="n">index_lab</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">nsamples_lab</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">lab_timeseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">lab_timeseq</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
-            <span class="n">labelseq_lab_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_lab</span><span class="p">))</span>
-            <span class="n">midiseq_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_lab</span><span class="p">))</span>
-            <span class="n">beatseq_lab_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nsamples_lab</span><span class="p">))</span>
-            <span class="n">temposeq_lab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nsamples_lab</span><span class="p">,</span> <span class="n">tempo</span><span class="p">)</span>
-            <span class="n">offset</span> <span class="o">=</span> <span class="n">lab_timeseq</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
             <span class="k">for</span> <span class="n">st</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">syb</span><span class="p">,</span> <span class="n">note</span><span class="p">,</span> <span class="n">phns</span> <span class="ow">in</span> <span class="n">syb_info</span><span class="p">:</span>
-                <span class="n">start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">st</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
-                <span class="n">end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">et</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-                <span class="k">if</span> <span class="n">end</span> <span class="o">&gt;</span> <span class="n">nsamples_score</span><span class="p">:</span>
-                    <span class="n">end</span> <span class="o">=</span> <span class="n">nsamples_score</span>
-                <span class="n">midiseq_score</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">note</span>
                 <span class="n">dur</span> <span class="o">=</span> <span class="n">et</span> <span class="o">-</span> <span class="n">st</span>
-                <span class="n">_beat_syb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dur</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
-                <span class="n">beatseq_score_syb</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_syb</span>
+                <span class="n">_duration_syb</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dur</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
                 <span class="n">phone</span> <span class="o">=</span> <span class="n">phns</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
-                <span class="n">phone_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">phone</span><span class="p">)</span>
-                <span class="n">phn_start</span> <span class="o">=</span> <span class="n">start</span>
                 <span class="n">phn_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">phone</span><span class="p">)</span>
                 <span class="n">phn_cnt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">phn_num</span><span class="p">)</span>
                 <span class="n">pre_seg</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">phn_num</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span><span class="p">[</span><span class="n">phn_num</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                        <span class="n">phn_end</span> <span class="o">=</span> <span class="n">end</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">phn_end</span> <span class="o">=</span> <span class="p">(</span>
-                            <span class="nb">int</span><span class="p">((</span><span class="n">st</span> <span class="o">+</span> <span class="n">dur</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span><span class="p">[</span><span class="n">phn_num</span><span class="p">][</span><span class="n">k</span><span class="p">])</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-                        <span class="p">)</span>
-                    <span class="n">labelseq_score_phn</span><span class="p">[</span><span class="n">phn_start</span><span class="p">:</span><span class="n">phn_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">phone_ints</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-                    <span class="n">_beat_ruled_phn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="n">_duration_ruled_phn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
                         <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span><span class="p">[</span><span class="n">phn_num</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">-</span> <span class="n">pre_seg</span><span class="p">)</span> <span class="o">*</span> <span class="n">dur</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span>
                         <span class="o">+</span> <span class="mf">0.5</span>
                     <span class="p">)</span>
-                    <span class="n">beatseq_score_phn</span><span class="p">[</span><span class="n">phn_start</span><span class="p">:</span><span class="n">phn_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_ruled_phn</span>
                     <span class="n">pre_seg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phn_seg</span><span class="p">[</span><span class="n">phn_num</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
-                    <span class="n">phn_start</span> <span class="o">=</span> <span class="n">phn_end</span>
                     <span class="c1"># timeseq from lab</span>
                     <span class="k">assert</span> <span class="n">text</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">==</span> <span class="n">phone</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-                    <span class="n">lab_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">lab_timeseq</span><span class="p">[</span><span class="n">index_lab</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
-                    <span class="n">lab_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">lab_timeseq</span><span class="p">[</span><span class="n">index_lab</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-                    <span class="n">labelseq_lab_phn</span><span class="p">[</span><span class="n">lab_start</span><span class="p">:</span><span class="n">lab_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span>
-                    <span class="n">midiseq_lab</span><span class="p">[</span><span class="n">lab_start</span><span class="p">:</span><span class="n">lab_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">note</span>
-                    <span class="n">_beat_phn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="n">_duration_phn</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
                         <span class="p">(</span><span class="n">lab_timeseq</span><span class="p">[</span><span class="n">index_lab</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">lab_timeseq</span><span class="p">[</span><span class="n">index_lab</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
                         <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_shift</span>
                         <span class="o">+</span> <span class="mf">0.5</span>
                     <span class="p">)</span>
-                    <span class="n">beatseq_lab_phn</span><span class="p">[</span><span class="n">lab_start</span><span class="p">:</span><span class="n">lab_end</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_phn</span>
                     <span class="c1"># phone level feature</span>
                     <span class="n">label</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span>
                     <span class="n">midi</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">note</span>
-                    <span class="n">beat_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_phn</span>
-                    <span class="n">beat_ruled_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_ruled_phn</span>
-                    <span class="n">beat_syb</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_beat_syb</span>
+                    <span class="n">duration_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_phn</span>
+                    <span class="n">duration_ruled_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_ruled_phn</span>
+                    <span class="n">duration_syb</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_syb</span>
                     <span class="n">index_lab</span> <span class="o">+=</span> <span class="mi">1</span>
 
             <span class="k">assert</span> <span class="n">index_lab</span> <span class="o">==</span> <span class="n">lab_len</span>
@@ -1331,37 +1289,17 @@
             <span class="n">phn_cnt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">phn_cnt</span><span class="p">)</span>
             <span class="n">label</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">midi</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beat_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beat_syb</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beat_ruled_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">duration_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">duration_syb</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">duration_ruled_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">phn_cnt</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-            <span class="n">labelseq_lab_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">midiseq_lab</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beatseq_lab_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">temposeq_lab</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-            <span class="n">labelseq_score_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">midiseq_score</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beatseq_score_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">beatseq_score_syb</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">temposeq_score</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">label</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;midi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_ruled_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_ruled_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_syb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beat_syb</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_phn</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_ruled_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_ruled_phn</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_syb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_syb</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;phn_cnt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">phn_cnt</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label_lab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">labelseq_lab_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;midi_lab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">midiseq_lab</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_lab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatseq_lab_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;tempo_lab&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temposeq_lab</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">labelseq_score_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;midi_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">midiseq_score</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_score_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatseq_score_phn</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;beat_score_syb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">beatseq_score_syb</span>
-            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;tempo_score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">temposeq_score</span>
 
         <span class="c1"># TODO(Yuning): Add score from midi</span>
 
@@ -1375,12 +1313,6 @@
                 <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
                 <span class="n">_text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
                 <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_text_ints</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="c1"># align frame length with singing</span>
-        <span class="n">length</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">align</span><span class="p">])</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">align</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">][:</span><span class="n">length</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">data</span></div>
 
