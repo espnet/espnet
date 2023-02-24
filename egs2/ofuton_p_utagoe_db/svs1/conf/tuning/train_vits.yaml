@@ -24,7 +24,7 @@ svs_conf:
         hidden_channels: 192
         spks: -1
         global_channels: -1
-        segment_size: 32
+        segment_size: 16
         text_encoder_attention_heads: 2
         text_encoder_ffn_expand: 4
         text_encoder_blocks: 6
@@ -64,10 +64,6 @@ svs_conf:
         flow_dropout_rate: 0.0
         use_weight_norm_in_flow: true
         use_only_mean_in_flow: true
-        stochastic_duration_predictor_kernel_size: 3
-        stochastic_duration_predictor_dropout_rate: 0.5
-        stochastic_duration_predictor_flows: 4
-        stochastic_duration_predictor_dds_conv_layers: 3
     # discriminator related
     discriminator_type: hifigan_multi_scale_multi_period_discriminator
     discriminator_params:
@@ -135,6 +131,14 @@ svs_conf:
     # others
     sampling_rate: 24000          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
+
+
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+    use_token_averaged_f0: false
+pitch_normalize: global_mvn  # normalizer for the pitch feature
+
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
