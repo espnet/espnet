@@ -303,3 +303,83 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         )  # (batch, head, time1, time2)
 
         return self.forward_attention(v, scores, mask)
+
+
+class RelPositionMultiHeadedAttentionForPaddedSequences(RelPositionMultiHeadedAttention):
+    def rel_shift(self, x, masks=None):
+        """Compute relative positional encoding.
+
+        Args:
+            x (torch.Tensor): Input tensor (batch, head, time1, 2*time1-1).
+            time1 means the length of query vector.
+            masks (torch.Tensor): Boolean (or equivalent) mask for padded sequences (batch, time1).
+
+        Returns:
+            torch.Tensor: Output tensor.
+
+        """
+        if masks is None:
+            return super().rel_shift(x)
+        else:
+            batch, head, time1, time2 = x.shape
+            sequence_lengths = masks.int().sum(-1, keepdims=True)
+            vertical_index = torch.arange(time1, device=x.device).unsqueeze(0)
+            horizontal_index = torch.arange(0, -time1, step=-1, device=x.device).unsqueeze(-1) - 1
+            last_index = vertical_index + horizontal_index
+            last_index = last_index.unsqueeze(0).unsqueeze(0) + sequence_lengths.view(-1, 1, 1, 1)
+            mask1d = vertical_index.expand(batch, -1) < sequence_lengths
+            mask2d = mask1d.unsqueeze(-1) & mask1d.unsqueeze(-2)
+            mask2d = mask2d.view(batch, 1, time1, time1).expand(-1, head, -1, -1)
+            last_index = last_index.expand(-1, head, -1, -1) * mask2d
+            x = torch.gather(x, -1, last_index) * mask2d
+
+            if self.zero_triu:
+                ones = torch.ones((x.size(2), x.size(3)), device=x.device)
+                x = x * torch.tril(ones, x.size(3) - x.size(2))[None, None, :, :]
+
+            return x
+
+    def forward(self, query, key, value, pos_emb, mask):
+        """Compute 'Scaled Dot Product Attention' with rel. positional encoding.
+
+        Args:
+            query (torch.Tensor): Query tensor (#batch, time1, size).
+            key (torch.Tensor): Key tensor (#batch, time2, size).
+            value (torch.Tensor): Value tensor (#batch, time2, size).
+            pos_emb (torch.Tensor): Positional embedding tensor
+                (#batch, 2*time1-1, size).
+            mask (torch.Tensor): Mask tensor (#batch, 1, time2) or
+                (#batch, time1, time2).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, time1, d_model).
+
+        """
+        q, k, v = self.forward_qkv(query, key, value)
+        q = q.transpose(1, 2)  # (batch, time1, head, d_k)
+
+        n_batch_pos = pos_emb.size(0)
+        p = self.linear_pos(pos_emb).view(n_batch_pos, -1, self.h, self.d_k)
+        p = p.transpose(1, 2)  # (batch, head, 2*time1-1, d_k)
+
+        # (batch, head, time1, d_k)
+        q_with_bias_u = (q + self.pos_bias_u).transpose(1, 2)
+        # (batch, head, time1, d_k)
+        q_with_bias_v = (q + self.pos_bias_v).transpose(1, 2)
+
+        # compute attention score
+        # first compute matrix a and matrix c
+        # as described in https://arxiv.org/abs/1901.02860 Section 3.3
+        # (batch, head, time1, time2)
+        matrix_ac = torch.matmul(q_with_bias_u, k.transpose(-2, -1))
+
+        # compute matrix b and matrix d
+        # (batch, head, time1, 2*time1-1)
+        matrix_bd = torch.matmul(q_with_bias_v, p.transpose(-2, -1))
+        matrix_bd = self.rel_shift(matrix_bd, mask)
+
+        scores = (matrix_ac + matrix_bd) / math.sqrt(
+            self.d_k
+        )  # (batch, head, time1, time2)
+
+        return self.forward_attention(v, scores, mask)
