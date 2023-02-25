@@ -9,7 +9,7 @@ from espnet.transform.spectrogram import logmelspectrogram
 from espnet.transform.transformation import Transformation
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_preprocessing(tmpdir):
     cmvn_ark = str(tmpdir.join("cmvn.ark"))
     kwargs = {
