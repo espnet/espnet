@@ -8,7 +8,9 @@
 . ./db.sh || exit 1;
 
 # general configuration
-asr_exp=$1
+lid=$1
+only_lid=$2
+asr_exp=$3
 
 . utils/parse_options.sh || exit 1;
 
@@ -44,5 +46,24 @@ if [ ! -f downloads/exception.json ]; then
     wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true 
 fi
 
-python local/multilingual_analysis.py \
-    --dir ${asr_exp}
+python local/split_results.py \
+    --dir ${asr_exp} --lid ${lid} --only_lid ${only_lid}
+
+if "${only_lid}"; then
+    suffix="_only_lid"
+    token_type=word
+else
+    directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/*/few_shot/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/*/language_family/*" -type d -not -path '/\.')
+    for _scoredir in ${directories}
+    do
+        log "Write result in ${_scoredir}/result.txt"
+        sclite \
+            -r "${_scoredir}/ref.trn" trn \
+            -h "${_scoredir}/hyp.trn" trn \
+            -i rm -o all stdout > "${_scoredir}/result.txt"
+    done
+fi

@@ -56,7 +56,7 @@ def family_analysis(iso_results, linguistic_info):
             continue
         try:
             node = tree.get_node("iso", iso)
-        except:
+        except Exception:
             print(f"Inknown ISO code ({iso})...")
             continue
         family_name = node.get_ancestors()[1].name
@@ -112,7 +112,7 @@ def main(args):
         for res in results:
             try:
                 iso = res["name"].split("_")[-2]
-            except:
+            except Exception:
                 continue
             if iso not in iso_results:
                 iso_results[iso] = []
