@@ -102,7 +102,11 @@ def lid_parse(root, lines):
     if (LID or ONLY_LID) and "score_wer" in root:
         lid_info = []
         for line in lines:
-            lid = line.split(" ", 1)[0]
+            if line[0] == "\t":  # prediction is NULL...
+                lid = "NULL"
+            else:
+                words = line.split("\t")[0].split(" ")
+                lid = words[0]
             iso, utt_id = get_info_from_line(line)
             lid_info.append(f"{lid}\t{iso}\t{utt_id}")
 
@@ -137,8 +141,7 @@ def language_family_rule(iso):
         family_name = family_name.replace(" ", "-")  # remove whitespace
         return family_name
     except Exception:
-        print(f"Unknown ISO code ({iso})...")
-        return None
+        raise ValueError(f"Unknown ISO code ({iso})...")
 
 
 def split_trn_by_rule(root, name, rule_fn, trn_path):
@@ -154,12 +157,15 @@ def split_trn_by_rule(root, name, rule_fn, trn_path):
         categorizer.set_category_func(lambda line: rule_fn(line.split("\t")[1]))
         set2lid_results = categorizer.exec(lid_info)
         for k, v in set2lid_results.items():
-            write_lines(v, f"{root}/{name}/{k}/lid.txt")
+            write_lines(v, f"{root}/{name}/{k}/lid.trn")
 
 
 def main(args):
     roots = []
-    for txt_paths in glob.glob(f"{args.dir}/*/*/*/result.txt"):
+    if not ONLY_LID:
+        for txt_paths in glob.glob(f"{args.dir}/*/*/score_cer/result.txt"):
+            roots.append(os.path.dirname(txt_paths))
+    for txt_paths in glob.glob(f"{args.dir}/*/*/score_wer/result.txt"):
         roots.append(os.path.dirname(txt_paths))
     for root in roots:
         print(f"Parsing results in {root}...")

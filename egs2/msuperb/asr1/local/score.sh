@@ -8,11 +8,9 @@
 . ./db.sh || exit 1;
 
 # general configuration
-lid=$1
-only_lid=$2
-asr_exp=$3
-
-. utils/parse_options.sh || exit 1;
+lid=$2
+only_lid=$4
+asr_exp=$5
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -35,6 +33,8 @@ set -o pipefail
 log "Linguistic scoring started"
 log "$0 $*"
 
+# . utils/parse_options.sh || exit 1;
+
 mkdir -p downloads
 if [ ! -f downloads/linguistic.json ]; then
     wget -O downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
@@ -47,10 +47,20 @@ if [ ! -f downloads/exception.json ]; then
 fi
 
 python local/split_results.py \
-    --dir ${asr_exp} --lid ${lid} --only_lid ${only_lid}
+    --dir ${asr_exp} \
+    --lid ${lid} \
+    --only_lid ${only_lid}
 
 if "${only_lid}"; then
-    suffix="_only_lid"
+    directories=$(find ${asr_exp} -wholename "*/*/score_wer/independent/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/few_shot/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/language_family/*" -type d -not -path '/\.')
+    for _scoredir in ${directories}
+    do
+        log "Write result in ${_scoredir}/scores.txt"
+    done
 else
     directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
     directories+=" "
