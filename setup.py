@@ -15,7 +15,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
-        "librosa>=0.8.0",
+        "librosa==0.9.2",
         "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
