@@ -1,6 +1,7 @@
 import argparse
 import os
 import string
+import re
 
 from espnet2.utils.types import str2bool
 
