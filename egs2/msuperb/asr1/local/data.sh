@@ -125,7 +125,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage3: Create non-linguistic symbols for language ID"
     mkdir -p "$(dirname ${nlsyms_txt})"
-    if "${multilingual}" && "${lid}"; then
+    if "${multilingual}"; then
         train_set=data/train_${duration}${suffix}
         cut -f 2- ${train_set}/text | grep -o -P '\[.*?\]|\<.*?\>' | sort | uniq > ${nlsyms_txt}
         log "save non-linguistic symbols in ${nlsyms_txt}"

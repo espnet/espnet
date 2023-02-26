@@ -189,7 +189,7 @@ FEW_SHOT_SELECTED_DATA = {
 
 
 def process_text(text):
-    return text.translate(str.maketrans("", "", string.punctuation)).upper()
+    return text.translate(str.maketrans("", "", string.punctuation.replace('[', '').replace(']', ''))).upper()
 
 
 if __name__ == "__main__":
