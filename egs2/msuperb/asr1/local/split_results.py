@@ -2,9 +2,13 @@ import argparse
 import glob
 import json
 import os
+from typing import Callable, List
 
 from linguistic_tree import LanguageTree
 
+from espnet2.utils.types import str2bool
+
+""" Global Settings """
 RESERVE_LANG = [
     "dan",
     "lit",
@@ -28,6 +32,44 @@ RESERVE_LANG = [
     "tos",
 ]
 
+LID = False
+ONLY_LID = False
+
+
+""" Global Objects """
+
+
+class Categorizer(object):
+    """Template for categorizing."""
+
+    def __init__(self) -> None:
+        self.category_fn = None
+
+    def set_category_func(self, fn: Callable):
+        self.category_fn = fn
+
+    def exec(self, data: List):
+        if self.category_fn is None:
+            raise NotImplementedError
+        res = {}
+        for d in data:
+            k = self.category_fn(d)
+            if k is None:
+                continue
+            if k not in res:
+                res[k] = []
+            res[k].append(d)
+        return res
+
+
+categorizer = Categorizer()
+tree = LanguageTree()
+tree.build_from_json("downloads/linguistic.json")
+with open(f"downloads/macro.json", "r", encoding="utf-8") as f:
+    macros = json.load(f)
+with open(f"downloads/exception.json", "r", encoding="utf-8") as f:
+    exceptions = json.load(f)
+
 
 def read_lines(path):
     res = []
@@ -46,73 +88,73 @@ def write_lines(lines, path):
             f.write(f"{line}\n")
 
 
-def get_iso_from_line(line):
+def get_info_from_line(line):
     utt_id = line.split("\t")[-1]
     utt_id = utt_id[1 : len(utt_id) // 2]
     iso = utt_id.split("_")[-2]
+    return iso, utt_id
+
+
+def lid_parse(root, lines):
+    new_lines = []
+    lid_info = None
+    # Extract LID info from WER results if LID exists
+    if (LID or ONLY_LID) and "score_wer" in root:
+        lid_info = []
+        for line in lines:
+            lid = line.split(" ", 1)[0]
+            iso, utt_id = get_info_from_line(line)
+            lid_info.append(f"{lid}\t{iso}\t{utt_id}")
+
+    # Remove LID in Multilingual + LID case
+    for line in lines:
+        if LID and (not ONLY_LID):
+            if "score_cer" in root:
+                idx = line.find("]")
+                line = line[idx + 1 :]
+            elif "score_wer" in root:
+                line = line.split(" ", 1)[1]
+        new_lines.append(line)
+    return new_lines, lid_info
+
+
+def independent_rule(iso):
     return iso
 
 
-def create_independent_trn(root, trn_path):
-    iso2lines = {}
-    lines = read_lines(trn_path)
-    for line in lines:
-        iso = get_iso_from_line(line)
-        if iso not in iso2lines:
-            iso2lines[iso] = []
-        iso2lines[iso].append(line)
-
-    for iso, lines in iso2lines.items():
-        write_lines(lines, f"{root}/independent/{iso}/{os.path.basename(trn_path)}")
+def few_shot_rule(iso):
+    if iso not in RESERVE_LANG:
+        return "trained"
+    return "reserved"
 
 
-def create_few_shot_trn(root, trn_path):
-    set2lines = {"trained": [], "reserved": []}
-    lines = read_lines(trn_path)
-    for line in lines:
-        iso = get_iso_from_line(line)
-        if iso not in RESERVE_LANG:
-            set2lines["trained"].append(line)
-        else:
-            set2lines["reserved"].append(line)
-
-    write_lines(
-        set2lines["trained"], f"{root}/few_shot/trained/{os.path.basename(trn_path)}"
-    )
-    write_lines(
-        set2lines["reserved"], f"{root}/few_shot/reserved/{os.path.basename(trn_path)}"
-    )
-
-
-def create_language_family_trn(root, trn_path):
-    tree = LanguageTree()
-    tree.build_from_json("downloads/linguistic.json")
-    with open(f"downloads/macro.json", "r", encoding="utf-8") as f:
-        macros = json.load(f)
-    with open(f"downloads/exception.json", "r", encoding="utf-8") as f:
-        exceptions = json.load(f)
-
-    family2lines = {}
-    lines = read_lines(trn_path)
-    for line in lines:
-        iso = get_iso_from_line(line)
-        if iso in macros or iso in exceptions:
-            continue
-        try:
-            node = tree.get_node("iso", iso)
-        except Exception:
-            print(f"Unknown ISO code ({iso})...")
-            continue
+def language_family_rule(iso):
+    if iso in macros or iso in exceptions:
+        return None
+    try:
+        node = tree.get_node("iso", iso)
         family_name = node.get_ancestors()[1].name
         family_name = family_name.replace(" ", "-")  # remove whitespace
-        if family_name not in family2lines:
-            family2lines[family_name] = []
-        family2lines[family_name].append(line)
+        return family_name
+    except Exception:
+        print(f"Unknown ISO code ({iso})...")
+        return None
 
-    for family_name, lines in family2lines.items():
-        write_lines(
-            lines, f"{root}/language_family/{family_name}/{os.path.basename(trn_path)}"
-        )
+
+def split_trn_by_rule(root, name, rule_fn, trn_path):
+    lines = read_lines(trn_path)
+    lines, lid_info = lid_parse(root, lines)
+
+    categorizer.set_category_func(lambda line: rule_fn(get_info_from_line(line)[0]))
+    set2lines = categorizer.exec(lines)
+    for k, v in set2lines.items():
+        write_lines(v, f"{root}/{name}/{k}/{os.path.basename(trn_path)}")
+
+    if lid_info is not None and "hyp.trn" in trn_path:
+        categorizer.set_category_func(lambda line: rule_fn(line.split("\t")[1]))
+        set2lid_results = categorizer.exec(lid_info)
+        for k, v in set2lid_results.items():
+            write_lines(v, f"{root}/{name}/{k}/lid.txt")
 
 
 def main(args):
@@ -123,17 +165,21 @@ def main(args):
         print(f"Parsing results in {root}...")
         ref_trn_path = f"{root}/ref.trn"
         hyp_trn_path = f"{root}/hyp.trn"
-        create_independent_trn(root, ref_trn_path)
-        create_independent_trn(root, hyp_trn_path)
-        create_few_shot_trn(root, ref_trn_path)
-        create_few_shot_trn(root, hyp_trn_path)
-        create_language_family_trn(root, ref_trn_path)
-        create_language_family_trn(root, hyp_trn_path)
+        split_trn_by_rule(root, "independent", independent_rule, ref_trn_path)
+        split_trn_by_rule(root, "independent", independent_rule, hyp_trn_path)
+        split_trn_by_rule(root, "few_shot", few_shot_rule, ref_trn_path)
+        split_trn_by_rule(root, "few_shot", few_shot_rule, hyp_trn_path)
+        split_trn_by_rule(root, "language_family", language_family_rule, ref_trn_path)
+        split_trn_by_rule(root, "language_family", language_family_rule, hyp_trn_path)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir", type=str)
+    parser.add_argument("--lid", type=str2bool, default=False)
+    parser.add_argument("--only_lid", type=str2bool, default=False)
 
     args = parser.parse_args()
+    LID = args.lid
+    ONLY_LID = args.only_lid
     main(args)

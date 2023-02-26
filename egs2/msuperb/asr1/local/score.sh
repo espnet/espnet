@@ -51,7 +51,6 @@ python local/split_results.py \
 
 if "${only_lid}"; then
     suffix="_only_lid"
-    token_type=word
 else
     directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
     directories+=" "
