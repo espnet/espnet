@@ -290,8 +290,6 @@ class VITSGenerator(torch.nn.Module):
         label_lengths: torch.Tensor = None,
         melody: torch.Tensor = None,
         melody_lengths: torch.Tensor = None,
-        tempo: torch.Tensor = None,
-        tempo_lengths: torch.Tensor = None,
         beat: torch.Tensor = None,
         beat_lengths: torch.Tensor = None,
         pitch: torch.Tensor = None,
@@ -326,8 +324,6 @@ class VITSGenerator(torch.nn.Module):
             label_lengths (LongTensor): Batch of the lengths of padded label ids (B, ).
             melody (LongTensor): Batch of padded melody (B, Tmax).
             melody_lengths (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (LongTensor): Batch of the lengths of padded tempo (B, ).
             beat (LongTensor): Batch of padded beat (B, Tmax).
             beat_lengths (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
@@ -504,8 +500,6 @@ class VITSGenerator(torch.nn.Module):
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -531,8 +525,6 @@ class VITSGenerator(torch.nn.Module):
                 value (LongTensor): Batch of padded label ids (B, Tmax).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).

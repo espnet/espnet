@@ -298,13 +298,10 @@ class VITS(AbsGANSVS):
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: torch.LongTensor = None,
         pitch_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -327,18 +324,12 @@ class VITS(AbsGANSVS):
                 value (LongTensor): Batch of padded melody (B, Tmax).
             melody_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_lengths (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
+            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded duration (B, Tmax).
+            duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of the lengths of padded duration (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -352,13 +343,13 @@ class VITS(AbsGANSVS):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
-        duration = duration["phn"]
+        beat = duration["score_syb"]
+        beat_lengths = duration_lengths["score_syb"]
+        duration = duration["lab"]
         label = label["lab"]
         label_lengths = label_lengths["lab"]
         melody = melody["lab"]
         melody_lengths = melody_lengths["lab"]
-        beat = beat["score_syb"]
-        beat_lengths = beat_lengths["score_syb"]
 
         if forward_generator:
             return self._forward_generator(
@@ -373,8 +364,6 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 melody_lengths=melody_lengths,
-                tempo=tempo,
-                tempo_lengths=tempo_lengths,
                 beat=beat,
                 beat_lengths=beat_lengths,
                 pitch=pitch,
@@ -396,8 +385,6 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 melody_lengths=melody_lengths,
-                tempo=tempo,
-                tempo_lengths=tempo_lengths,
                 beat=beat,
                 beat_lengths=beat_lengths,
                 pitch=pitch,
@@ -420,8 +407,6 @@ class VITS(AbsGANSVS):
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -439,7 +424,7 @@ class VITS(AbsGANSVS):
             feats_lengths (Tensor): Feature length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Dict]): key is "phn", "syb";
+            duration (Optional[Dict]): key is "lab", "score_phn", "score_syb;
                 value (LongTensor): Batch of padded beat (B, Tmax).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, Tmax).
@@ -449,14 +434,6 @@ class VITS(AbsGANSVS):
                 value (LongTensor): Batch of padded melody (B, Tmax).
             melody_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
@@ -490,8 +467,6 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 melody_lengths=melody_lengths,
-                tempo=tempo,
-                tempo_lengths=tempo_lengths,
                 beat=beat,
                 beat_lengths=beat_lengths,
                 pitch=pitch,
@@ -629,8 +604,6 @@ class VITS(AbsGANSVS):
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        tempo_lengths: Optional[Dict[str, torch.Tensor]] = None,
         beat: Optional[Dict[str, torch.Tensor]] = None,
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
@@ -699,8 +672,6 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 melody_lengths=melody_lengths,
-                tempo=tempo,
-                tempo_lengths=tempo_lengths,
                 beat=beat,
                 beat_lengths=beat_lengths,
                 pitch=pitch,
@@ -758,8 +729,6 @@ class VITS(AbsGANSVS):
         feats: Optional[torch.Tensor] = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
-        tempo: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -804,7 +773,7 @@ class VITS(AbsGANSVS):
         # setup
         label = label["lab"]
         melody = melody["lab"]
-        beat = beat["score_syb"]
+        beat = duration["score_syb"]
         text = text[None]
         text_lengths = torch.tensor(
             [text.size(1)],
