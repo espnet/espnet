@@ -44,6 +44,7 @@ asr_tag="$(basename "${asr_config}" .yaml)_${lang}_${duration}"
     --inference_nj ${nj} \
     --inference_asr_model valid.loss.ave.pth \
     --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
+    --nlsyms_txt ${nlsyms_txt} \
     --use_lm false \
     --lm_config "${lm_config}" \
     --token_type char \
