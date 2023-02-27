@@ -202,6 +202,7 @@ if __name__ == "__main__":
     parser.add_argument("--duration", type=str, default="10min")
     parser.add_argument("--source", type=str, default="downloads")
     parser.add_argument("--lid", type=str2bool, default=False)
+    parser.add_argument("--only_lid", type=str2bool, default=False)
 
     args = parser.parse_args()
     assert args.duration in ["10min", "1h"], "we only "
@@ -266,20 +267,19 @@ if __name__ == "__main__":
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
-                            args.source,
-                            dataset,
-                            lang,
-                            "wav",
-                            "{}.wav".format(utt_id),
+                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                         ),
                     )
                 )
-                if args.lid:
-                    train_text.write(
-                        "{} [{}] {}\n".format(utt_id, lang, process_text(text))
-                    )
+                if args.only_lid:
+                    train_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
-                    train_text.write("{} {}\n".format(utt_id, process_text(text)))
+                    if args.lid:
+                        train_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
+                    else:
+                        train_text.write("{} {}\n".format(utt_id, process_text(text)))
                 train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             train_transcript.close()
 
@@ -296,20 +296,19 @@ if __name__ == "__main__":
                     "{} sox {} -c 1 -t wavpcm -|\n".format(
                         utt_id,
                         os.path.join(
-                            args.source,
-                            dataset,
-                            lang,
-                            "wav",
-                            "{}.wav".format(utt_id),
+                            args.source, dataset, lang, "wav", "{}.wav".format(utt_id)
                         ),
                     )
                 )
-                if args.lid:
-                    dev_text.write(
-                        "{} [{}] {}\n".format(utt_id, lang, process_text(text))
-                    )
+                if args.only_lid:
+                    dev_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
-                    dev_text.write("{} {}\n".format(utt_id, process_text(text)))
+                    if args.lid:
+                        dev_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
+                    else:
+                        dev_text.write("{} {}\n".format(utt_id, process_text(text)))
                 dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             dev_transcript.close()
 
@@ -330,12 +329,15 @@ if __name__ == "__main__":
                         ),
                     )
                 )
-                if args.lid:
-                    test_text.write(
-                        "{} [{}] {}\n".format(utt_id, lang, process_text(text))
-                    )
+                if args.only_lid:
+                    test_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
-                    test_text.write("{} {}\n".format(utt_id, process_text(text)))
+                    if args.lid:
+                        test_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
+                    else:
+                        test_text.write("{} {}\n".format(utt_id, process_text(text)))
                 test_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             test_transcript.close()
 
