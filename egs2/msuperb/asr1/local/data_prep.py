@@ -1,5 +1,7 @@
 import argparse
 import os
+import re
+import string
 
 from espnet2.utils.types import str2bool
 
@@ -186,6 +188,12 @@ FEW_SHOT_SELECTED_DATA = {
     ],
 }
 
+
+def process_text(text):
+    text = re.sub(r"\[[^()]*\]", "", text)
+    return text.translate(str.maketrans("", "", string.punctuation)).upper()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_set", type=str, default="train_10min")
@@ -267,9 +275,9 @@ if __name__ == "__main__":
                     train_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        train_text.write("{} [{}] {}\n".format(utt_id, lang, text))
+                        train_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
                     else:
-                        train_text.write("{} {}\n".format(utt_id, text))
+                        train_text.write("{} {}\n".format(utt_id, process_text(text)))
                 train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             train_transcript.close()
 
@@ -294,9 +302,9 @@ if __name__ == "__main__":
                     dev_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        dev_text.write("{} [{}] {}\n".format(utt_id, lang, text))
+                        dev_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
                     else:
-                        dev_text.write("{} {}\n".format(utt_id, text))
+                        dev_text.write("{} {}\n".format(utt_id, process_text(text)))
                 dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             dev_transcript.close()
 
@@ -321,9 +329,9 @@ if __name__ == "__main__":
                     test_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        test_text.write("{} [{}] {}\n".format(utt_id, lang, text))
+                        test_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
                     else:
-                        test_text.write("{} {}\n".format(utt_id, text))
+                        test_text.write("{} {}\n".format(utt_id, process_text(text)))
                 test_utt2spk.write("{} {}\n".format(utt_id, utt_id))
             test_transcript.close()
 
