@@ -77,7 +77,7 @@ def read_lines(path):
         for line in f:
             if line == "\n":
                 continue
-            res.append(line.strip())
+            res.append(line.rstrip())
     return res
 
 
@@ -125,7 +125,8 @@ def lid_parse(root, lines):
                 elif "score_cer" in root:
                     chars = line.split(" ")
                     if "<space>" in chars:
-                        line = " ".join(chars[chars.index("<space>") :])
+                        idx = chars.index("<space>")
+                        line = " ".join(chars[idx + 1 :])
                     else:
                         line = line[len(text) :]
         new_lines.append(line)
