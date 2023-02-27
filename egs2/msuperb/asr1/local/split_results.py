@@ -113,10 +113,9 @@ def lid_parse(root, lines):
     # Remove LID in Multilingual + LID case
     for line in lines:
         if LID and (not ONLY_LID):
-            if "score_cer" in root:
-                idx = line.find("]")
-                line = line[idx + 1 :]
-            elif "score_wer" in root:
+            if line[0] == "\t":  # prediction is NULL...
+                pass
+            else:
                 line = line.split(" ", 1)[1]
         new_lines.append(line)
     return new_lines, lid_info

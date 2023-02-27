@@ -66,4 +66,4 @@ asr_tag="$(basename "${asr_config}" .yaml)_${lang}_${duration}"
     --asr_tag "${asr_tag}" \
     --asr_stats_dir exp/asr_stats_${lang}_${duration} \
     --lm_train_text "data/${train_set}/text" "$@" \
-    --local_score_opts "--lid ${lid} --only_lid ${only_lid}"
+    --local_score_opts "${lid} ${only_lid}"

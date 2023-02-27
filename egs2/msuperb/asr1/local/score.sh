@@ -8,9 +8,9 @@
 . ./db.sh || exit 1;
 
 # general configuration
-lid=$2
-only_lid=$4
-asr_exp=$5
+lid=$1
+only_lid=$2
+asr_exp=$3
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
