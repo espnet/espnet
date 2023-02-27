@@ -1,10 +1,8 @@
-import string
 from argparse import ArgumentParser
 from pathlib import Path
 
 import numpy as np
 import pytest
-import yaml
 
 from espnet2.bin.uasr_inference import Speech2Text, get_parser, main
 from espnet2.tasks.uasr import UASRTask
