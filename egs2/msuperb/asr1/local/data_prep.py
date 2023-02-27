@@ -275,7 +275,9 @@ if __name__ == "__main__":
                     train_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        train_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
+                        train_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
                     else:
                         train_text.write("{} {}\n".format(utt_id, process_text(text)))
                 train_utt2spk.write("{} {}\n".format(utt_id, utt_id))
@@ -302,7 +304,9 @@ if __name__ == "__main__":
                     dev_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        dev_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
+                        dev_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
                     else:
                         dev_text.write("{} {}\n".format(utt_id, process_text(text)))
                 dev_utt2spk.write("{} {}\n".format(utt_id, utt_id))
@@ -329,7 +333,9 @@ if __name__ == "__main__":
                     test_text.write("{} [{}]\n".format(utt_id, lang))
                 else:
                     if args.lid:
-                        test_text.write("{} [{}] {}\n".format(utt_id, lang, process_text(text)))
+                        test_text.write(
+                            "{} [{}] {}\n".format(utt_id, lang, process_text(text))
+                        )
                     else:
                         test_text.write("{} {}\n".format(utt_id, process_text(text)))
                 test_utt2spk.write("{} {}\n".format(utt_id, utt_id))

@@ -103,7 +103,7 @@ def lid_parse(root, lines):
         lid_info = []
         for line in lines:
             if line[0] == "\t":  # prediction is NULL...
-                lid = "NULL"
+                lid = "[UNK]"
             else:
                 words = line.split("\t")[0].split(" ")
                 lid = words[0]
@@ -116,7 +116,18 @@ def lid_parse(root, lines):
             if line[0] == "\t":  # prediction is NULL...
                 pass
             else:
-                line = line.split(" ", 1)[1]
+                text = line.split("\t")[0]
+                if "score_wer" in root:
+                    if " " in text:
+                        line = line.split(" ", 1)[1]
+                    else:
+                        line = line[len(text) :]
+                elif "score_cer" in root:
+                    chars = line.split(" ")
+                    if "<space>" in chars:
+                        line = " ".join(chars[chars.index("<space>") :])
+                    else:
+                        line = line[len(text) :]
         new_lines.append(line)
     return new_lines, lid_info
 
