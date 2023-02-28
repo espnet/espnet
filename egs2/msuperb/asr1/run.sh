@@ -9,15 +9,22 @@ duration=10min
 
 multilingual=true
 lid=false
+only_lid=true
 single_lang=xty
 stage=1
 nj=4
 
+token_type=char
 if "${multilingual}"; then
-    if "${lid}"; then
-        suffix="_lid"
+    if "${only_lid}"; then
+        suffix="_only_lid"
+        token_type=word
     else
-        suffix=""
+        if "${lid}"; then
+            suffix="_lid"
+        else
+            suffix=""
+        fi
     fi
     train_set=train_${duration}${suffix}
     train_dev=dev_${duration}${suffix}
@@ -43,10 +50,11 @@ asr_tag="$(basename "${asr_config}" .yaml)_${lang}_${duration}"
     --nj ${nj} \
     --inference_nj ${nj} \
     --inference_asr_model valid.loss.ave.pth \
-    --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
+    --local_data_opts "--duration ${duration} --lid ${lid} --only_lid ${only_lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
+    --nlsyms_txt ${nlsyms_txt} \
     --use_lm false \
     --lm_config "${lm_config}" \
-    --token_type char \
+    --token_type ${token_type} \
     --feats_type raw \
     --feats_normalize utterance_mvn \
     --asr_config "${asr_config}" \
@@ -57,5 +65,5 @@ asr_tag="$(basename "${asr_config}" .yaml)_${lang}_${duration}"
     --bpe_train_text "data/${train_set}/text" \
     --asr_tag "${asr_tag}" \
     --asr_stats_dir exp/asr_stats_${lang}_${duration} \
-    --lm_train_text "data/${train_set}/text" "$@"
-
+    --lm_train_text "data/${train_set}/text" "$@" \
+    --local_score_opts "${lid} ${only_lid}"
