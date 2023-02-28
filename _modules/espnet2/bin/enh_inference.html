@@ -349,6 +349,8 @@
                 <span class="s2">&quot;Overwrite enh_model.separator.ref_channel with </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref_channel</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">ref_channel</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;beamformer&quot;</span><span class="p">):</span>
+                <span class="n">enh_model</span><span class="o">.</span><span class="n">separator</span><span class="o">.</span><span class="n">beamformer</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">ref_channel</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">ref_channel</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">enh_model</span><span class="o">.</span><span class="n">ref_channel</span>
