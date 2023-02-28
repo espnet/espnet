@@ -57,6 +57,8 @@ if "${only_lid}"; then
     directories+=$(find ${asr_exp} -wholename "*/*/score_wer/few_shot/*" -type d -not -path '/\.')
     directories+=" "
     directories+=$(find ${asr_exp} -wholename "*/*/score_wer/language_family/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/all/*" -type d -not -path '/\.')
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/scores.txt"
@@ -68,6 +70,8 @@ else
     directories+=$(find ${asr_exp} -wholename "*/*/*/few_shot/*" -type d -not -path '/\.')
     directories+=" "
     directories+=$(find ${asr_exp} -wholename "*/*/*/language_family/*" -type d -not -path '/\.')
+    directories+=" "
+    directories+=$(find ${asr_exp} -wholename "*/*/*/all/*" -type d -not -path '/\.')
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/result.txt"

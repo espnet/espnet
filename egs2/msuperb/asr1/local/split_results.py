@@ -133,6 +133,10 @@ def lid_parse(root, lines):
     return new_lines, lid_info
 
 
+def no_rule(iso):
+    return "all"
+
+
 def independent_rule(iso):
     return iso
 
@@ -188,6 +192,8 @@ def main(args):
         split_trn_by_rule(root, "few_shot", few_shot_rule, hyp_trn_path)
         split_trn_by_rule(root, "language_family", language_family_rule, ref_trn_path)
         split_trn_by_rule(root, "language_family", language_family_rule, hyp_trn_path)
+        split_trn_by_rule(root, "all", no_rule, ref_trn_path)
+        split_trn_by_rule(root, "all", no_rule, hyp_trn_path)
 
 
 if __name__ == "__main__":
