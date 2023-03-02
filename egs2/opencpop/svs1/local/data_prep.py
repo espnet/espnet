@@ -134,9 +134,7 @@ def process_utterance(
     )
     os.system(cmd)
 
-    wavscp.write(
-        "opencpop_{} {}/opencpop_{}.wav\n".format(uid, wav_dumpdir, uid)
-    )
+    wavscp.write("opencpop_{} {}/opencpop_{}.wav\n".format(uid, wav_dumpdir, uid))
 
     running_dur = 0
     assert len(phn_dur) == len(phns)
