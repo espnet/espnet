@@ -70,6 +70,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
@@ -98,14 +100,11 @@ class ESPnetSVSModel(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            ---- label* is label id sequence ----
             label (Option[Tensor]): Label tensor (B, T_label).
             label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
             phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            ---- midi_* is midi id sequence ----
             midi (Option[Tensor]): Midi tensor (B, T_label).
             midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            ---- duration* is duration in time_shift ----
             duration_phn (Optional[Tensor]): duration tensor (B, T_label).
             duration_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_ruled_phn (Optional[Tensor]): duration tensor (B, T_phone).
@@ -128,13 +127,10 @@ class ESPnetSVSModel(AbsESPnetModel):
         """
         with autocast(False):
             # Extract features
-            if self.feats_extract is not None:
+            if self.feats_extract is not None and feats is None:
                 feats, feats_lengths = self.feats_extract(
                     singing, singing_lengths
                 )  # singing to spec feature (frame level)
-            else:
-                # Use precalculated feats (feats_type != raw case)
-                feats, feats_lengths = singing, singing_lengths
 
             # Extract auxiliary features
             # melody : 128 note pitch
@@ -159,6 +155,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                         else:  # stop
                             delta -= duration_phn[i][end] - new
                             duration_phn[i][end] = new
+            feats = feats[:, : feats_lengths.max()]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -316,14 +313,11 @@ class ESPnetSVSModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        # label
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
-        # midi
         midi: Optional[torch.Tensor] = None,
         midi_lengths: Optional[torch.Tensor] = None,
-        # duration
         duration_phn: Optional[torch.Tensor] = None,
         duration_phn_lengths: Optional[torch.Tensor] = None,
         duration_ruled_phn: Optional[torch.Tensor] = None,
@@ -346,11 +340,9 @@ class ESPnetSVSModel(AbsESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            ---- label* is label id sequence ----
             label (Option[Tensor]): Label tensor (B, T_label).
             label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
             phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            ---- midi_* is midi id sequence ----
             midi (Option[Tensor]): Midi tensor (B, T_label).
             midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
             ---- duration* is duration in time_shift ----
@@ -360,7 +352,6 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_syb (Optional[Tensor]): duration tensor (B, T_syb).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
-
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
@@ -372,12 +363,31 @@ class ESPnetSVSModel(AbsESPnetModel):
         Returns:
             Dict[str, Tensor]: Dict of features.
         """
+        feats = None
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(singing, singing_lengths)
         else:
             # Use precalculated feats (feats_type != raw case)
             feats, feats_lengths = singing, singing_lengths
-        # TODO(Yuning): to be discussed
+        # cut length
+        for i in range(feats.size(0)):
+            dur_len = sum(duration_phn[i])
+            if feats_lengths[i] > dur_len:
+                feats_lengths[i] = dur_len
+            else:  # decrease duration at the end of sequence
+                delta = dur_len - feats_lengths[i]
+                end = duration_phn_lengths[i] - 1
+                while delta > 0 and end >= 0:
+                    new = duration_phn[i][end] - delta
+                    if new < 0:  # keep on decreasing the previous one
+                        delta -= duration_phn[i][end]
+                        duration_phn[i][end] = 0
+                        end -= 1
+                    else:  # stop
+                        delta -= duration_phn[i][end] - new
+                        duration_phn[i][end] = new
+        feats = feats[:, : feats_lengths.max()]
+
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 input=singing,
@@ -392,7 +402,9 @@ class ESPnetSVSModel(AbsESPnetModel):
             )
 
         # store in dict
-        feats_dict = dict(feats=feats, feats_lengths=feats_lengths)
+        feats_dict = {}
+        if feats is not None:
+            feats_dict.update(feats=feats, feats_lengths=feats_lengths)
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
@@ -422,16 +434,12 @@ class ESPnetSVSModel(AbsESPnetModel):
         Args:
             text (Tensor): Text index tensor (T_text).
             singing (Tensor): Singing waveform tensor (T_wav).
-            ---- label* is label id sequence ----
             label (Option[Tensor]): Label tensor (T_label).
             phn_cnt (Optional[Tensor]): Number of phones in each syllable (T_syb)
-            ---- midi_* is midi id sequence ----
-            midi (Option[Tensor]): Midi tensor (T_label).
-            ---- duration* is duration in time_shift ----
+            midi (Option[Tensor]): Midi tensor (T_l abel).
             duration_phn (Optional[Tensor]): duration tensor (T_label).
             duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
             duration_syb (Optional[Tensor]): duration tensor (T_phone).
-
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
