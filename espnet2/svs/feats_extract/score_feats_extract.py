@@ -324,27 +324,27 @@ def expand_to_frame(expand_len, len_size, label, midi, duration):
 
     for i in range(bs):
         length = sum(expand_len[i])
-        seq_label_lengths.append(length)
-        seq_midi_lengths.append(length)
-        seq_duration_lengths.append(length)
+        seq_label_lengths.append(length.tolist())
+        seq_midi_lengths.append(length.tolist())
+        seq_duration_lengths.append(length.tolist())
 
         seq_label.append(
             [
-                label[i][j]
+                label[i][j].tolist()
                 for j in range(len_size[i])
                 for k in range(int(expand_len[i][j]))
             ]
         )
         seq_midi.append(
             [
-                midi[i][j]
+                midi[i][j].tolist()
                 for j in range(len_size[i])
                 for k in range(int(expand_len[i][j]))
             ]
         )
         seq_duration.append(
             [
-                duration[i][j]
+                duration[i][j].tolist()
                 for j in range(len_size[i])
                 for k in range(int(expand_len[i][j]))
             ]
