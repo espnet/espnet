@@ -467,6 +467,7 @@
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">joint_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">flag_IsValid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
@@ -493,6 +494,7 @@
 <span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
 <span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).</span>
 <span class="sd">            lids (Optional[Tensor]): Batch of language IDs (B, 1).</span>
+<span class="sd">            joint_training (bool): Whether to perform joint training with vocoder.</span>
 
 <span class="sd">        GS Fix:</span>
 <span class="sd">            arguements from forward func. V.S. **batch from espnet_model.py</span>
@@ -504,12 +506,20 @@
 <span class="sd">            Dict: Statistics to be monitored.</span>
 <span class="sd">            Tensor: Weight value if not joint training else model outputs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-        <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
-        <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-        <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-        <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+            <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span>
+            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span>
+            <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span>
+            <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+            <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+            <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
 
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
@@ -609,12 +619,15 @@
 
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">flag_IsValid</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="c1"># training stage</span>
-            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span>
+        <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">after_outs</span> <span class="k">if</span> <span class="n">after_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">before_outs</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># validation stage</span>
-            <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">olens</span><span class="o">.</span><span class="n">max</span><span class="p">()],</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span></div>
+            <span class="k">if</span> <span class="n">flag_IsValid</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="c1"># training stage</span>
+                <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># validation stage</span>
+                <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">olens</span><span class="o">.</span><span class="n">max</span><span class="p">()],</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span></div>
 
 <div class="viewcode-block" id="NaiveRNNDP.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -627,6 +640,7 @@
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">joint_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
@@ -651,7 +665,10 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
         <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
+            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_input_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>  <span class="c1"># FIX ME: label Float to Int</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder_input_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>

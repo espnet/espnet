@@ -183,13 +183,15 @@
 
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.abs_gan_svs</span> <span class="kn">import</span> <span class="n">AbsGANSVS</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetGANSVSModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_svs.joint</span> <span class="kn">import</span> <span class="n">JointScore2Wav</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_svs.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
@@ -198,11 +200,12 @@
     <span class="n">FrameScoreFeats</span><span class="p">,</span>
     <span class="n">SyllableScoreFeats</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">optim_classes</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.svs</span> <span class="kn">import</span> <span class="n">SVSTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span><span class="p">,</span> <span class="n">optim_classes</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.gan_trainer</span> <span class="kn">import</span> <span class="n">GANTrainer</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">SVSPreprocessor</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.abs_feats_extract</span> <span class="kn">import</span> <span class="n">AbsFeatsExtract</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.dio</span> <span class="kn">import</span> <span class="n">Dio</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.energy</span> <span class="kn">import</span> <span class="n">Energy</span>
@@ -281,13 +284,14 @@
     <span class="s2">&quot;svs&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
+        <span class="n">joint_score2wav</span><span class="o">=</span><span class="n">JointScore2Wav</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsGANSVS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;vits&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="GANSVSTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask">[docs]</a><span class="k">class</span> <span class="nc">GANSVSTask</span><span class="p">(</span><span class="n">SVSTask</span><span class="p">):</span>
+<div class="viewcode-block" id="GANSVSTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask">[docs]</a><span class="k">class</span> <span class="nc">GANSVSTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;GAN-based Singing-voice-synthesis task.&quot;&quot;&quot;</span>
 
     <span class="c1"># GAN requires two optimizers</span>
@@ -397,6 +401,66 @@
             <span class="c1"># Append --&lt;name&gt; and --&lt;name&gt;_conf.</span>
             <span class="c1"># e.g. --encoder and --encoder_conf</span>
             <span class="n">class_choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GANSVSTask.build_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask.build_collate_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_collate_fn</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span>
+        <span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]],</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+    <span class="p">]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">CommonCollateFn</span><span class="p">(</span>
+            <span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">int_pad_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">not_sequence</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;lids&quot;</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="GANSVSTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_preprocess_fn</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">],</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">SVSPreprocessor</span><span class="p">(</span>
+                <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                <span class="n">token_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_type</span><span class="p">,</span>
+                <span class="n">token_list</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span>
+                <span class="n">bpemodel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">bpemodel</span><span class="p">,</span>
+                <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
+                <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>
+                <span class="n">g2p_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span>
+                <span class="n">fs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span>
+                <span class="n">hop_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">feats_extract_conf</span><span class="p">[</span><span class="s2">&quot;hop_length&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># FIXME (jiatong): sometimes checking is not working here</span>
+        <span class="c1"># assert check_return_type(retval)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+    <span class="c1"># TODO(Yuning): check new names</span>
+<div class="viewcode-block" id="GANSVSTask.required_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask.required_data_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">required_data_names</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;singing&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Inference mode</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+<div class="viewcode-block" id="GANSVSTask.optional_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask.optional_data_names">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">optional_data_names</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;lids&quot;</span><span class="p">,</span> <span class="s2">&quot;feats&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Inference mode</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;singing&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;lids&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="GANSVSTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_svs.GANSVSTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ESPnetGANSVSModel</span><span class="p">:</span>

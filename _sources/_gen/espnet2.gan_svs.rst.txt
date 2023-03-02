@@ -146,3 +146,25 @@ espnet2.gan_svs.vits.frame_prior_net
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.gan_svs.joint.__init__:
+
+espnet2.gan_svs.joint.__init__
+------------------------------
+
+.. automodule:: espnet2.gan_svs.joint.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.joint.joint_score2wav:
+
+espnet2.gan_svs.joint.joint_score2wav
+-------------------------------------
+
+.. automodule:: espnet2.gan_svs.joint.joint_score2wav
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -136,6 +136,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-vits-1">espnet2.gan_svs.vits.vits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-pitch-predictor-1">espnet2.gan_svs.vits.pitch_predictor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-vits-frame-prior-net-1">espnet2.gan_svs.vits.frame_prior_net</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-joint-init-1">espnet2.gan_svs.joint.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-svs-joint-joint-score2wav-1">espnet2.gan_svs.joint.joint_score2wav</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
@@ -259,14 +261,11 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
 <li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
-<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_label).</p></li>
 <li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label lrngth tensor (B,).</p></li>
 <li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (B, T_syb)</p></li>
-<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_label).</p></li>
 <li><p><strong>midi_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi lrngth tensor (B,).</p></li>
-<li><p><strong>duration* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>duration_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_label).</p></li>
 <li><p><strong>duration_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
 <li><p><strong>duration_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
@@ -290,7 +289,7 @@
 
 <dl class="method">
 <dt id="espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">label_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return generator or discriminator loss with dict format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -299,14 +298,11 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (B, T_wav).</p></li>
 <li><p><strong>singing_lengths</strong> (<em>Tensor</em>) – Singing length tensor (B,).</p></li>
-<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (B, T_label).</p></li>
 <li><p><strong>label_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Label lrngth tensor (B,).</p></li>
 <li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (B, T_syb)</p></li>
-<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (B, T_label).</p></li>
 <li><p><strong>midi_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Midi lrngth tensor (B,).</p></li>
-<li><p><strong>duration* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
 <li><p><strong>duration_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (B, T_label).</p></li>
 <li><p><strong>duration_phn_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration length tensor (B,).</p></li>
 <li><p><strong>duration_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (B, T_phone).</p></li>
@@ -335,40 +331,6 @@
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">singing: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[torch.Tensor] = None</em>, <em class="sig-param">phn_cnt: Optional[torch.Tensor] = None</em>, <em class="sig-param">midi: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_ruled_phn: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration_syb: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/espnet_model.html#ESPnetGANSVSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.espnet_model.ESPnetGANSVSModel.inference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Caclualte features and return them as a dict.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (T_text).</p></li>
-<li><p><strong>singing</strong> (<em>Tensor</em>) – Singing waveform tensor (T_wav).</p></li>
-<li><p><strong>label* is label id sequence ----</strong> (<em>----</em>) – </p></li>
-<li><p><strong>label</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Label tensor (T_label).</p></li>
-<li><p><strong>phn_cnt</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Number of phones in each syllable (T_syb)</p></li>
-<li><p><strong>midi_* is midi id sequence ----</strong> (<em>----</em>) – </p></li>
-<li><p><strong>midi</strong> (<em>Option</em><em>[</em><em>Tensor</em><em>]</em>) – Midi tensor (T_label).</p></li>
-<li><p><strong>duration* is duration in time_shift ----</strong> (<em>----</em>) – </p></li>
-<li><p><strong>duration_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_label).</p></li>
-<li><p><strong>duration_ruled_phn</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
-<li><p><strong>duration_syb</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – duration tensor (T_phone).</p></li>
-<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (D,).</p></li>
-<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (1,).</p></li>
-<li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (1,).</p></li>
-<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor (T_wav).</p></li>
-<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dict of outputs.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -926,6 +888,119 @@ this function, one should call the <code class="xref py py-class docutils litera
 instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
 </aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-gan-svs-joint-init-1">
+<span id="espnet2-gan-svs-joint-init"></span><h2>espnet2.gan_svs.joint.__init__<a class="headerlink" href="#espnet2-gan-svs-joint-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_svs.joint.__init__"></span></section>
+<section id="espnet2-gan-svs-joint-joint-score2wav-1">
+<span id="espnet2-gan-svs-joint-joint-score2wav"></span><h2>espnet2.gan_svs.joint.joint_score2wav<a class="headerlink" href="#espnet2-gan-svs-joint-joint-score2wav-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_svs.joint.joint_score2wav"></span><p>Joint text-to-wav module for end-to-end training.</p>
+<dl class="class">
+<dt id="espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_svs.joint.joint_score2wav.</code><code class="sig-name descname">JointScore2Wav</code><span class="sig-paren">(</span><em class="sig-param">idim: int, odim: int, segment_size: int = 32, sampling_rate: int = 22050, score2mel_type: str = 'xiaoice', score2mel_params: Dict[str, Any] = {'adim': 384, 'aheads': 4, 'conformer_activation_type': 'swish', 'conformer_dec_kernel_size': 31, 'conformer_enc_kernel_size': 7, 'conformer_pos_enc_layer_type': 'rel_pos', 'conformer_rel_pos_type': 'latest', 'conformer_self_attn_layer_type': 'rel_selfattn', 'decoder_concat_after': False, 'decoder_normalize_before': True, 'decoder_type': 'transformer', 'dlayers': 6, 'dunits': 1536, 'duration_predictor_chans': 384, 'duration_predictor_dropout_rate': 0.1, 'duration_predictor_kernel_size': 3, 'duration_predictor_layers': 2, 'elayers': 6, 'embed_dim': 512, 'encoder_concat_after': False, 'encoder_normalize_before': True, 'encoder_type': 'transformer', 'eunits': 1536, 'init_dec_alpha': 1.0, 'init_enc_alpha': 1.0, 'init_type': 'xavier_uniform', 'langs': None, 'loss_type': 'L1', 'midi_dim': 129, 'positionwise_conv_kernel_size': 1, 'positionwise_layer_type': 'conv1d', 'postnet_chans': 512, 'postnet_dropout_rate': 0.5, 'postnet_filts': 5, 'postnet_layers': 5, 'reduction_factor': 1, 'spk_embed_dim': None, 'spk_embed_integration_type': 'add', 'spks': None, 'tempo_dim': 500, 'transformer_dec_attn_dropout_rate': 0.1, 'transformer_dec_dropout_rate': 0.1, 'transformer_dec_positional_dropout_rate': 0.1, 'transformer_enc_attn_dropout_rate': 0.1, 'transformer_enc_dropout_rate': 0.1, 'transformer_enc_positional_dropout_rate': 0.1, 'use_batch_norm': True, 'use_cnn_in_conformer': True, 'use_macaron_style_in_conformer': True, 'use_masking': False, 'use_scaled_pos_enc': True, 'use_weighted_masking': False, 'zero_triu': False}, vocoder_type: str = 'hifigan_generator', vocoder_params: Dict[str, Any] = {'bias': True, 'channels': 512, 'global_channels': -1, 'kernel_size': 7, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'resblock_dilations': [[1, 3, 5], [1, 3, 5], [1, 3, 5]], 'resblock_kernel_sizes': [3, 7, 11], 'upsample_kernel_sizes': [16, 16, 4, 4], 'upsample_scales': [8, 8, 2, 2], 'use_additional_convs': True, 'use_weight_norm': True}, use_pqmf: bool = False, pqmf_params: Dict[str, Any] = {'beta': 9.0, 'cutoff_ratio': 0.142, 'subbands': 4, 'taps': 62}, discriminator_type: str = 'hifigan_multi_scale_multi_period_discriminator', discriminator_params: Dict[str, Any] = {'follow_official_norm': False, 'period_discriminator_params': {'bias': True, 'channels': 32, 'downsample_scales': [3, 3, 3, 3, 1], 'in_channels': 1, 'kernel_sizes': [5, 3], 'max_downsample_channels': 1024, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}, 'periods': [2, 3, 5, 7, 11], 'scale_discriminator_params': {'bias': True, 'channels': 128, 'downsample_scales': [2, 2, 4, 4, 1], 'in_channels': 1, 'kernel_sizes': [15, 41, 5, 3], 'max_downsample_channels': 1024, 'max_groups': 16, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}, 'scale_downsample_pooling': 'AvgPool1d', 'scale_downsample_pooling_params': {'kernel_size': 4, 'padding': 2, 'stride': 2}, 'scales': 1}, generator_adv_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'loss_type': 'mse'}, discriminator_adv_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'loss_type': 'mse'}, use_feat_match_loss: bool = True, feat_match_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'average_by_layers': False, 'include_final_outputs': True}, use_mel_loss: bool = True, mel_loss_params: Dict[str, Any] = {'fmax': None, 'fmin': 0, 'fs': 22050, 'hop_length': 256, 'log_base': None, 'n_fft': 1024, 'n_mels': 80, 'win_length': None, 'window': 'hann'}, lambda_score2mel: float = 1.0, lambda_adv: float = 1.0, lambda_feat_match: float = 2.0, lambda_mel: float = 45.0, cache_generator_outputs: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_svs/joint/joint_score2wav.html#JointScore2Wav"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.gan_svs.abs_gan_svs.AbsGANSVS" title="espnet2.gan_svs.abs_gan_svs.AbsGANSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.gan_svs.abs_gan_svs.AbsGANSVS</span></code></a></p>
+<p>General class to jointly train score2mel and vocoder parts.</p>
+<p>Initialize JointScore2Wav module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Input vocabrary size.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Acoustic feature dimension. The actual output channels will
+be 1 since the model is the end-to-end text-to-wave model but for the
+compatibility odim is used to indicate the acoustic feature dimension.</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size for random windowed inputs.</p></li>
+<li><p><strong>sampling_rate</strong> (<em>int</em>) – Sampling rate, not used for the training but it will
+be referred in saving waveform during the inference.</p></li>
+<li><p><strong>text2mel_type</strong> (<em>str</em>) – The text2mel model type.</p></li>
+<li><p><strong>text2mel_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for text2mel model.</p></li>
+<li><p><strong>use_pqmf</strong> (<em>bool</em>) – Whether to use PQMF for multi-band vocoder.</p></li>
+<li><p><strong>pqmf_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for PQMF module.</p></li>
+<li><p><strong>vocoder_type</strong> (<em>str</em>) – The vocoder model type.</p></li>
+<li><p><strong>vocoder_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for vocoder model.</p></li>
+<li><p><strong>discriminator_type</strong> (<em>str</em>) – Discriminator type.</p></li>
+<li><p><strong>discriminator_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for discriminator.</p></li>
+<li><p><strong>generator_adv_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for generator
+adversarial loss.</p></li>
+<li><p><strong>discriminator_adv_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for
+discriminator adversarial loss.</p></li>
+<li><p><strong>use_feat_match_loss</strong> (<em>bool</em>) – Whether to use feat match loss.</p></li>
+<li><p><strong>feat_match_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for feat match loss.</p></li>
+<li><p><strong>use_mel_loss</strong> (<em>bool</em>) – Whether to use mel loss.</p></li>
+<li><p><strong>mel_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for mel loss.</p></li>
+<li><p><strong>lambda_text2mel</strong> (<em>float</em>) – Loss scaling coefficient for text2mel model loss.</p></li>
+<li><p><strong>lambda_adv</strong> (<em>float</em>) – Loss scaling coefficient for adversarial loss.</p></li>
+<li><p><strong>lambda_feat_match</strong> (<em>float</em>) – Loss scaling coefficient for feat match loss.</p></li>
+<li><p><strong>lambda_mel</strong> (<em>float</em>) – Loss scaling coefficient for mel loss.</p></li>
+<li><p><strong>cache_generator_outputs</strong> (<em>bool</em>) – Whether to cache generator outputs.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">singing: torch.Tensor</em>, <em class="sig-param">singing_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: torch.LongTensor = None</em>, <em class="sig-param">pitch_lengths: torch.Tensor = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">duration_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_svs/joint/joint_score2wav.html#JointScore2Wav.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform generator forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (B, T_feats, aux_channels).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>Tensor</em>) – Feature length tensor (B,).</p></li>
+<li><p><strong>speech</strong> (<em>Tensor</em>) – Speech waveform tensor (B, T_wav).</p></li>
+<li><p><strong>speech_lengths</strong> (<em>Tensor</em>) – Speech length tensor (B,).</p></li>
+<li><p><strong>forward_generator</strong> (<em>bool</em>) – Whether to forward generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>loss (Tensor): Loss scalar tensor.</p></li>
+<li><p>stats (Dict[str, float]): Statistics to be monitored.</p></li>
+<li><p>weight (Tensor): Weight tensor to summarize losses.</p></li>
+<li><p>optim_idx (int): Optimizer index (0 for G and 1 for D).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_svs/joint/joint_score2wav.html#JointScore2Wav.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (T_text,).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>wav (Tensor): Generated waveform tensor (T_wav,).</p></li>
+<li><p>feat_gan (Tensor): Generated feature tensor (T_text, C).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.require_raw_singing">
+<em class="property">property </em><code class="sig-name descname">require_raw_singing</code><a class="headerlink" href="#espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.require_raw_singing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not singing is required.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.require_vocoder">
+<em class="property">property </em><code class="sig-name descname">require_vocoder</code><a class="headerlink" href="#espnet2.gan_svs.joint.joint_score2wav.JointScore2Wav.require_vocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not vocoder is required.</p>
 </dd></dl>
 
 </dd></dl>

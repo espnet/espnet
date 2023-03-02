@@ -4056,8 +4056,9 @@ Optimizer related:
                         [--feats_extract {fbank,log_spectrogram,linear_spectrogram}]
                         [--feats_extract_conf FEATS_EXTRACT_CONF]
                         [--normalize {global_mvn,utterance_mvn,None}]
-                        [--normalize_conf NORMALIZE_CONF] [--svs {vits}]
-                        [--svs_conf SVS_CONF] [--pitch_extract {dio,None}]
+                        [--normalize_conf NORMALIZE_CONF]
+                        [--svs {vits,joint_score2wav}] [--svs_conf SVS_CONF]
+                        [--pitch_extract {dio,None}]
                         [--pitch_extract_conf PITCH_EXTRACT_CONF]
                         [--pitch_normalize {global_mvn,utterance_mvn,None}]
                         [--pitch_normalize_conf PITCH_NORMALIZE_CONF]
@@ -4451,7 +4452,8 @@ Optimizer related:
                         The normalize type (default: None)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --svs {vits}          The svs type (default: vits)
+  --svs {vits,joint_score2wav}
+                        The svs type (default: vits)
   --svs_conf SVS_CONF   The keyword arguments for svs (default: {})
   --pitch_extract {dio,None}
                         The pitch_extract type (default: None)
