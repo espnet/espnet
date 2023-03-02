@@ -138,11 +138,6 @@ pitch_extract_conf:
   reduction_factor: 1
   use_token_averaged_f0: false
 pitch_normalize: global_mvn  # normalizer for the pitch feature
-#energy_extract: energy       # energy extractor type
-#energy_extract_conf:
-#  reduction_factor: 1
-#  use_token_averaged_energy: false
-#energy_normalize: global_mvn # normalizer for the energy feature
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
