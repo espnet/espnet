@@ -149,9 +149,9 @@ pitch_normalize: global_mvn  # normalizer for the pitch feature
 
 # initialization (might need to modify for your own pretrained model)
 init_param:
-- exp/rnn-dp/latest.pth:svs:svs.generator.score2mel
-- exp/ofuton_hifigan.v1/generator.pth::svs.generator.vocoder
-- exp/ofuton_hifigan.v1/discriminator.pth::svs.discriminator
+#- exp/rnn-dp/latest.pth:svs:svs.generator.score2mel
+#- exp/ofuton_hifigan.v1/generator.pth::svs.generator.vocoder
+#- exp/ofuton_hifigan.v1/discriminator.pth::svs.discriminator
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #

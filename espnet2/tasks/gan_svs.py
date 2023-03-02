@@ -24,7 +24,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
     SyllableScoreFeats,
 )
 from espnet2.tasks.abs_task import AbsTask, optim_classes
-from espnet2.tasks.svs import SVSTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn

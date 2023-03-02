@@ -335,7 +335,6 @@ class NaiveRNNDP(AbsSVS):
             tempo = duration
             label_lengths = label_lengths
             midi_lengths = melody_lengths
-            tempo_lengths = duration_lengths
             ds = duration
         else:
             label = label["score"]
