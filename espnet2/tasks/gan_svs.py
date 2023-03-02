@@ -13,6 +13,7 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
+from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -104,6 +105,7 @@ svs_choices = ClassChoices(
     "svs",
     classes=dict(
         vits=VITS,
+        joint_score2wav=JointScore2Wav,
     ),
     type_check=AbsGANSVS,
     default="vits",

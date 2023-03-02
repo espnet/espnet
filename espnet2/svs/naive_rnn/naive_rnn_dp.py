@@ -290,6 +290,7 @@ class NaiveRNNDP(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        joint_training: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -316,6 +317,7 @@ class NaiveRNNDP(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            joint_training (bool): Whether to perform joint training with vocoder.
 
         GS Fix:
             arguements from forward func. V.S. **batch from espnet_model.py
@@ -327,12 +329,21 @@ class NaiveRNNDP(AbsSVS):
             Dict: Statistics to be monitored.
             Tensor: Weight value if not joint training else model outputs.
         """
-        label = label["score"]
-        midi = melody["score"]
-        tempo = duration["score_phn"]
-        label_lengths = label_lengths["score"]
-        midi_lengths = melody_lengths["score"]
-        ds = duration["lab"]
+        if joint_training:
+            label = label
+            midi = melody
+            tempo = duration
+            label_lengths = label_lengths
+            midi_lengths = melody_lengths
+            tempo_lengths = duration_lengths
+            ds = duration
+        else:
+            label = label["score"]
+            midi = melody["score"]
+            tempo = duration["score_phn"]
+            label_lengths = label_lengths["score"]
+            midi_lengths = melody_lengths["score"]
+            ds = duration["lab"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -432,12 +443,15 @@ class NaiveRNNDP(AbsSVS):
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        if flag_IsValid is False:
-            # training stage
-            return loss, stats, weight
+        if joint_training:
+            return loss, stats, after_outs if after_outs is not None else before_outs
         else:
-            # validation stage
-            return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
+            if flag_IsValid is False:
+                # training stage
+                return loss, stats, weight
+            else:
+                # validation stage
+                return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
 
     def inference(
         self,
@@ -450,6 +464,7 @@ class NaiveRNNDP(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        joint_training: bool = False,
         use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -474,7 +489,10 @@ class NaiveRNNDP(AbsSVS):
         """
         label = label["score"]
         midi = melody["score"]
-        tempo = duration["score_phn"]
+        if joint_training:
+            tempo = duration["lab"]
+        else:
+            tempo = duration["score_phn"]
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
