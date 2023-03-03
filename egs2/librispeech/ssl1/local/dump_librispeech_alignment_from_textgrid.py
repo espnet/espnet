@@ -33,7 +33,7 @@ if __name__ == "__main__":
             for f in glob.glob(f"{args.alignment_root}/{dset}/*/*/*", recursive=True):
                 uid = os.path.splitext(os.path.basename(f))[0]
                 tg = textgrid.openTextgrid(f, includeEmptyIntervals=True)
-                phone_tier_list = tg.tierDict["phones"].entryList
+                phone_tier_list = tg.tiers["phones"].entries
 
                 align = []
                 for item in phone_tier_list:
