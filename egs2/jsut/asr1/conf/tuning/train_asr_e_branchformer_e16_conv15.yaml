@@ -8,23 +8,28 @@ frontend_conf:
     hop_length: 160
 
 # encoder related
-encoder: conformer
+encoder: e_branchformer
 encoder_conf:
     output_size: 256
     attention_heads: 4
-    linear_units: 2048
-    num_blocks: 12
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 15
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 16
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
     input_layer: conv2d
-    normalize_before: true
-    macaron_style: true
-    pos_enc_layer_type: "rel_pos"
-    selfattention_layer_type: "rel_selfattn"
-    activation_type: "swish"
-    use_cnn_module:  true
-    cnn_module_kernel: 31
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 15
 
 # decoder related
 decoder: transformer
@@ -44,7 +49,7 @@ model_conf:
 optim: adam
 accum_grad: 1
 grad_clip: 3
-max_epoch: 50
+max_epoch: 100
 optim_conf:
     lr: 4.0
 scheduler: noamlr
@@ -54,26 +59,10 @@ scheduler_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 10000000
-num_workers: 4
+batch_bins: 15000000
+
 best_model_criterion:
 -   - valid
     - acc
     - max
 keep_nbest_models: 10
-
-specaug: specaug
-specaug_conf:
-    apply_time_warp: true
-    time_warp_window: 5
-    time_warp_mode: bicubic
-    apply_freq_mask: true
-    freq_mask_width_range:
-    - 0
-    - 30
-    num_freq_mask: 2
-    apply_time_mask: true
-    time_mask_width_range:
-    - 0
-    - 40
-    num_time_mask: 2

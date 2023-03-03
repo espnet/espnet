@@ -8,23 +8,28 @@ frontend_conf:
     hop_length: 160
 
 # encoder related
-encoder: conformer
+encoder: e_branchformer
 encoder_conf:
     output_size: 256
     attention_heads: 4
-    linear_units: 2048
-    num_blocks: 12
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 16
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
     input_layer: conv2d
-    normalize_before: true
-    macaron_style: true
-    pos_enc_layer_type: "rel_pos"
-    selfattention_layer_type: "rel_selfattn"
-    activation_type: "swish"
-    use_cnn_module:  true
-    cnn_module_kernel: 31
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
 
 # decoder related
 decoder: transformer
