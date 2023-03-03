@@ -52,26 +52,26 @@ python local/split_results.py \
     --only_lid ${only_lid}
 
 if "${only_lid}"; then
-    directories=$(find ${asr_exp} -wholename "*/*/score_wer/independent/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/few_shot/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/language_family/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/score_wer/all/*" -type d -not -path '/\.')
+    # directories=$(find ${asr_exp} -wholename "*/*/score_wer/independent/*" -type d -not -path '/\.')
+    # directories+=" "
+    directories=$(find ${asr_exp} -wholename "*/*/score_wer/few_shot/*" -type d -not -path '/\.')
+    # directories+=" "
+    # directories+=$(find ${asr_exp} -wholename "*/*/score_wer/language_family/*" -type d -not -path '/\.')
+    # directories+=" "
+    # directories+=$(find ${asr_exp} -wholename "*/*/score_wer/all/*" -type d -not -path '/\.')
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/scores.txt"
         python local/lid.py --dir ${_scoredir}
     done
 else
-    directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/*/few_shot/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/*/language_family/*" -type d -not -path '/\.')
-    directories+=" "
-    directories+=$(find ${asr_exp} -wholename "*/*/*/all/*" -type d -not -path '/\.')
+    # directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
+    # directories+=" "
+    directories=$(find ${asr_exp} -wholename "*/*/*/few_shot/*" -type d -not -path '/\.')
+    # directories+=" "
+    # directories+=$(find ${asr_exp} -wholename "*/*/*/language_family/*" -type d -not -path '/\.')
+    # directories+=" "
+    # directories+=$(find ${asr_exp} -wholename "*/*/*/all/*" -type d -not -path '/\.')
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/result.txt"
