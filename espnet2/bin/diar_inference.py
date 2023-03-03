@@ -573,7 +573,7 @@ def inference(
             waves, spk_predictions = diarize_speech(**batch)
             for b in range(batch_size):
                 writer[keys[b]] = spk_predictions[b]
-                for (spk, w) in enumerate(waves):
+                for spk, w in enumerate(waves):
                     wav_writers[spk][keys[b]] = fs, w[b]
         else:
             spk_predictions = diarize_speech(**batch)

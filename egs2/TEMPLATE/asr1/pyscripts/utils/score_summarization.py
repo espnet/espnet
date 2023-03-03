@@ -34,7 +34,7 @@ result_bert = metric.compute(
 
 nlg = NLGEval()  # loads the models
 print("Key", "\t", "METEOR", "\t", "ROUGE-L")
-for (key, ref, hyp) in zip(keys, labels, decoded_preds):
+for key, ref, hyp in zip(keys, labels, decoded_preds):
     metrics_dict = nlg.compute_individual_metrics([ref], hyp)
     print(key, "\t", metrics_dict["METEOR"], "\t", metrics_dict["ROUGE_L"])
 refs = [[x] for x in labels]

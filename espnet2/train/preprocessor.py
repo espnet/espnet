@@ -14,6 +14,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 
 
 class AbsPreprocessor(ABC):
@@ -141,6 +142,7 @@ class CommonPreprocessor(AbsPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names: Collection[str] = None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
@@ -154,6 +156,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.rir_apply_prob = rir_apply_prob
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
+        self.aux_task_names = aux_task_names
 
         if token_type is not None:
             if token_list is None:
@@ -168,10 +171,15 @@ class CommonPreprocessor(AbsPreprocessor):
                 non_linguistic_symbols=non_linguistic_symbols,
                 g2p_type=g2p_type,
             )
-            self.token_id_converter = TokenIDConverter(
-                token_list=token_list,
-                unk_symbol=unk_symbol,
-            )
+            if bpemodel not in ["whisper_en", "whisper_multilingual"]:
+                self.token_id_converter = TokenIDConverter(
+                    token_list=token_list,
+                    unk_symbol=unk_symbol,
+                )
+            else:
+                self.token_id_converter = OpenAIWhisperTokenIDConverter(
+                    model_type=bpemodel
+                )
         else:
             self.text_cleaner = None
             self.tokenizer = None
@@ -317,10 +325,20 @@ class CommonPreprocessor(AbsPreprocessor):
     ) -> Dict[str, np.ndarray]:
         if self.text_name in data and self.tokenizer is not None:
             text = data[self.text_name]
+            if isinstance(text, np.ndarray):
+                return data
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        if self.aux_task_names is not None and self.tokenizer is not None:
+            for name in self.aux_task_names:
+                if name in data:
+                    text = data[name]
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    data[name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
@@ -435,6 +453,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
         short_noise_thres: float = 0.5,
+        aux_task_names: Collection[str] = None,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
@@ -457,6 +476,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
             short_noise_thres=short_noise_thres,
+            aux_task_names=aux_task_names,
             speech_volume_normalize=speech_volume_normalize,
             speech_name=speech_name,
             fs=fs,
@@ -476,6 +496,14 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[text_n] = np.array(text_ints, dtype=np.int64)
+        if self.aux_task_names is not None and self.tokenizer is not None:
+            for name in self.aux_task_names:
+                if name in data:
+                    text = data[name]
+                    text = self.text_cleaner(text)
+                    tokens = self.tokenizer.text2tokens(text)
+                    text_ints = self.token_id_converter.tokens2ids(tokens)
+                    data[name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 
@@ -982,14 +1010,7 @@ class SVSPreprocessor(AbsPreprocessor):
         label_name: str = "label",
         midi_name: str = "score",
         fs: np.int32 = 0,
-        time_shift: np.int32 = 0.0125,
-        align: list = [
-            "singing",
-            "label_lab",
-            "midi_lab",
-            "tempo_lab",
-            "beat_lab",
-        ],  # TODO(Tao): add to args
+        hop_length: np.int32 = 256,
         phn_seg: dict = {
             1: [1],
             2: [0.25, 1],
@@ -1004,10 +1025,10 @@ class SVSPreprocessor(AbsPreprocessor):
         self.label_name = label_name
         self.midi_name = midi_name
         self.fs = fs
-        self.time_shift = time_shift
+        self.hop_length = hop_length
         self.singing_volume_normalize = singing_volume_normalize
-        self.align = align
         self.phn_seg = phn_seg
+        self.time_shift = hop_length / fs
         if token_type is not None:
             if token_list is None:
                 raise ValueError("token_list is required if token_type is not None")
@@ -1059,76 +1080,42 @@ class SVSPreprocessor(AbsPreprocessor):
 
             label = np.zeros((lab_len))
             midi = np.zeros((lab_len))
-            beat_phn = np.zeros((lab_len))
-            beat_ruled_phn = np.zeros((lab_len))
-            beat_syb = np.zeros((lab_len))
+            duration_phn = np.zeros((lab_len))
+            duration_ruled_phn = np.zeros((lab_len))
+            duration_syb = np.zeros((lab_len))
             # Load score info
             tempo, syb_info = data[self.midi_name]
             phn_cnt = []
 
             # Calculate features
-            nsamples_score = int((syb_info[-1][1] - syb_info[0][0]) * self.fs)
-            labelseq_score_phn = np.zeros((nsamples_score))
-            midiseq_score = np.zeros((nsamples_score))
-            beatseq_score_phn = np.zeros((nsamples_score))
-            beatseq_score_syb = np.zeros((nsamples_score))
-            temposeq_score = np.full(nsamples_score, tempo)
             index_lab = 0
-            nsamples_lab = int((lab_timeseq[-1][1] - lab_timeseq[0][0]) * self.fs)
-            labelseq_lab_phn = np.zeros((nsamples_lab))
-            midiseq_lab = np.zeros((nsamples_lab))
-            beatseq_lab_phn = np.zeros((nsamples_lab))
-            temposeq_lab = np.full(nsamples_lab, tempo)
-            offset = lab_timeseq[0][0]
 
             for st, et, syb, note, phns in syb_info:
-                start = int(st * self.fs)
-                end = int(et * self.fs) + 1
-                if end > nsamples_score:
-                    end = nsamples_score
-                midiseq_score[start:end] = note
                 dur = et - st
-                _beat_syb = int(dur / self.time_shift + 0.5)
-                beatseq_score_syb[start:end] = _beat_syb
+                _duration_syb = int(dur / self.time_shift + 0.5)
                 phone = phns.split("_")
-                phone_ints = self.token_id_converter.tokens2ids(phone)
-                phn_start = start
                 phn_num = len(phone)
                 phn_cnt.append(phn_num)
                 pre_seg = 0
                 for k in range(phn_num):
-                    if self.phn_seg[phn_num][k] == 1:
-                        phn_end = end
-                    else:
-                        phn_end = (
-                            int((st + dur * self.phn_seg[phn_num][k]) * self.fs) + 1
-                        )
-                    labelseq_score_phn[phn_start:phn_end] = phone_ints[k]
-                    _beat_ruled_phn = int(
+                    _duration_ruled_phn = int(
                         (self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift
                         + 0.5
                     )
-                    beatseq_score_phn[phn_start:phn_end] = _beat_ruled_phn
                     pre_seg = self.phn_seg[phn_num][k]
-                    phn_start = phn_end
                     # timeseq from lab
                     assert text[index_lab] == phone[k]
-                    lab_start = int((lab_timeseq[index_lab][0] - offset) * self.fs)
-                    lab_end = int((lab_timeseq[index_lab][1] - offset) * self.fs) + 1
-                    labelseq_lab_phn[lab_start:lab_end] = text_ints[index_lab]
-                    midiseq_lab[lab_start:lab_end] = note
-                    _beat_phn = int(
+                    _duration_phn = int(
                         (lab_timeseq[index_lab][1] - lab_timeseq[index_lab][0])
                         / self.time_shift
                         + 0.5
                     )
-                    beatseq_lab_phn[lab_start:lab_end] = _beat_phn
                     # phone level feature
                     label[index_lab] = text_ints[index_lab]
                     midi[index_lab] = note
-                    beat_phn[index_lab] = _beat_phn
-                    beat_ruled_phn[index_lab] = _beat_ruled_phn
-                    beat_syb[index_lab] = _beat_syb
+                    duration_phn[index_lab] = _duration_phn
+                    duration_ruled_phn[index_lab] = _duration_ruled_phn
+                    duration_syb[index_lab] = _duration_syb
                     index_lab += 1
 
             assert index_lab == lab_len
@@ -1137,37 +1124,17 @@ class SVSPreprocessor(AbsPreprocessor):
             phn_cnt = np.array(phn_cnt)
             label.astype(np.int64)
             midi.astype(np.int64)
-            beat_phn.astype(np.int64)
-            beat_syb.astype(np.int64)
-            beat_ruled_phn.astype(np.int64)
+            duration_phn.astype(np.int64)
+            duration_syb.astype(np.int64)
+            duration_ruled_phn.astype(np.int64)
             phn_cnt.astype(np.int64)
-
-            labelseq_lab_phn.astype(np.int64)
-            midiseq_lab.astype(np.int64)
-            beatseq_lab_phn.astype(np.int64)
-            temposeq_lab.astype(np.int64)
-
-            labelseq_score_phn.astype(np.int64)
-            midiseq_score.astype(np.int64)
-            beatseq_score_phn.astype(np.int64)
-            beatseq_score_syb.astype(np.int64)
-            temposeq_score.astype(np.int64)
 
             data["label"] = label
             data["midi"] = midi
-            data["beat_phn"] = beat_phn
-            data["beat_ruled_phn"] = beat_ruled_phn
-            data["beat_syb"] = beat_syb
+            data["duration_phn"] = duration_phn
+            data["duration_ruled_phn"] = duration_ruled_phn
+            data["duration_syb"] = duration_syb
             data["phn_cnt"] = phn_cnt
-            data["label_lab"] = labelseq_lab_phn
-            data["midi_lab"] = midiseq_lab
-            data["beat_lab"] = beatseq_lab_phn
-            data["tempo_lab"] = temposeq_lab
-            data["label_score"] = labelseq_score_phn
-            data["midi_score"] = midiseq_score
-            data["beat_score_phn"] = beatseq_score_phn
-            data["beat_score_syb"] = beatseq_score_syb
-            data["tempo_score"] = temposeq_score
 
         # TODO(Yuning): Add score from midi
 
@@ -1181,12 +1148,6 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-
-        # align frame length with singing
-        length = min([len(data[key]) for key in data.keys() if key in self.align])
-        for key in self.align:
-            if key in data:
-                data[key] = data[key][:length]
 
         return data
 

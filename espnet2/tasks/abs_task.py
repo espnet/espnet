@@ -26,6 +26,7 @@ from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.main_funcs.collect_stats import collect_stats
+from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
@@ -828,6 +829,21 @@ class AbsTask(ABC):
         )
 
         group = parser.add_argument_group("Optimizer related")
+        group.add_argument(
+            "--exclude_weight_decay",
+            type=str2bool,
+            default=False,
+            help="Exclude weight decay in optimizer for model bias, normalization, "
+            "or other special parameters",
+        )
+        group.add_argument(
+            "--exclude_weight_decay_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for configuring weight decay in optimizer. "
+            "e.g., 'bias_weight_decay': False will set zero weight decay for bias "
+            "params. See also espnet2.optimizers.optim_groups.configure_optimizer.",
+        )
         for i in range(1, cls.num_optimizers + 1):
             suf = "" if i == 1 else str(i)
             group.add_argument(
@@ -884,7 +900,15 @@ class AbsTask(ABC):
                 params=model.parameters(), optim=optim_class, **args.optim_conf
             )
         else:
-            optim = optim_class(model.parameters(), **args.optim_conf)
+            if args.exclude_weight_decay:
+                optim = configure_optimizer(
+                    model,
+                    optim_class,
+                    args.optim_conf,
+                    args.exclude_weight_decay_conf,
+                )
+            else:
+                optim = optim_class(model.parameters(), **args.optim_conf)
 
         optimizers = [optim]
         return optimizers
@@ -1128,49 +1152,58 @@ class AbsTask(ABC):
             logging.info("Invoking torch.autograd.set_detect_anomaly(True)")
             torch.autograd.set_detect_anomaly(args.detect_anomaly)
 
-        # 2. Build model
-        model = cls.build_model(args=args)
-        if not isinstance(model, AbsESPnetModel):
-            raise RuntimeError(
-                f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
+        if (
+            args.collect_stats
+            and getattr(args, "model_conf", None) is not None
+            and not args.model_conf.get("extract_feats_in_collect_stats", True)
+        ):
+            model = None
+            logging.info("Skipping model building in collect_stats stage.")
+        else:
+            # 2. Build model
+            model = cls.build_model(args=args)
+            if not isinstance(model, AbsESPnetModel):
+                raise RuntimeError(
+                    f"model must inherit {AbsESPnetModel.__name__},"
+                    f" but got {type(model)}"
+                )
+            model = model.to(
+                dtype=getattr(torch, args.train_dtype),
+                device="cuda" if args.ngpu > 0 else "cpu",
             )
-        model = model.to(
-            dtype=getattr(torch, args.train_dtype),
-            device="cuda" if args.ngpu > 0 else "cpu",
-        )
-        for t in args.freeze_param:
-            for k, p in model.named_parameters():
-                if k.startswith(t + ".") or k == t:
-                    logging.info(f"Setting {k}.requires_grad = False")
-                    p.requires_grad = False
+            for t in args.freeze_param:
+                for k, p in model.named_parameters():
+                    if k.startswith(t + ".") or k == t:
+                        logging.info(f"Setting {k}.requires_grad = False")
+                        p.requires_grad = False
 
-        # 3. Build optimizer
-        optimizers = cls.build_optimizers(args, model=model)
+            # 3. Build optimizer
+            optimizers = cls.build_optimizers(args, model=model)
 
-        # 4. Build schedulers
-        schedulers = []
-        for i, optim in enumerate(optimizers, 1):
-            suf = "" if i == 1 else str(i)
-            name = getattr(args, f"scheduler{suf}")
-            conf = getattr(args, f"scheduler{suf}_conf")
-            if name is not None:
-                cls_ = scheduler_classes.get(name)
-                if cls_ is None:
-                    raise ValueError(
-                        f"must be one of {list(scheduler_classes)}: {name}"
-                    )
-                scheduler = cls_(optim, **conf)
-            else:
-                scheduler = None
+            # 4. Build schedulers
+            schedulers = []
+            for i, optim in enumerate(optimizers, 1):
+                suf = "" if i == 1 else str(i)
+                name = getattr(args, f"scheduler{suf}")
+                conf = getattr(args, f"scheduler{suf}_conf")
+                if name is not None:
+                    cls_ = scheduler_classes.get(name)
+                    if cls_ is None:
+                        raise ValueError(
+                            f"must be one of {list(scheduler_classes)}: {name}"
+                        )
+                    scheduler = cls_(optim, **conf)
+                else:
+                    scheduler = None
 
-            schedulers.append(scheduler)
+                schedulers.append(scheduler)
 
-        logging.info(pytorch_cudnn_version())
-        logging.info(model_summary(model))
-        for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
-            suf = "" if i == 1 else str(i)
-            logging.info(f"Optimizer{suf}:\n{o}")
-            logging.info(f"Scheduler{suf}: {s}")
+            logging.info(pytorch_cudnn_version())
+            logging.info(model_summary(model))
+            for i, (o, s) in enumerate(zip(optimizers, schedulers), 1):
+                suf = "" if i == 1 else str(i)
+                logging.info(f"Optimizer{suf}:\n{o}")
+                logging.info(f"Scheduler{suf}: {s}")
 
         # 5. Dump "args" to config.yaml
         # NOTE(kamo): "args" should be saved after object-buildings are done

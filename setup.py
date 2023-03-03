@@ -15,7 +15,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
-        "librosa>=0.8.0",
+        "librosa==0.9.2",
         "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -27,6 +27,8 @@ requirements = {
         "numpy",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
+        "hydra-core",
+        "opt-einsum",
         # ASR
         "sentencepiece",
         "ctc-segmentation>=1.6.6",
@@ -38,10 +40,13 @@ requirements = {
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # UASR
+        "editdistance",
         # fix CI error due to the use of deprecated functions
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
+        "six",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -67,6 +72,8 @@ requirements = {
         "fastdtw",
         "nara_wpe>=0.0.5",
         "sacrebleu>=1.5.1",
+        "praatio>=5.1.1",  # for librispeech phoneme alignment
+        "scikit-learn>=1.0.0",  # for HuBERT kmeans
     ],
     # all: The modules should be optionally installled due to some reason.
     #      Please consider moving them to "install" occasionally

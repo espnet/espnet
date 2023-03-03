@@ -42,6 +42,31 @@
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.0|6.7|0.2|0.8|7.8|50.7|
 
 
+# E-Branchformer
+
+## Environments
+- date: `Sun Dec 18 12:21:46 CST 2022`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202209`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `26f432bc859e5e40cac1a86042d498ba7baffbb0`
+  - Commit date: `Fri Dec 9 02:16:01 2022 +0000`
+
+## Without LM
+
+- ASR config: [conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024_mactrue_amp.yaml](conf/tuning/train_asr_e_branchformer_e12_mlp1024_linear1024_mactrue_amp.yaml)
+- #Params: 37.88 M
+- Model link: [https://huggingface.co/pyf98/aishell_e_branchformer](https://huggingface.co/pyf98/aishell_e_branchformer)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_branchformer_asr_model_valid.acc.ave/dev|14326|205341|95.9|4.0|0.1|0.1|4.2|33.1|
+|decode_asr_branchformer_asr_model_valid.acc.ave/test|7176|104765|95.6|4.3|0.1|0.1|4.5|34.6|
+
+
+
 
 # Branchformer: initial
 
@@ -111,6 +136,54 @@
 |---|---|---|---|---|---|---|---|---|
 |beam10_ctc0.4/dev|14326|205341|95.8|4.1|0.1|0.1|4.3|33.1|
 |beam10_ctc0.4/test|7176|104765|95.4|4.4|0.1|0.1|4.6|34.7|
+
+
+
+# E-Branchformer: CTC
+
+## Environments
+- date: `Sun Feb 19 13:24:02 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `8fa6361886c246afbd90c6e2ef98596628bdeaa8`
+  - Commit date: `Fri Feb 17 16:47:46 2023 -0600`
+
+## Without LM, beam size 1
+- ASR config: [conf/tuning/train_asr_ctc_e_branchformer_e12.yaml](conf/tuning/train_asr_ctc_e_branchformer_e12.yaml)
+- Params: 26.24M
+- Model link: [https://huggingface.co/pyf98/aishell_ctc_e_branchformer_e12](https://huggingface.co/pyf98/aishell_ctc_e_branchformer_e12)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_ctc_asr_model_valid.cer_ctc.ave/dev|14326|205341|94.7|5.2|0.1|0.1|5.4|40.9|
+|decode_asr_ctc_asr_model_valid.cer_ctc.ave/test|7176|104765|94.2|5.7|0.1|0.1|6.0|43.0|
+
+
+
+# Conformer: CTC
+
+## Environments
+- date: `Sun Feb 19 15:20:11 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `8fa6361886c246afbd90c6e2ef98596628bdeaa8`
+  - Commit date: `Fri Feb 17 16:47:46 2023 -0600`
+
+## Without LM, beam size 1
+- ASR config: [conf/tuning/train_asr_ctc_conformer_e15_linear1024.yaml](conf/tuning/train_asr_ctc_conformer_e15_linear1024.yaml)
+- Params: 26.76M
+- Model link: [https://huggingface.co/pyf98/aishell_ctc_conformer_e15_linear1024](https://huggingface.co/pyf98/aishell_ctc_conformer_e15_linear1024)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_ctc_asr_model_valid.cer_ctc.ave/dev|14326|205341|94.4|5.5|0.1|0.1|5.8|42.9|
+|decode_asr_ctc_asr_model_valid.cer_ctc.ave/test|7176|104765|93.9|6.0|0.1|0.1|6.3|44.5|
 
 
 
