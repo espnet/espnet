@@ -938,6 +938,17 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Shuffle in the specified number of chunks and generate mini-batches &quot;</span>
             <span class="s2">&quot;More larger this value, more randomness can be obtained.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--chunk_excluded_key_prefixes&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of key prefixes. Keys that satisfy either condition below &quot;</span>
+            <span class="s2">&quot;will be excluded from the length consistency check in ChunkIterFactory:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;  - exactly match one of the prefixes in `chunk_excluded_key_prefixes`</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;  - have one of the prefixes in `chunk_excluded_key_prefixes` and &quot;</span>
+            <span class="s2">&quot;end with numbers&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Dataset related&quot;</span><span class="p">)</span>
         <span class="n">_data_path_and_name_and_type_help</span> <span class="o">=</span> <span class="p">(</span>
@@ -1832,6 +1843,7 @@
             <span class="n">chunk_length</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_length</span><span class="p">,</span>
             <span class="n">chunk_shift_ratio</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_shift_ratio</span><span class="p">,</span>
             <span class="n">num_cache_chunks</span><span class="o">=</span><span class="n">num_cache_chunks</span><span class="p">,</span>
+            <span class="n">excluded_key_prefixes</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">chunk_excluded_key_prefixes</span><span class="p">,</span>
         <span class="p">)</span></div>
 
     <span class="c1"># NOTE(kamo): Not abstract class</span>

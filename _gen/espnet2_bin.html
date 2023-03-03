@@ -482,6 +482,7 @@ Text converter related:
                     [--chunk_length CHUNK_LENGTH]
                     [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
+                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -739,6 +740,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1130,6 +1135,7 @@ Text converter related:
                                [--chunk_length CHUNK_LENGTH]
                                [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                                [--num_cache_chunks NUM_CACHE_CHUNKS]
+                               [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                                [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                                [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                                [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -1376,6 +1382,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1710,6 +1720,7 @@ Enh + Diar related:
                      [--chunk_length CHUNK_LENGTH]
                      [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                      [--num_cache_chunks NUM_CACHE_CHUNKS]
+                     [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                      [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                      [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -1946,6 +1957,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -2273,6 +2288,7 @@ SeparateSpeech related:
                         [--chunk_length CHUNK_LENGTH]
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
+                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -2564,6 +2580,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -2936,6 +2956,7 @@ Input data related:
                     [--chunk_length CHUNK_LENGTH]
                     [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
+                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -3179,6 +3200,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -3522,6 +3547,7 @@ SeparateSpeech related:
                         [--chunk_length CHUNK_LENGTH]
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
+                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -3766,6 +3792,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -4025,6 +4055,7 @@ Optimizer related:
                         [--chunk_length CHUNK_LENGTH]
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
+                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -4284,6 +4315,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -4539,6 +4574,7 @@ Optimizer related:
                         [--chunk_length CHUNK_LENGTH]
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
+                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -4794,6 +4830,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -5044,6 +5084,7 @@ Optimizer related:
                        [--chunk_length CHUNK_LENGTH]
                        [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                        [--num_cache_chunks NUM_CACHE_CHUNKS]
+                       [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5301,6 +5342,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -5677,6 +5722,7 @@ The model configuration related:
                    [--chunk_length CHUNK_LENGTH]
                    [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
+                   [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5912,6 +5958,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6218,6 +6268,7 @@ Text converter related:
                    [--chunk_length CHUNK_LENGTH]
                    [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
+                   [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -6464,6 +6515,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6833,6 +6888,7 @@ Text converter related:
                    [--chunk_length CHUNK_LENGTH]
                    [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                    [--num_cache_chunks NUM_CACHE_CHUNKS]
+                   [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -7088,6 +7144,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -7465,6 +7525,7 @@ Vocoder related:
                     [--chunk_length CHUNK_LENGTH]
                     [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                     [--num_cache_chunks NUM_CACHE_CHUNKS]
+                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
                     [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                     [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                     [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -7712,6 +7773,10 @@ Chunk iterator related:
                         Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
   --num_cache_chunks NUM_CACHE_CHUNKS
                         Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+  --chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]
+                        List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
+                          - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
+                          - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
 
 Dataset related:
   --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE

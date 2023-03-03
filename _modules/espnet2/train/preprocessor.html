@@ -1068,6 +1068,16 @@
             <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span>
             <span class="c1"># 1. Convolve RIR</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rirs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rir_apply_prob</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">)</span>
+                    <span class="p">)</span>
+
                 <span class="n">speech_ref</span><span class="p">,</span> <span class="n">rir_ref</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
                     <span class="o">*</span><span class="p">[</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_convolve_rir</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">power</span><span class="p">)</span>
@@ -1109,14 +1119,16 @@
                                 <span class="n">dereverb_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="n">suffix</span>
                                 <span class="n">data</span><span class="p">[</span><span class="n">dereverb_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">speech_ref_name</span><span class="p">]</span>
 
-                <span class="c1"># NOTE(Wangyou): Must be careful here in case that the original</span>
-                <span class="c1"># `speech_ref` dones not sum up to `speech_mix`</span>
-                <span class="c1"># (such as in the TSE task)</span>
-                <span class="n">speech_mix</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span>
-            <span class="n">power_mix</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech_mix</span><span class="p">[</span><span class="n">detect_non_silence</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">)]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">speech_mix</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span> <span class="o">+</span> <span class="n">noise</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">speech_mix</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span>
 
             <span class="c1"># 2. Add Noise</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noises</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_apply_prob</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">speech_mix</span> <span class="o">-=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span><span class="p">]</span>
+                <span class="n">power_mix</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech_mix</span><span class="p">[</span><span class="n">detect_non_silence</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">)]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
                 <span class="n">speech_mix</span><span class="p">,</span> <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_noise</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">power_mix</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_single_channel</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -1374,9 +1386,7 @@
         <span class="k">if</span> <span class="n">train</span> <span class="ow">and</span> <span class="n">rir_scp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">rir_apply_prob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">&quot;Be cautious when applying RIRs on the fly in the TSE task! &quot;</span>
-                <span class="s2">&quot;Please ensure `speech_ref` sums up to `speech_mix` for each sample. &quot;</span>
-                <span class="s2">&quot;Otherwise, the preprocessed training data will be wrong after the &quot;</span>
-                <span class="s2">&quot;line:</span><span class="se">\n</span><span class="s2">        data = super()._speech_process(data)&quot;</span>
+                <span class="s2">&quot;Please ensure `speech_ref` sums up to `speech_mix` for each sample.&quot;</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
