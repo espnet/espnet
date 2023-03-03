@@ -788,6 +788,14 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
+        if [ -e "${svs_stats_dir}/train/collect_feats/feats.scp" ]; then
+            _scp=feats.scp
+            _type=npy
+            _train_collect_dir=${svs_stats_dir}/train/collect_feats
+            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},feats,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},feats,${_type} "
+        fi
 
         # Check extra statistics
         if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then

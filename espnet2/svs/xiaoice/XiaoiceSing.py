@@ -398,6 +398,7 @@ class XiaoiceSing(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        joint_training: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -424,6 +425,7 @@ class XiaoiceSing(AbsSVS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
             Tensor: Loss scalar value.
@@ -431,13 +433,22 @@ class XiaoiceSing(AbsSVS):
             Tensor: Weight value if not joint training else model outputs.
         """
 
-        label = label["scoree"]
-        midi = melody["score"]
-        tempo = duration["score_phn"]
-        label_lengths = label_lengths["score"]
-        midi_lengths = melody_lengths["score"]
-        tempo_lengths = duration_lengths["score_phn"]
-        ds = duration["lab"]
+        if joint_training:
+            label = label
+            midi = melody
+            tempo = duration
+            label_lengths = label_lengths
+            midi_lengths = melody_lengths
+            tempo_lengths = duration_lengths
+            ds = duration
+        else:
+            label = label["score"]
+            midi = melody["score"]
+            tempo = duration["score_phn"]
+            label_lengths = label_lengths["score"]
+            midi_lengths = melody_lengths["score"]
+            tempo_lengths = duration_lengths["score_phn"]
+            ds = duration["lab"]
 
         text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -526,10 +537,13 @@ class XiaoiceSing(AbsSVS):
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
-        if flag_IsValid is False:
-            return loss, stats, weight
+        if joint_training:
+            return loss, stats, after_outs if after_outs is not None else before_outs
         else:
-            return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
+            if flag_IsValid is False:
+                return loss, stats, weight
+            else:
+                return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
 
     def inference(
         self,
@@ -542,6 +556,7 @@ class XiaoiceSing(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        joint_training: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -569,7 +584,10 @@ class XiaoiceSing(AbsSVS):
 
         label = label["score"]
         midi = melody["score"]
-        tempo = duration["score_phn"]
+        if joint_training:
+            tempo = duration["lab"]
+        else:
+            tempo = duration["lscore_phn"]
         ds = duration["lab"]
 
         label_emb = self.phone_encode_layer(label)
