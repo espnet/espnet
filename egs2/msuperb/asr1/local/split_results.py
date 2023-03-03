@@ -77,7 +77,7 @@ def read_lines(path):
         for line in f:
             if line == "\n":
                 continue
-            res.append(line.strip())
+            res.append(line.rstrip())
     return res
 
 
@@ -125,11 +125,16 @@ def lid_parse(root, lines):
                 elif "score_cer" in root:
                     chars = line.split(" ")
                     if "<space>" in chars:
-                        line = " ".join(chars[chars.index("<space>") :])
+                        idx = chars.index("<space>")
+                        line = " ".join(chars[idx + 1 :])
                     else:
                         line = line[len(text) :]
         new_lines.append(line)
     return new_lines, lid_info
+
+
+def no_rule(iso):
+    return "all"
 
 
 def independent_rule(iso):
@@ -187,6 +192,8 @@ def main(args):
         split_trn_by_rule(root, "few_shot", few_shot_rule, hyp_trn_path)
         split_trn_by_rule(root, "language_family", language_family_rule, ref_trn_path)
         split_trn_by_rule(root, "language_family", language_family_rule, hyp_trn_path)
+        split_trn_by_rule(root, "all", no_rule, ref_trn_path)
+        split_trn_by_rule(root, "all", no_rule, hyp_trn_path)
 
 
 if __name__ == "__main__":
