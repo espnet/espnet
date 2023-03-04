@@ -1,8 +1,14 @@
-# CHiME-Dive (CHiME-7 Task 1)
+# CHiME-7 DASR (CHiME-7 Task 1)
 
 ### Distant Automatic Speech Transcription with Multiple Devices in Diverse Scenarios
 
+[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/chimechallenge.svg?style=social&label=Follow%20%40chimechallenge)](https://twitter.com/chimechallenge)
+[![Slack][slack-badge]][slack-invite]
+
+
 ---
+
+#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only, we will use it to handle submission see [official website, submission page](https://www.chimechallenge.org/current/task1/submission))
 ### Sections
 1. <a href="#description">Short Description </a>
 2. <a href="#data_creation">Data Download and Creation</a>
@@ -15,11 +21,24 @@
 
 <img src="https://www.chimechallenge.org/current/task1/images/task_overview.png" width="450" height="230" />
 
-**NOTE: No registration is required at this stage !** 
+This CHiME-7 Challenge Task inherits directly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/). 
+Its focus is on distant automatic speech transcription and segmentation with multiple recording devices.
+
+The goal of each participant is to devise an automated system that can tackle this problem, and is able to generalize across different array topologies and different application scenarios: meetings, dinner parties and interviews.
+
+Participants can possibly exploit commonly used open-source datasets (e.g. Librispeech) and pre-trained models. In detail, this includes popular self-supervised representation (SSLR) models (see [Rules Section](https://www.chimechallenge.org/current/task1/rules) for a complete list).
+
+---
+
+**See the [official website](https://www.chimechallenge.org/current/task1/index) to learn more !**
+<br>
+**All participants will be invited to present their submission to our [Interspeech 2023 Satellite Workshop](https://www.chimechallenge.org/current/workshop/index).**
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
 
-Consider joining the CHiME Google Group and our Slack ! 
+If you are considering participating or just want to learn more then please join the <a href="https://groups.google.com/g/chime5/">CHiME Google Group</a>. <br>
+We have also a [CHiME Slack Workspace][slack-invite].<br>
+Follow us on [Twitter][Twitter], we will also use that to make announcements. <br>
 
 
 
@@ -27,34 +46,33 @@ Consider joining the CHiME Google Group and our Slack !
 
 **NOTE, if you don't want to use the baseline at all**, you can 
 skip this following procedure and go directly to Section 2.
-For data generation, only the scripts create_dataset.sh, local/data/generate_data.py and 
-local/data/generate_chime6_data.sh are needed, you can git clone ESPNet, and run these without
-ESPNet installation as their dependencies are minimal (`local/data/generate_chime6_data.sh` needs [sox][SoX] however). 
+For data generation, only the scripts local/data/gen_task1_data.sh, local/data/gen_task1_data.py and 
+local/data/generate_chime6_data.sh are used. You can git clone ESPNet, and run these without
+ESPNet installation as their dependencies are minimal (`local/data/generate_chime6_data.sh` needs [sox](https://sox.sourceforge.net/) however). 
 
 ### <a id="espnet_installation">2.1 ESPNet Installation  </a> 
 
-First step, clone ESPNet and checkout the correct git commit hash. <br/>
-(checkout is important to ensure following ESPNet updates will not break the baseline code)
+Firstly, clone ESPNet. <br/>
 ```bash
 git clone https://github.com/espnet/espnet/
 ```
-Next ESPNet must be installed, go to espnet/tools. <br />
+Next, ESPNet must be installed, go to espnet/tools. <br />
 This will install a new environment called espnet with Python 3.9.2
 ```bash
-cd espnet
-bash ./tools/setup_anaconda.sh venv espnet 3.9.2
+cd espnet/tools
+./setup_anaconda.sh venv "" 3.9.2
 ```
 Activate this new environment.
 ```bash
-source ./tools/venv/bin/activate
-conda activate espnet
+source ./venv/bin/activate
 ```
 Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for **cudatoolkit**. 
 ```bash
 make TH_VERSION=1.13.1 CUDA_VERSION=11.6
 ```
-Finally, install other baseline required packages (e.g. lhotse) using this script: 
+Finally, get in this recipe folder and install other baseline required packages (e.g. lhotse) using this script: 
 ```bash
+cd ../egs2/chime7_task1/asr1
 ./local/install_dependencies.sh
 ```
 You should be good to go !
@@ -64,25 +82,59 @@ Or reach us, see <a href="#reach_us">Section 2.</a>
 
 
 ## <a id="data_creation">2. Data Download and Creation </a>
-See Data Section in [CHiME-7 Task 1 webpage][] [1] for additional info about the dataset
-and the **rules about the data and pre-trained models**. 
+See Data page in [CHiME-7 DASR webpage](https://www.chimechallenge.org/current/task1/data) 
+for instructions on how data is structured. 
+See the [Rules page](https://www.chimechallenge.org/current/task1/rules) too for info about allowed external datasets and pre-trained models. 
 
-Unfortunately, only 
+CHiME-7 DASR makes use of three datasets (but participants can use optionally also allowed external datasets), 
+these are:
+
+1. CHiME-6 Challenge [1]
+2. Amazon Alexa Dinner Party Corpus (DiPCO) [2]
+3. LDC Mixer 6 Speech (here we use a new re-annotated version) [3]
+
+Unfortunately, only DiPCo can be downloaded automatically, the others must be 
+downloaded manually and then processed via our scripts here. <br>
+See [Data page](https://www.chimechallenge.org/current/task1/data) for 
+the instructions on how to obtain the re-annotated Mixer 6 Speech and CHiME-6 data.  
+
+### <a id="data_description">2.1 Generating the Data</a>
+To generate the data you need to have downloaded and unpacked manually Mixer 6 Speech
+and the CHiME-5 dataset as obtained from instructions here [Data page](https://www.chimechallenge.org/current/task1/data).
 
 
----
-To find out if the data has been generated correctly, you can run this 
-snippet from this directory (assuming you called the challenge dataset dir chime7_task1). <br>
-Your MD5 checksum should check out with ours. 
+**Stage 0** of `run.sh` here handles CHiME-7 DASR dataset creation and calls `local/gen_task1_data.sh`. <br>
+Note that DiPCo will be downloaded and extracted automatically. <br>
+To **ONLY** generate the data you will need to run:
 ```bash
-find chime7_task1 -type f -exec md5sum {} \; | sort -k 2 | md5sum
+./run.sh --chime5-root YOUR_PATH_TO_CHiME5 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --chime6-path PATH_WHERE_STORE_CHiME6 --stage 0 --stop-stage 0
 ```
-In our case it returns:
-`f938b57b3b67cdf7a0c0a25d56c45df2` <br>
-
-
-### <a id="data_description">2.1 Quick Data Description</a>
-
+If you have already CHiME-6 data you can use that without re-creating it from CHiME-5. 
+```bash
+./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --stop-stage 0
+```
+**If you want to run the recipe from data prep to ASR training and decoding**, instead remove the stop-stage flag.
+But please you want to take a look at arguments such as `gss_max_batch_dur` 
+and `asr_batch_size` because you may want to adjust these based on your hardware. 
+```bash
+./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs
+```
+**We also provide a pre-trained model**, you can run only inference on development set 
+using:
+```bash
+./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
+--use-pretrained popcornell/chime7_task1_asr1_baseline \
+--decode_only 1 
+```
+You should be able to replicate our results detailed in Section 3.1.2 with the 
+top 80% envelope variance automatic channel selection (a bit more than 34% WER on CHiME-6). <br>
+Note that results may differ a little because GSS inference is not deterministic. 
+### <a id="data_description">2.2 Quick Data Overview</a>
+The generated dataset folder after running the script should look like this: 
 ```
 chime7_task1
 ├── chime6
@@ -112,89 +164,136 @@ chime7_task1
 └── mixer6
     ├── audio
     │   ├── dev
-    │   ├── train_calls
+    │   ├── train_call
     │   └── train_intv
     ├── transcriptions
     │   ├── dev
-    │   ├── train_calls
+    │   ├── train_call
     │   └── train_intv
     └── transcriptions_scoring
         ├── dev
-        ├── train_calls
+        ├── train_call
         └── train_intv
 ```
+**NOTE**: eval directories for chime6 are empty at this stage. <br>
+Eval data (which is actually blind only for Mixer6) can be generated by using as an argument 
+`--gen-eval 1` (note you will need the Mixer6 eval set which will be released [later](https://www.chimechallenge.org/current/dates)).
+<br>
 
-**NOTE**: eval directories for chime6 are empty at this stage. <br> 
-**Evaluation data and annotation will be released later on June 12th**. 
-
-```json
-{
-  "end_time": "2.370",
-  "start_time": "1.000",
-  "words": "alright so ummm",
-  "speaker": "P03",
-  "session_id": "S01"
-}
+---
+To find out if the data has been generated correctly, you can run this 
+script from this directory <br>
+If it runs successfully your MD5 checksums are correct. <br>
+These are stored here in this repo in `local/chime7_dasr_md5.json`.
+```bash
+python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA 
+```
+When evaluation data is released, please re-check again: 
+```bash
+python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA -e 1
 ```
 
-```json
-{
-  "end_time": "1.370",
-  "start_time": "1.000",
-  "words": "Alright so ummm [noise]",
-  "speaker": "P03",
-  "session_id": "S01"
-}
-```
-The `uem` directory contains .uem files (Universal Evalution Map). 
-These indicate the start and stop (in seconds) for each session on which evaluation will be performed. 
-The other parts are ignored for evaluation (but participants are free to use them). <br>
-
-E.g. an example is given below, for session S02 evaluation is performed from second 40 to 8906 approximatively.
-The other parts are not scored. 
-```
-S02 1 40.600 8906.744
-S09 1 65.580 7162.197
-```
+Additional data description is available in [Data page](https://www.chimechallenge.org/current/task1/data)
 
 ## <a id="baseline">3. Baseline System</a>
 
+The baseline system in this recipe is similar to `egs2/chime6` one, which 
+itself is inherited direcly from CHiME-6 Challenge Kaldi recipe for Track 1 [s5_track1](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1). <br>
+
+It is composed of two modules (with an optional channel selection module):
+1. Guided Source Separation (GSS) [5], here we employ the GPU-based version (much faster) from [Desh Raj](https://github.com/desh2608/gss).
+2. End-to-end ASR model based on [4], which is a transformer encoder/decoder model trained <br>
+with joint CTC/attention [6]. It uses WavLM [7] as a feature extractor. 
+3. Optional Automatic Channel selection based on Envelope Variance Measure (EV) [8].
 
 ### 3.1 Results 
 
 #### 3.1.1 Main Track [Work in Progress]
+The main track baseline unfortunately is currently WIP, we hope we can finish it 
+in the next weeks. <br>
+It will be based on a TS-VAD diarization model which leverages pre-trained self-supervised
+representation. <br>
+We apologize for the inconvenience. <br>
+The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 
 #### 3.1.2 Sub-Track 1: Oracle Diarization + ASR
+Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
+Detailed decoding results (insertions, deletions etc) are available in the model Huggingface repository
+see [channel selection log top 80%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection_80.txt).
 
-Dataset | **microphone** | **cpWER**  |  
---------|--------|------------|
-CHiME-6 dev | GSS-all | 33         | 
-DiPCo dev | GSS-all| 33         | 
-Mixer6 Speech dev | GSS-all | 33         | 
+Here we report the results obtained using channel selection (
+retining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
+ASR model. 
 
 
-## <a id="eval_script">4. Evaluation [Work in Progress]
+<table>
+<thead>
+  <tr>
+    <th>Dataset</th>
+    <th>split</th>
+    <th>front-end</th>
+    <th>SA-WER (%)</th>
+    <th>macro SA-WER (%)</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>CHiME-6</td>
+    <td rowspan="3">dev</td>
+    <td>GSS (EV top 80%)</td>
+    <td>35.4</td>
+    <td rowspan="3">31.8</td>
+  </tr>
+  <tr>
+    <td>DiPCo</td>
+    <td>GSS (EV top 80%)</td>
+    <td>37.1</td>
+  </tr>
+  <tr>
+    <td>Mixer-6</td>
+    <td>GSS (EV top 80%)</td>
+    <td>23.2</td>
+  </tr>
+</tbody>
+</table>
+
+Such baseline system would rank sixth on dev set based on the rules of the past CHiME-6 Challenge 
+on Track 1 (unconstrained LM). 
+This system with top 80% mics and EV selection will be used as the baseline also for evaluation.  
+
+One of our hopes is that participants can devise new techniques for
+better channel selection/fusion strategies. 
+
+## <a id="eval_script"> 4. Evaluation Script </a>
+
+Will be added together with the diarization baseline. 
+Evaluation will be performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription. 
+by computing SA-WER for each speaker, where the hypothesis are re-ordered based on the best reordering defined by diarization error rate.
 
 
 ## <a id="common_issues"> 5. Common Issues </a>
 
-1. `AssertionError: Torch not compiled with CUDA enabled` 
-2. `sox: command not found` 
-3. `ffmpeg: command not found` 
+1. `AssertionError: Torch not compiled with CUDA enabled` <br> for some reason you installed Pytorch without CUDA support. <br>
+ Please install Pytorch with CUDA support as explained in [pytorch website](https://pytorch.org/).
+2. `ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: 'YOUR_PATH/espnet/tools/venv/lib/pyth
+on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy installation getting corrupted for some reason.
+You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
 
+## Acknowledgements
 
-
-[sox]:
-[google_group]: 
-[gpu_gss]:
-[gss]: 
-
+We would like to thank Dr. Naoyuki Kamo for his precious help. 
 
 ## <a id="reference"> 6. References </a>
 
 [1] Watanabe, S., Mandel, M., Barker, J., Vincent, E., Arora, A., Chang, X., et al. CHiME-6 challenge: Tackling multispeaker speech recognition for unsegmented recordings. <https://arxiv.org/abs/2004.09249> <br>
-[2] Chang, X., Maekaku, T., Fujita, Y., & Watanabe, S. (2022). End-to-end integration of speech recognition, speech enhancement, and self-supervised learning representation. <https://arxiv.org/abs/2204.00540> <br>
-[3] Boeddeker, C., Heitkaemper, J., Schmalenstroeer, J., Drude, L., Heymann, J., & Haeb-Umbach, R. (2018, September). Front-end processing for the CHiME-5 dinner party scenario. In CHiME5 Workshop, Hyderabad, India (Vol. 1).
+[2] Van Segbroeck, M., Zaid, A., Kutsenko, K., Huerta, C., Nguyen, T., Luo, X., et al. (2019). DiPCo--Dinner Party Corpus. <https://arxiv.org/abs/1909.13447> <br>
+[3] Brandschain, L., Graff, D., Cieri, C., Walker, K., Caruso, C., & Neely, A. (2010, May). Mixer 6. In Proceedings of the Seventh International Conference on Language Resources and Evaluation (LREC'10). <br>
+[4] Chang, X., Maekaku, T., Fujita, Y., & Watanabe, S. (2022). End-to-end integration of speech recognition, speech enhancement, and self-supervised learning representation. <https://arxiv.org/abs/2204.00540> <br>
+[5] Boeddeker, C., Heitkaemper, J., Schmalenstroeer, J., Drude, L., Heymann, J., & Haeb-Umbach, R. (2018, September). Front-end processing for the CHiME-5 dinner party scenario. In CHiME5 Workshop, Hyderabad, India (Vol. 1). <br>
+[6] Kim, S., Hori, T., & Watanabe, S. (2017, March). Joint CTC-attention based end-to-end speech recognition using multi-task learning. Proc. of ICASSP (pp. 4835-4839). IEEE. <br>
+[7] Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). Wavlm: Large-scale self-supervised pre-training for full stack speech processing. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505-1518. <br>
+[8] Wolf, M., & Nadeu, C. (2014). Channel selection measures for multi-microphone speech recognition. Speech Communication, 57, 170-180.
 
-
-
+[slack-badge]: https://img.shields.io/badge/slack-chat-green.svg?logo=slack
+[slack-invite]: https://join.slack.com/t/chime-fey5388/shared_invite/zt-1oha0gedv-JEUr1mSztR7~iK9AxM4HOA
+[twitter]: https://twitter.com/chimechallenge<h2>References</h2>

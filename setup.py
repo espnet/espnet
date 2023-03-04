@@ -15,7 +15,7 @@ requirements = {
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
-        "librosa>=0.8.0",
+        "librosa==0.9.2",
         "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -46,6 +46,7 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
+        "six",
     ],
     # train: The modules invoked when training only.
     "train": [

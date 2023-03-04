@@ -24,6 +24,8 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
+# from espnet2.tts.utils import DurationCalculator
+
 
 class SingingGenerate:
     """SingingGenerate class
@@ -102,18 +104,9 @@ class SingingGenerate:
         singing: Union[torch.Tensor, np.ndarray] = None,
         label: Union[torch.Tensor, np.ndarray] = None,
         midi: Union[torch.Tensor, np.ndarray] = None,
-        beat_phn: Union[torch.Tensor, np.ndarray] = None,
-        beat_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
-        beat_syb: Union[torch.Tensor, np.ndarray] = None,
-        label_lab: Union[torch.Tensor, np.ndarray] = None,
-        midi_lab: Union[torch.Tensor, np.ndarray] = None,
-        tempo_lab: Union[torch.Tensor, np.ndarray] = None,
-        beat_lab: Union[torch.Tensor, np.ndarray] = None,
-        label_score: Union[torch.Tensor, np.ndarray] = None,
-        midi_score: Union[torch.Tensor, np.ndarray] = None,
-        tempo_score: Union[torch.Tensor, np.ndarray] = None,
-        beat_score_phn: Union[torch.Tensor, np.ndarray] = None,
-        beat_score_syb: Union[torch.Tensor, np.ndarray] = None,
+        duration_phn: Union[torch.Tensor, np.ndarray] = None,
+        duration_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
+        duration_syb: Union[torch.Tensor, np.ndarray] = None,
         phn_cnt: Union[torch.Tensor, np.ndarray] = None,
         pitch: Union[torch.Tensor, np.ndarray] = None,
         energy: Union[torch.Tensor, np.ndarray] = None,
@@ -139,33 +132,14 @@ class SingingGenerate:
             batch.update(label=label)
         if midi is not None:
             batch.update(midi=midi)
-        if beat_phn is not None:
-            batch.update(beat_phn=beat_phn)
-        if beat_ruled_phn is not None:
-            batch.update(beat_ruled_phn=beat_ruled_phn)
-        if beat_syb is not None:
-            batch.update(beat_syb=beat_syb)
-
-        if label_lab is not None:
-            batch.update(label_lab=label_lab)
-        if label_score is not None:
-            batch.update(label_score=label_score)
-        if midi_lab is not None:
-            batch.update(midi_lab=midi_lab)
-        if midi_score is not None:
-            batch.update(midi_score=midi_score)
+        if duration_phn is not None:
+            batch.update(duration_phn=duration_phn)
+        if duration_ruled_phn is not None:
+            batch.update(duration_ruled_phn=duration_ruled_phn)
+        if duration_syb is not None:
+            batch.update(duration_syb=duration_syb)
         if pitch is not None:
             batch.update(pitch=pitch)
-        if tempo_lab is not None:
-            batch.update(tempo_lab=tempo_lab)
-        if tempo_score is not None:
-            batch.update(tempo_score=tempo_score)
-        if beat_lab is not None:
-            batch.update(beat_lab=beat_lab)
-        if beat_score_phn is not None:
-            batch.update(beat_score_phn=beat_score_phn)
-        if beat_score_syb is not None:
-            batch.update(beat_score_syb=beat_score_syb)
         if phn_cnt is not None:
             batch.update(phn_cnt=phn_cnt)
         if energy is not None:

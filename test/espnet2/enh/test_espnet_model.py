@@ -24,6 +24,7 @@ from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
+from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
@@ -366,6 +367,54 @@ def test_ineube(n_mics, training, loss_wrappers, output_from):
     separator = iNeuBe(
         2, mic_channels=n_mics, output_from=output_from, tcn_blocks=1, tcn_repeats=1
     )
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
+def test_tfgridnet(n_mics, training, loss_wrappers):
+    if not is_torch_1_9_plus:
+        return
+    if n_mics == 1:
+        inputs = torch.randn(1, 300)
+    else:
+        inputs = torch.randn(1, 300, n_mics)
+    ilens = torch.LongTensor([300])
+    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
+    from espnet2.enh.decoder.null_decoder import NullDecoder
+    from espnet2.enh.encoder.null_encoder import NullEncoder
+
+    encoder = NullEncoder()
+    decoder = NullDecoder()
+    separator = TFGridNet(
+        None,
+        n_srcs=2,
+        n_imics=n_mics,
+        n_layers=1,
+        lstm_hidden_units=64,
+        emb_dim=16,
+        attn_approx_qk_dim=256,
+    )
+
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
         separator=separator,
