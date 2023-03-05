@@ -62,6 +62,80 @@ def vad_trim(vad_reader: VADScpReader, uttid: str, wav: np.array, fs: int) -> np
     return new_wav
 
 
+class SegmentsExtractor:
+    """Emulating kaldi extract-segments.cc
+
+    Args:
+        segments (str): The file format is
+            "<segment-id> <recording-id> <start-time> <end-time>\n"
+            "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5\n"
+    """
+
+    def __init__(self, fname: str, segments: str = None):
+        assert check_argument_types()
+        self.wav_scp = fname
+        self.wav_dict = {}
+        with open(self.wav_scp, "r") as f:
+            for line in f:
+                recodeid, wavpath = line.strip().split(None, 1)
+                if recodeid in self.wav_dict:
+                    raise RuntimeError(f"{recodeid} is duplicated")
+                self.wav_dict[recodeid] = wavpath
+
+        self.segments = segments
+        self.segments_dict = {}
+        with open(self.segments, "r") as f:
+            for line in f:
+                sps = line.rstrip().split(None)
+                if len(sps) != 4:
+                    raise RuntimeError("Format is invalid: {}".format(line))
+                uttid, recodeid, st, et = sps
+                self.segments_dict[uttid] = (recodeid, float(st), float(et))
+
+                if recodeid not in self.wav_dict:
+                    raise RuntimeError(
+                        'Not found "{}" in {}'.format(recodeid, self.wav_scp)
+                    )
+
+    def generator(self):
+        recodeid_counter = {}
+        for utt, (recodeid, st, et) in self.segments_dict.items():
+            recodeid_counter[recodeid] = recodeid_counter.get(recodeid, 0) + 1
+
+        cached = {}
+        for utt, (recodeid, st, et) in self.segments_dict.items():
+            if recodeid not in cached:
+                wavpath = self.wav_dict[recodeid]
+
+                if wavpath.endswith("|"):
+                    # Streaming input e.g. cat a.wav |
+                    with kaldiio.open_like_kaldi(wavpath, "rb") as f:
+                        with BytesIO(f.read()) as g:
+                            retval = soundfile.read(g)
+                else:
+                    retval = soundfile.read(g)
+                cached[recodeid] = retval
+            retval = cached[recodeid]
+
+            # Keep array until the last query
+            recodeid_counter[recodeid] -= 1
+            if recodeid_counter[recodeid] == 0:
+                cached.pop(recodeid)
+
+            yield utt, self._return(retval, st, et)
+
+    def _return(self, array, st, et):
+        if isinstance(array, (tuple, list)):
+            array, rate = array
+
+        # Convert starting time of the segment to corresponding sample number.
+        # If end time is -1 then use the whole file starting from start time.
+        if et != -1:
+            return array[int(st * rate) : int(et * rate)], rate
+        else:
+            return array[int(st * rate) :], rate
+
+
 def main():
     logfmt = "%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s"
     logging.basicConfig(level=logging.INFO, format=logfmt)
@@ -117,7 +191,7 @@ def main():
                 "VAD based trim for data with segments is not supported"
             )
         # Note: kaldiio supports only wav-pcm-int16le file.
-        loader = kaldiio.load_scp_sequential(args.scp, segments=args.segments)
+        extractor = SegmentsExtractor(args.scp, segments=args.segments)
         if args.audio_format.endswith("ark"):
             fark = open(Path(args.outdir) / f"data_{args.name}.ark", "wb")
             fscp = out_wavscp.open("w")
@@ -129,17 +203,14 @@ def main():
             )
 
         with out_num_samples.open("w") as fnum_samples:
-            for uttid, (rate, wave) in tqdm(loader):
+            for uttid, (wave, rate) in tqdm(extractor.generator()):
                 # wave: (Time,) or (Time, Nmic)
                 if wave.ndim == 2 and utt2ref_channels is not None:
                     wave = wave[:, utt2ref_channels(uttid)]
 
                 if args.fs is not None and args.fs != rate:
                     # FIXME(kamo): To use sox?
-                    wave = resampy.resample(
-                        wave.astype(np.float64), rate, args.fs, axis=0
-                    )
-                    wave = wave.astype(np.int16)
+                    wave = resampy.resample(wave, rate, args.fs, axis=0)
                     rate = args.fs
                 if args.audio_format.endswith("ark"):
                     if "flac" in args.audio_format:
@@ -184,16 +255,13 @@ def main():
                     # Streaming input e.g. cat a.wav |
                     with kaldiio.open_like_kaldi(wavpath, "rb") as f:
                         with BytesIO(f.read()) as g:
-                            wave, rate = soundfile.read(g, dtype=np.int16)
+                            wave, rate = soundfile.read(g)
                             if wave.ndim == 2 and utt2ref_channels is not None:
                                 wave = wave[:, utt2ref_channels(uttid)]
 
                         if args.fs is not None and args.fs != rate:
                             # FIXME(kamo): To use sox?
-                            wave = resampy.resample(
-                                wave.astype(np.float64), rate, args.fs, axis=0
-                            )
-                            wave = wave.astype(np.int16)
+                            wave = resampy.resample(wave, rate, args.fs, axis=0)
                             rate = args.fs
 
                         if do_vad:
@@ -223,7 +291,7 @@ def main():
                             soundfile.write(owavpath, wave, rate)
                             fout.write(f"{uttid} {owavpath}\n")
                 else:
-                    wave, rate = soundfile.read(wavpath, dtype=np.int16)
+                    wave, rate = soundfile.read(wavpath)
                     if wave.ndim == 2 and utt2ref_channels is not None:
                         wave = wave[:, utt2ref_channels(uttid)]
                         save_asis = False
@@ -252,10 +320,7 @@ def main():
                     else:
                         if args.fs is not None and args.fs != rate:
                             # FIXME(kamo): To use sox?
-                            wave = resampy.resample(
-                                wave.astype(np.float64), rate, args.fs, axis=0
-                            )
-                            wave = wave.astype(np.int16)
+                            wave = resampy.resample(wave, rate, args.fs, axis=0)
                             rate = args.fs
 
                         if do_vad:
