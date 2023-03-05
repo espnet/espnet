@@ -115,7 +115,7 @@ def lid_parse(ref_path, hyp_path):
         for line in read_lines(path):
             try:
                 isos, utt_id = get_info_from_raw_line(line)
-            except:
+            except Exception:
                 print(line)
                 raise
             res[utt_id] = isos
