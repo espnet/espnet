@@ -65,6 +65,14 @@ if "${only_lid}"; then
         python local/lid.py --dir ${_scoredir}
     done
 else
+    if "${lid}"; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_wer/few_shot/*" -type d -not -path '/\.')
+        for _scoredir in ${directories}
+        do
+            log "Write result in ${_scoredir}/scores.txt"
+            python local/lid.py --dir ${_scoredir}
+        done
+    fi
     # directories=$(find ${asr_exp} -wholename "*/*/*/independent/*" -type d -not -path '/\.')
     # directories+=" "
     directories=$(find ${asr_exp} -wholename "*/*/*/few_shot/*" -type d -not -path '/\.')
