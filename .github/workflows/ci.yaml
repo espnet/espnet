@@ -50,7 +50,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake ibsndfile1-dev bc sox
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
