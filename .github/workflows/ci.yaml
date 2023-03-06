@@ -33,7 +33,7 @@ jobs:
             use-conda: false
           - os: ubuntu-20.04
             python-version: "3.10"
-            pytorch-version: 1.12.1
+            pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
