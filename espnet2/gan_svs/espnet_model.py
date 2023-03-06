@@ -75,6 +75,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         text_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
         label: Optional[torch.Tensor] = None,
         label_lengths: Optional[torch.Tensor] = None,
         phn_cnt: Optional[torch.Tensor] = None,
@@ -103,14 +105,11 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            ---- label* is label id sequence ----
             label (Option[Tensor]): Label tensor (B, T_label).
             label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
             phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            ---- midi_* is midi id sequence ----
             midi (Option[Tensor]): Midi tensor (B, T_label).
             midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            ---- duration* is duration in time_shift ----
             duration_phn (Optional[Tensor]): duration tensor (B, T_label).
             duration_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_ruled_phn (Optional[Tensor]): duration tensor (B, T_phone).
@@ -137,8 +136,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         """
         with autocast(False):
             # Extract features
-            feats = None
-            if self.feats_extract is not None:
+            if self.feats_extract is not None and feats is None:
                 feats, feats_lengths = self.feats_extract(
                     singing,
                     singing_lengths,
@@ -351,18 +349,14 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            ---- label* is label id sequence ----
             label (Option[Tensor]): Label tensor (B, T_label).
             label_lengths (Optional[Tensor]): Label lrngth tensor (B,).
             phn_cnt (Optional[Tensor]): Number of phones in each syllable (B, T_syb)
-            ---- midi_* is midi id sequence ----
             midi (Option[Tensor]): Midi tensor (B, T_label).
             midi_lengths (Optional[Tensor]): Midi lrngth tensor (B,).
-            ---- duration* is duration in time_shift ----
             duration_phn (Optional[Tensor]): duration tensor (T_label).
             duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
             duration_syb (Optional[Tensor]): duration tensor (T_phone).
-
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
@@ -423,173 +417,3 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
 
         return feats_dict
-
-    def inference(
-        self,
-        text: torch.Tensor,
-        singing: Optional[torch.Tensor] = None,
-        label: Optional[torch.Tensor] = None,
-        phn_cnt: Optional[torch.Tensor] = None,
-        midi: Optional[torch.Tensor] = None,
-        duration_phn: Optional[torch.Tensor] = None,
-        duration_ruled_phn: Optional[torch.Tensor] = None,
-        duration_syb: Optional[torch.Tensor] = None,
-        pitch: Optional[torch.Tensor] = None,
-        energy: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        sids: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
-        **decode_config,
-    ) -> Dict[str, torch.Tensor]:
-        """Caclualte features and return them as a dict.
-
-        Args:
-            text (Tensor): Text index tensor (T_text).
-            singing (Tensor): Singing waveform tensor (T_wav).
-            ---- label* is label id sequence ----
-            label (Option[Tensor]): Label tensor (T_label).
-            phn_cnt (Optional[Tensor]): Number of phones in each syllable (T_syb)
-            ---- midi_* is midi id sequence ----
-            midi (Option[Tensor]): Midi tensor (T_label).
-            ---- duration* is duration in time_shift ----
-            duration_phn (Optional[Tensor]): duration tensor (T_label).
-            duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
-            duration_syb (Optional[Tensor]): duration tensor (T_phone).
-
-            spembs (Optional[Tensor]): Speaker embedding tensor (D,).
-            sids (Optional[Tensor]): Speaker ID tensor (1,).
-            lids (Optional[Tensor]): Language ID tensor (1,).
-            pitch (Optional[Tensor): Pitch tensor (T_wav).
-            energy (Optional[Tensor): Energy tensor.
-
-        Returns:
-            Dict[str, Tensor]: Dict of outputs.
-        """
-        label_lengths = torch.tensor([len(label)])
-        midi_lengths = torch.tensor([len(midi)])
-        duration_phn_lengths = torch.tensor([len(duration_phn)])
-        duration_ruled_phn_lengths = torch.tensor([len(duration_ruled_phn)])
-        duration_syb_lengths = torch.tensor([len(duration_syb)])
-
-        # unsqueeze of singing must be here
-        # or it'll cause error in the return dim of STFT
-
-        # for data-parallel
-        text = text.unsqueeze(0)
-
-        label = label.unsqueeze(0)
-        midi = midi.unsqueeze(0)
-        duration_phn = duration_phn.unsqueeze(0)
-        duration_ruled_phn = duration_ruled_phn.unsqueeze(0)
-        duration_syb = duration_syb.unsqueeze(0)
-        phn_cnt = phn_cnt.unsqueeze(0)
-
-        # Extract auxiliary features
-        # score : 128 midi pitch
-        # duration :
-        #   input-> phone-id seqence
-        #   output -> frame level(取众数 from window) or syllable level
-        batch_size = text.size(0)
-        assert batch_size == 1
-        if isinstance(self.score_feats_extract, FrameScoreFeats):
-            (
-                label_lab,
-                label_lab_lengths,
-                midi_lab,
-                midi_lab_lengths,
-                duration_lab,
-                duration_lab_lengths,
-            ) = expand_to_frame(
-                duration_phn, duration_phn_lengths, label, midi, duration_phn
-            )
-
-            # for data-parallel
-            label_lab = label_lab[:, : label_lab_lengths.max()]
-            midi_lab = midi_lab[:, : midi_lab_lengths.max()]
-            duration_lab = duration_lab[:, : duration_lab_lengths.max()]
-
-            (
-                label_score,
-                label_score_lengths,
-                midi_score,
-                midi_score_lengths,
-                duration_score,
-                duration_score_phn_lengths,
-            ) = expand_to_frame(
-                duration_ruled_phn,
-                duration_ruled_phn_lengths,
-                label,
-                midi,
-                duration_ruled_phn,
-            )
-
-            # for data-parallel
-            label_score = label_score[:, : label_score_lengths.max()]
-            midi_score = midi_score[:, : midi_score_lengths.max()]
-            duration_score = duration_score[:, : duration_score_phn_lengths.max()]
-            duration_score_syb = None
-
-        elif isinstance(self.score_feats_extract, SyllableScoreFeats):
-            # Remove unused paddings at end
-            label_lab = label[:, : label_lengths.max()]
-            midi_lab = midi[:, : midi_lengths.max()]
-            duration_lab = duration_phn[:, : duration_phn_lengths.max()]
-
-            label_score = label[:, : label_lengths.max()]
-            midi_score = midi[:, : midi_lengths.max()]
-            duration_score = duration_ruled_phn[:, : duration_ruled_phn_lengths.max()]
-            duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
-
-        input_dict = dict(text=text)
-
-        # label
-        label = dict()
-        if label_lab is not None:
-            label_lab = label_lab.to(dtype=torch.long)
-            label.update(lab=label_lab)
-        if label_score is not None:
-            label_score = label_score.to(dtype=torch.long)
-            label.update(score=label_score)
-        input_dict.update(label=label)
-
-        # melody
-        melody = dict()
-        if midi_lab is not None:
-            midi_lab = midi_lab.to(dtype=torch.long)
-            melody.update(lab=midi_lab)
-        if midi_score is not None:
-            midi_score = midi_score.to(dtype=torch.long)
-            melody.update(score=midi_score)
-        input_dict.update(melody=melody)
-
-        # duration
-        duration = dict()
-        if duration_lab is not None:
-            duration_lab = duration_lab.to(dtype=torch.long)
-            duration.update(lab=duration_lab)
-        if duration_score is not None:
-            duration_phn_score = duration_score.to(dtype=torch.long)
-            duration.update(score_phn=duration_phn_score)
-        if duration_score_syb is not None:
-            duration_syb_score = duration_score_syb.to(dtype=torch.long)
-            duration.update(score_syb=duration_syb_score)
-        input_dict.update(duration=duration)
-
-        if pitch is not None:
-            input_dict.update(pitch=pitch)
-        if spembs is not None:
-            input_dict.update(spembs=spembs)
-        if sids is not None:
-            input_dict.update(sids=sids)
-        if lids is not None:
-            input_dict.update(lids=lids)
-
-        outs, probs, att_ws = self.svs.inference(**input_dict)
-
-        if self.normalize is not None:
-            # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
-        else:
-            outs_denorm = outs
-
-        return outs, outs_denorm, probs, att_ws
