@@ -38,7 +38,7 @@ SVS recipe consists of 8 stages.
 
 Data preparation stage.
 
-It calls `local/data.sh` to creates Kaldi-style data directories but with additional `midi.scp` and `label` in `data/` for training, validation, and evaluation sets.
+It calls `local/data.sh` to creates Kaldi-style data directories but with additional `score.scp` and `label` in `data/` for training, validation, and evaluation sets.
 
 See also:
 - [About data directory](#about-data-directory)
@@ -81,6 +81,8 @@ Data preparation will end in stage 4. You can skip data preparation (stage 1 ~ s
 
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training and validation sets).
+
+In this stage, you can set `--write_collected_feats true` to store statistics of pitch.
 
 ### 6. SVS training
 
@@ -162,6 +164,9 @@ Then, you can get the following directories in the recipe directory.
 │       └── tr_no_dev/ # training set after filtering
 └── exp/ # experiment directory
     ├── svs_stats_raw_phn_none_jp  # statistics
+    │   ├── logdir/ # statistics calculation log directory
+    │   ├── train/  # train statistics
+    │   ├── valid/  # valid statistics
     └── svs_train_raw_phn_none_jp  # model
         ├── tensorboard/           # tensorboard log
         ├── images/                # plot of training curves
@@ -169,12 +174,16 @@ Then, you can get the following directories in the recipe directory.
         ├── decode_train.loss.best/ # decoded results
         │    ├── dev/   # validation set
         │    └── eval/ # evaluation set
-        │        ├── norm/        # generated features
-        │        ├── denorm/      # generated denormalized features
-        │        ├── wav/         # generated wav via Griffin-Lim
-        │        ├── log/         # log directory
-        │        ├── feats_type   # feature type
-        │        └── speech_shape # shape info of generated features
+        │        ├── norm/         # generated features
+        │        ├── denorm/       # generated denormalized features
+        │        ├── MCD_res/      # mel-cepstral distortion
+        │        ├── VUV_res/      # voiced/unvoiced error rate
+        │        ├── SEMITONE_res/ # semitone accuracy
+        │        ├── F0_res/       # log-F0 RMSE
+        │        ├── wav/          # generated wav via vocoder
+        │        ├── log/          # log directory
+        │        ├── feats_type    # feature type
+        │        └── speech_shape  # shape info of generated features
         ├── config.yaml             # config used for the training
         ├── train.log               # training log
         ├── *epoch.pth              # model parameter file
@@ -222,7 +231,7 @@ Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" 
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
-    --score_feats_extract frame_score_feats \
+    --score_feats_extract syllable_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
 ```
@@ -342,7 +351,7 @@ $ ./run.sh --stage 7 --vocoder_file /path/to/checkpoint-xxxxxxsteps.pkl --infere
 We provide four objective evaluation metrics:
 
 - Mel-cepstral distortion (MCD)
-- Logarithmic rooted mean square error of the fundamental frequency (F![1](http://latex.codecogs.com/svg.latex?_0)RMSE)
+- Logarithmic rooted mean square error of the fundamental frequency (log-F0 RMSE)
 - Semitone accuracy (Semitone ACC)
 - Voiced / unvoiced error rate (VUV_E)
 
@@ -351,7 +360,7 @@ For MCD, we apply dynamic time-warping (DTW) to match the length difference betw
 Here we show the example command to calculate objective metrics:
 
 ```sh
-cd egs/<recipe_name>/svs1
+cd egs2/<recipe_name>/svs1
 . ./path.sh
 # Evaluate MCD
 ./pyscripts/utils/evaluate_mcd.py \
@@ -366,6 +375,7 @@ cd egs/<recipe_name>/svs1
     exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
     dump/raw/eval/gen_wavdir_or_wavscp.scp
 ```
+
 While these objective metrics can estimate the quality of synthesized singing, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated singing.
 Therefore, we recommend performing the subjective evaluation (eg. MOS) if you want to check perceptual quality in detail.
 
@@ -387,7 +397,7 @@ cd egs/ofuton_p_utagoe_db/svs1
     ├── tr_no_dev/     # Training set directory
     │   ├── text       # The transcription
     │   ├── label      # Specifying start and end time of the transcription 
-    │   ├── midi.scp   # MIDI file path
+    │   ├── score.scp  # Score file path
     │   ├── wav.scp    # Wave file path
     │   ├── utt2spk    # A file mapping utterance-id to speaker-id
     │   ├── spk2utt    # A file mapping speaker-id to utterance-id
@@ -395,7 +405,7 @@ cd egs/ofuton_p_utagoe_db/svs1
     │   └── (utt2lang) # A file mapping utterance-id to language type (only for multilingual)
     ├── dev/
     │   ...
-    ├── test/
+    ├── eval/
     │   ...
     └── token_list/   # token list directory
         ...
@@ -415,14 +425,14 @@ cd egs/ofuton_p_utagoe_db/svs1
     ...
     ```
     
-- `midi.scp` format
+- `score.scp` format
     ```
-    uttidA /path/to/uttidA.mid
-    uttidB /path/to/uttidB.mid
+    key1 /some/path/score.json
+    key2 /some/path/score.json
     ...
     ```
     
-    Note that for databases without explicit midi or MusicXML, we also provide rule-based automatic music transcription to extract related music information. Relevant functions can be found in KiSing recipe [here](https://github.com/SJTMusicTeam/Muskits/blob/main/egs/kising/svs1/local/data.sh).
+    Note that for databases without explicit score or MusicXML, we will provide rule-based automatic music transcription to extract related music information in the future. 
     
 - `wav.scp` format
     ```
