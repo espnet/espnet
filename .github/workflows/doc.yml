@@ -10,7 +10,7 @@ on:
 
 jobs:
   linter_and_test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
