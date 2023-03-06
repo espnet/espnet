@@ -222,7 +222,7 @@ Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" 
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
-    --score_feats_extract frame_score_feats \
+    --score_feats_extract syllable_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
 ```
