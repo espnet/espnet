@@ -11,8 +11,7 @@ def main(args):
         for line in f:
             if line == "\n":
                 continue
-            [pred, gt, name] = line.strip().split("\t")
-            gt = f"[{gt}]"
+            [gt, pred, name] = line.strip().split("\t")
             y_true.append(gt)
             y_pred.append(pred)
             if pred == gt:
@@ -25,7 +24,7 @@ def main(args):
         #     f.write(lid_report)
 
         with open(f"{args.dir}/scores.txt", "w") as f:
-            f.write(f"Acc: {correct / total * 100:.2f}%")
+            f.write(f"Acc: {correct / total * 100:.2f}%\n")
 
 
 if __name__ == "__main__":
