@@ -8,11 +8,18 @@ export PYTHONPATH
 python="coverage run --append"
 cwd=$(pwd)
 
+gen_dummy_coverage(){
+    # To avoid a problem when parallel running for `coverage run`.
+    # Please put this command after cd ./egs2/foo/bar
+    touch empty.py; ${python} empty.py 
+}
+
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1
+gen_dummy_coverage
 echo "==== [ESPnet2] ASR ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_types="raw fbank_pitch"
@@ -101,6 +108,7 @@ cd "${cwd}"
 
 # [ESPnet2] test tts recipe
 cd ./egs2/mini_an4/tts1
+gen_dummy_coverage
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
 # Remove generated files in order to reduce the disk usage
@@ -120,6 +128,7 @@ cd "${cwd}"
 # [ESPnet2] test enh recipe
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh1
+    gen_dummy_coverage
     echo "==== [ESPnet2] ENH ==="
     ./run.sh --stage 1 --stop-stage 1 --python "${python}"
     feats_types="raw"
@@ -137,6 +146,7 @@ fi
 # [ESPnet2] test enh_tse recipe
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/tse1
+    gen_dummy_coverage
     echo "==== [ESPnet2] ENH_TSE ==="
     feats_types="raw"
     for t in ${feats_types}; do
@@ -152,6 +162,7 @@ fi
 # [ESPnet2] test ssl1 recipe
 if python3 -c 'import fairseq; import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
     cd ./egs2/mini_an4/ssl1
+    gen_dummy_coverage
     echo "==== [ESPnet2] SSL1/HUBERT ==="
     ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip_upload_hf false \
         --hubert-args "--max_epoch=1" --python "${python}"
@@ -163,6 +174,7 @@ fi
 # [ESPnet2] test enh_asr1 recipe
 if python -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh_asr1
+    gen_dummy_coverage
     echo "==== [ESPnet2] ENH_ASR ==="
     ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1 --asr_decoder rnn" --python "${python}"
     # Remove generated files in order to reduce the disk usage
