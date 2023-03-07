@@ -11,11 +11,11 @@ cwd=$(pwd)
 gen_dummy_coverage(){
     # To avoid a problem when parallel running for `coverage run`.
     # Please put this command after cd ./egs2/foo/bar
-    touch empty.py; ${python} empty.py 
+    touch empty.py; ${python} empty.py
 }
 
 #### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer
+python3 -m pip uninstall -y chainer six
 
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1
