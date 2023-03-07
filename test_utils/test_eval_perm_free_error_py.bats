@@ -9,7 +9,6 @@ setup() {
     # Create an ark for dummy feature
     python << EOF
 import numpy as np
-import six
 import sys
 
 
@@ -37,7 +36,7 @@ def pit_score(samples, num_spkrs=2):
 def generate_stats_sample():
     # C, S, D, I
     stats = []
-    for i in six.moves.range(4):
+    for i in range(4):
         stats.append(np.random.randint(0, 20))
     return stats
 
@@ -45,8 +44,8 @@ def generate_samples(num_spkrs=2):
     # generate maximum 10 examples
     nsamples = 2 #np.random.randint(0, 10)
     ret = []
-    for i in six.moves.range(nsamples):
-        stats = [generate_stats_sample() for _ in six.moves.range(num_spkrs ** 2)]
+    for i in range(nsamples):
+        stats = [generate_stats_sample() for _ in range(num_spkrs ** 2)]
         id = str(i) * 10
         ret.append(dict(id=id, stats=stats))
 

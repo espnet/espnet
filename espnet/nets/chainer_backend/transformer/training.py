@@ -6,7 +6,6 @@ import logging
 import math
 
 import numpy as np
-import six
 from chainer import cuda
 from chainer import functions as F
 from chainer import training
@@ -36,7 +35,7 @@ def sum_sqnorm(arr):
                 x = x.ravel()
                 s = x.dot(x)
                 sq_sum[int(dev)] += s
-    return sum([float(i) for i in six.itervalues(sq_sum)])
+    return sum([float(i) for i in sq_sum.values()])
 
 
 class CustomUpdater(training.StandardUpdater):
