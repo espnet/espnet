@@ -186,7 +186,6 @@
 
 <span class="c1"># chainer related</span>
 <span class="kn">import</span> <span class="nn">chainer</span>
-<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
 <span class="kn">from</span> <span class="nn">chainer.datasets</span> <span class="kn">import</span> <span class="n">TransformDataset</span>
 <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extensions</span>
@@ -289,7 +288,7 @@
     <span class="k">elif</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">gpu_id</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">devices</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;main&quot;</span><span class="p">:</span> <span class="n">gpu_id</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ngpu</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ngpu</span><span class="p">):</span>
             <span class="n">devices</span><span class="p">[</span><span class="s2">&quot;sub_</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">gid</span><span class="p">]</span> <span class="o">=</span> <span class="n">gid</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;multi gpu calculation (#gpus = </span><span class="si">%d</span><span class="s2">).&quot;</span> <span class="o">%</span> <span class="n">ngpu</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
@@ -394,7 +393,7 @@
             <span class="p">)</span>
         <span class="c1"># set up minibatches</span>
         <span class="n">train_subsets</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">ngpu</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngpu</span><span class="p">):</span>
             <span class="c1"># make subset</span>
             <span class="n">train_json_subset</span> <span class="o">=</span> <span class="p">{</span>
                 <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">train_json</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="n">ngpu</span> <span class="o">==</span> <span class="n">gid</span>
@@ -414,7 +413,7 @@
         <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">train_subset</span><span class="p">)</span> <span class="k">for</span> <span class="n">train_subset</span> <span class="ow">in</span> <span class="n">train_subsets</span><span class="p">])</span>
         <span class="k">for</span> <span class="n">train_subset</span> <span class="ow">in</span> <span class="n">train_subsets</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">maxlen</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_subset</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_subset</span><span class="p">)):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxlen</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_subset</span><span class="p">)):</span>
                     <span class="n">train_subset</span> <span class="o">+=</span> <span class="p">[</span><span class="n">train_subset</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
 
         <span class="c1"># hack to make batchsize argument as 1</span>
@@ -429,7 +428,7 @@
                     <span class="n">maxtasksperchild</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
                     <span class="n">shuffle</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_sortagrad</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">ngpu</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngpu</span><span class="p">)</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">train_iters</span> <span class="o">=</span> <span class="p">[</span>
@@ -438,7 +437,7 @@
                     <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                     <span class="n">shuffle</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_sortagrad</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">ngpu</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">gid</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngpu</span><span class="p">)</span>
             <span class="p">]</span>
 
         <span class="c1"># set up updater</span>

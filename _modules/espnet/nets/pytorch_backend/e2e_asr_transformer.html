@@ -544,10 +544,8 @@
         <span class="n">hyps</span> <span class="o">=</span> <span class="p">[</span><span class="n">hyp</span><span class="p">]</span>
         <span class="n">ended_hyps</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="kn">import</span> <span class="nn">six</span>
-
         <span class="n">traced_decoder</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">maxlen</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">maxlen</span><span class="p">):</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;position &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
 
             <span class="n">hyps_best_kept</span> <span class="o">=</span> <span class="p">[]</span>
@@ -602,7 +600,7 @@
                         <span class="n">local_scores</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
                     <span class="p">)</span>
 
-                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">beam</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">beam</span><span class="p">):</span>
                     <span class="n">new_hyp</span> <span class="o">=</span> <span class="p">{}</span>
                     <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">local_best_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
                     <span class="n">new_hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp</span><span class="p">[</span><span class="s2">&quot;yseq&quot;</span><span class="p">]))</span>

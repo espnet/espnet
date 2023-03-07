@@ -181,7 +181,6 @@
 <span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.nets_utils</span> <span class="kn">import</span> <span class="n">_subsamplex</span>
@@ -212,7 +211,7 @@
             <span class="n">rnn</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">NStepLSTM</span> <span class="k">if</span> <span class="s2">&quot;lstm&quot;</span> <span class="ow">in</span> <span class="n">typ</span> <span class="k">else</span> <span class="n">L</span><span class="o">.</span><span class="n">NStepGRU</span>
         <span class="n">rnn_label</span> <span class="o">=</span> <span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="n">bidir</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">elayers</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">elayers</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">inputdim</span> <span class="o">=</span> <span class="n">idim</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -245,7 +244,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot; input lengths: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ilens</span><span class="p">))</span>
 
-        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elayers</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elayers</span><span class="p">):</span>
             <span class="k">if</span> <span class="s2">&quot;lstm&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">typ</span><span class="p">:</span>
                 <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">rnn_label</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">layer</span><span class="p">)](</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
