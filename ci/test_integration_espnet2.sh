@@ -15,7 +15,7 @@ gen_dummy_coverage(){
 }
 
 #### Make sure chainer-independent ####
-python3 -m pip uninstall -y chainer six
+python3 -m pip uninstall -y chainer
 
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1
