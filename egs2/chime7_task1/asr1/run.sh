@@ -142,7 +142,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
-          --cmd $cmd_gss \
+          --cmd "$cmd_gss" \
           --nj $ngpu \
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
