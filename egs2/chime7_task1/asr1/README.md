@@ -280,10 +280,44 @@ on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy inst
 You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
 3. `FileNotFoundError: [Errno 2] No such file or directory: 'PATH2YOURESPNET/espnet/tools/venv/bin/sox'
 ` during CHiME-6 generation from CHiME-5, `correct_signals_for_clock_drift.py` script: try to install conda sox again, via `conda install -c conda-forge sox`.
+4. s3prl not found 
+5. gss not found
+6. out of memory 
+7. wav reverberate 
+8. 
+
+
+## Memory Consumption (Useful for SLURM etc.)
+
+Figures kindly reported by Christoph Boeddeker, running this baseline code
+on Paderborn Center for Parallel Computing cluster (which uses SLURM). 
+These figures could be useful to anyone that uses job schedulers and clusters 
+for which resources are assigned strictly (e.g. job killed if it exceed requested
+memory resources).
+
+Used as default:
+ - train: 3G mem
+ - cuda: 4G mem (1 GPU)
+ - decode: 4G mem
+
+GSS:
+ - nj=8 (default 4)
+ - time 45 h per job (but might be faster)
+ - num_threads=5 (1 for main process, 4 for DataLoader processes)
+ - Mem: 2 GB per core or 10 GB per job. In SLURM it is --mem 2GB, since mem means mem-per-core in SLURM.
+ 
+scripts/audio/format_wav_scp.sh:
+ - Some spikes to the range of 15 to 17 GB
+
+${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag}:
+ - Few spikes to the 9 to 11 GB range.
+
+
 
 ## Acknowledgements
 
-We would like to thank Dr. Naoyuki Kamo for his precious help. 
+We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for 
+reporting many bugs and the memory consumption figures. 
 
 ## <a id="reference"> 6. References </a>
 
