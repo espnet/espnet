@@ -278,6 +278,8 @@ by computing SA-WER for each speaker, where the hypothesis are re-ordered based 
 2. `ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: 'YOUR_PATH/espnet/tools/venv/lib/pyth
 on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy installation getting corrupted for some reason.
 You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
+3. `FileNotFoundError: [Errno 2] No such file or directory: 'PATH2YOURESPNET/espnet/tools/venv/bin/sox'
+` during CHiME-6 generation from CHiME-5, `correct_signals_for_clock_drift.py` script: try to install conda sox again, via `conda install -c conda-forge sox`.
 
 ## Acknowledgements
 
