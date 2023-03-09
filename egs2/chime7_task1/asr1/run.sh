@@ -82,7 +82,7 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
-	  --train_cmd $cmd_dprep \
+	  --train_cmd "$cmd_dprep" \
 	  --gen-eval $gen_eval
 fi
 
