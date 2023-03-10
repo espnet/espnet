@@ -18,7 +18,8 @@ pip install jiwer
 if ! command -v wav-reverberate &>/dev/null; then
   echo "It seems that wav-reverberate Kaldi command cannot be found.
   This happens if you don't have compiled and installed Kaldi.
-  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL. "
+  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL."
+  exit
 fi
 
 # install s3prl
