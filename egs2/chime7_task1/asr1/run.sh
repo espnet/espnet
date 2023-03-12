@@ -36,7 +36,8 @@ train_min_segment_length=1 # discard sub one second examples, they are a lot in 
 train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
-gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
+gss_max_batch_dur=120 # set accordingly to your GPU VRAM, A100 40GB you can use 360
+# if you still get OOM errors for GSS see README.md
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
@@ -163,10 +164,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # NOTE that ESPNet will not make copies of the original Kaldi manifests
   # e.g. for training and cv, so if you set $train_max_segment_length these
   # will be discarded also from the test set (if the test set is the same as evaluation)
-  # you need to make a copy, here we make a copy in local/data.sh !
-  # kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/
-  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/chime6/dev/ihm kaldi/mixer6/dev/ihm"
-  #asr_tt_set+=""
+  # you need to make a copy, here we make a copy inside local/data.sh called gss_inf!
+  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+  # uncomment if you want to decode on close-talk microphones
+  # note however that it could be bad because there won't be any separation.
+  #asr_tt_set+="kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/"
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
