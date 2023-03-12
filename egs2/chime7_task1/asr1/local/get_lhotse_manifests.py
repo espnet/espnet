@@ -79,7 +79,7 @@ def prepare_chime6(
             sources = []
             # NOTE: Each headset microphone is binaural
             for idx, audio_path in enumerate(audio_paths):
-                channels = [0, 1] #if dset_part == "train" else [0]
+                channels = [0, 1]  # if dset_part == "train" else [0]
                 sources.append(
                     AudioSource(type="file", channels=channels, source=str(audio_path))
                 )
@@ -160,7 +160,7 @@ def prepare_chime6(
                 if start >= end:  # some segments may have negative duration
                     continue
 
-                ex_id =f"{spk_id}_chime6_{session}_{idx}-{round(100*start):06d}_{round(100*end):06d}-{mic}"
+                ex_id = f"{spk_id}_chime6_{session}_{idx}-{round(100*start):06d}_{round(100*end):06d}-{mic}"
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
@@ -406,28 +406,28 @@ def prepare_mixer6(
 
         elif mic == "mdm":
             current_sess_audio = [
-                    x
-                    for x in sess2audio[sess]
-                    if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
-                ]
+                x
+                for x in sess2audio[sess]
+                if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
+            ]
         else:
             raise NotImplementedError
 
         # recordings here
         sources = [
-                AudioSource(type="file", channels=[idx], source=str(audio_path))
-                for idx, audio_path in enumerate(current_sess_audio)
-            ]
+            AudioSource(type="file", channels=[idx], source=str(audio_path))
+            for idx, audio_path in enumerate(current_sess_audio)
+        ]
         audio_sf = sf.SoundFile(str(current_sess_audio[0]))
         recordings.append(
-                Recording(
-                    id=f"{sess}-{dset_part}-{mic}",
-                    sources=sources,
-                    sampling_rate=int(audio_sf.samplerate),
-                    num_samples=audio_sf.frames,
-                    duration=audio_sf.frames / audio_sf.samplerate,
-                )
+            Recording(
+                id=f"{sess}-{dset_part}-{mic}",
+                sources=sources,
+                sampling_rate=int(audio_sf.samplerate),
+                num_samples=audio_sf.frames,
+                duration=audio_sf.frames / audio_sf.samplerate,
             )
+        )
 
         for idx, segment in enumerate(transcript):
             spk_id = segment["speaker"]
@@ -441,7 +441,7 @@ def prepare_mixer6(
                 )
                 continue
 
-            if mic == "ihm": #and dset_part.startswith("train"):
+            if mic == "ihm":  # and dset_part.startswith("train"):
                 rec_id = f"{sess}-{dset_part}-{mic}"
                 if mic == "ihm" and dset_part == "dev":
                     subject_id = sess.split("_")[-1]

@@ -70,6 +70,12 @@ Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for *
 ```bash
 make TH_VERSION=1.13.1 CUDA_VERSION=11.6
 ```
+If you plan to train the ASR model, you would need to compile Kaldi. Otherwise you can 
+skip this step. Go to the `kaldi` directory and follow instructions in `INSTALL`.  
+```bash
+cd kaldi
+nano INSTALL
+```
 Finally, get in this recipe folder and install other baseline required packages (e.g. lhotse) using this script: 
 ```bash
 cd ../egs2/chime7_task1/asr1
@@ -216,15 +222,14 @@ representation. <br>
 We apologize for the inconvenience. <br>
 The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 
-#### 3.1.2 Sub-Track 1: Oracle Diarization + ASR
+#### 3.1.2 Acoustic Robustness Sub-Track: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
 Detailed decoding results (insertions, deletions etc) are available in the model Huggingface repository
 see [channel selection log top 80%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection_80.txt).
 
 Here we report the results obtained using channel selection (
 retining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
-ASR model. 
-
+ASR model.
 
 <table>
 <thead>
@@ -241,18 +246,18 @@ ASR model.
     <td>CHiME-6</td>
     <td rowspan="3">dev</td>
     <td>GSS (EV top 80%)</td>
-    <td>35.4</td>
-    <td rowspan="3">31.8</td>
+    <td> </td>
+    <td rowspan="3"> </td>
   </tr>
   <tr>
     <td>DiPCo</td>
     <td>GSS (EV top 80%)</td>
-    <td>37.1</td>
+    <td> </td>
   </tr>
   <tr>
     <td>Mixer-6</td>
     <td>GSS (EV top 80%)</td>
-    <td>23.2</td>
+    <td> </td>
   </tr>
 </tbody>
 </table>
@@ -280,12 +285,13 @@ on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy inst
 You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
 3. `FileNotFoundError: [Errno 2] No such file or directory: 'PATH2YOURESPNET/espnet/tools/venv/bin/sox'
 ` during CHiME-6 generation from CHiME-5, `correct_signals_for_clock_drift.py` script: try to install conda sox again, via `conda install -c conda-forge sox`.
-4. s3prl not found 
-5. gss not found
-6. out of memory 
-7. wav reverberate 
-8. 
-
+4. `ModuleNotFoundError: No module named 's3prl'` for some reason s3prl did not install, run `YOUR_ESPNET_ROOT/tools/installers/install_s3prl.sh`
+5. `Command 'gss' not found` for some reason gss did not install, you can run `YOUR_ESPNET_ROOT/tools/installers/install_gss.sh` 
+7. `wav-reverberate command not found` you need to install Kaldi. go to `YOUR_ESPNET_ROOT/tools/kaldi` and follow the instructions 
+in `INSTALL`.
+8. `WARNING  [enhancer.py:245] Out of memory error while processing the batch` you got out-of-memory (OOM) when running GSS. 
+You could try changing parameters as `gss_max_batch_dur` and in local/run_gss.sh `context-duration` 
+(this latter could degrade results however). See local/run_gss.sh for more info.
 
 ## Memory Consumption (Useful for SLURM etc.)
 

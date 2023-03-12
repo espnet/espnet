@@ -25,7 +25,6 @@ def get_new_manifests(input_dir, output_filename):
     for c_k in segcuts.data.keys():
         c_cut = segcuts.data[c_k]
 
-
         speaker = c_cut.supervisions[0].speaker
         gss_id = (
             f"{c_cut.recording_id}-{speaker}-"
