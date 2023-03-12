@@ -37,8 +37,8 @@ if [ ${stage} -le 0 ] && ! [[ " ${skip_stages[*]} " =~ " 0 " ]]; then
   cv_kaldi_manifests_ihm=()
   dset_part=dev
   mic=ihm
-  for dset in chime6 dipco; do
-    lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
+  for dset in chime6 dipco mixer6; do
+    lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
     cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/${mic}")
@@ -55,7 +55,7 @@ if [ ${stage} -le 1 ] && ! [[ " ${skip_stages[*]} " =~ " 1 " ]]; then
   dset_part=train
   for dset in chime6 mixer6; do
     for mic in ihm mdm; do
-      lhotse kaldi export -p ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
+      lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
       if [ $mic == ihm ] && [ $dset == chime6 ]; then
@@ -133,7 +133,7 @@ if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
       python local/gss2lhotse.py -i ${gss_dump_root}/${dset_name}/${dset_part} \
         -o $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss
 
-      lhotse kaldi export -p $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_recordings.jsonl.gz  \
+      lhotse kaldi export $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_recordings.jsonl.gz  \
           $manifests_root/gss/${dset_name}/${dset_part}/${dset_name}_${dset_part}_gss_supervisions.jsonl.gz \
           data/kaldi/${dset_name}/${dset_part}/gss
 
@@ -160,6 +160,8 @@ if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
       ./utils/combine_data.sh data/kaldi/dev_all_gss  "${cv_kaldi_manifests_gss[@]}"
       ./utils/fix_data_dir.sh data/kaldi/dev_all_gss
     fi
+
+    ./utils/copy_data_dir.sh data/kaldi/chime6/dev/gss data/kaldi/chime6/dev/gss_inf
 fi
 
 

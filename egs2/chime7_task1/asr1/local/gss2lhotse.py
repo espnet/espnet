@@ -24,11 +24,11 @@ def get_new_manifests(input_dir, output_filename):
     supervisions = []
     for c_k in segcuts.data.keys():
         c_cut = segcuts.data[c_k]
-        recording_id = "-".join(c_cut.id.split("-")[0:-1])
+
 
         speaker = c_cut.supervisions[0].speaker
         gss_id = (
-            f"{recording_id}-{speaker}-"
+            f"{c_cut.recording_id}-{speaker}-"
             f"{round(100*c_cut.start):06d}_{round(100*c_cut.end):06d}"
         )
         try:
@@ -61,7 +61,7 @@ def get_new_manifests(input_dir, output_filename):
         )
 
         new_sup = deepcopy(c_cut.supervisions[0])
-        new_sup.id = gss_id
+        new_sup.id = c_cut.id + "_gss"
         new_sup.recording_id = gss_id
         new_sup.start = 0
         new_sup.duration = duration

@@ -41,6 +41,7 @@ cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
 # ASR CONFIG
@@ -147,7 +148,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
           --channels $channels \
-          --use-selection $use_selection
+          --use-selection $use_selection \
+          --top-k $top_k
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
@@ -161,9 +163,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # NOTE that ESPNet will not make copies of the original Kaldi manifests
   # e.g. for training and cv, so if you set $train_max_segment_length these
   # will be discarded also from the test set (if the test set is the same as evaluation)
-  # you need to make a copy !
-  ./utils/copy_data_dir.sh data/kaldi/chime6/dev/gss data/kaldi/chime6/dev/gss_inf
-  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+  # you need to make a copy, here we make a copy in local/data.sh !
+  # kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/
+  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/chime6/dev/ihm kaldi/mixer6/dev/ihm"
+  #asr_tt_set+=""
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then

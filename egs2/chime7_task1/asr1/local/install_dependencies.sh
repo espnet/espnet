@@ -9,8 +9,6 @@ if ! command conda  &>/dev/null; then
 fi
 
 # install lhotse from master, we need the most up-to-date one
-pip install git+https://github.com/lhotse-speech/lhotse
-
 # jiwer
 pip install jiwer
 
@@ -48,5 +46,7 @@ if [ ! -z "$ffmpeg" ]; then
     exit 1
   fi
 fi
+
+pip install git+https://github.com/lhotse-speech/lhotse
 
 echo "All dependencies installed successfully"
