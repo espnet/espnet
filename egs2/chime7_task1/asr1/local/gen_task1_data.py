@@ -347,6 +347,7 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
         if len(to_uem) > 0:
             assert split in ["dev", "eval"]  # uem only for development set
             Path(os.path.join(out_dir, "uem", split)).mkdir(parents=True)
+            to_uem = sorted(to_uem)
             with open(os.path.join(out_dir, "uem", split, "all.uem"), "w") as f:
                 f.writelines(to_uem)
 
@@ -490,6 +491,7 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
         if len(to_uem) > 0:
             assert c_split in ["dev", "eval"]  # uem only for development set
             Path(os.path.join(out_dir, "uem", c_split)).mkdir(parents=True)
+            to_uem = sorted(to_uem)
             with open(os.path.join(out_dir, "uem", c_split, "all.uem"), "w") as f:
                 f.writelines(to_uem)
 
