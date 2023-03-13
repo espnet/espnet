@@ -409,6 +409,7 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                     ]
                 return
 
+        to_uem = []
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
@@ -445,6 +446,27 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "w",
             ) as f:
                 json.dump(annotation_scoring, f, indent=4)
+
+            # dump uem too for dev only
+            if c_split == "dev":
+                uem_start = sorted(
+                    annotation_scoring, key=lambda x: float(x["start_time"])
+                )[0]["start_time"]
+                uem_end = sorted(
+                    annotation_scoring, key=lambda x: float(x["end_time"])
+                )[-1]["end_time"]
+                c_uem = "{} 1 {} {}\n".format(
+                    sess_name,
+                    "{:.3f}".format(float(uem_start)),
+                    "{:.3f}".format(float(uem_end)),
+                )
+                to_uem.append(c_uem)
+
+        if len(to_uem) > 0:
+            assert c_split == "dev"  # uem only for development set
+            Path(os.path.join(out_dir, "uem", "dev")).mkdir(parents=True)
+            with open(os.path.join(out_dir, "uem", "dev", "all.uem"), "w") as f:
+                f.writelines(to_uem)
 
 
 if __name__ == "__main__":
