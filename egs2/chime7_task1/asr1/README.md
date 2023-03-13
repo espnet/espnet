@@ -224,12 +224,10 @@ The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 
 #### 3.1.2 Acoustic Robustness Sub-Track: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
-Detailed decoding results (insertions, deletions etc) are available in the model Huggingface repository
-see [channel selection log top 80%](https://huggingface.co/popcornell/chime7_task1_asr1_baseline/blob/main/decoding_channel_selection_80.txt).
-
+Detailed decoding results (insertions, deletions etc) are available in `baseline_logs/RESULTS.md` here.
 Here we report the results obtained using channel selection (
-retining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
-ASR model.
+retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
+ASR model. This is the configuration that gave the best results overall on the dev set. 
 
 <table>
 <thead>
@@ -262,12 +260,10 @@ ASR model.
 </tbody>
 </table>
 
-Such baseline system would rank sixth on dev set based on the rules of the past CHiME-6 Challenge 
+Such baseline system would rank fourth on dev set based on the rules of the past CHiME-6 Challenge 
 on Track 1 (unconstrained LM). 
-This system with top 80% mics and EV selection will be used as the baseline also for evaluation.  
+Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge. 
 
-One of our hopes is that participants can devise new techniques for
-better channel selection/fusion strategies. 
 
 ## <a id="eval_script"> 4. Evaluation Script </a>
 
