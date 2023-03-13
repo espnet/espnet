@@ -246,18 +246,18 @@ ASR model.
     <td>CHiME-6</td>
     <td rowspan="3">dev</td>
     <td>GSS (EV top 80%)</td>
-    <td> </td>
-    <td rowspan="3"> </td>
+    <td> 33.6 </td>
+    <td rowspan="3"> 30.0 </td>
   </tr>
   <tr>
     <td>DiPCo</td>
     <td>GSS (EV top 80%)</td>
-    <td> </td>
+    <td> 34.5 </td>
   </tr>
   <tr>
     <td>Mixer-6</td>
     <td>GSS (EV top 80%)</td>
-    <td> </td>
+    <td> 21.8 </td>
   </tr>
 </tbody>
 </table>
