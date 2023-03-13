@@ -1,5 +1,6 @@
-import yaml
 import argparse
+
+import yaml
 
 
 def get_args() -> argparse.Namespace():
