@@ -13,7 +13,7 @@ tgt_lang=fr
 # including 2 additional hours of data that was labeled by annotators as potentially noisy 
 train_set=train
 train_dev=valid
-test_set=test
+test_set="test"
 
 st_config=conf/train_st_transformer.yaml
 inference_config=conf/decode_st_transformer.yaml
@@ -28,7 +28,7 @@ tgt_case=tc
 
 ./st.sh \
     --stage 1 \
-    --stop_stage 13 \
+    --stop_stage 11 \
     --use_lm false \
     --token_joint false \
     --audio_format "wav" \
