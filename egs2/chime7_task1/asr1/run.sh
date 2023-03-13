@@ -166,9 +166,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # will be discarded also from the test set (if the test set is the same as evaluation)
   # you need to make a copy, here we make a copy inside local/data.sh called gss_inf!
   asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
-  # uncomment if you do want to decode on close-talk microphones
-  # note however that it could be bad because there won't be any separation.
   #asr_tt_set+=" kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/"
+  # uncomment if you do want to decode also on close-talk microphones
+  # note however that it could be bad because there won't be any separation.
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
