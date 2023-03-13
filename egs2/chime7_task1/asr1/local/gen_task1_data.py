@@ -298,6 +298,7 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 sess2audio[session_name].append(x)
 
         # for each json file
+        to_uem = []
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
@@ -333,6 +334,21 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 "w",
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
+
+            uem_start = 0
+            uem_end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
+            c_uem = "{} 1 {} {}\n".format(
+                sess_name,
+                "{:.3f}".format(float(uem_start)),
+                "{:.3f}".format(float(uem_end / 16000)),
+            )
+            to_uem.append(c_uem)
+
+        if len(to_uem) > 0:
+            assert split in ["dev", "eval"]  # uem only for development set
+            Path(os.path.join(out_dir, "uem", split)).mkdir(parents=True)
+            with open(os.path.join(out_dir, "uem", split, "all.uem"), "w") as f:
+                f.writelines(to_uem)
 
 
 def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
@@ -461,11 +477,20 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                     "{:.3f}".format(float(uem_end)),
                 )
                 to_uem.append(c_uem)
+            elif c_split == "eval":
+                uem_start = 0
+                uem_end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
+                c_uem = "{} 1 {} {}\n".format(
+                    sess_name,
+                    "{:.3f}".format(float(uem_start)),
+                    "{:.3f}".format(float(uem_end / 16000)),
+                )
+                to_uem.append(c_uem)
 
         if len(to_uem) > 0:
-            assert c_split == "dev"  # uem only for development set
-            Path(os.path.join(out_dir, "uem", "dev")).mkdir(parents=True)
-            with open(os.path.join(out_dir, "uem", "dev", "all.uem"), "w") as f:
+            assert c_split in ["dev", "eval"]  # uem only for development set
+            Path(os.path.join(out_dir, "uem", c_split)).mkdir(parents=True)
+            with open(os.path.join(out_dir, "uem", c_split, "all.uem"), "w") as f:
                 f.writelines(to_uem)
 
 
