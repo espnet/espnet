@@ -160,7 +160,10 @@ def prepare_chime6(
                 if start >= end:  # some segments may have negative duration
                     continue
 
-                ex_id = f"{spk_id}_chime6_{session}_{idx}-{round(100*start):06d}_{round(100*end):06d}-{mic}"
+                ex_id = (
+                    f"{spk_id}_chime6_{session}_{idx}-"
+                    f"{round(100*start):06d}_{round(100*end):06d}-{mic}"
+                )
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
@@ -303,7 +306,10 @@ def prepare_dipco(
                     )
                     continue
 
-                ex_id = f"{spk_id}_dipco_{session}_{idx}-{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
+                ex_id = (
+                    f"{spk_id}_dipco_{session}_{idx}-"
+                    f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
+                )
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
@@ -455,7 +461,10 @@ def prepare_mixer6(
                 rec_id = f"{sess}-{dset_part}-{mic}"
                 channel = list(range(len(current_sess_audio)))
 
-            ex_id = f"{spk_id}_mixer6_{sess}_{dset_part}_{idx}-{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
+            ex_id = (
+                f"{spk_id}_mixer6_{sess}_{dset_part}_{idx}-"
+                f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
+            )
             supervisions.append(
                 SupervisionSegment(
                     id=ex_id,

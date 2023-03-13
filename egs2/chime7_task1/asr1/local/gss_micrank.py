@@ -106,11 +106,11 @@ class MicRanking(Dataset):
             if len(to_tensor) > 0:
                 if c_wav.shape[-1] != to_tensor[0].shape[-1]:
                     print(
-                        "Discarded recording {} from {} supervision start {} stop {} ."
-                        "There is "
-                        "a difference of length of {} (samples)"
-                        "with the other recordings. It may be that one recording is shorter"
-                        "than the others and this segment exceed the length of the shorter one."
+                        "Discarded recording {} from {} supervision start {} "
+                        "stop {} . There is a difference of length of {} (samples)"
+                        "with the other recordings. It may be that one recording "
+                        "is shorter than the others and this segment exceed "
+                        "the length of the shorter one."
                         "".format(
                             c_supervision.id,
                             recording,
