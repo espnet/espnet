@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-import six
 from scipy.optimize import linear_sum_assignment
 
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
@@ -166,8 +165,8 @@ def reorder_refs_or_hyps(result_dir, num_spkrs, all_keys, hyp_or_ref=None, perms
 def main(args):
     # Read results from files
     all_results = []
-    for r in six.moves.range(1, args.num_spkrs + 1):
-        for h in six.moves.range(1, args.num_spkrs + 1):
+    for r in range(1, args.num_spkrs + 1):
+        for h in range(1, args.num_spkrs + 1):
             key = f"r{r}h{h}"
             result = read_result(
                 Path(args.results_dir, f"result_{key}.txt"), result_key=key

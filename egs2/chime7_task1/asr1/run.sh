@@ -162,7 +162,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # e.g. for training and cv, so if you set $train_max_segment_length these
   # will be discarded also from the test set (if the test set is the same as evaluation)
   # you need to make a copy !
-  ./utils/copy_data_dir.sh kaldi/chime6/dev/gss kaldi/chime6/dev/gss_inf
+  ./utils/copy_data_dir.sh data/kaldi/chime6/dev/gss data/kaldi/chime6/dev/gss_inf
   asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 
   pretrained_affix=

@@ -10,7 +10,7 @@ on:
 
 jobs:
   linter_and_test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
@@ -26,15 +26,13 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake python3-dev git g++-7 pandoc ffmpeg bc
+          sudo apt-get install -qq -y cmake python3-dev git pandoc ffmpeg bc
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: 3.8
           TH_VERSION: 1.13.1
           CHAINER_VERSION: 6.0.0
           USE_CONDA: false
-          CC: gcc-7
-          CXX: g++-7
         run: ./ci/install.sh
       - name: generate doc
         run: ./ci/doc.sh

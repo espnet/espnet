@@ -1,25 +1,31 @@
 optim: adam
 max_epoch: 10
+iterator_type: chunk
+chunk_length: 5000
+# exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+# from the length consistency check in ChunkIterFactory
+chunk_excluded_key_prefixes:
+- "enroll_ref"
 
 model_conf:
     num_spk: 1
     share_encoder: true
 
 train_spk2enroll: null
-enroll_segment: 48000
+enroll_segment: 5000
 load_spk_embedding: false
 load_all_speakers: false
 
 encoder: conv
 encoder_conf:
-    channel: 256
-    kernel_size: 32
-    stride: 16
+    channel: 64
+    kernel_size: 16
+    stride: 8
 decoder: conv
 decoder_conf:
-    channel: 256
-    kernel_size: 32
-    stride: 16
+    channel: 64
+    kernel_size: 16
+    stride: 8
 extractor: td_speakerbeam
 extractor_conf:
     layer: 4

@@ -895,6 +895,16 @@ class EnhPreprocessor(CommonPreprocessor):
             speech_mix = data[self.speech_name]
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
+                if self.noise_ref_name_prefix + "1" in data:
+                    noise = data[self.noise_ref_name_prefix + "1"]
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref) + noise), np.squeeze(speech_mix)
+                    )
+                else:
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref)), np.squeeze(speech_mix)
+                    )
+
                 speech_ref, rir_ref = zip(
                     *[
                         self._convolve_rir(sp, power)
@@ -936,14 +946,16 @@ class EnhPreprocessor(CommonPreprocessor):
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = data[speech_ref_name]
 
-                # NOTE(Wangyou): Must be careful here in case that the original
-                # `speech_ref` dones not sum up to `speech_mix`
-                # (such as in the TSE task)
-                speech_mix = sum(speech_ref)
-            power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
+                if self.noise_ref_name_prefix + "1" in data:
+                    speech_mix = sum(speech_ref) + noise
+                else:
+                    speech_mix = sum(speech_ref)
 
             # 2. Add Noise
             if self.noises is not None and self.noise_apply_prob >= np.random.random():
+                if self.noise_ref_name_prefix + "1" in data:
+                    speech_mix -= data[self.noise_ref_name_prefix + "1"]
+                power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
                 speech_mix, noise = self._add_noise(speech_mix, power_mix)
                 if self.force_single_channel:
                     if speech_mix.shape[0] > 1:
@@ -1003,13 +1015,6 @@ class SVSPreprocessor(AbsPreprocessor):
         midi_name: str = "score",
         fs: np.int32 = 0,
         hop_length: np.int32 = 256,
-        align: list = [
-            "singing",
-            "label_lab",
-            "midi_lab",
-            "tempo_lab",
-            "beat_lab",
-        ],  # TODO(Tao): add to args
         phn_seg: dict = {
             1: [1],
             2: [0.25, 1],
@@ -1026,7 +1031,6 @@ class SVSPreprocessor(AbsPreprocessor):
         self.fs = fs
         self.hop_length = hop_length
         self.singing_volume_normalize = singing_volume_normalize
-        self.align = align
         self.phn_seg = phn_seg
         self.time_shift = hop_length / fs
         if token_type is not None:
@@ -1080,76 +1084,42 @@ class SVSPreprocessor(AbsPreprocessor):
 
             label = np.zeros((lab_len))
             midi = np.zeros((lab_len))
-            beat_phn = np.zeros((lab_len))
-            beat_ruled_phn = np.zeros((lab_len))
-            beat_syb = np.zeros((lab_len))
+            duration_phn = np.zeros((lab_len))
+            duration_ruled_phn = np.zeros((lab_len))
+            duration_syb = np.zeros((lab_len))
             # Load score info
             tempo, syb_info = data[self.midi_name]
             phn_cnt = []
 
             # Calculate features
-            nsamples_score = int((syb_info[-1][1] - syb_info[0][0]) * self.fs)
-            labelseq_score_phn = np.zeros((nsamples_score))
-            midiseq_score = np.zeros((nsamples_score))
-            beatseq_score_phn = np.zeros((nsamples_score))
-            beatseq_score_syb = np.zeros((nsamples_score))
-            temposeq_score = np.full(nsamples_score, tempo)
             index_lab = 0
-            nsamples_lab = int((lab_timeseq[-1][1] - lab_timeseq[0][0]) * self.fs)
-            labelseq_lab_phn = np.zeros((nsamples_lab))
-            midiseq_lab = np.zeros((nsamples_lab))
-            beatseq_lab_phn = np.zeros((nsamples_lab))
-            temposeq_lab = np.full(nsamples_lab, tempo)
-            offset = lab_timeseq[0][0]
 
             for st, et, syb, note, phns in syb_info:
-                start = int(st * self.fs)
-                end = int(et * self.fs) + 1
-                if end > nsamples_score:
-                    end = nsamples_score
-                midiseq_score[start:end] = note
                 dur = et - st
-                _beat_syb = int(dur / self.time_shift + 0.5)
-                beatseq_score_syb[start:end] = _beat_syb
+                _duration_syb = int(dur / self.time_shift + 0.5)
                 phone = phns.split("_")
-                phone_ints = self.token_id_converter.tokens2ids(phone)
-                phn_start = start
                 phn_num = len(phone)
                 phn_cnt.append(phn_num)
                 pre_seg = 0
                 for k in range(phn_num):
-                    if self.phn_seg[phn_num][k] == 1:
-                        phn_end = end
-                    else:
-                        phn_end = (
-                            int((st + dur * self.phn_seg[phn_num][k]) * self.fs) + 1
-                        )
-                    labelseq_score_phn[phn_start:phn_end] = phone_ints[k]
-                    _beat_ruled_phn = int(
+                    _duration_ruled_phn = int(
                         (self.phn_seg[phn_num][k] - pre_seg) * dur / self.time_shift
                         + 0.5
                     )
-                    beatseq_score_phn[phn_start:phn_end] = _beat_ruled_phn
                     pre_seg = self.phn_seg[phn_num][k]
-                    phn_start = phn_end
                     # timeseq from lab
                     assert text[index_lab] == phone[k]
-                    lab_start = int((lab_timeseq[index_lab][0] - offset) * self.fs)
-                    lab_end = int((lab_timeseq[index_lab][1] - offset) * self.fs) + 1
-                    labelseq_lab_phn[lab_start:lab_end] = text_ints[index_lab]
-                    midiseq_lab[lab_start:lab_end] = note
-                    _beat_phn = int(
+                    _duration_phn = int(
                         (lab_timeseq[index_lab][1] - lab_timeseq[index_lab][0])
                         / self.time_shift
                         + 0.5
                     )
-                    beatseq_lab_phn[lab_start:lab_end] = _beat_phn
                     # phone level feature
                     label[index_lab] = text_ints[index_lab]
                     midi[index_lab] = note
-                    beat_phn[index_lab] = _beat_phn
-                    beat_ruled_phn[index_lab] = _beat_ruled_phn
-                    beat_syb[index_lab] = _beat_syb
+                    duration_phn[index_lab] = _duration_phn
+                    duration_ruled_phn[index_lab] = _duration_ruled_phn
+                    duration_syb[index_lab] = _duration_syb
                     index_lab += 1
 
             assert index_lab == lab_len
@@ -1158,37 +1128,17 @@ class SVSPreprocessor(AbsPreprocessor):
             phn_cnt = np.array(phn_cnt)
             label.astype(np.int64)
             midi.astype(np.int64)
-            beat_phn.astype(np.int64)
-            beat_syb.astype(np.int64)
-            beat_ruled_phn.astype(np.int64)
+            duration_phn.astype(np.int64)
+            duration_syb.astype(np.int64)
+            duration_ruled_phn.astype(np.int64)
             phn_cnt.astype(np.int64)
-
-            labelseq_lab_phn.astype(np.int64)
-            midiseq_lab.astype(np.int64)
-            beatseq_lab_phn.astype(np.int64)
-            temposeq_lab.astype(np.int64)
-
-            labelseq_score_phn.astype(np.int64)
-            midiseq_score.astype(np.int64)
-            beatseq_score_phn.astype(np.int64)
-            beatseq_score_syb.astype(np.int64)
-            temposeq_score.astype(np.int64)
 
             data["label"] = label
             data["midi"] = midi
-            data["beat_phn"] = beat_phn
-            data["beat_ruled_phn"] = beat_ruled_phn
-            data["beat_syb"] = beat_syb
+            data["duration_phn"] = duration_phn
+            data["duration_ruled_phn"] = duration_ruled_phn
+            data["duration_syb"] = duration_syb
             data["phn_cnt"] = phn_cnt
-            data["label_lab"] = labelseq_lab_phn
-            data["midi_lab"] = midiseq_lab
-            data["beat_lab"] = beatseq_lab_phn
-            data["tempo_lab"] = temposeq_lab
-            data["label_score"] = labelseq_score_phn
-            data["midi_score"] = midiseq_score
-            data["beat_score_phn"] = beatseq_score_phn
-            data["beat_score_syb"] = beatseq_score_syb
-            data["tempo_score"] = temposeq_score
 
         # TODO(Yuning): Add score from midi
 
@@ -1202,12 +1152,6 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-
-        # align frame length with singing
-        length = min([len(data[key]) for key in data.keys() if key in self.align])
-        for key in self.align:
-            if key in data:
-                data[key] = data[key][:length]
 
         return data
 
@@ -1269,9 +1213,7 @@ class TSEPreprocessor(EnhPreprocessor):
         if train and rir_scp is not None and rir_apply_prob > 0:
             logging.warning(
                 "Be cautious when applying RIRs on the fly in the TSE task! "
-                "Please ensure `speech_ref` sums up to `speech_mix` for each sample. "
-                "Otherwise, the preprocessed training data will be wrong after the "
-                "line:\n        data = super()._speech_process(data)"
+                "Please ensure `speech_ref` sums up to `speech_mix` for each sample."
             )
 
         if train:

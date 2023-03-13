@@ -172,6 +172,8 @@ class SeparateSpeech:
                 "Overwrite enh_model.separator.ref_channel with {}".format(ref_channel)
             )
             enh_model.separator.ref_channel = ref_channel
+            if hasattr(enh_model.separator, "beamformer"):
+                enh_model.separator.beamformer.ref_channel = ref_channel
             self.ref_channel = ref_channel
         else:
             self.ref_channel = enh_model.ref_channel
