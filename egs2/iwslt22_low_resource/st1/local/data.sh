@@ -37,35 +37,35 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${splits_dir}" ]; th
 
     git clone https://github.com/mzboito/IWSLT2022_Tamasheq_data.git ${splits_dir}
 
-		# train comprises 17 hours of clean speech in Tamasheq, translated to the French language
-		# train_full comprises a 19 hour version of this corpus,
-		# including 2 additional hours of data that was labeled by annotators as potentially noisy
+    # train comprises 17 hours of clean speech in Tamasheq, translated to the French language
+    # train_full comprises a 19 hour version of this corpus,
+    # including 2 additional hours of data that was labeled by annotators as potentially noisy
     mkdir -p data/train/org
-		mkdir -p data/train_full/org
+    mkdir -p data/train_full/org
     mkdir -p data/valid/org
     mkdir -p data/test/org
 
-		for set in train valid test
-		do
-			cp -r ${splits_dir}/taq_fra_clean/${set}/* data/${set}/org
-		done
-		cp -r ${splits_dir}/taq_fra_full/train/* data/train_full/org
+    for set in train valid test
+    do
+        cp -r ${splits_dir}/taq_fra_clean/${set}/* data/${set}/org
+    done
+    cp -r ${splits_dir}/taq_fra_full/train/* data/train_full/org
 
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     
-		for set in train train_full valid test
-		do
-			python local/preprocess.py --out data/${set} --data data/${set}/org
+    for set in train train_full valid test
+    do
+        python local/preprocess.py --out data/${set} --data data/${set}/org
 
-			cp data/${set}/text.fr data/${set}/text
+        cp data/${set}/text.fr data/${set}/text
 
-			utils/utt2spk_to_spk2utt.pl data/${set}/utt2spk > data/${set}/spk2utt
-			utils/fix_data_dir.sh --utt_extra_files "text.fr" data/${set}
-			utils/validate_data_dir.sh --no-feats data/${set} || exit 1
-		done
+        utils/utt2spk_to_spk2utt.pl data/${set}/utt2spk > data/${set}/spk2utt
+        utils/fix_data_dir.sh --utt_extra_files "text.fr" data/${set}
+        utils/validate_data_dir.sh --no-feats data/${set} || exit 1
+    done
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then

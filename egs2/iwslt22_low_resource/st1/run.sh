@@ -27,23 +27,19 @@ tgt_nbpe=1000
 tgt_case=tc
 
 ./st.sh \
-		--st_tag wav2vec-transformer-warmup-15k \
-    --ignore_init_mismatch true \
     --stage 1 \
     --stop_stage 13 \
     --use_lm false \
     --token_joint false \
     --audio_format "wav" \
-    --nj 16 \
-    --inference_nj 16 \
     --src_lang ${src_lang} \
-		--use_src_lang false \
+    --use_src_lang false \
     --tgt_lang ${tgt_lang} \
     --tgt_token_type "bpe" \
     --tgt_nbpe $tgt_nbpe \
     --tgt_case ${tgt_case} \
     --feats_type "raw" \
-		--feats_normalize uttmvn \
+    --feats_normalize utterance_mvn \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --st_config "${st_config}" \
     --inference_config "${inference_config}" \
