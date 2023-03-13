@@ -1,71 +1,558 @@
-2023-03-13T10:48:35 (asr.sh:267:main) ./asr.sh --lang en --local_data_opts --stage 0 --chime6-root /raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 --train-set kaldi/dipco/dev/gss --manifests-root ./data/lhotse --gss_dsets chime6_dev,dipco_dev,mixer6_dev --gss-dump-root ./exp/gss --decode-only 1 --stage 13 --ngpu 2 --asr_args --batch_size 256 --scheduler_conf warmup_steps=20000 --max_epoch=8 --optim_conf lr=0.000200000000 --token_type bpe --nbpe 500 --bpe_nlsyms [inaudible],[laughs],[noise] --nlsyms_txt data/nlsyms.txt --feats_type raw --feats_normalize utterance_mvn --audio_format flac --min_wav_duration 1 --max_wav_duration 20 --speed_perturb_factors 0.9 1.0 1.1 --asr_config conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml --inference_config conf/decode_asr_transformer.yaml --use_lm false --lm_config conf/train_lm.yaml --use_word_lm false --word_vocab_size 65000 --train_set kaldi/dipco/dev/gss --valid_set kaldi/chime6/dev/gss --test_sets kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/ --bpe_train_text data/kaldi/dipco/dev/gss/text --lm_train_text data/kaldi/dipco/dev/gss/text --skip_data_prep false --skip_train true --download_model popcornell/chime7_task1_asr1_baseline
-2023-03-13T10:48:35 (asr.sh:1267:main) Skip the training stages
-2023-03-13T10:48:35 (asr.sh:1272:main) Use popcornell/chime7_task1_asr1_baseline for decoding and evaluation
-2023-03-13T10:48:36 (asr.sh:1438:main) Stage 13: Scoring
-2023-03-13T10:48:46 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_cer/result.txt
+2023-03-13T16:22:07 (run.sh:104:main) Creating lhotse manifests for chime6 in ./data/lhotse/chime6
+2023-03-13T16:22:09 (run.sh:104:main) Creating lhotse manifests for dipco in ./data/lhotse/dipco
+2023-03-13T16:22:11 (run.sh:104:main) Creating lhotse manifests for mixer6 in ./data/lhotse/mixer6
+2023-03-13T16:22:15 (run.sh:143:main) Running Guided Source Separation for chime6/dev, results will be in ./exp/gss/chime6/dev
+Stage 0: Selecting a subset of channels
+  0%|          | 0/6644 [00:00<?, ?it/s]  0%|          | 1/6644 [00:00<24:36,  4.50it/s]  0%|          | 5/6644 [00:00<06:25, 17.22it/s]  0%|          | 9/6644 [00:00<07:41, 14.37it/s]  1%|          | 41/6644 [00:01<02:09, 51.02it/s]  2%|▏         | 105/6644 [00:01<00:55, 117.63it/s]  2%|▏         | 117/6644 [00:01<00:59, 109.77it/s]  2%|▏         | 141/6644 [00:01<00:57, 112.68it/s]  3%|▎         | 173/6644 [00:01<00:54, 119.75it/s]  4%|▎         | 239/6644 [00:01<00:30, 209.73it/s]  4%|▍         | 268/6644 [00:02<00:29, 219.48it/s]  4%|▍         | 296/6644 [00:02<00:41, 152.36it/s]  5%|▌         | 347/6644 [00:02<00:32, 194.34it/s]  6%|▌         | 373/6644 [00:02<00:36, 171.88it/s]  6%|▌         | 395/6644 [00:02<00:38, 160.76it/s]  7%|▋         | 453/6644 [00:03<00:27, 222.36it/s]  7%|▋         | 479/6644 [00:03<00:37, 165.69it/s]  8%|▊         | 539/6644 [00:03<00:33, 183.59it/s]  9%|▊         | 571/6644 [00:03<00:32, 188.27it/s]  9%|▉         | 603/6644 [00:04<00:33, 178.93it/s] 10%|▉         | 635/6644 [00:04<00:29, 202.74it/s] 10%|█         | 667/6644 [00:04<00:29, 201.87it/s] 11%|█         | 699/6644 [00:04<00:26, 225.47it/s] 11%|█         | 732/6644 [00:04<00:24, 244.31it/s] 11%|█▏        | 759/6644 [00:04<00:27, 215.33it/s] 12%|█▏        | 783/6644 [00:04<00:32, 182.71it/s] 13%|█▎        | 836/6644 [00:04<00:22, 255.58it/s] 13%|█▎        | 866/6644 [00:05<00:26, 219.63it/s] 14%|█▍        | 918/6644 [00:05<00:23, 248.50it/s] 14%|█▍        | 950/6644 [00:05<00:25, 225.68it/s] 15%|█▍        | 985/6644 [00:05<00:28, 201.25it/s] 16%|█▌        | 1030/6644 [00:05<00:24, 232.65it/s] 16%|█▌        | 1056/6644 [00:06<00:27, 203.75it/s] 17%|█▋        | 1116/6644 [00:06<00:21, 258.47it/s] 17%|█▋        | 1144/6644 [00:06<00:21, 252.69it/s] 18%|█▊        | 1202/6644 [00:06<00:19, 282.06it/s] 19%|█▊        | 1231/6644 [00:06<00:20, 261.80it/s] 19%|█▉        | 1276/6644 [00:06<00:18, 291.04it/s] 20%|█▉        | 1306/6644 [00:06<00:18, 283.67it/s] 20%|██        | 1340/6644 [00:07<00:19, 266.01it/s] 21%|██        | 1383/6644 [00:07<00:20, 254.62it/s] 22%|██▏       | 1448/6644 [00:07<00:16, 317.82it/s] 22%|██▏       | 1481/6644 [00:07<00:19, 263.02it/s] 23%|██▎       | 1512/6644 [00:07<00:19, 262.53it/s] 24%|██▍       | 1588/6644 [00:07<00:13, 362.36it/s] 25%|██▍       | 1628/6644 [00:08<00:22, 219.15it/s] 25%|██▍       | 1659/6644 [00:08<00:24, 207.18it/s] 26%|██▌       | 1724/6644 [00:08<00:17, 283.49it/s] 27%|██▋       | 1762/6644 [00:08<00:17, 284.40it/s] 27%|██▋       | 1800/6644 [00:08<00:16, 289.28it/s] 28%|██▊       | 1862/6644 [00:08<00:15, 308.43it/s] 29%|██▉       | 1931/6644 [00:08<00:12, 385.89it/s] 30%|██▉       | 1975/6644 [00:09<00:14, 324.04it/s] 30%|███       | 2013/6644 [00:09<00:13, 331.58it/s] 31%|███       | 2059/6644 [00:09<00:12, 361.10it/s] 32%|███▏      | 2103/6644 [00:09<00:18, 249.14it/s] 33%|███▎      | 2168/6644 [00:09<00:14, 318.71it/s] 33%|███▎      | 2209/6644 [00:10<00:18, 245.59it/s] 34%|███▍      | 2267/6644 [00:10<00:18, 232.15it/s] 35%|███▌      | 2331/6644 [00:10<00:15, 273.45it/s] 36%|███▌      | 2364/6644 [00:10<00:15, 271.01it/s] 36%|███▌      | 2395/6644 [00:10<00:17, 245.66it/s] 37%|███▋      | 2459/6644 [00:11<00:15, 269.70it/s] 37%|███▋      | 2491/6644 [00:11<00:15, 272.78it/s] 38%|███▊      | 2539/6644 [00:11<00:14, 292.68it/s] 39%|███▊      | 2570/6644 [00:11<00:15, 270.96it/s] 39%|███▉      | 2598/6644 [00:11<00:14, 270.21it/s] 40%|███▉      | 2643/6644 [00:11<00:13, 299.49it/s] 40%|████      | 2674/6644 [00:11<00:14, 281.73it/s] 41%|████      | 2719/6644 [00:11<00:14, 264.32it/s] 41%|████▏     | 2754/6644 [00:12<00:15, 255.88it/s] 42%|████▏     | 2783/6644 [00:12<00:14, 257.82it/s] 43%|████▎     | 2830/6644 [00:12<00:12, 296.30it/s] 43%|████▎     | 2865/6644 [00:12<00:12, 302.26it/s] 44%|████▍     | 2910/6644 [00:12<00:11, 336.93it/s] 44%|████▍     | 2951/6644 [00:12<00:10, 339.80it/s] 45%|████▍     | 2986/6644 [00:12<00:11, 325.60it/s] 46%|████▌     | 3056/6644 [00:12<00:09, 367.77it/s] 47%|████▋     | 3094/6644 [00:13<00:11, 310.77it/s] 47%|████▋     | 3134/6644 [00:13<00:11, 312.40it/s] 48%|████▊     | 3191/6644 [00:13<00:11, 309.76it/s] 49%|████▊     | 3223/6644 [00:13<00:12, 277.28it/s] 50%|████▉     | 3295/6644 [00:13<00:09, 366.51it/s] 51%|█████▏    | 3417/6644 [00:13<00:06, 484.60it/s] 52%|█████▏    | 3486/6644 [00:13<00:06, 507.80it/s] 53%|█████▎    | 3541/6644 [00:14<00:06, 502.05it/s] 54%|█████▍    | 3596/6644 [00:14<00:06, 454.54it/s] 55%|█████▌    | 3680/6644 [00:14<00:06, 488.49it/s] 56%|█████▋    | 3752/6644 [00:14<00:06, 423.77it/s] 58%|█████▊    | 3835/6644 [00:14<00:05, 491.83it/s] 59%|█████▉    | 3942/6644 [00:14<00:04, 578.23it/s] 60%|██████    | 4018/6644 [00:14<00:04, 585.15it/s] 62%|██████▏   | 4094/6644 [00:15<00:04, 591.51it/s] 63%|██████▎   | 4155/6644 [00:15<00:04, 562.29it/s] 64%|██████▍   | 4243/6644 [00:15<00:04, 548.86it/s] 65%|██████▌   | 4335/6644 [00:15<00:03, 630.21it/s] 66%|██████▌   | 4401/6644 [00:15<00:03, 586.51it/s] 67%|██████▋   | 4462/6644 [00:15<00:03, 558.81it/s] 69%|██████▉   | 4568/6644 [00:15<00:03, 606.82it/s] 70%|██████▉   | 4630/6644 [00:16<00:03, 568.46it/s] 71%|███████   | 4696/6644 [00:16<00:03, 555.47it/s] 72%|███████▏  | 4765/6644 [00:16<00:03, 588.42it/s] 73%|███████▎  | 4825/6644 [00:16<00:03, 519.90it/s] 73%|███████▎  | 4879/6644 [00:16<00:03, 458.80it/s] 74%|███████▍  | 4927/6644 [00:16<00:03, 463.16it/s] 75%|███████▍  | 4975/6644 [00:16<00:03, 449.65it/s] 76%|███████▋  | 5079/6644 [00:16<00:02, 566.43it/s] 78%|███████▊  | 5159/6644 [00:17<00:02, 626.19it/s] 79%|███████▊  | 5224/6644 [00:17<00:02, 478.19it/s] 80%|███████▉  | 5302/6644 [00:17<00:02, 540.95it/s] 81%|████████  | 5363/6644 [00:17<00:02, 495.45it/s] 82%|████████▏ | 5433/6644 [00:17<00:02, 512.78it/s] 83%|████████▎ | 5530/6644 [00:17<00:01, 576.10it/s] 85%|████████▍ | 5624/6644 [00:17<00:01, 638.96it/s] 86%|████████▌ | 5691/6644 [00:17<00:01, 620.22it/s] 87%|████████▋ | 5767/6644 [00:18<00:01, 598.54it/s] 88%|████████▊ | 5834/6644 [00:18<00:01, 577.48it/s] 89%|████████▉ | 5898/6644 [00:18<00:01, 583.94it/s] 90%|████████▉ | 5958/6644 [00:18<00:01, 541.91it/s] 91%|█████████ | 6019/6644 [00:18<00:01, 502.90it/s] 92%|█████████▏| 6090/6644 [00:18<00:01, 553.93it/s] 93%|█████████▎| 6148/6644 [00:18<00:00, 560.70it/s] 93%|█████████▎| 6206/6644 [00:19<00:00, 486.43it/s] 94%|█████████▍| 6269/6644 [00:19<00:00, 496.85it/s] 96%|█████████▌| 6373/6644 [00:19<00:00, 597.91it/s] 97%|█████████▋| 6435/6644 [00:19<00:00, 546.01it/s] 98%|█████████▊| 6491/6644 [00:19<00:00, 497.43it/s] 98%|█████████▊| 6542/6644 [00:19<00:00, 467.10it/s] 99%|█████████▉| 6601/6644 [00:19<00:00, 459.24it/s]100%|██████████| 6644/6644 [00:19<00:00, 334.54it/s]
+Stage 1: Prepare cut set
+Stage 2: Trim cuts to supervisions (1 cut per supervision segment)
+Stage 3: Split segments into 4 parts
+Stage 4: Enhance segments using GSS
+2023-03-13T17:02:56 (run.sh:154:main) Guided Source Separation processing for chime6/dev was successful !
+2023-03-13T17:02:56 (run.sh:143:main) Running Guided Source Separation for dipco/dev, results will be in ./exp/gss/dipco/dev
+Stage 0: Selecting a subset of channels
+  0%|          | 0/3673 [00:00<?, ?it/s]  0%|          | 1/3673 [00:00<12:03,  5.08it/s]  0%|          | 2/3673 [00:00<08:42,  7.02it/s]  0%|          | 15/3673 [00:00<01:16, 47.99it/s]  1%|          | 39/3673 [00:00<00:58, 62.31it/s]  2%|▏         | 71/3673 [00:00<00:33, 108.98it/s]  3%|▎         | 103/3673 [00:01<00:26, 133.52it/s]  3%|▎         | 118/3673 [00:01<00:34, 102.50it/s]  4%|▍         | 146/3673 [00:01<00:31, 112.25it/s]  5%|▍         | 182/3673 [00:01<00:23, 147.59it/s]  6%|▌         | 213/3673 [00:01<00:20, 167.56it/s]  7%|▋         | 258/3673 [00:01<00:15, 225.07it/s]  8%|▊         | 292/3673 [00:02<00:14, 240.83it/s]  9%|▊         | 320/3673 [00:02<00:18, 180.03it/s]  9%|▉         | 343/3673 [00:02<00:19, 168.48it/s] 11%|█         | 397/3673 [00:02<00:14, 223.36it/s] 12%|█▏        | 423/3673 [00:02<00:19, 171.02it/s] 13%|█▎        | 465/3673 [00:03<00:20, 155.29it/s] 14%|█▍        | 529/3673 [00:03<00:14, 216.20it/s] 15%|█▌        | 556/3673 [00:03<00:15, 195.28it/s] 16%|█▌        | 579/3673 [00:03<00:16, 184.03it/s] 17%|█▋        | 620/3673 [00:03<00:16, 183.33it/s] 19%|█▊        | 685/3673 [00:04<00:11, 265.63it/s] 20%|█▉        | 718/3673 [00:04<00:13, 224.14it/s] 20%|██        | 746/3673 [00:04<00:15, 194.64it/s] 21%|██▏       | 786/3673 [00:04<00:13, 219.71it/s] 22%|██▏       | 812/3673 [00:04<00:13, 216.83it/s] 23%|██▎       | 853/3673 [00:04<00:12, 230.84it/s] 25%|██▌       | 924/3673 [00:05<00:10, 272.51it/s] 27%|██▋       | 985/3673 [00:05<00:08, 314.96it/s] 28%|██▊       | 1018/3673 [00:05<00:09, 268.54it/s] 29%|██▉       | 1065/3673 [00:05<00:08, 304.95it/s] 30%|███       | 1113/3673 [00:05<00:09, 268.61it/s] 32%|███▏      | 1187/3673 [00:05<00:08, 295.25it/s] 34%|███▍      | 1251/3673 [00:06<00:06, 354.21it/s] 35%|███▌      | 1299/3673 [00:06<00:06, 380.41it/s] 37%|███▋      | 1341/3673 [00:06<00:07, 328.80it/s] 38%|███▊      | 1378/3673 [00:06<00:07, 302.66it/s] 39%|███▉      | 1443/3673 [00:06<00:06, 341.98it/s] 40%|████      | 1479/3673 [00:06<00:08, 271.79it/s] 42%|████▏     | 1527/3673 [00:06<00:06, 309.53it/s] 43%|████▎     | 1562/3673 [00:07<00:08, 250.05it/s] 43%|████▎     | 1591/3673 [00:07<00:08, 245.34it/s] 44%|████▍     | 1619/3673 [00:07<00:10, 189.89it/s] 45%|████▌     | 1665/3673 [00:07<00:08, 228.83it/s] 46%|████▌     | 1692/3673 [00:07<00:11, 179.97it/s] 47%|████▋     | 1714/3673 [00:08<00:11, 173.18it/s] 48%|████▊     | 1761/3673 [00:08<00:08, 226.27it/s] 49%|████▉     | 1801/3673 [00:08<00:09, 190.90it/s] 50%|████▉     | 1833/3673 [00:08<00:10, 175.06it/s] 51%|█████     | 1875/3673 [00:08<00:09, 187.30it/s] 52%|█████▏    | 1913/3673 [00:09<00:08, 200.75it/s] 54%|█████▍    | 1979/3673 [00:09<00:06, 267.40it/s] 55%|█████▌    | 2028/3673 [00:09<00:06, 265.29it/s] 56%|█████▌    | 2064/3673 [00:09<00:08, 195.96it/s] 58%|█████▊    | 2129/3673 [00:09<00:07, 211.43it/s] 59%|█████▊    | 2153/3673 [00:10<00:07, 207.87it/s] 60%|█████▉    | 2196/3673 [00:10<00:06, 224.54it/s] 61%|██████    | 2249/3673 [00:10<00:06, 226.63it/s] 63%|██████▎   | 2310/3673 [00:11<00:08, 157.41it/s] 64%|██████▍   | 2369/3673 [00:11<00:06, 208.59it/s] 65%|██████▌   | 2401/3673 [00:11<00:05, 214.72it/s] 66%|██████▌   | 2431/3673 [00:11<00:06, 193.47it/s] 67%|██████▋   | 2474/3673 [00:11<00:05, 222.10it/s] 68%|██████▊   | 2509/3673 [00:11<00:05, 230.78it/s] 69%|██████▉   | 2536/3673 [00:12<00:12, 94.03it/s]  71%|███████   | 2608/3673 [00:12<00:07, 148.75it/s] 72%|███████▏  | 2641/3673 [00:13<00:06, 153.05it/s] 73%|███████▎  | 2666/3673 [00:13<00:06, 144.45it/s] 74%|███████▍  | 2727/3673 [00:13<00:05, 185.55it/s] 76%|███████▌  | 2776/3673 [00:13<00:04, 221.69it/s] 76%|███████▋  | 2805/3673 [00:13<00:04, 207.54it/s] 78%|███████▊  | 2867/3673 [00:13<00:03, 220.45it/s] 79%|███████▉  | 2899/3673 [00:14<00:03, 215.71it/s] 81%|████████  | 2978/3673 [00:14<00:02, 302.10it/s] 82%|████████▏ | 3013/3673 [00:14<00:02, 302.59it/s] 83%|████████▎ | 3047/3673 [00:14<00:02, 244.34it/s] 85%|████████▍ | 3110/3673 [00:14<00:01, 287.26it/s] 86%|████████▌ | 3150/3673 [00:14<00:01, 304.62it/s] 87%|████████▋ | 3184/3673 [00:15<00:02, 227.85it/s] 88%|████████▊ | 3229/3673 [00:15<00:01, 239.03it/s] 89%|████████▊ | 3256/3673 [00:15<00:01, 234.86it/s] 89%|████████▉ | 3282/3673 [00:15<00:01, 228.47it/s] 91%|█████████ | 3332/3673 [00:15<00:01, 264.33it/s] 91%|█████████▏| 3360/3673 [00:15<00:01, 232.96it/s] 92%|█████████▏| 3397/3673 [00:16<00:01, 234.49it/s] 94%|█████████▍| 3456/3673 [00:16<00:00, 280.14it/s] 96%|█████████▌| 3508/3673 [00:16<00:00, 320.42it/s] 96%|█████████▋| 3542/3673 [00:16<00:00, 261.76it/s] 98%|█████████▊| 3592/3673 [00:16<00:00, 299.94it/s]100%|█████████▉| 3666/3673 [00:16<00:00, 356.08it/s]Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[7], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH1.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH2.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[9], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH3.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[10], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH4.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[11], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH5.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[12], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH6.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[13], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U02.CH7.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[14], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH1.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[15], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH2.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[16], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH3.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[17], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH4.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[18], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH5.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[19], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH6.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[20], source='/raid/users/popcornell/chime7espnet/egs2/chime7_task1/asr1/chime7_task1/dipco/audio/dev/S34_U03.CH7.wav') supervision start 1201.71 stop 1209.33 . There is a difference of length of 280 (samples)with the other recordings. It may be that one recording is shorter than the others and this segment exceed the length of the shorter one.
+100%|██████████| 3673/3673 [00:16<00:00, 218.66it/s]
+Stage 1: Prepare cut set
+Stage 2: Trim cuts to supervisions (1 cut per supervision segment)
+Stage 3: Split segments into 4 parts
+Stage 4: Enhance segments using GSS
+2023-03-13T18:04:33 (run.sh:154:main) Guided Source Separation processing for dipco/dev was successful !
+2023-03-13T18:04:33 (run.sh:143:main) Running Guided Source Separation for mixer6/dev, results will be in ./exp/gss/mixer6/dev
+Stage 0: Selecting a subset of channels
+  0%|          | 0/14804 [00:00<?, ?it/s]  0%|          | 1/14804 [00:00<40:38,  6.07it/s]  0%|          | 25/14804 [00:00<02:27, 99.87it/s]  1%|          | 110/14804 [00:00<00:39, 368.84it/s]  1%|          | 163/14804 [00:00<00:39, 371.54it/s]  2%|▏         | 242/14804 [00:00<00:31, 462.34it/s]  2%|▏         | 335/14804 [00:00<00:24, 595.08it/s]  3%|▎         | 399/14804 [00:00<00:23, 600.25it/s]  3%|▎         | 463/14804 [00:01<00:27, 514.79it/s]  4%|▎         | 529/14804 [00:01<00:25, 549.52it/s]  4%|▍         | 593/14804 [00:01<00:26, 526.84it/s]  4%|▍         | 659/14804 [00:01<00:28, 496.51it/s]  5%|▍         | 724/14804 [00:01<00:34, 411.10it/s]  5%|▌         | 788/14804 [00:01<00:30, 457.81it/s]  6%|▌         | 839/14804 [00:01<00:31, 442.68it/s]  6%|▌         | 887/14804 [00:02<00:38, 362.64it/s]  6%|▋         | 941/14804 [00:02<00:35, 387.75it/s]  7%|▋         | 1005/14804 [00:02<00:35, 394.08it/s]  7%|▋         | 1071/14804 [00:02<00:30, 452.90it/s]  8%|▊         | 1142/14804 [00:02<00:31, 433.91it/s]  8%|▊         | 1232/14804 [00:02<00:27, 493.96it/s]  9%|▊         | 1284/14804 [00:02<00:32, 421.35it/s]  9%|▉         | 1372/14804 [00:03<00:27, 497.07it/s] 10%|▉         | 1469/14804 [00:03<00:22, 581.66it/s] 10%|█         | 1531/14804 [00:03<00:28, 459.74it/s] 11%|█         | 1583/14804 [00:03<00:28, 464.22it/s] 11%|█▏        | 1686/14804 [00:03<00:22, 588.99it/s] 12%|█▏        | 1754/14804 [00:03<00:22, 571.88it/s] 12%|█▏        | 1833/14804 [00:03<00:22, 588.36it/s] 13%|█▎        | 1951/14804 [00:04<00:20, 612.40it/s] 14%|█▎        | 2015/14804 [00:04<00:20, 609.81it/s] 14%|█▍        | 2131/14804 [00:04<00:17, 730.63it/s] 15%|█▍        | 2218/14804 [00:04<00:18, 667.33it/s] 16%|█▌        | 2350/14804 [00:04<00:15, 802.52it/s] 16%|█▋        | 2435/14804 [00:04<00:16, 733.53it/s] 17%|█▋        | 2512/14804 [00:04<00:20, 591.42it/s] 17%|█▋        | 2578/14804 [00:04<00:20, 591.22it/s] 18%|█▊        | 2695/14804 [00:05<00:20, 603.86it/s] 19%|█▊        | 2759/14804 [00:05<00:28, 416.29it/s] 19%|█▉        | 2843/14804 [00:05<00:26, 451.35it/s] 20%|█▉        | 2916/14804 [00:05<00:23, 503.09it/s] 20%|██        | 2975/14804 [00:05<00:23, 496.43it/s] 20%|██        | 3031/14804 [00:06<00:25, 454.32it/s] 21%|██        | 3081/14804 [00:06<00:29, 394.05it/s] 21%|██        | 3124/14804 [00:06<00:30, 377.63it/s] 21%|██▏       | 3172/14804 [00:06<00:29, 390.26it/s] 22%|██▏       | 3216/14804 [00:06<00:35, 326.34it/s] 22%|██▏       | 3312/14804 [00:06<00:24, 460.83it/s] 23%|██▎       | 3375/14804 [00:06<00:23, 486.22it/s] 23%|██▎       | 3429/14804 [00:06<00:23, 480.56it/s] 24%|██▎       | 3481/14804 [00:07<00:42, 263.64it/s] 24%|██▍       | 3590/14804 [00:07<00:28, 388.68it/s] 25%|██▍       | 3662/14804 [00:07<00:24, 449.81it/s] 25%|██▌       | 3724/14804 [00:07<00:23, 465.95it/s] 26%|██▌       | 3804/14804 [00:07<00:22, 479.49it/s] 26%|██▋       | 3908/14804 [00:08<00:21, 498.66it/s] 27%|██▋       | 4011/14804 [00:08<00:17, 606.09it/s] 28%|██▊       | 4081/14804 [00:08<00:20, 520.35it/s] 28%|██▊       | 4148/14804 [00:08<00:20, 530.21it/s] 29%|██▊       | 4241/14804 [00:08<00:18, 579.93it/s] 29%|██▉       | 4306/14804 [00:08<00:18, 580.99it/s] 30%|██▉       | 4388/14804 [00:08<00:17, 585.66it/s] 30%|███       | 4471/14804 [00:09<00:16, 638.11it/s] 31%|███       | 4538/14804 [00:09<00:20, 498.92it/s] 31%|███       | 4594/14804 [00:09<00:21, 468.50it/s] 32%|███▏      | 4685/14804 [00:09<00:19, 527.66it/s] 32%|███▏      | 4782/14804 [00:09<00:16, 625.66it/s] 33%|███▎      | 4850/14804 [00:09<00:19, 503.01it/s] 33%|███▎      | 4908/14804 [00:10<00:26, 370.21it/s] 33%|███▎      | 4955/14804 [00:10<00:33, 290.75it/s] 34%|███▍      | 5002/14804 [00:10<00:35, 275.42it/s] 34%|███▍      | 5101/14804 [00:10<00:27, 353.44it/s] 35%|███▍      | 5142/14804 [00:10<00:30, 317.54it/s] 35%|███▌      | 5225/14804 [00:11<00:34, 275.71it/s] 36%|███▌      | 5296/14804 [00:11<00:28, 339.13it/s] 36%|███▌      | 5340/14804 [00:11<00:29, 315.87it/s] 37%|███▋      | 5418/14804 [00:11<00:23, 393.57it/s] 37%|███▋      | 5530/14804 [00:11<00:17, 536.95it/s] 38%|███▊      | 5597/14804 [00:11<00:18, 497.27it/s] 38%|███▊      | 5659/14804 [00:12<00:20, 448.46it/s] 39%|███▊      | 5711/14804 [00:12<00:26, 341.43it/s] 39%|███▉      | 5765/14804 [00:12<00:27, 323.10it/s] 40%|███▉      | 5854/14804 [00:12<00:21, 423.62it/s] 40%|████      | 5963/14804 [00:12<00:16, 546.16it/s] 41%|████      | 6081/14804 [00:12<00:14, 600.54it/s] 42%|████▏     | 6149/14804 [00:13<00:14, 599.06it/s] 42%|████▏     | 6215/14804 [00:13<00:14, 595.71it/s] 43%|████▎     | 6303/14804 [00:13<00:12, 662.46it/s] 43%|████▎     | 6374/14804 [00:13<00:12, 671.51it/s] 44%|████▍     | 6482/14804 [00:13<00:11, 740.85it/s] 44%|████▍     | 6558/14804 [00:13<00:11, 712.21it/s] 45%|████▌     | 6724/14804 [00:13<00:08, 913.84it/s] 46%|████▌     | 6816/14804 [00:13<00:09, 836.37it/s] 47%|████▋     | 6913/14804 [00:14<00:10, 751.02it/s] 47%|████▋     | 7030/14804 [00:14<00:09, 846.17it/s] 48%|████▊     | 7119/14804 [00:14<00:12, 596.73it/s] 49%|████▊     | 7191/14804 [00:14<00:13, 574.16it/s] 49%|████▉     | 7269/14804 [00:14<00:12, 587.59it/s] 50%|████▉     | 7391/14804 [00:14<00:10, 718.60it/s] 50%|█████     | 7471/14804 [00:14<00:10, 711.31it/s] 51%|█████     | 7557/14804 [00:15<00:10, 713.99it/s] 52%|█████▏    | 7633/14804 [00:15<00:10, 690.02it/s] 52%|█████▏    | 7727/14804 [00:15<00:09, 739.55it/s] 53%|█████▎    | 7816/14804 [00:15<00:09, 709.52it/s] 53%|█████▎    | 7912/14804 [00:15<00:08, 768.28it/s] 54%|█████▍    | 7992/14804 [00:15<00:08, 770.19it/s] 55%|█████▍    | 8071/14804 [00:15<00:09, 746.28it/s] 55%|█████▌    | 8158/14804 [00:15<00:08, 757.58it/s] 56%|█████▌    | 8235/14804 [00:15<00:09, 722.01it/s] 56%|█████▋    | 8336/14804 [00:16<00:08, 768.99it/s] 57%|█████▋    | 8414/14804 [00:16<00:09, 682.75it/s] 57%|█████▋    | 8487/14804 [00:16<00:11, 546.99it/s] 58%|█████▊    | 8572/14804 [00:16<00:10, 605.39it/s] 58%|█████▊    | 8638/14804 [00:16<00:10, 585.35it/s] 59%|█████▉    | 8712/14804 [00:16<00:09, 621.75it/s] 59%|█████▉    | 8778/14804 [00:16<00:09, 627.90it/s] 60%|█████▉    | 8854/14804 [00:16<00:08, 661.97it/s] 60%|██████    | 8923/14804 [00:17<00:11, 508.92it/s] 61%|██████    | 8992/14804 [00:17<00:10, 534.28it/s] 61%|██████▏   | 9103/14804 [00:17<00:08, 651.29it/s] 62%|██████▏   | 9174/14804 [00:17<00:08, 661.67it/s] 62%|██████▏   | 9250/14804 [00:17<00:08, 628.90it/s] 63%|██████▎   | 9316/14804 [00:17<00:10, 519.53it/s] 63%|██████▎   | 9395/14804 [00:17<00:09, 564.05it/s] 64%|██████▍   | 9467/14804 [00:18<00:09, 556.60it/s] 65%|██████▍   | 9562/14804 [00:18<00:08, 630.11it/s] 65%|██████▌   | 9644/14804 [00:18<00:08, 574.91it/s] 66%|██████▌   | 9724/14804 [00:18<00:08, 606.19it/s] 66%|██████▌   | 9788/14804 [00:18<00:09, 519.45it/s] 66%|██████▋   | 9844/14804 [00:18<00:10, 459.01it/s] 67%|██████▋   | 9904/14804 [00:18<00:10, 487.58it/s] 68%|██████▊   | 10021/14804 [00:19<00:07, 641.51it/s] 68%|██████▊   | 10091/14804 [00:19<00:10, 452.13it/s] 69%|██████▊   | 10151/14804 [00:19<00:10, 437.11it/s] 69%|██████▉   | 10218/14804 [00:19<00:10, 453.23it/s] 69%|██████▉   | 10269/14804 [00:19<00:10, 452.88it/s] 70%|██████▉   | 10355/14804 [00:19<00:08, 533.29it/s] 71%|███████   | 10481/14804 [00:19<00:06, 708.85it/s] 71%|███████▏  | 10560/14804 [00:20<00:09, 465.81it/s] 72%|███████▏  | 10623/14804 [00:20<00:11, 376.70it/s] 72%|███████▏  | 10674/14804 [00:20<00:10, 380.39it/s] 72%|███████▏  | 10731/14804 [00:20<00:09, 412.84it/s] 73%|███████▎  | 10829/14804 [00:20<00:07, 521.92it/s] 74%|███████▍  | 10950/14804 [00:20<00:05, 678.66it/s] 75%|███████▍  | 11030/14804 [00:21<00:05, 677.61it/s] 75%|███████▌  | 11106/14804 [00:21<00:07, 492.31it/s] 75%|███████▌  | 11168/14804 [00:21<00:07, 477.24it/s] 76%|███████▌  | 11240/14804 [00:21<00:06, 514.19it/s] 76%|███████▋  | 11316/14804 [00:21<00:06, 523.55it/s] 77%|███████▋  | 11402/14804 [00:21<00:05, 592.50it/s] 78%|███████▊  | 11514/14804 [00:22<00:05, 594.70it/s] 78%|███████▊  | 11620/14804 [00:22<00:04, 689.10it/s] 79%|███████▉  | 11722/14804 [00:22<00:04, 742.59it/s] 80%|███████▉  | 11801/14804 [00:22<00:04, 729.70it/s] 80%|████████  | 11877/14804 [00:22<00:04, 727.84it/s] 81%|████████  | 11952/14804 [00:22<00:05, 515.77it/s] 81%|████████  | 12027/14804 [00:22<00:04, 564.94it/s] 82%|████████▏ | 12093/14804 [00:22<00:04, 586.86it/s] 82%|████████▏ | 12159/14804 [00:23<00:05, 500.84it/s] 83%|████████▎ | 12259/14804 [00:23<00:06, 406.52it/s] 83%|████████▎ | 12343/14804 [00:23<00:05, 455.51it/s] 84%|████████▍ | 12432/14804 [00:23<00:04, 527.14it/s] 85%|████████▍ | 12532/14804 [00:23<00:03, 627.06it/s] 85%|████████▌ | 12605/14804 [00:23<00:03, 610.67it/s] 86%|████████▌ | 12676/14804 [00:24<00:03, 593.97it/s] 86%|████████▌ | 12744/14804 [00:24<00:03, 581.27it/s] 87%|████████▋ | 12840/14804 [00:24<00:02, 672.43it/s] 87%|████████▋ | 12912/14804 [00:24<00:02, 674.14it/s] 88%|████████▊ | 12983/14804 [00:24<00:03, 537.42it/s] 88%|████████▊ | 13050/14804 [00:24<00:03, 562.20it/s] 89%|████████▊ | 13112/14804 [00:24<00:03, 563.50it/s] 89%|████████▉ | 13172/14804 [00:24<00:03, 489.12it/s] 89%|████████▉ | 13225/14804 [00:25<00:04, 361.08it/s] 90%|████████▉ | 13269/14804 [00:25<00:04, 370.38it/s] 90%|████████▉ | 13322/14804 [00:25<00:03, 382.57it/s] 90%|█████████ | 13365/14804 [00:25<00:07, 192.34it/s] 91%|█████████ | 13423/14804 [00:26<00:05, 233.37it/s] 91%|█████████ | 13490/14804 [00:26<00:04, 301.52it/s] 91%|█████████▏| 13535/14804 [00:26<00:04, 309.82it/s] 92%|█████████▏| 13589/14804 [00:26<00:03, 341.73it/s] 92%|█████████▏| 13638/14804 [00:26<00:03, 349.39it/s] 93%|█████████▎| 13713/14804 [00:26<00:03, 358.41it/s] 93%|█████████▎| 13782/14804 [00:26<00:02, 420.54it/s] 94%|█████████▎| 13849/14804 [00:27<00:02, 391.22it/s] 94%|█████████▍| 13949/14804 [00:27<00:01, 505.84it/s] 95%|█████████▍| 14060/14804 [00:27<00:01, 638.17it/s] 95%|█████████▌| 14133/14804 [00:27<00:01, 590.55it/s] 96%|█████████▌| 14200/14804 [00:27<00:00, 609.22it/s] 96%|█████████▋| 14268/14804 [00:27<00:00, 584.66it/s] 97%|█████████▋| 14354/14804 [00:27<00:00, 622.10it/s] 98%|█████████▊| 14443/14804 [00:27<00:00, 661.93it/s] 98%|█████████▊| 14512/14804 [00:28<00:00, 578.27it/s] 99%|█████████▊| 14610/14804 [00:28<00:00, 644.93it/s] 99%|█████████▉| 14678/14804 [00:28<00:00, 527.09it/s]100%|█████████▉| 14737/14804 [00:28<00:00, 518.71it/s]100%|██████████| 14804/14804 [00:28<00:00, 516.09it/s]
+Stage 1: Prepare cut set
+Stage 2: Trim cuts to supervisions (1 cut per supervision segment)
+Stage 3: Split segments into 4 parts
+Stage 4: Enhance segments using GSS
+2023-03-13T18:32:42 (run.sh:154:main) Guided Source Separation processing for mixer6/dev was successful !
+2023-03-13T18:32:42 (asr.sh:267:main) ./asr.sh --lang en --local_data_opts --stage 0 --chime6-root /raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 --train-set kaldi/dipco/dev/gss --manifests-root ./data/lhotse --gss_dsets chime6_dev,dipco_dev,mixer6_dev --gss-dump-root ./exp/gss --decode-only 1 --stage 0 --ngpu 4 --asr_args --batch_size 512 --scheduler_conf warmup_steps=10000 --max_epoch=8 --optim_conf lr=0.000400000000 --token_type bpe --nbpe 500 --bpe_nlsyms [inaudible],[laughs],[noise] --nlsyms_txt data/nlsyms.txt --feats_type raw --feats_normalize utterance_mvn --audio_format flac --min_wav_duration 1 --max_wav_duration 20 --speed_perturb_factors 0.9 1.0 1.1 --asr_config conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml --inference_config conf/decode_asr_transformer.yaml --use_lm false --lm_config conf/train_lm.yaml --use_word_lm false --word_vocab_size 65000 --train_set kaldi/dipco/dev/gss --valid_set kaldi/chime6/dev/gss --test_sets kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ --bpe_train_text data/kaldi/dipco/dev/gss/text --lm_train_text data/kaldi/dipco/dev/gss/text --skip_data_prep false --skip_train true --download_model popcornell/chime7_task1_asr1_baseline
+2023-03-13T18:32:42 (asr.sh:493:main) Stage 1: Data preparation for data/kaldi/dipco/dev/gss, data/kaldi/chime6/dev/gss, etc.
+2023-03-13T18:32:42 (data.sh:36:main) Dumping all lhotse manifests to kaldi manifests and merging everything for dev set close mics,
+  you may want these for validation.
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/chime6/dev/ihm/utt2spk > data/kaldi/chime6/dev/ihm/spk2utt
+  utils/fix_data_dir.sh data/kaldi/chime6/dev/ihm
+./utils/fix_data_dir.sh: filtered data/kaldi/chime6/dev/ihm/wav.scp from 16 to 8 lines based on filter /tmp/kaldi.TUkS/recordings.
+./utils/fix_data_dir.sh: filtered data/kaldi/chime6/dev/ihm/reco2dur from 16 to 8 lines based on filter /tmp/kaldi.TUkS/recordings.
+fix_data_dir.sh: kept all 6644 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/chime6/dev/ihm/.backup
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/dipco/dev/ihm/utt2spk > data/kaldi/dipco/dev/ihm/spk2utt
+  utils/fix_data_dir.sh data/kaldi/dipco/dev/ihm
+fix_data_dir.sh: kept all 3673 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dipco/dev/ihm/.backup
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/mixer6/dev/ihm/utt2spk > data/kaldi/mixer6/dev/ihm/spk2utt
+  utils/fix_data_dir.sh data/kaldi/mixer6/dev/ihm
+fix_data_dir.sh: kept all 14804 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/mixer6/dev/ihm/.backup
+./utils/combine_data.sh data/kaldi/dev_ihm_all data/kaldi/chime6/dev/ihm data/kaldi/dipco/dev/ihm data/kaldi/mixer6/dev/ihm
+./utils/combine_data.sh [info]: not combining utt2uniq as it does not exist
+./utils/combine_data.sh: combined segments
+./utils/combine_data.sh: combined utt2spk
+./utils/combine_data.sh [info]: **not combining utt2lang as it does not exist everywhere**
+./utils/combine_data.sh: combined utt2dur
+./utils/combine_data.sh [info]: not combining utt2num_frames as it does not exist
+./utils/combine_data.sh: combined reco2dur
+./utils/combine_data.sh [info]: not combining feats.scp as it does not exist
+./utils/combine_data.sh: combined text
+./utils/combine_data.sh [info]: not combining cmvn.scp as it does not exist
+./utils/combine_data.sh [info]: not combining vad.scp as it does not exist
+./utils/combine_data.sh [info]: not combining reco2file_and_channel as it does not exist
+./utils/combine_data.sh: combined wav.scp
+./utils/combine_data.sh [info]: not combining spk2gender as it does not exist
+fix_data_dir.sh: kept all 25121 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dev_ihm_all/.backup
+fix_data_dir.sh: kept all 25121 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dev_ihm_all/.backup
+2023-03-13T18:32:50 (data.sh:126:main) Parsing the GSS output to Kaldi manifests
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/chime6/dev/gss/utt2spk > data/kaldi/chime6/dev/gss/spk2utt
+  utils/fix_data_dir.sh data/kaldi/chime6/dev/gss
+fix_data_dir.sh: kept all 6644 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/chime6/dev/gss/.backup
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/dipco/dev/gss/utt2spk > data/kaldi/dipco/dev/gss/spk2utt
+  utils/fix_data_dir.sh data/kaldi/dipco/dev/gss
+fix_data_dir.sh: kept all 3673 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dipco/dev/gss/.backup
+Export completed! You likely need to run the following Kaldi commands:
+  utils/utt2spk_to_spk2utt.pl data/kaldi/mixer6/dev/gss/utt2spk > data/kaldi/mixer6/dev/gss/spk2utt
+  utils/fix_data_dir.sh data/kaldi/mixer6/dev/gss
+fix_data_dir.sh: kept all 14804 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/mixer6/dev/gss/.backup
+./utils/combine_data.sh data/kaldi/dev_all_gss data/kaldi/chime6/dev/gss data/kaldi/dipco/dev/gss data/kaldi/mixer6/dev/gss
+./utils/combine_data.sh [info]: not combining utt2uniq as it does not exist
+./utils/combine_data.sh: combined segments
+./utils/combine_data.sh: combined utt2spk
+./utils/combine_data.sh [info]: **not combining utt2lang as it does not exist everywhere**
+./utils/combine_data.sh: combined utt2dur
+./utils/combine_data.sh [info]: not combining utt2num_frames as it does not exist
+./utils/combine_data.sh: combined reco2dur
+./utils/combine_data.sh [info]: not combining feats.scp as it does not exist
+./utils/combine_data.sh: combined text
+./utils/combine_data.sh [info]: not combining cmvn.scp as it does not exist
+./utils/combine_data.sh [info]: not combining vad.scp as it does not exist
+./utils/combine_data.sh [info]: not combining reco2file_and_channel as it does not exist
+./utils/combine_data.sh: combined wav.scp
+./utils/combine_data.sh [info]: not combining spk2gender as it does not exist
+fix_data_dir.sh: kept all 25121 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dev_all_gss/.backup
+fix_data_dir.sh: kept all 25121 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dev_all_gss/.backup
+./utils/copy_data_dir.sh: copied data from data/kaldi/chime6/dev/gss to data/kaldi/chime6/dev/gss_inf
+utils/validate_data_dir.sh: Successfully validated data-directory data/kaldi/chime6/dev/gss_inf
+2023-03-13T18:33:13 (data.sh:170:main) stage 4: Create non linguistic symbols: data/nlsyms.txt
+data/nlsyms.txt exists already, SKIPPING (please remove if you want to
+      override it) !
+2023-03-13T18:33:13 (data.sh:182:main) ASR data preparation successfully finished. [elapsed=31s]
+2023-03-13T18:33:13 (asr.sh:500:main) Stage 2: Speed perturbation: data/kaldi/dipco/dev/gss -> data/kaldi/dipco/dev/gss_sp
+text
+utt2lang
+text
+scripts/utils/perturb_data_dir_speed.sh: generated speed-perturbed version of data in data/kaldi/dipco/dev/gss, in data/kaldi/dipco/dev/gss_sp0.9
+fix_data_dir.sh: kept all 3673 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dipco/dev/gss_sp0.9/.backup
+utils/validate_data_dir.sh: Successfully validated data-directory data/kaldi/dipco/dev/gss_sp0.9
+text
+utt2lang
+text
+scripts/utils/perturb_data_dir_speed.sh: generated speed-perturbed version of data in data/kaldi/dipco/dev/gss, in data/kaldi/dipco/dev/gss_sp1.1
+fix_data_dir.sh: kept all 3673 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dipco/dev/gss_sp1.1/.backup
+utils/validate_data_dir.sh: Successfully validated data-directory data/kaldi/dipco/dev/gss_sp1.1
+utils/combine_data.sh --extra_files text  data/kaldi/dipco/dev/gss_sp data/kaldi/dipco/dev/gss_sp0.9 data/kaldi/dipco/dev/gss data/kaldi/dipco/dev/gss_sp1.1
+utils/combine_data.sh: combined utt2uniq
+utils/combine_data.sh: combined segments
+utils/combine_data.sh: combined utt2spk
+utils/combine_data.sh [info]: not combining utt2lang as it does not exist
+utils/combine_data.sh [info]: **not combining utt2dur as it does not exist everywhere**
+utils/combine_data.sh [info]: not combining utt2num_frames as it does not exist
+utils/combine_data.sh [info]: **not combining reco2dur as it does not exist everywhere**
+utils/combine_data.sh [info]: not combining feats.scp as it does not exist
+utils/combine_data.sh: combined text
+utils/combine_data.sh [info]: not combining cmvn.scp as it does not exist
+utils/combine_data.sh [info]: not combining vad.scp as it does not exist
+utils/combine_data.sh [info]: not combining reco2file_and_channel as it does not exist
+utils/combine_data.sh: combined wav.scp
+utils/combine_data.sh [info]: not combining spk2gender as it does not exist
+utils/combine_data.sh: combined text
+fix_data_dir.sh: kept all 11019 utterances.
+fix_data_dir.sh: old files are kept in data/kaldi/dipco/dev/gss_sp/.backup
+2023-03-13T18:33:15 (asr.sh:526:main) Stage 3: Format wav.scp: data/ -> dump/raw
+utils/copy_data_dir.sh: copied data from data/kaldi/dipco/dev/gss_sp to dump/raw/org/kaldi/dipco/dev/gss_sp
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/kaldi/dipco/dev/gss_sp
+2023-03-13T18:33:15 (format_wav_scp.sh:43:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format flac --fs 16k --segments data/kaldi/dipco/dev/gss_sp/segments data/kaldi/dipco/dev/gss_sp/wav.scp dump/raw/org/kaldi/dipco/dev/gss_sp
+2023-03-13T18:33:15 (format_wav_scp.sh:94:main) [info]: using data/kaldi/dipco/dev/gss_sp/segments
+2023-03-13T18:33:22 (format_wav_scp.sh:144:main) Successfully finished. [elapsed=7s]
+utils/copy_data_dir.sh: copied data from data/kaldi/chime6/dev/gss to dump/raw/org/kaldi/chime6/dev/gss
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/org/kaldi/chime6/dev/gss
+2023-03-13T18:33:23 (format_wav_scp.sh:43:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format flac --fs 16k --segments data/kaldi/chime6/dev/gss/segments data/kaldi/chime6/dev/gss/wav.scp dump/raw/org/kaldi/chime6/dev/gss
+2023-03-13T18:33:23 (format_wav_scp.sh:94:main) [info]: using data/kaldi/chime6/dev/gss/segments
+2023-03-13T18:33:27 (format_wav_scp.sh:144:main) Successfully finished. [elapsed=4s]
+utils/copy_data_dir.sh: copied data from data/kaldi/chime6/dev/gss_inf to dump/raw/kaldi/chime6/dev/gss_inf
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/kaldi/chime6/dev/gss_inf
+2023-03-13T18:33:27 (format_wav_scp.sh:43:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format flac --fs 16k --segments data/kaldi/chime6/dev/gss_inf/segments data/kaldi/chime6/dev/gss_inf/wav.scp dump/raw/kaldi/chime6/dev/gss_inf
+2023-03-13T18:33:27 (format_wav_scp.sh:94:main) [info]: using data/kaldi/chime6/dev/gss_inf/segments
+2023-03-13T18:33:31 (format_wav_scp.sh:144:main) Successfully finished. [elapsed=4s]
+utils/copy_data_dir.sh: copied data from data/kaldi/dipco/dev/gss/ to dump/raw/kaldi/dipco/dev/gss/
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/kaldi/dipco/dev/gss/
+2023-03-13T18:33:32 (format_wav_scp.sh:43:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format flac --fs 16k --segments data/kaldi/dipco/dev/gss//segments data/kaldi/dipco/dev/gss//wav.scp dump/raw/kaldi/dipco/dev/gss/
+2023-03-13T18:33:32 (format_wav_scp.sh:94:main) [info]: using data/kaldi/dipco/dev/gss//segments
+2023-03-13T18:33:34 (format_wav_scp.sh:144:main) Successfully finished. [elapsed=2s]
+utils/copy_data_dir.sh: copied data from data/kaldi/mixer6/dev/gss/ to dump/raw/kaldi/mixer6/dev/gss/
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/kaldi/mixer6/dev/gss/
+2023-03-13T18:33:35 (format_wav_scp.sh:43:main) scripts/audio/format_wav_scp.sh --nj 32 --cmd run.pl --audio-format flac --fs 16k --segments data/kaldi/mixer6/dev/gss//segments data/kaldi/mixer6/dev/gss//wav.scp dump/raw/kaldi/mixer6/dev/gss/
+2023-03-13T18:33:35 (format_wav_scp.sh:94:main) [info]: using data/kaldi/mixer6/dev/gss//segments
+2023-03-13T18:33:44 (format_wav_scp.sh:144:main) Successfully finished. [elapsed=9s]
+2023-03-13T18:33:44 (asr.sh:658:main) Stage 4: Remove long/short data: dump/raw/org -> dump/raw
+utils/copy_data_dir.sh: copied data from dump/raw/org/kaldi/dipco/dev/gss_sp to dump/raw/kaldi/dipco/dev/gss_sp
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/kaldi/dipco/dev/gss_sp
+fix_data_dir.sh: kept 7995 utterances out of 11019
+fix_data_dir.sh: old files are kept in dump/raw/kaldi/dipco/dev/gss_sp/.backup
+utils/copy_data_dir.sh: copied data from dump/raw/org/kaldi/chime6/dev/gss to dump/raw/kaldi/chime6/dev/gss
+utils/validate_data_dir.sh: Successfully validated data-directory dump/raw/kaldi/chime6/dev/gss
+fix_data_dir.sh: kept 4923 utterances out of 6644
+fix_data_dir.sh: old files are kept in dump/raw/kaldi/chime6/dev/gss/.backup
+2023-03-13T18:33:45 (asr.sh:736:main) Stage 5: Generate token_list from data/kaldi/dipco/dev/gss/text using BPE
+sentencepiece_trainer.cc(177) LOG(INFO) Running command: --input=data/en_token_list/bpe_unigram500/train.txt --vocab_size=500 --model_type=unigram --model_prefix=data/en_token_list/bpe_unigram500/bpe --character_coverage=1.0 --input_sentence_size=100000000 --user_defined_symbols=[inaudible],[laughs],[noise]
+sentencepiece_trainer.cc(77) LOG(INFO) Starts training with : 
+trainer_spec {
+  input: data/en_token_list/bpe_unigram500/train.txt
+  input_format: 
+  model_prefix: data/en_token_list/bpe_unigram500/bpe
+  model_type: UNIGRAM
+  vocab_size: 500
+  self_test_sample_size: 0
+  character_coverage: 1
+  input_sentence_size: 100000000
+  shuffle_input_sentence: 1
+  seed_sentencepiece_size: 1000000
+  shrinking_factor: 0.75
+  max_sentence_length: 4192
+  num_threads: 16
+  num_sub_iterations: 2
+  max_sentencepiece_length: 16
+  split_by_unicode_script: 1
+  split_by_number: 1
+  split_by_whitespace: 1
+  split_digits: 0
+  treat_whitespace_as_suffix: 0
+  allow_whitespace_only_pieces: 0
+  user_defined_symbols: [inaudible]
+  user_defined_symbols: [laughs]
+  user_defined_symbols: [noise]
+  required_chars: 
+  byte_fallback: 0
+  vocabulary_output_piece_score: 1
+  train_extremely_large_corpus: 0
+  hard_vocab_limit: 1
+  use_all_vocab: 0
+  unk_id: 0
+  bos_id: 1
+  eos_id: 2
+  pad_id: -1
+  unk_piece: <unk>
+  bos_piece: <s>
+  eos_piece: </s>
+  pad_piece: <pad>
+  unk_surface:  ⁇ 
+  enable_differential_privacy: 0
+  differential_privacy_noise_level: 0
+  differential_privacy_clipping_threshold: 0
+}
+normalizer_spec {
+  name: nmt_nfkc
+  add_dummy_prefix: 1
+  remove_extra_whitespaces: 1
+  escape_whitespaces: 1
+  normalization_rule_tsv: 
+}
+denormalizer_spec {}
+trainer_interface.cc(350) LOG(INFO) SentenceIterator is not specified. Using MultiFileSentenceIterator.
+trainer_interface.cc(181) LOG(INFO) Loading corpus: data/en_token_list/bpe_unigram500/train.txt
+trainer_interface.cc(406) LOG(INFO) Loaded all 3673 sentences
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: <unk>
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: <s>
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: </s>
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: [inaudible]
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: [laughs]
+trainer_interface.cc(422) LOG(INFO) Adding meta_piece: [noise]
+trainer_interface.cc(427) LOG(INFO) Normalizing sentences...
+trainer_interface.cc(536) LOG(INFO) all chars count=150111
+trainer_interface.cc(557) LOG(INFO) Alphabet size=29
+trainer_interface.cc(558) LOG(INFO) Final character coverage=1
+trainer_interface.cc(590) LOG(INFO) Done! preprocessed 3673 sentences.
+unigram_model_trainer.cc(146) LOG(INFO) Making suffix array...
+unigram_model_trainer.cc(150) LOG(INFO) Extracting frequent sub strings...
+unigram_model_trainer.cc(201) LOG(INFO) Initialized 6768 seed sentencepieces
+trainer_interface.cc(596) LOG(INFO) Tokenizing input sentences with whitespace: 3673
+trainer_interface.cc(607) LOG(INFO) Done! 2967
+unigram_model_trainer.cc(491) LOG(INFO) Using 2967 sentences for EM training
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=2860 obj=8.87608 num_tokens=5447 num_tokens/piece=1.90455
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=2378 obj=7.39474 num_tokens=5530 num_tokens/piece=2.32548
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=1783 obj=7.39753 num_tokens=6048 num_tokens/piece=3.39204
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=1782 obj=7.35218 num_tokens=6068 num_tokens/piece=3.40516
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=1336 obj=7.56993 num_tokens=7033 num_tokens/piece=5.26422
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=1336 obj=7.50581 num_tokens=7032 num_tokens/piece=5.26347
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=1002 obj=7.81734 num_tokens=8151 num_tokens/piece=8.13473
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=1002 obj=7.7429 num_tokens=8149 num_tokens/piece=8.13273
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=751 obj=8.12206 num_tokens=9306 num_tokens/piece=12.3915
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=751 obj=8.04646 num_tokens=9305 num_tokens/piece=12.3901
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=563 obj=8.44793 num_tokens=10428 num_tokens/piece=18.5222
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=563 obj=8.36799 num_tokens=10428 num_tokens/piece=18.5222
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=0 size=550 obj=8.39962 num_tokens=10506 num_tokens/piece=19.1018
+unigram_model_trainer.cc(507) LOG(INFO) EM sub_iter=1 size=550 obj=8.3928 num_tokens=10506 num_tokens/piece=19.1018
+trainer_interface.cc(685) LOG(INFO) Saving model: data/en_token_list/bpe_unigram500/bpe.model
+trainer_interface.cc(697) LOG(INFO) Saving vocabs: data/en_token_list/bpe_unigram500/bpe.vocab
+2023-03-13T18:33:45 (asr.sh:1267:main) Skip the training stages
+2023-03-13T18:33:45 (asr.sh:1272:main) Use popcornell/chime7_task1_asr1_baseline for decoding and evaluation
+Fetching 22 files:   0%|          | 0/22 [00:00<?, ?it/s]Fetching 22 files:   5%|▍         | 1/22 [00:00<00:11,  1.88it/s]
+Downloading (…)000000_sp/RESULTS.md:   0%|          | 0.00/2.39k [00:00<?, ?B/s][ADownloading (…)000000_sp/RESULTS.md: 100%|██████████| 2.39k/2.39k [00:00<00:00, 516kB/s]
+
+Downloading (…)es/backward_time.png:   0%|          | 0.00/36.6k [00:00<?, ?B/s][A
+
+Downloading (…)a90cb6d701/README.md:   0%|          | 0.00/12.5k [00:00<?, ?B/s][A[A
+
+
+Downloading (…)00_sp/images/acc.png:   0%|          | 0.00/28.7k [00:00<?, ?B/s][A[A[ADownloading (…)a90cb6d701/README.md: 100%|██████████| 12.5k/12.5k [00:00<00:00, 1.59MB/s]
+Fetching 22 files:   9%|▉         | 2/22 [00:01<00:10,  1.91it/s]
+
+Downloading (…)00000_sp/config.yaml:   0%|          | 0.00/9.03k [00:00<?, ?B/s][A[ADownloading (…)00000_sp/config.yaml: 100%|██████████| 9.03k/9.03k [00:00<00:00, 2.24MB/s]
+
+Downloading (…)es/backward_time.png: 100%|██████████| 36.6k/36.6k [00:00<00:00, 293kB/s][ADownloading (…)es/backward_time.png: 100%|██████████| 36.6k/36.6k [00:00<00:00, 292kB/s]
+
+
+
+Downloading (…)00_sp/images/acc.png: 100%|██████████| 28.7k/28.7k [00:00<00:00, 256kB/s][A[A[ADownloading (…)00_sp/images/acc.png: 100%|██████████| 28.7k/28.7k [00:00<00:00, 255kB/s]
+
+Downloading (…)"bpe.model";:   0%|          | 0.00/245k [00:00<?, ?B/s][A
+Downloading (…)"bpe.model";: 100%|██████████| 245k/245k [00:00<00:00, 887kB/s][ADownloading (…)"bpe.model";: 100%|██████████| 245k/245k [00:00<00:00, 886kB/s]
+Fetching 22 files:  14%|█▎        | 3/22 [00:01<00:09,  1.92it/s]
+Downloading (…)p/images/cer_ctc.png:   0%|          | 0.00/33.0k [00:00<?, ?B/s][A
+
+Downloading (…)00_sp/images/cer.png:   0%|          | 0.00/28.2k [00:00<?, ?B/s][A[A
+Downloading (…)p/images/cer_ctc.png: 100%|██████████| 33.0k/33.0k [00:00<00:00, 268kB/s][ADownloading (…)p/images/cer_ctc.png: 100%|██████████| 33.0k/33.0k [00:00<00:00, 267kB/s]
+
+
+Downloading (…)00_sp/images/cer.png: 100%|██████████| 28.2k/28.2k [00:00<00:00, 225kB/s][A[ADownloading (…)00_sp/images/cer.png: 100%|██████████| 28.2k/28.2k [00:00<00:00, 225kB/s]
+Fetching 22 files:  41%|████      | 9/22 [00:01<00:01,  8.02it/s]
+Downloading (…)ges/forward_time.png:   0%|          | 0.00/36.9k [00:00<?, ?B/s][A
+
+Downloading (…)ax_cached_mem_GB.png:   0%|          | 0.00/26.4k [00:00<?, ?B/s][A[A
+
+
+Downloading (…)images/iter_time.png:   0%|          | 0.00/36.0k [00:00<?, ?B/s][A[A[A
+Downloading (…)ges/forward_time.png: 100%|██████████| 36.9k/36.9k [00:00<00:00, 309kB/s][ADownloading (…)ges/forward_time.png: 100%|██████████| 36.9k/36.9k [00:00<00:00, 308kB/s]
+Fetching 22 files:  50%|█████     | 11/22 [00:02<00:01,  7.07it/s]
+Downloading (…)0_sp/images/loss.png:   0%|          | 0.00/26.8k [00:00<?, ?B/s][A
+
+Downloading (…)ax_cached_mem_GB.png: 100%|██████████| 26.4k/26.4k [00:00<00:00, 214kB/s][A[ADownloading (…)ax_cached_mem_GB.png: 100%|██████████| 26.4k/26.4k [00:00<00:00, 214kB/s]
+
+
+
+Downloading (…)images/iter_time.png: 100%|██████████| 36.0k/36.0k [00:00<00:00, 315kB/s][A[A[ADownloading (…)images/iter_time.png: 100%|██████████| 36.0k/36.0k [00:00<00:00, 314kB/s]
+Fetching 22 files:  59%|█████▉    | 13/22 [00:02<00:01,  8.60it/s]
+
+Downloading (…)/images/loss_att.png:   0%|          | 0.00/27.5k [00:00<?, ?B/s][A[A
+Downloading (…)0_sp/images/loss.png: 100%|██████████| 26.8k/26.8k [00:00<00:00, 230kB/s][ADownloading (…)0_sp/images/loss.png: 100%|██████████| 26.8k/26.8k [00:00<00:00, 229kB/s]
+
+
+Downloading (…)/images/loss_att.png: 100%|██████████| 27.5k/27.5k [00:00<00:00, 220kB/s][A[ADownloading (…)/images/loss_att.png: 100%|██████████| 27.5k/27.5k [00:00<00:00, 218kB/s]
+Fetching 22 files:  68%|██████▊   | 15/22 [00:02<00:00,  9.43it/s]
+Downloading (…)/images/loss_ctc.png:   0%|          | 0.00/28.3k [00:00<?, ?B/s][A
+Downloading (…)/images/loss_ctc.png: 100%|██████████| 28.3k/28.3k [00:00<00:00, 245kB/s][ADownloading (…)/images/loss_ctc.png: 100%|██████████| 28.3k/28.3k [00:00<00:00, 244kB/s]
+
+Downloading (…)mages/optim0_lr0.png:   0%|          | 0.00/33.1k [00:00<?, ?B/s][A
+
+Downloading (…)/optim_step_time.png:   0%|          | 0.00/40.2k [00:00<?, ?B/s][A[A
+
+Downloading (…)/optim_step_time.png: 100%|██████████| 40.2k/40.2k [00:00<00:00, 351kB/s][A[A
+Downloading (…)mages/optim0_lr0.png: 100%|██████████| 33.1k/33.1k [00:00<00:00, 283kB/s][ADownloading (…)/optim_step_time.png: 100%|██████████| 40.2k/40.2k [00:00<00:00, 347kB/s]
+Downloading (…)mages/optim0_lr0.png: 100%|██████████| 33.1k/33.1k [00:00<00:00, 282kB/s]
+Fetching 22 files:  77%|███████▋  | 17/22 [00:02<00:00,  6.88it/s]
+Downloading (…)mages/train_time.png:   0%|          | 0.00/32.3k [00:00<?, ?B/s][A
+
+Downloading (…)00_sp/images/wer.png:   0%|          | 0.00/28.4k [00:00<?, ?B/s][A[A
+Downloading (…)mages/train_time.png: 100%|██████████| 32.3k/32.3k [00:00<00:00, 261kB/s][ADownloading (…)mages/train_time.png: 100%|██████████| 32.3k/32.3k [00:00<00:00, 261kB/s]
+Fetching 22 files:  86%|████████▋ | 19/22 [00:03<00:00,  6.15it/s]
+
+Downloading (…)00_sp/images/wer.png: 100%|██████████| 28.4k/28.4k [00:00<00:00, 255kB/s][A[ADownloading (…)00_sp/images/wer.png: 100%|██████████| 28.4k/28.4k [00:00<00:00, 254kB/s]
+
+Downloading (…)a90cb6d701/meta.yaml:   0%|          | 0.00/574 [00:00<?, ?B/s][ADownloading (…)a90cb6d701/meta.yaml: 100%|██████████| 574/574 [00:00<00:00, 336kB/s]
+
+Downloading (…).acc.ave_5best.pth";:   0%|          | 0.00/1.38G [00:00<?, ?B/s][A
+Downloading (…).acc.ave_5best.pth";:   1%|          | 10.5M/1.38G [00:00<01:51, 12.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:   2%|▏         | 21.0M/1.38G [00:01<01:01, 22.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:   2%|▏         | 31.5M/1.38G [00:01<00:49, 27.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:   3%|▎         | 41.9M/1.38G [00:01<00:41, 32.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:   4%|▍         | 52.4M/1.38G [00:01<00:38, 34.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:   5%|▍         | 62.9M/1.38G [00:02<00:34, 38.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:   5%|▌         | 73.4M/1.38G [00:02<00:34, 38.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:   6%|▌         | 83.9M/1.38G [00:02<00:33, 38.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:   7%|▋         | 94.4M/1.38G [00:02<00:31, 40.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:   8%|▊         | 105M/1.38G [00:03<00:31, 40.7MB/s] [A
+Downloading (…).acc.ave_5best.pth";:   8%|▊         | 115M/1.38G [00:03<00:29, 42.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:   9%|▉         | 126M/1.38G [00:03<00:29, 42.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  10%|▉         | 136M/1.38G [00:03<00:28, 43.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:  11%|█         | 147M/1.38G [00:04<00:30, 41.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  11%|█▏        | 157M/1.38G [00:04<00:29, 41.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  12%|█▏        | 168M/1.38G [00:04<00:30, 40.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  13%|█▎        | 178M/1.38G [00:04<00:28, 42.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  14%|█▎        | 189M/1.38G [00:05<00:29, 41.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  14%|█▍        | 199M/1.38G [00:05<00:39, 29.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  15%|█▌        | 210M/1.38G [00:06<00:46, 25.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  16%|█▌        | 220M/1.38G [00:06<00:48, 24.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  17%|█▋        | 231M/1.38G [00:07<00:45, 25.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  17%|█▋        | 241M/1.38G [00:07<00:38, 29.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  18%|█▊        | 252M/1.38G [00:07<00:35, 32.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  19%|█▉        | 262M/1.38G [00:07<00:37, 30.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  20%|█▉        | 273M/1.38G [00:08<00:33, 33.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  20%|██        | 283M/1.38G [00:08<00:31, 34.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  21%|██        | 294M/1.38G [00:08<00:31, 34.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  22%|██▏       | 304M/1.38G [00:09<00:29, 36.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  23%|██▎       | 315M/1.38G [00:09<00:27, 39.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  23%|██▎       | 325M/1.38G [00:09<00:27, 38.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  24%|██▍       | 336M/1.38G [00:09<00:26, 39.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  25%|██▌       | 346M/1.38G [00:09<00:24, 41.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  26%|██▌       | 357M/1.38G [00:10<00:25, 40.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  27%|██▋       | 367M/1.38G [00:10<00:23, 42.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  27%|██▋       | 377M/1.38G [00:10<00:24, 41.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  28%|██▊       | 388M/1.38G [00:10<00:22, 43.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  29%|██▉       | 398M/1.38G [00:11<00:23, 42.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  30%|██▉       | 409M/1.38G [00:11<00:23, 41.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  30%|███       | 419M/1.38G [00:11<00:22, 43.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  31%|███       | 430M/1.38G [00:11<00:22, 41.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  32%|███▏      | 440M/1.38G [00:12<00:21, 43.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  33%|███▎      | 451M/1.38G [00:12<00:22, 42.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  33%|███▎      | 461M/1.38G [00:12<00:21, 43.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  34%|███▍      | 472M/1.38G [00:12<00:21, 42.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  35%|███▍      | 482M/1.38G [00:13<00:21, 41.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  36%|███▌      | 493M/1.38G [00:13<00:20, 43.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  36%|███▋      | 503M/1.38G [00:13<00:20, 42.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  37%|███▋      | 514M/1.38G [00:13<00:19, 43.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  38%|███▊      | 524M/1.38G [00:14<00:20, 42.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  39%|███▊      | 535M/1.38G [00:14<00:19, 42.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  39%|███▉      | 545M/1.38G [00:14<00:21, 38.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  40%|████      | 556M/1.38G [00:15<00:22, 36.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  41%|████      | 566M/1.38G [00:16<00:42, 19.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  42%|████▏     | 577M/1.38G [00:17<00:54, 14.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  42%|████▏     | 587M/1.38G [00:17<00:42, 18.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  43%|████▎     | 598M/1.38G [00:17<00:35, 22.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  44%|████▍     | 608M/1.38G [00:18<00:29, 26.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  45%|████▍     | 619M/1.38G [00:18<00:25, 29.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  45%|████▌     | 629M/1.38G [00:18<00:23, 32.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  46%|████▌     | 640M/1.38G [00:18<00:20, 35.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  47%|████▋     | 650M/1.38G [00:18<00:19, 37.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:  48%|████▊     | 661M/1.38G [00:19<00:20, 35.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  49%|████▊     | 671M/1.38G [00:19<00:18, 37.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  49%|████▉     | 682M/1.38G [00:19<00:18, 37.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  50%|█████     | 692M/1.38G [00:20<00:18, 37.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  51%|█████     | 703M/1.38G [00:20<00:21, 31.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  52%|█████▏    | 713M/1.38G [00:20<00:19, 33.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  52%|█████▏    | 724M/1.38G [00:21<00:24, 27.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  53%|█████▎    | 734M/1.38G [00:21<00:22, 29.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  54%|█████▍    | 744M/1.38G [00:21<00:20, 31.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  55%|█████▍    | 755M/1.38G [00:22<00:25, 24.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  55%|█████▌    | 765M/1.38G [00:22<00:23, 26.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  56%|█████▌    | 776M/1.38G [00:23<00:24, 24.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  57%|█████▋    | 786M/1.38G [00:23<00:22, 26.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  58%|█████▊    | 797M/1.38G [00:24<00:20, 29.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  58%|█████▊    | 807M/1.38G [00:24<00:18, 31.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  59%|█████▉    | 818M/1.38G [00:24<00:17, 32.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  60%|█████▉    | 828M/1.38G [00:24<00:16, 33.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  61%|██████    | 839M/1.38G [00:25<00:16, 33.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  61%|██████▏   | 849M/1.38G [00:25<00:15, 34.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:  62%|██████▏   | 860M/1.38G [00:25<00:14, 35.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  63%|██████▎   | 870M/1.38G [00:26<00:14, 35.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  64%|██████▎   | 881M/1.38G [00:26<00:13, 36.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  64%|██████▍   | 891M/1.38G [00:26<00:12, 39.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  65%|██████▌   | 902M/1.38G [00:26<00:13, 36.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  66%|██████▌   | 912M/1.38G [00:27<00:14, 33.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:  67%|██████▋   | 923M/1.38G [00:27<00:14, 31.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  67%|██████▋   | 933M/1.38G [00:27<00:14, 30.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  68%|██████▊   | 944M/1.38G [00:28<00:14, 30.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  69%|██████▉   | 954M/1.38G [00:28<00:13, 31.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  70%|██████▉   | 965M/1.38G [00:28<00:13, 31.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  70%|███████   | 975M/1.38G [00:29<00:13, 30.5MB/s][A
+Downloading (…).acc.ave_5best.pth";:  71%|███████   | 986M/1.38G [00:29<00:13, 30.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  72%|███████▏  | 996M/1.38G [00:29<00:12, 31.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  73%|███████▎  | 1.01G/1.38G [00:30<00:12, 30.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  74%|███████▎  | 1.02G/1.38G [00:30<00:11, 31.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  74%|███████▍  | 1.03G/1.38G [00:31<00:11, 31.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  75%|███████▌  | 1.04G/1.38G [00:31<00:10, 32.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  76%|███████▌  | 1.05G/1.38G [00:31<00:10, 31.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  77%|███████▋  | 1.06G/1.38G [00:32<00:10, 31.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  77%|███████▋  | 1.07G/1.38G [00:32<00:09, 32.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  78%|███████▊  | 1.08G/1.38G [00:32<00:09, 32.0MB/s][A
+Downloading (…).acc.ave_5best.pth";:  79%|███████▉  | 1.09G/1.38G [00:32<00:08, 32.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  80%|███████▉  | 1.10G/1.38G [00:33<00:08, 32.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  80%|████████  | 1.11G/1.38G [00:33<00:08, 32.6MB/s][A
+Downloading (…).acc.ave_5best.pth";:  81%|████████  | 1.12G/1.38G [00:33<00:07, 33.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  82%|████████▏ | 1.13G/1.38G [00:34<00:07, 32.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  83%|████████▎ | 1.14G/1.38G [00:34<00:07, 33.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  83%|████████▎ | 1.15G/1.38G [00:34<00:06, 33.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  84%|████████▍ | 1.16G/1.38G [00:35<00:06, 33.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  85%|████████▍ | 1.17G/1.38G [00:35<00:06, 32.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  86%|████████▌ | 1.18G/1.38G [00:35<00:06, 30.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  86%|████████▋ | 1.20G/1.38G [00:37<00:11, 16.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  87%|████████▋ | 1.21G/1.38G [00:37<00:10, 17.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  88%|████████▊ | 1.22G/1.38G [00:37<00:07, 22.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  89%|████████▊ | 1.23G/1.38G [00:38<00:06, 23.8MB/s][A
+Downloading (…).acc.ave_5best.pth";:  89%|████████▉ | 1.24G/1.38G [00:38<00:05, 25.9MB/s][A
+Downloading (…).acc.ave_5best.pth";:  90%|█████████ | 1.25G/1.38G [00:38<00:05, 26.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  91%|█████████ | 1.26G/1.38G [00:39<00:04, 27.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  92%|█████████▏| 1.27G/1.38G [00:39<00:03, 29.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  92%|█████████▏| 1.28G/1.38G [00:39<00:03, 29.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  93%|█████████▎| 1.29G/1.38G [00:40<00:03, 31.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  94%|█████████▍| 1.30G/1.38G [00:40<00:02, 31.7MB/s][A
+Downloading (…).acc.ave_5best.pth";:  95%|█████████▍| 1.31G/1.38G [00:40<00:02, 32.1MB/s][A
+Downloading (…).acc.ave_5best.pth";:  95%|█████████▌| 1.32G/1.38G [00:41<00:01, 33.4MB/s][A
+Downloading (…).acc.ave_5best.pth";:  96%|█████████▌| 1.33G/1.38G [00:41<00:01, 32.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  97%|█████████▋| 1.34G/1.38G [00:41<00:01, 33.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  98%|█████████▊| 1.35G/1.38G [00:42<00:00, 33.3MB/s][A
+Downloading (…).acc.ave_5best.pth";:  99%|█████████▊| 1.36G/1.38G [00:42<00:00, 33.2MB/s][A
+Downloading (…).acc.ave_5best.pth";:  99%|█████████▉| 1.37G/1.38G [00:42<00:00, 34.1MB/s][A
+Downloading (…).acc.ave_5best.pth";: 100%|██████████| 1.38G/1.38G [00:43<00:00, 32.7MB/s][ADownloading (…).acc.ave_5best.pth";: 100%|██████████| 1.38G/1.38G [00:43<00:00, 32.1MB/s]
+Fetching 22 files:  95%|█████████▌| 21/22 [00:46<00:06,  6.52s/it]Fetching 22 files: 100%|██████████| 22/22 [00:46<00:00,  2.12s/it]
+2023-03-13T18:34:33 (asr.sh:1305:main) Stage 12: Decoding: training_dir=exp/popcornell/chime7_task1_asr1_baseline
+2023-03-13T18:34:33 (asr.sh:1333:main) Generate 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/run.sh'. You can resume the process from stage 12 using this script
+2023-03-13T18:34:33 (asr.sh:1390:main) Decoding started... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/logdir/asr_inference.*.log'
+2023-03-13T19:36:07 (asr.sh:1406:main) Calculating RTF & latency... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/logdir/calculate_rtf.log'
+2023-03-13T19:36:08 (asr.sh:1390:main) Decoding started... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//logdir/asr_inference.*.log'
+2023-03-13T20:21:43 (asr.sh:1406:main) Calculating RTF & latency... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//logdir/calculate_rtf.log'
+2023-03-13T20:21:44 (asr.sh:1390:main) Decoding started... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//logdir/asr_inference.*.log'
+2023-03-13T23:24:44 (asr.sh:1406:main) Calculating RTF & latency... log: 'exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//logdir/calculate_rtf.log'
+2023-03-13T23:24:47 (asr.sh:1438:main) Stage 13: Scoring
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:24:56 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_cer/result.txt
 |    SPKR       |    # Snt          # Wrd      |    Corr           Sub           Del            Ins           Err         S.Err     |
-|    Sum/Avg    |    6644           281489     |    82.3           7.0          10.7            7.0          24.7          70.3     |
-2023-03-13T10:48:48 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_wer/result.txt
+|    Sum/Avg    |    6644           281489     |    83.1           7.1           9.8            7.3          24.2          71.4     |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:24:59 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_wer/result.txt
 |    SPKR       |     # Snt         # Wrd     |    Corr            Sub           Del           Ins            Err         S.Err     |
-|    Sum/Avg    |     6644          58881     |    72.4           18.0           9.6           6.5           34.1          70.3     |
-2023-03-13T10:48:52 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_ter/result.txt
+|    Sum/Avg    |     6644          58881     |    73.0           18.3           8.7           6.6           33.7          71.4     |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model --cleaner none
+2023-03-13T23:25:03 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_ter/result.txt
 |    SPKR       |    # Snt          # Wrd      |    Corr           Sub           Del            Ins           Err         S.Err     |
-|    Sum/Avg    |    6644           103910     |    74.0          13.9          12.1            7.0          33.0          70.3     |
-2023-03-13T10:48:58 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_cer/result.txt
+|    Sum/Avg    |    6644           103910     |    74.3          14.2          11.5            7.1          32.8          71.4     |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:25:09 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_cer/result.txt
 |   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673       146438   |   83.1         6.4        10.5         8.9       25.9        73.7    |
-2023-03-13T10:49:01 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_wer/result.txt
+|   Sum/Avg   |   3673       146438   |   84.7         6.3         8.9         9.0       24.3        72.6    |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:25:11 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_wer/result.txt
 |   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673        29966   |   72.7        18.0         9.4         8.6       36.0        73.7    |
-2023-03-13T10:49:03 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_ter/result.txt
+|   Sum/Avg   |   3673        29966   |   74.2        17.9         7.9         8.7       34.4        72.6    |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model --cleaner none
+2023-03-13T23:25:14 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_ter/result.txt
 |   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673        49158   |   75.8        14.1        10.1        11.5       35.7        73.7    |
-2023-03-13T10:49:31 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_cer/result.txt
+|   Sum/Avg   |   3673        49158   |   77.2        14.2         8.6        11.3       34.1        72.6    |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type char --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:25:42 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_cer/result.txt
 |   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
-|   Sum/Avg   |   14804       731649    |   90.4         3.4        6.1         6.4        16.0       61.5    |
-2023-03-13T10:49:36 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_wer/result.txt
+|   Sum/Avg   |   14804       731649    |   91.0         3.5        5.4         6.5        15.5       60.6    |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type word --non_linguistic_symbols data/nlsyms.txt --remove_non_linguistic_symbols true --cleaner none
+2023-03-13T23:25:46 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_wer/result.txt
 |   SPKR      |   # Snt        # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   14804       148981   |   84.0        10.2         5.9         6.3       22.3        61.5    |
-2023-03-13T10:49:44 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_ter/result.txt
+|   Sum/Avg   |   14804       148981   |   84.4        10.3         5.2         6.2       21.8        60.6    |
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --cleaner none --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model
+/raid/users/popcornell/chime7espnet/tools/venv/bin/python3 /raid/users/popcornell/chime7espnet/espnet2/bin/tokenize_text.py -f 2- --input - --output - --token_type bpe --bpemodel data/en_token_list/bpe_unigram500/bpe.model --cleaner none
+2023-03-13T23:25:54 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_ter/result.txt
 |   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
-|   Sum/Avg   |   14804       262294    |   86.4         7.3        6.3         6.9        20.5       61.5    |
-2023-03-13T10:49:53 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_cer/result.txt
-|    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins          Err         S.Err     |
-|    Sum/Avg    |    6644          281489    |    71.5          10.8          17.8          11.9         40.4          81.3     |
-2023-03-13T10:49:56 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_wer/result.txt
-|    SPKR       |    # Snt         # Wrd     |    Corr           Sub          Del           Ins           Err         S.Err     |
-|    Sum/Avg    |    6644          58881     |    59.2          25.1         15.7          10.9          51.7          81.3     |
-2023-03-13T10:50:00 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_ter/result.txt
-|    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins          Err         S.Err     |
-|    Sum/Avg    |    6644          103910    |    61.2          20.1          18.6          11.4         50.2          81.3     |
-2023-03-13T10:50:06 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_cer/result.txt
-|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673       146438   |   90.6         3.8         5.6         7.9       17.3        60.3    |
-2023-03-13T10:50:08 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_wer/result.txt
-|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673        29966   |   81.8        13.0         5.2         7.5       25.7        60.3    |
-2023-03-13T10:50:11 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_ter/result.txt
-|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   3673        49158   |   84.9         9.7         5.4        10.2       25.2        60.3    |
-2023-03-13T10:50:35 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_cer/result.txt
-|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
-|   Sum/Avg   |   14804       731649    |   76.1         5.1       18.8         8.1        32.0       71.3    |
-2023-03-13T10:50:39 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_wer/result.txt
-|   SPKR      |   # Snt        # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
-|   Sum/Avg   |   14804       148981   |   68.5        13.5        18.0         7.8       39.3        71.3    |
-2023-03-13T10:50:46 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_ter/result.txt
-|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
-|   Sum/Avg   |   14804       262294    |   70.8        10.0       19.2         8.4        37.6       71.3    |
+|   Sum/Avg   |   14804       262294    |   86.8         7.5        5.7         6.9        20.0       60.6    |
 <!-- Generated by scripts/utils/show_asr_result.sh -->
 # RESULTS
 ## Environments
-- date: `Mon Mar 13 10:50:46 UTC 2023`
+- date: `Mon Mar 13 23:25:54 UTC 2023`
 - python version: `3.9.2 (default, Mar  3 2021, 20:02:32)  [GCC 7.3.0]`
 - espnet version: `espnet 202301`
 - pytorch version: `pytorch 1.13.1+cu116`
 - Git hash: `8fee771ea66f53a4b5e66c47159f7548c5efacee`
   - Commit date: `Wed Feb 8 23:43:17 2023 +0000`
 
-2023-03-13T10:50:47 (asr.sh:1627:main) Skip the uploading stage
-2023-03-13T10:50:47 (asr.sh:1679:main) Skip the uploading to HuggingFace stage
-2023-03-13T10:50:47 (asr.sh:1682:main) Successfully finished. [elapsed=132s]
+2023-03-13T23:25:55 (asr.sh:1627:main) Skip the uploading stage
+2023-03-13T23:25:55 (asr.sh:1679:main) Skip the uploading to HuggingFace stage
+2023-03-13T23:25:55 (asr.sh:1682:main) Successfully finished. [elapsed=17593s]
