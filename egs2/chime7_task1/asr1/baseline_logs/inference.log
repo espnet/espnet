@@ -1,0 +1,71 @@
+2023-03-13T10:48:35 (asr.sh:267:main) ./asr.sh --lang en --local_data_opts --stage 0 --chime6-root /raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 --train-set kaldi/dipco/dev/gss --manifests-root ./data/lhotse --gss_dsets chime6_dev,dipco_dev,mixer6_dev --gss-dump-root ./exp/gss --decode-only 1 --stage 13 --ngpu 2 --asr_args --batch_size 256 --scheduler_conf warmup_steps=20000 --max_epoch=8 --optim_conf lr=0.000200000000 --token_type bpe --nbpe 500 --bpe_nlsyms [inaudible],[laughs],[noise] --nlsyms_txt data/nlsyms.txt --feats_type raw --feats_normalize utterance_mvn --audio_format flac --min_wav_duration 1 --max_wav_duration 20 --speed_perturb_factors 0.9 1.0 1.1 --asr_config conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml --inference_config conf/decode_asr_transformer.yaml --use_lm false --lm_config conf/train_lm.yaml --use_word_lm false --word_vocab_size 65000 --train_set kaldi/dipco/dev/gss --valid_set kaldi/chime6/dev/gss --test_sets kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/ --bpe_train_text data/kaldi/dipco/dev/gss/text --lm_train_text data/kaldi/dipco/dev/gss/text --skip_data_prep false --skip_train true --download_model popcornell/chime7_task1_asr1_baseline
+2023-03-13T10:48:35 (asr.sh:1267:main) Skip the training stages
+2023-03-13T10:48:35 (asr.sh:1272:main) Use popcornell/chime7_task1_asr1_baseline for decoding and evaluation
+2023-03-13T10:48:36 (asr.sh:1438:main) Stage 13: Scoring
+2023-03-13T10:48:46 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_cer/result.txt
+|    SPKR       |    # Snt          # Wrd      |    Corr           Sub           Del            Ins           Err         S.Err     |
+|    Sum/Avg    |    6644           281489     |    82.3           7.0          10.7            7.0          24.7          70.3     |
+2023-03-13T10:48:48 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_wer/result.txt
+|    SPKR       |     # Snt         # Wrd     |    Corr            Sub           Del           Ins            Err         S.Err     |
+|    Sum/Avg    |     6644          58881     |    72.4           18.0           9.6           6.5           34.1          70.3     |
+2023-03-13T10:48:52 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/gss_inf/score_ter/result.txt
+|    SPKR       |    # Snt          # Wrd      |    Corr           Sub           Del            Ins           Err         S.Err     |
+|    Sum/Avg    |    6644           103910     |    74.0          13.9          12.1            7.0          33.0          70.3     |
+2023-03-13T10:48:58 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_cer/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673       146438   |   83.1         6.4        10.5         8.9       25.9        73.7    |
+2023-03-13T10:49:01 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_wer/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673        29966   |   72.7        18.0         9.4         8.6       36.0        73.7    |
+2023-03-13T10:49:03 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/gss//score_ter/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673        49158   |   75.8        14.1        10.1        11.5       35.7        73.7    |
+2023-03-13T10:49:31 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_cer/result.txt
+|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
+|   Sum/Avg   |   14804       731649    |   90.4         3.4        6.1         6.4        16.0       61.5    |
+2023-03-13T10:49:36 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_wer/result.txt
+|   SPKR      |   # Snt        # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   14804       148981   |   84.0        10.2         5.9         6.3       22.3        61.5    |
+2023-03-13T10:49:44 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/gss//score_ter/result.txt
+|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
+|   Sum/Avg   |   14804       262294    |   86.4         7.3        6.3         6.9        20.5       61.5    |
+2023-03-13T10:49:53 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_cer/result.txt
+|    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins          Err         S.Err     |
+|    Sum/Avg    |    6644          281489    |    71.5          10.8          17.8          11.9         40.4          81.3     |
+2023-03-13T10:49:56 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_wer/result.txt
+|    SPKR       |    # Snt         # Wrd     |    Corr           Sub          Del           Ins           Err         S.Err     |
+|    Sum/Avg    |    6644          58881     |    59.2          25.1         15.7          10.9          51.7          81.3     |
+2023-03-13T10:50:00 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/chime6/dev/ihm/score_ter/result.txt
+|    SPKR       |    # Snt         # Wrd     |    Corr           Sub           Del           Ins          Err         S.Err     |
+|    Sum/Avg    |    6644          103910    |    61.2          20.1          18.6          11.4         50.2          81.3     |
+2023-03-13T10:50:06 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_cer/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673       146438   |   90.6         3.8         5.6         7.9       17.3        60.3    |
+2023-03-13T10:50:08 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_wer/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673        29966   |   81.8        13.0         5.2         7.5       25.7        60.3    |
+2023-03-13T10:50:11 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/dipco/dev/ihm//score_ter/result.txt
+|   SPKR      |   # Snt       # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   3673        49158   |   84.9         9.7         5.4        10.2       25.2        60.3    |
+2023-03-13T10:50:35 (asr.sh:1519:main) Write cer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_cer/result.txt
+|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
+|   Sum/Avg   |   14804       731649    |   76.1         5.1       18.8         8.1        32.0       71.3    |
+2023-03-13T10:50:39 (asr.sh:1519:main) Write wer result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_wer/result.txt
+|   SPKR      |   # Snt        # Wrd   |   Corr         Sub         Del         Ins        Err       S.Err    |
+|   Sum/Avg   |   14804       148981   |   68.5        13.5        18.0         7.8       39.3        71.3    |
+2023-03-13T10:50:46 (asr.sh:1519:main) Write ter result in exp/popcornell/chime7_task1_asr1_baseline/decode_asr_transformer_asr_model_valid.acc.ave/kaldi/mixer6/dev/ihm//score_ter/result.txt
+|   SPKR      |   # Snt       # Wrd     |   Corr         Sub        Del         Ins         Err      S.Err    |
+|   Sum/Avg   |   14804       262294    |   70.8        10.0       19.2         8.4        37.6       71.3    |
+<!-- Generated by scripts/utils/show_asr_result.sh -->
+# RESULTS
+## Environments
+- date: `Mon Mar 13 10:50:46 UTC 2023`
+- python version: `3.9.2 (default, Mar  3 2021, 20:02:32)  [GCC 7.3.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1+cu116`
+- Git hash: `8fee771ea66f53a4b5e66c47159f7548c5efacee`
+  - Commit date: `Wed Feb 8 23:43:17 2023 +0000`
+
+2023-03-13T10:50:47 (asr.sh:1627:main) Skip the uploading stage
+2023-03-13T10:50:47 (asr.sh:1679:main) Skip the uploading to HuggingFace stage
+2023-03-13T10:50:47 (asr.sh:1682:main) Successfully finished. [elapsed=132s]
