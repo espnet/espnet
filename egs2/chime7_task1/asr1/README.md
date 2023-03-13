@@ -292,6 +292,9 @@ in `INSTALL`.
 8. `WARNING  [enhancer.py:245] Out of memory error while processing the batch` you got out-of-memory (OOM) when running GSS. 
 You could try changing parameters as `gss_max_batch_dur` and in local/run_gss.sh `context-duration` 
 (this latter could degrade results however). See local/run_gss.sh for more info.
+9. Much worse WER than baseline and you are using `run.pl`. Check the GSS results, GSS currently does not work well
+if you use multi-gpu inference and your GPUs are in shared mode. You need to run `set nvidia-smi -c 3`.
+
 
 ## Memory Consumption (Useful for SLURM etc.)
 
