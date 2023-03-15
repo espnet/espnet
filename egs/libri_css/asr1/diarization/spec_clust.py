@@ -5,11 +5,11 @@
 
 import argparse
 import os
+
 import numpy as np
-from sklearn.cluster import k_means
-from kaldiio import ReadHelper, WriteHelper
 import scipy
-from sklearn.cluster import SpectralClustering
+from kaldiio import ReadHelper, WriteHelper
+from sklearn.cluster import SpectralClustering, k_means
 
 """
    Spectral Clustering based on binarization and automatic thresholding
@@ -59,6 +59,7 @@ def SaveLabels(IDs, labels, file):
 
 
 #   NME low-level operations
+
 
 # Prepares binarized(0/1) affinity matrix with p_neighbors non-zero elements in each row
 def get_kneighbors_conn(X_dist, p_neighbors):

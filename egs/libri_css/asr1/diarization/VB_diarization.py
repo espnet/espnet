@@ -24,12 +24,13 @@
 #   03/10/19 02:27PM - speaker regularization coefficient Fb added
 #
 
-import numpy as np
-from scipy.sparse import coo_matrix
-import scipy.linalg as spl
 import numexpr as ne  # the dependency on this modul can be avoided by replacing
+import numpy as np
+import scipy.linalg as spl
+from scipy.sparse import coo_matrix
 
 # logsumexp_ne and exp_ne with logsumexp and np.exp
+
 
 # [gamma pi Li] =
 def VB_diarization(
@@ -56,7 +57,6 @@ def VB_diarization(
     Fa=1.0,
     Fb=1.0,
 ):
-
     """
     This a generalized version of speaker diarization described in:
 
@@ -130,11 +130,11 @@ def VB_diarization(
 
     # calculate UBM mixture frame posteriors (i.e. per-frame zero order statistics)
     ll = (
-        (X ** 2).dot(-0.5 * invSigma.T)
+        (X**2).dot(-0.5 * invSigma.T)
         + X.dot(invSigma.T * m.T)
         - 0.5
         * (
-            (invSigma * m ** 2 - np.log(invSigma)).sum(1)
+            (invSigma * m**2 - np.log(invSigma)).sum(1)
             - 2 * np.log(w)
             + D * np.log(2 * np.pi)
         )
@@ -230,7 +230,7 @@ def VB_diarization(
                     )
                 )
             )  # eq. (23)
-            ELBO += Fb * 0.5 * (logdet(invL) - np.sum(np.diag(invL) + a ** 2, 0) + R)
+            ELBO += Fb * 0.5 * (logdet(invL) - np.sum(np.diag(invL) + a**2, 0) + R)
 
         # Construct transition probability matrix with linear chain of 'minDur'
         # states for each of 'maxSpeaker' speaker. The last state in each chain has
