@@ -9,14 +9,15 @@
 # vb_hmm_xvector.sh which can divide all labels into per recording
 # labels.
 
-import sys, argparse, struct
-import numpy as np
+import argparse
 import itertools
+import struct
+import sys
+
 import kaldi_io
-
-from scipy.special import softmax
-
+import numpy as np
 import VB_diarization
+from scipy.special import softmax
 
 ########### HELPER FUNCTIONS #####################################
 

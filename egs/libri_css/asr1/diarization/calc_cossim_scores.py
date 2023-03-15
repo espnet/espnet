@@ -4,9 +4,10 @@
 # Apache 2.0.
 
 import argparse
+
 import numpy as np
-from scipy.spatial.distance import cosine, pdist, squareform
 from kaldiio import ReadHelper, WriteHelper
+from scipy.spatial.distance import cosine, pdist, squareform
 
 
 def LoadReco2Utt(file):
