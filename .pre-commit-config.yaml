@@ -5,10 +5,10 @@ repos:
     rev: v3.2.0
     hooks:
     -   id: trailing-whitespace
-        exclude: ^(egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
     -   id: end-of-file-fixer
-        exclude: ^(egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
     -   id: check-yaml
-        exclude: ^(egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
     -   id: check-added-large-files
-        exclude: ^(egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
+        exclude: ^(egs2/TEMPLATE/asr1/utils|egs2/TEMPLATE/asr1/steps|egs2/TEMPLATE/tts1/sid)
