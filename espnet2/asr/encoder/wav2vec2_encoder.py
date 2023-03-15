@@ -123,6 +123,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             enc_outputs = self.encoders(
                 xs_pad,
                 masks,
+                mask=self.training,
                 features_only=True,
             )
 

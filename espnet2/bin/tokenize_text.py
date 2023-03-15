@@ -16,10 +16,9 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def field2slice(field: Optional[str]) -> slice:
-    """Convert field string to slice
+    """Convert field string to slice.
 
     Note that field string accepts 1-based integer.
-
     Examples:
         >>> field2slice("1-")
         slice(0, None, None)
@@ -220,7 +219,15 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cleaner",
         type=str_or_none,
-        choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
+        choices=[
+            None,
+            "tacotron",
+            "jaconv",
+            "vietnamese",
+            "korean_cleaner",
+            "whisper_en",
+            "whisper_basic",
+        ],
         default=None,
         help="Apply text cleaning",
     )

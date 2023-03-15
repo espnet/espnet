@@ -38,9 +38,10 @@ class Encoder(torch.nn.Module):
         input_conf: Dict[str, Any] = {},
         main_conf: Dict[str, Any] = {},
     ) -> None:
-        assert check_argument_types()
-
+        """Construct an Encoder object."""
         super().__init__()
+
+        assert check_argument_types()
 
         embed_size, output_size = validate_architecture(
             input_conf, body_conf, input_size
@@ -150,7 +151,7 @@ class Encoder(torch.nn.Module):
         processed_frames: torch.tensor,
         left_context: int = 32,
         right_context: int = 0,
-    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+    ) -> torch.Tensor:
         """Encode input sequences as chunks.
 
         Args:

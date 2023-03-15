@@ -13,7 +13,6 @@ class AbsSeparator(torch.nn.Module, ABC):
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
-
         raise NotImplementedError
 
     @property

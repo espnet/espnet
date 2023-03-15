@@ -8,7 +8,7 @@ set -o pipefail
 ./enh.sh \
     --fs 16k \
     --lang en \
-    --spk-num 1 \
+    --ref-num 1 \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test" \

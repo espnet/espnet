@@ -20,10 +20,11 @@ test_sets="tt_mix_single_reverb_min_8k"
     --test_sets "${test_sets}" \
     --fs ${sample_rate} \
     --ngpu 2 \
-    --spk_num 1 \
+    --ref_num 1 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
     --enh_config ./conf/tuning/train_enh_beamformer_mvdr.yaml \
     --use_dereverb_ref false \
     --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
+    --audio_format wav \
     "$@"

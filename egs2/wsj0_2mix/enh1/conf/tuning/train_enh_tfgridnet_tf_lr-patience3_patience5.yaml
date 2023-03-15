@@ -1,0 +1,57 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 150
+batch_type: folded
+batch_size: 3
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 5
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 3
+encoder: same
+decoder: same
+separator: tfgridnet
+separator_conf:
+    n_srcs: 2
+    n_fft: 128
+    stride: 64
+    window: "hann"
+    n_imics: 1
+    n_layers: 6
+    lstm_hidden_units: 192
+    attn_n_head: 4
+    attn_approx_qk_dim: 512
+    emb_dim: 48
+    emb_ks: 4
+    emb_hs: 1
+    activation: "prelu"
+    eps: 1.0e-5
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+      independent_perm: True

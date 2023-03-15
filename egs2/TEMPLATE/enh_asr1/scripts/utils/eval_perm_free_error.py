@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-import six
 from scipy.optimize import linear_sum_assignment
 
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
@@ -62,10 +61,8 @@ def compute_permutation(old_dic, num_spkrs=2):
         all_scores.append(convert_score(scores, num_spkrs))
     all_scores = np.array(all_scores)  # (B, n_ref, n_hyp, 4)
 
-    all_error_rates = np.sum(
-        all_scores[:, :, :, 1:4], axis=-1, dtype=np.float
-    ) / np.sum(
-        all_scores[:, :, :, 0:3], axis=-1, dtype=np.float
+    all_error_rates = np.sum(all_scores[:, :, :, 1:4], axis=-1, dtype=float) / np.sum(
+        all_scores[:, :, :, 0:3], axis=-1, dtype=float
     )  # (s+d+i) / (c+s+d), (B, n_ref, n_hyp)
 
     min_scores, hyp_perms = [], []
@@ -137,8 +134,8 @@ def read_trn(file_path):
     ret_dict = OrderedDict()
     with open(file_path, "r", encoding="utf-8") as f:
         for line in f:
-            line = line.strip()
-            text, utt_id = line.rsplit(maxsplit=1)
+            line = line.rstrip()
+            text, utt_id = line.rsplit("\t", maxsplit=1)
             if utt_id[0] == "(" and utt_id[-1] == ")":
                 utt_id = utt_id[1:-1]
             ret_dict[utt_id] = text
@@ -168,8 +165,8 @@ def reorder_refs_or_hyps(result_dir, num_spkrs, all_keys, hyp_or_ref=None, perms
 def main(args):
     # Read results from files
     all_results = []
-    for r in six.moves.range(1, args.num_spkrs + 1):
-        for h in six.moves.range(1, args.num_spkrs + 1):
+    for r in range(1, args.num_spkrs + 1):
+        for h in range(1, args.num_spkrs + 1):
             key = f"r{r}h{h}"
             result = read_result(
                 Path(args.results_dir, f"result_{key}.txt"), result_key=key

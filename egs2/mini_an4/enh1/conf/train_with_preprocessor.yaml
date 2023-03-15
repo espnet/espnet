@@ -28,6 +28,8 @@ separator_conf:
     unit: 128
     dropout: 0.2
 
+preprocessor: enh
+
 criterions: 
   # The first criterion
   - name: mse 

@@ -70,13 +70,13 @@ The`EnhancementTask` defined in `espnet2/tasks/enh.py` is called in `espnet2/bin
 We have created `EnhancementTask` in `espnet2/tasks/enh.py`, which is used to train the `ESPnetEnhancementModel(AbsESPnetModel)` defined in `espnet2/enh/espnet_model.py`. 
 In `EnhancementTask`, the speech enhancement or separation models follow the `encoder-separator-decoder` style, and several encoders, decoders and separators are implemented. Although it is currently defined as an independent task, the models from `EnhancementTask` can be easily called by other tasks or even jointly trained with other tasks (see `egs2/TEMPLATE/enh_asr1/`, `egs2/TEMPLATE/enh_st1/`).
 
-> Now we support adding noise and reverberation on the fly by specifying `--use_preprocessor` and `--extra_wav_list` to use `EnhPreprocessor`. Check [PR #4321](https://github.com/espnet/espnet/pull/4321#issue-1216290237) for more details.
+> Now we support adding noise, reverberation, interference speech on the fly by specifying `preprocessor` in the configuration. For example, to use `EnhPreprocessor`, one can specify `preprocessor: "enh"` in the configuration and specify `--extra_wav_list` in `run.sh`. Check [PR #4321](https://github.com/espnet/espnet/pull/4321#issue-1216290237) for more details.
 >
 > We also support possible integration of other speech enhancement/separation toolkits (e.g. [Asteroid](https://github.com/asteroid-team/asteroid)), so that models trained with other speech enhancement/separation toolkits can be reused/evaluated on ESPnet for downstream tasks such as ASR.
 
 Related arguments in `enh.sh` include:
 
-  + --spk_num
+  + --ref_num
   + --enh_args
   + --enh_config
   + --enh_exp
@@ -85,7 +85,6 @@ Related arguments in `enh.sh` include:
   + --init_param
   + --use_dereverb_ref
   + --use_noise_ref
-  + --use_preprocessor
   + --extra_wav_list
 
 Related python files:
@@ -163,7 +162,7 @@ This stage generates the enhanced or separated speech with the trained model. Th
 
 Related arguments in `enh.sh` include:
 
-  + --spk_num
+  + --ref_num
   + --fs
   + --gpu_inference
   + --inference_args
@@ -283,7 +282,7 @@ Prepare training configuration files (e.g. [train.yaml](https://github.com/espne
 Write `run.sh` to provide a template entry script, so that users can easily run your recipe by `./run.sh`.
 Check [egs2/wsj0_2mix/enh1/run.sh](https://github.com/espnet/espnet/blob/master/egs2/wsj0_2mix/enh1/run.sh) for reference.
 
-> Please ensure that the argument `--spk_num` in `run.sh` is consistent with the `num_spk` (under `separator_conf`) in the training configuration files created in last step.
+> Please ensure that the argument `--ref_num` in `run.sh` is consistent with the `num_spk` (under `separator_conf`) in the training configuration files created in last step, except in MixIT training. In MixIT, the argument `--inf_num` in `run.sh` should be consistent with the `num_spk` (under `separator_conf`).
 >
 > If your recipes provide references for noise and/or dereverberation, you can set the argument `--use_noise_ref true` and/or `--use_dereverb_ref true` in `run.sh`.
 

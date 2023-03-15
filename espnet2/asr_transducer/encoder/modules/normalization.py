@@ -8,18 +8,14 @@ import torch
 def get_normalization(
     normalization_type: str,
     eps: Optional[float] = None,
-    momentum: Optional[float] = None,
     partial: Optional[float] = None,
-    scale: Optional[float] = None,
 ) -> Tuple[torch.nn.Module, Dict]:
-    """Return normalization module.
+    """Get normalization module and arguments given parameters.
 
     Args:
         normalization_type: Normalization module type.
         eps: Value added to the denominator.
-        momentum: Value for the running_mean and running_var computation (BatchNorm1d).
         partial: Value defining the part of the input used for RMS stats (RMSNorm).
-        scale: Value for L2 normalization (ScaleNorm).
 
     Return:
         : Normalization module class
@@ -30,13 +26,6 @@ def get_normalization(
         "basic_norm": (
             BasicNorm,
             {"eps": eps if eps is not None else 0.25},
-        ),
-        "batch_norm": (
-            torch.nn.BatchNorm1d,
-            {
-                "eps": eps if eps is not None else 1e-05,
-                "momentum": momentum if momentum is not None else 0.1,
-            },
         ),
         "layer_norm": (torch.nn.LayerNorm, {"eps": eps if eps is not None else 1e-12}),
         "rms_norm": (
