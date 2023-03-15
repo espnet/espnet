@@ -4,16 +4,17 @@
 # Apache 2.0.
 
 import argparse
-import os
 
 import numpy as np
 import scipy
-from kaldiio import ReadHelper, WriteHelper
-from sklearn.cluster import SpectralClustering, k_means
+from kaldiio import ReadHelper
+from sklearn.cluster import SpectralClustering
 
 """
    Spectral Clustering based on binarization and automatic thresholding
-   Paper: T.Park, K.Han, M.Kumar, and S.Narayanan, Auto-tuning spectral clustering for speaker diarization using normalized maximumeigengap, IEEE Signal Processing Letters, vol. 27, pp. 381-385,2019
+   Paper: T.Park, K.Han, M.Kumar, and S.Narayanan, Auto-tuning spectral clustering
+   for speaker diarization using normalized maximumeigengap,
+   IEEE Signal Processing Letters, vol. 27, pp. 381-385,2019
 """
 
 #   Input-output routines
@@ -89,7 +90,8 @@ def Laplacian(A):
     return D - A
 
 
-# Calculates eigengaps (differences between adjacent eigenvalues sorted in descending order)
+# Calculates eigengaps
+# (differences between adjacent eigenvalues sorted in descending order)
 def Eigengap(S):
     S = sorted(S)
     return np.diff(S)
@@ -116,7 +118,8 @@ def ComputeNMEParameters(A, p, max_num_clusters):
 """
 Performs spectral clustering with Normalized Maximum Eigengap (NME)
 Parameters:
-   A: affinity matrix (matrix of pairwise cosine similarities or PLDA scores between speaker embeddings)
+   A: affinity matrix
+    (matrix of pairwise cosine similarities or PLDA scores between speaker embeddings)
    num_clusters: number of clusters to generate (if None, determined automatically)
    max_num_clusters: maximum allowed number of clusters to generate
    pmax: maximum count for matrix binarization (should be at least 2)
@@ -150,9 +153,11 @@ def NME_SpectralClustering(A, num_clusters=None, max_num_clusters=10, pbest=0, p
 
 
 """
-Performs spectral clustering with Normalized Maximum Eigengap (NME) with fixed threshold and number of clusters
+Performs spectral clustering with Normalized Maximum Eigengap (NME)
+with fixed threshold and number of clusters
 Parameters:
-   A: affinity matrix (matrix of pairwise cosine similarities or PLDA scores between speaker embeddings)
+   A: affinity matrix
+    (matrix of pairwise cosine similarities or PLDA scores between speaker embeddings)
    num_clusters: number of clusters to generate
    pbest: best count for matrix binarization
 Returns: cluster assignments for every speaker embedding
@@ -171,9 +176,11 @@ def NME_SpectralClustering_sklearn(A, num_clusters, pbest):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Usage: spec_clust.py [options] <scores-rspec> <reco2utt-rspec> <labels-wspec>\n"
-        + "Performs spectral clustering of xvectors according to pairwise similarity scores\n"
-        + "Auto-selects binarization threshold"
+        description="Usage: spec_clust.py [options] "
+        "<scores-rspec> <reco2utt-rspec> <labels-wspec>\n"
+        "Performs spectral clustering of xvectors according "
+        "to pairwise similarity scores\n"
+        "Auto-selects binarization threshold"
     )
     parser.add_argument(
         "simmat_rspec",
@@ -217,7 +224,8 @@ if __name__ == "__main__":
     )
 
     print(
-        "Spectral clustering of xvector according to precomputed similarity scores matrix"
+        "Spectral clustering of xvector according to precomputed "
+        "similarity scores matrix"
     )
     print("Parameters:")
     print("Similarity matrix rspecifier: {}".format(args.simmat_rspec))

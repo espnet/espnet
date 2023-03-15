@@ -7,7 +7,7 @@ import argparse
 
 import numpy as np
 from kaldiio import ReadHelper, WriteHelper
-from scipy.spatial.distance import cosine, pdist, squareform
+from scipy.spatial.distance import pdist, squareform
 
 
 def LoadReco2Utt(file):
@@ -55,7 +55,10 @@ def WriteDistMatrices(D, wspec):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Usage: calc_cossim_scores.py <reco2utt-rspec> <xvec-rspec> <simmat-wspec>\nComputes matrices of the cosine similarity scores between normalized x-vectors for each recording"
+        description="Usage: calc_cossim_scores.py "
+        "<reco2utt-rspec> <xvec-rspec> <simmat-wspec>\n"
+        "Computes matrices of the cosine similarity scores "
+        "between normalized x-vectors for each recording"
     )
     parser.add_argument(
         "reco2utt",

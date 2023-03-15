@@ -10,16 +10,13 @@
 # labels.
 
 import argparse
-import itertools
-import struct
-import sys
 
 import kaldi_io
 import numpy as np
 import VB_diarization
 from scipy.special import softmax
 
-########### HELPER FUNCTIONS #####################################
+# ########## HELPER FUNCTIONS #####################################
 
 
 def get_args():
@@ -103,7 +100,8 @@ def vb_hmm(segments, in_labels, xvectors, plda_psi, init_smoothing, loop_prob, f
     x = np.array(xvectors)
     dim = x.shape[1]
 
-    # Smooth the hard labels obtained from AHC to soft assignments of x-vectors to speakers
+    # Smooth the hard labels obtained from AHC to soft assignments of
+    # x-vectors to speakers
     q_init = np.zeros((len(in_labels), np.max(in_labels) + 1))
     q_init[range(len(in_labels)), in_labels] = 1.0
     q_init = softmax(q_init * init_smoothing, axis=1)
@@ -114,8 +112,10 @@ def vb_hmm(segments, in_labels, xvectors, plda_psi, init_smoothing, loop_prob, f
     invSigma = np.ones((1, dim))
     V = np.diag(np.sqrt(plda_psi[:dim]))[:, np.newaxis, :]
 
-    # Use VB-HMM for x-vector clustering. Instead of i-vector extractor model, we use PLDA
-    # => GMM with only 1 component, V derived across-class covariance, and invSigma is inverse
+    # Use VB-HMM for x-vector clustering. Instead of i-vector extractor model,
+    # we use PLDA
+    # => GMM with only 1 component, V derived across-class covariance,
+    # and invSigma is inverse
     # within-class covariance (i.e. identity)
     q, _, _ = VB_diarization.VB_diarization(
         x,
