@@ -1,6 +1,8 @@
 import argparse
 import json
+import os
 import re
+from pathlib import Path
 
 
 def parse2json(asr_hyp, output_name, sess_regex="[^-]*"):
@@ -17,7 +19,6 @@ def parse2json(asr_hyp, output_name, sess_regex="[^-]*"):
         rest = "_".join(utt_id.split("_")[1:])
         # mixer6 regex: ([0-9]+_[0-9]+_LDC_[0-9]+)
         session_id = re.search(sess_regex, rest).group()
-
         start, stop = re.search("-([0-9]*_[0-9]*)", rest).group().lstrip("-").split("_")
         start = float(start) / 100
         stop = float(stop) / 100
@@ -32,9 +33,28 @@ def parse2json(asr_hyp, output_name, sess_regex="[^-]*"):
         to_json.append(c_entry)
 
     # sort by starting time
-    to_json = sorted(to_json, key=lambda x: float(x["start_time"]))
+    Path(output_name).mkdir(parents=True, exist_ok=True)
+    to_json = sorted(
+        to_json, key=lambda x: "{}_{}".format(x["speaker"], x["start_time"])
+    )
     with open(output_name + ".json", "w") as f:
         json.dump(to_json, f, indent=4)
+
+    # write also to stm for asclite
+
+    stm = []
+    for seg in to_json:
+        c_line = "{} A {} {} {} {}\n".format(
+            seg["session_id"],
+            seg["speaker"],
+            seg["start_time"],
+            seg["end_time"],
+            seg["words"],
+        )
+        stm.append(c_line)
+
+    with open(output_name + ".stm", "w") as f:
+        f.writelines(stm)
 
 
 if __name__ == "__main__":

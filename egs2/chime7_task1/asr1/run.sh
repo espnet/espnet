@@ -52,6 +52,8 @@ asr_dprep_stage=0
 bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
+inference_asr_model=valid.acc.ave.pth
+asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -165,7 +167,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # e.g. for training and cv, so if you set $train_max_segment_length these
   # will be discarded also from the test set (if the test set is the same as evaluation)
   # you need to make a copy, here we make a copy inside local/data.sh called gss_inf!
-  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
   #asr_tt_set+=" kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/"
   # uncomment if you do want to decode also on close-talk microphones
   # note however that it could be bad because there won't be any separation.
@@ -205,6 +206,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --inference_config "${inference_config}" \
     --use_lm ${use_lm} \
     --lm_config "${lm_config}" \
+    --inference_asr_model ${inference_asr_model} \
     --use_word_lm ${use_word_lm} \
     --word_vocab_size ${word_vocab_size} \
     --train_set "${asr_train_set}" \
@@ -212,4 +214,29 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --test_sets "${asr_tt_set}" \
     --bpe_train_text "data/${asr_train_set}/text" \
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  # final scoring
+  echo "Scoring ASR predictions for CHiME-7 DASR challenge."
+  # note, we re-create the asr exp folder here based on asr.sh
+  # internal operation
+  #asr_tag=#"$(basename "${asr_config}" .yaml)_raw"
+  asr_exp=exp/popcornell/chime7_task1_asr1_baseline/ #"exp/asr_${asr_tag}"
+  inference_tag="$(basename "${inference_config}" .yaml)"
+  inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+  for tt_dset in $asr_tt_set; do
+    split="$(cut -d'/' -f3 <<<${tt_dset})"
+    dset_name="$(cut -d'/' -f2 <<<${tt_dset})"
+    if [ ${dset_name} == mixer6 ]; then
+      regex="([0-9]+_[0-9]+_LDC_[0-9]+)"
+    else
+      regex="(S[0-9]+)"
+    fi
+    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
+
+  done
+  python local/chime7dasr_score.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/chime7dasr_score
 fi

@@ -338,7 +338,7 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
             uem_start = 0
             uem_end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
             c_uem = "{} 1 {} {}\n".format(
-                sess_name,
+                new_sess_name,
                 "{:.3f}".format(float(uem_start)),
                 "{:.3f}".format(float(uem_end / 16000)),
             )
@@ -431,6 +431,8 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
             with open(j_file, "r") as f:
                 annotation = json.load(f)
             sess_name = Path(j_file).stem
+            # add session name
+            [x.update({"session_id": sess_name}) for x in annotation]
             if c_split == "eval":
                 annotation, annotation_scoring = normalize_mixer6(
                     annotation, scoring_txt_normalization, eval_opt
@@ -463,7 +465,6 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "w",
             ) as f:
                 json.dump(annotation_scoring, f, indent=4)
-
             # dump uem too for dev only
             if c_split == "dev":
                 uem_start = sorted(
