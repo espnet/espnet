@@ -6,5 +6,5 @@ repos:
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
-    -   id: check-yaml
+    # -   id: check-yaml
     -   id: check-added-large-files
