@@ -77,7 +77,7 @@ while(<STDIN>) {
     }
     # German/Spanish/French "quotation", followed by comma, style
     else {
-	s/,\"/\",/g;	
+	s/,\"/\",/g;
 	s/(\.+)\"(\s*[^<])/\"$1$2/g; # don't fix period at end of sentence
     }
 
@@ -93,7 +93,7 @@ while(<STDIN>) {
     # replace punctuations into 4 types (. <period> , <comma> ? <question mark> -- <dash>) for simplicity
     # & separate words and punctuations by inserting a space
     # . ... : ; ! | . <period>
-    # ,           | , <comma> (no change) 
+    # ,           | , <comma> (no change)
     # ? !? ?!     | ? <question mark>
     # - -- "      | -- <dash> (Note that - for joining words (e.g. "hyper-parameter") will be kept)
     s/\.\.+/\. /g;

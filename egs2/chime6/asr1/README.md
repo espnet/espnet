@@ -27,4 +27,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_transformer_asr_model_valid.acc.ave_5best/dev_gss_multiarray|7437|92680|68.9|17.7|13.4|8.2|39.3|76.6|
-

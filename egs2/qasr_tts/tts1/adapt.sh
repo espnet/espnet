@@ -13,17 +13,17 @@ pyscripts/utils/make_token_list_from_config.py pretrained_model_path/exp/ljspeec
 mv dump/token_list/ljspeech_tts_train_transformer_raw_char_tacotron/tokens.{txt,txt.bak}
 ln -s pretrained_dir/exp/ljspeech_tts_train_transformer_raw_char_tacotron/tokens.txt dump/token_list/new_model
 
-# Train the model 
-./run.sh --stage 6 --train_config conf/tuning/finetune_transformer.yaml --train_args \ 
+# Train the model
+./run.sh --stage 6 --train_config conf/tuning/finetune_transformer.yaml --train_args \
 "--init_param pretrained_model/exp/tts_train_transformer_raw_char_tacotron/train.loss.ave_5best.pth":::tts.enc.embed \
 --tag finetune_pretrained_transformers
 
-# Now the trained model above will be used as a teacher model for the Non-AR model FastSpeech2 
+# Now the trained model above will be used as a teacher model for the Non-AR model FastSpeech2
 # Prepare durations file
 ./run.sh --stage 7  --tts_exp exp/tts_finetune_pretrained_transformers \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
-    
+
 # Since fastspeech2 requires extra feature calculation, run from stage 5.
 ./run.sh --stage 5 \
     --train_config conf/tuning/train_conformer_fastspeech2.yaml \

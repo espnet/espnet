@@ -40,7 +40,7 @@ test_set=test_"$(echo "${lang}" | tr - _)"
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Download data to ${FLEURS}"
     mkdir -p "downloads/${lang}"
     python local/create_dataset.py --lang ${lang} --nlsyms_txt ${nlsyms_txt}

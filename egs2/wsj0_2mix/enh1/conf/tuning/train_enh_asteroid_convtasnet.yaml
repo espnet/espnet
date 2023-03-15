@@ -53,9 +53,9 @@ separator_conf:
     encoder_activation: None
     sample_rate: 8000
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: pit

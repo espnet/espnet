@@ -9,7 +9,7 @@
 
 . ./path.sh
 
-conda deactivate 
+conda deactivate
 
 set -e -o pipefail
 set -o nounset                              # Treat unset variables as an error
@@ -124,4 +124,3 @@ head -n 10 $dir/oov_counts.g2p.txt
 
 utils/validate_dict_dir.pl $dir
 exit 0;
-

@@ -21,7 +21,7 @@ decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_D.txt:|  Sum/Avg  |  19
 ```
 
 # Transformer result(default transformer with n_average = 10, epoch = 100)
-  
+
   - Environments (obtained by `$ get_sys_info.sh`)
     - date: `Thu Jun 13 01:29:55 EDT 2019`
     - system information: `Linux a09 4.9.0-4-amd64 #1 SMP Debian 4.9.65-3+deb9u1 (2017-12-23) x86_64 GNU/Linux`

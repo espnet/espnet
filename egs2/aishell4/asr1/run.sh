@@ -14,7 +14,7 @@ use_lm=true
 use_wordlm=false
 
 
-# token_type are char and not bpe for chineese 
+# token_type are char and not bpe for chineese
 
 ./asr.sh                                               \
     --lang zh                                          \
