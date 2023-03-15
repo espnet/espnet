@@ -6,7 +6,7 @@ accum_grad: 1
 max_epoch: 700
 patience: none
 # Use self-defined function for initialization
-init: xavier_uniform 
+init: xavier_uniform
 best_model_criterion:
 -   - valid
     - acc

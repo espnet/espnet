@@ -29,4 +29,3 @@
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/dev|2686|36737|77.1|13.2|9.7|2.9|25.8|75.3|
 |inference_asr_model_valid.acc.ave/test|1321|11831|86.5|8.0|5.5|1.3|14.7|46.6|
-

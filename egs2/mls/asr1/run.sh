@@ -35,4 +35,3 @@ ngpu=1
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
     --lm_train_text "${lm_train_text}" "$@"
-

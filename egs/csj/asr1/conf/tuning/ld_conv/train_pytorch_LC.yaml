@@ -1,4 +1,4 @@
-# network architecture for Lightweight convolution. 
+# network architecture for Lightweight convolution.
 # encoder related
 elayers: 12
 eunits: 2048

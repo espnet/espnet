@@ -325,4 +325,3 @@ Compatible setting with espnet1 to reproduce the previou result
 |---|---|---|---|---|---|---|---|---|
 |decode_dev_decode_asr_rnn_lm_train_lm_char_valid.loss.best_asr_model_valid.acc.best|14326|205341|93.3|6.5|0.2|0.1|6.8|45.6|
 |decode_test_decode_asr_rnn_lm_train_lm_char_valid.loss.best_asr_model_valid.acc.best|7176|104765|92.7|7.1|0.3|0.1|7.4|47.6|
-

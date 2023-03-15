@@ -120,7 +120,7 @@ Parameters:
    max_num_clusters: maximum allowed number of clusters to generate
    pmax: maximum count for matrix binarization (should be at least 2)
    pbest: best count for matrix binarization (if 0, determined automatically)
-Returns: cluster assignments for every speaker embedding   
+Returns: cluster assignments for every speaker embedding
 """
 
 
@@ -154,7 +154,7 @@ Parameters:
    A: affinity matrix (matrix of pairwise cosine similarities or PLDA scores between speaker embeddings)
    num_clusters: number of clusters to generate
    pbest: best count for matrix binarization
-Returns: cluster assignments for every speaker embedding   
+Returns: cluster assignments for every speaker embedding
 """
 
 

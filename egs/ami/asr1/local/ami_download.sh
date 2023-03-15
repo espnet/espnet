@@ -105,6 +105,3 @@ fi
 
 echo "Downloads of AMI corpus completed successfully. License can be found under $adir/LICENCE.TXT"
 exit 0;
-
-
-

@@ -97,8 +97,8 @@ If you use this recipe for your research, please kindly cite the following paper
 
 ## Author
 
-Main development: Wen-Chin Huang @ Nagoya University (2020/03)  
-Advisors: Tomoki Hayashi (Nagoya U), Shinji Watanabe (JHU), Tomoki Toda (Nagoya U)  
-Special thanks: Matthew Wiesner (JHU)  
-If you have any questions, please open an issue.  
+Main development: Wen-Chin Huang @ Nagoya University (2020/03)
+Advisors: Tomoki Hayashi (Nagoya U), Shinji Watanabe (JHU), Tomoki Toda (Nagoya U)
+Special thanks: Matthew Wiesner (JHU)
+If you have any questions, please open an issue.
 Or contact through email: wen.chinhuang@g.sp.m.is.nagoya-u.ac.jp

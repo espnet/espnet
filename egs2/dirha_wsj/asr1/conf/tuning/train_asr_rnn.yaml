@@ -38,7 +38,7 @@ batch_size: 15
 # optimization related
 optim: adadelta
 optim_conf:
-     lr: 1.0 
+     lr: 1.0
      rho: 0.95
      eps: 1.0e-8
      weight_decay: 0

@@ -31,4 +31,3 @@ nbpe=3000
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"
-

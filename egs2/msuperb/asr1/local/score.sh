@@ -43,7 +43,7 @@ if [ ! -f downloads/macro.json ]; then
     wget -O downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
 fi
 if [ ! -f downloads/exception.json ]; then
-    wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true 
+    wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true
 fi
 
 python local/split_results.py \
