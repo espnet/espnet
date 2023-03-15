@@ -128,7 +128,84 @@ class SkiMSeparator(AbsSeparator):
             others["noise1"] = input * mask_noise
 
         return masked, ilens, others
+    
+    def forward_streaming(self, input_frame: torch.Tensor, states=None):
+
+        if is_complex(input_frame):
+            feature = abs(input_frame)
+        else:
+            feature = input_frame    
+
+        B, _, N = feature.shape    
+
+        processed, states = self.skim.forward_stream(feature, states=states)
+
+        processed = processed.view(B, 1, N, self.num_outputs)
+        masks = self.nonlinear(processed).unbind(dim=3)
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
+        masked = [input_frame * m for m in masks]
+
+        others = OrderedDict(
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
+        )
+        if self.predict_noise:
+            others["noise1"] = input_frame * mask_noise
+
+        return masked, states, others
 
     @property
     def num_spk(self):
         return self._num_spk
+    
+
+
+
+
+if __name__ == "__main__":
+
+    import humanfriendly
+    import time
+    
+    torch.set_num_threads(4)
+
+    SEQ_LEN = 10000
+    num_spk = 2
+    separator = SkiMSeparator(
+        input_dim=128,
+        causal=True,
+        num_spk=2,
+        layer=6,
+        unit=256,
+        segment_size=100,
+    )
+    separator.eval()
+
+    print(f"Number of parameters: {humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}" )
+
+    input_feature = torch.randn((1, SEQ_LEN, 128))
+    ilens = torch.LongTensor([SEQ_LEN, SEQ_LEN, SEQ_LEN])
+
+    with torch.no_grad():
+        
+        start = time.time()
+        seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
+        end = time.time()
+        print(f"seqeunce processing, time cost: {end - start}")
+
+        start = time.time()
+        state = None
+        stream_outputs = []
+        for i in range(SEQ_LEN):
+            frame = input_feature[:,i:i+1,:]
+            frame_out, state, _ = separator.forward_streaming(frame, state)
+            stream_outputs.append(frame_out)
+        end = time.time()
+        print(f"streaming processing, time cost: {end - start}")         
+        for i in range(SEQ_LEN):
+            for s in range(num_spk):
+                torch.testing.assert_allclose(stream_outputs[i][s], seq_output[s][:, i:i+1, :])
+    
+
+    print("Streaming OKey")

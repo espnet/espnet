@@ -65,10 +65,16 @@ class TemporalConvNet(nn.Module):
         bottleneck_conv1x1 = nn.Conv1d(N, B, 1, bias=False)
         # [M, B, K] -> [M, B, K]
         repeats = []
+
+        self.receptive_field = 0
         for r in range(R):
             blocks = []
             for x in range(X):
                 dilation = 2**x
+                if r ==0 and x ==0:
+                    self.receptive_field += P
+                else:
+                    self.receptive_field += (P-1) * dilation
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
