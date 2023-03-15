@@ -491,7 +491,8 @@ You can overwrite it by <code class="docutils literal notranslate"><span class="
 <h2>Packing and sharing your trained model<a class="headerlink" href="#packing-and-sharing-your-trained-model" title="Permalink to this headline">¶</a></h2>
 <p>ESPnet encourages you to share your results using platforms like <a class="reference external" href="https://huggingface.co/">Hugging Face</a> or <a class="reference external" href="https://zenodo.org/">Zenodo</a> (This last will become deprecated.)</p>
 <p>For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).</p>
-<p>For <strong>Hugging Face</strong>, you need to first create a repository (<code class="docutils literal notranslate"><span class="pre">&lt;my_repo&gt;</span> <span class="pre">=</span> <span class="pre">&lt;user_name&gt;/&lt;repo_name&gt;</span></code>).<br />Remember to install <code class="docutils literal notranslate"><span class="pre">git-lfs</span></code> before continuing.
+<p>For <strong>Hugging Face</strong>, you need to first create a repository (<code class="docutils literal notranslate"><span class="pre">&lt;my_repo&gt;</span> <span class="pre">=</span> <span class="pre">&lt;user_name&gt;/&lt;repo_name&gt;</span></code>).
+Remember to install <code class="docutils literal notranslate"><span class="pre">git-lfs</span></code> before continuing.
 Then, execute <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> as follows:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For ASR recipe</span>
 ./run.sh<span class="w"> </span>--stage<span class="w"> </span><span class="m">14</span><span class="w"> </span>--skip-upload-hf<span class="w"> </span><span class="nb">false</span><span class="w"> </span>--hf-repo<span class="w"> </span>&lt;my_repo&gt;
@@ -560,8 +561,8 @@ encoder_conf:
 <span class="w">    </span>block_size:<span class="w"> </span><span class="m">40</span><span class="w">         </span><span class="c1"># block size for block processing</span>
 <span class="w">    </span>hop_size:<span class="w"> </span><span class="m">16</span><span class="w">           </span><span class="c1"># hop size for block processing</span>
 <span class="w">    </span>look_ahead:<span class="w"> </span><span class="m">16</span><span class="w">         </span><span class="c1"># look-ahead size for block processing</span>
-<span class="w">    </span>init_average:<span class="w"> </span><span class="nb">true</span><span class="w">     </span><span class="c1"># whether to use average input as initial context </span>
-<span class="w">    </span>ctx_pos_enc:<span class="w"> </span><span class="nb">true</span><span class="w">      </span><span class="c1"># whether to use positional encoding for the context vectors </span>
+<span class="w">    </span>init_average:<span class="w"> </span><span class="nb">true</span><span class="w">     </span><span class="c1"># whether to use average input as initial context</span>
+<span class="w">    </span>ctx_pos_enc:<span class="w"> </span><span class="nb">true</span><span class="w">      </span><span class="c1"># whether to use positional encoding for the context vectors</span>
 </pre></div>
 </div>
 </section>

@@ -311,7 +311,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <section id="bin-enh-train-py">
 <h4>bin/enh_train.py<a class="headerlink" href="#bin-enh-train-py" title="Permalink to this headline">¶</a></h4>
 <p>As the main interface for the SSE training stage of <code class="docutils literal notranslate"><span class="pre">enh.sh</span></code>, <code class="docutils literal notranslate"><span class="pre">enh_train.py</span></code> takes the training parameters and model configurations from the arguments and calls</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="n">EnhancementTask</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> 
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="n">EnhancementTask</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>to build an SSE object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code> for training the SSE model according to the model configuration.</p>
@@ -342,7 +342,6 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <section id="sse-modules-enh-espnet-model-py">
 <h3>SSE Modules <code class="docutils literal notranslate"><span class="pre">enh/espnet_model.py</span></code><a class="headerlink" href="#sse-modules-enh-espnet-model-py" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="k">class</span> <span class="nc">ESPnetEnhancementModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">)</span>
-	
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">ESPnetEnhancementModel</span></code> is the base class for any ESPnet-SE++ SSE model. Since it inherits the same abstract base class <code class="docutils literal notranslate"><span class="pre">AbsESPnetModel</span></code>, it is well-aligned with other tasks such as ASR, TTS, ST, and SLU, bringing the benefits of cross-tasks combination.</p>
@@ -369,7 +368,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <section id="bin-enh-s2t-train-py">
 <h4>bin/enh_s2t_train.py<a class="headerlink" href="#bin-enh-s2t-train-py" title="Permalink to this headline">¶</a></h4>
 <p>Similarly to the interface of SSE training code <code class="docutils literal notranslate"><span class="pre">enh_train.py</span></code>, <code class="docutils literal notranslate"><span class="pre">enh_s2t_train.py</span></code> takes the training and modular parameters from the scripts, and calls</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="n">tasks</span><span class="o">.</span><span class="n">enh_s2t</span><span class="o">.</span><span class="n">EnhS2TTask</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> 
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="n">tasks</span><span class="o">.</span><span class="n">enh_s2t</span><span class="o">.</span><span class="n">EnhS2TTask</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>to build a joint-task object for training the joint-model based on a configuration with both SSE and s2t models setting with or without pre-trained checkpoints.</p>
@@ -379,7 +378,6 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <p>The <code class="docutils literal notranslate"><span class="pre">inference</span></code> function in <code class="docutils literal notranslate"><span class="pre">asr_inference.py</span></code>, <code class="docutils literal notranslate"><span class="pre">diar_inference.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">st_inference.py</span></code> builds and call a</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="k">class</span> <span class="nc">Speech2Text</span>
 	<span class="k">class</span> <span class="nc">DiarizeSpeech</span>
-	
 </pre></div>
 </div>
 <p>object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object <code class="docutils literal notranslate"><span class="pre">ESPnetEnhS2TModel</span></code> with pre-trained joint-task models and configurations.</p>
