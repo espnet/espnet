@@ -144,7 +144,7 @@ if __name__ == "__main__":
         for path in paths:
             wav_scp_f.write(path.wav_scp_str(sample_rate=sample_rate) + "\n")
             labels = list(read_label(path))
-            labels.sort(key=lambda l: l.utt_id())
+            labels.sort(key=lambda lll: lll.utt_id())
             for label in labels:
                 text_f.write(label.text_file_str() + "\n")
                 segments_f.write(label.segment_file_str() + "\n")
