@@ -23,17 +23,4 @@ scheduler_conf:
     factor: 0.5
     patience: 1
 encoder: vgg_rnn
-encoder_conf:
-    rnn_type: lstm
-    bidirectional: true
-    use_projection: true
-    num_layers: 4
-    hidden_size: 320
-    output_size: 320
-    dropout: 0.0
 decoder: rnn
-decoder_conf:
-    rnn_type: lstm
-    num_layers: 1
-    hidden_size: 320
-    dropout: 0.0
