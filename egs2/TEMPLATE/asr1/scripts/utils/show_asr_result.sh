@@ -44,7 +44,7 @@ cat << EOF
 EOF
 
 while IFS= read -r expdir; do
-    
+
       if ls "${expdir}"/*/*/result.sum &> /dev/null; then
 	echo "## ${expdir}"
 	cat << EOF
@@ -52,7 +52,7 @@ while IFS= read -r expdir; do
 |---|---|---|---|---|---|
 EOF
 	grep -H -e "RESULT" "${expdir}"/*/*/result.sum | sed 's=RESULT==g' |  cut -d ' ' -f 1,2- | tr ' ' '|'
-	echo  
+	echo
       elif ls "${expdir}"/*/*/score_*/result.txt &> /dev/null; then
         echo "## ${expdir}"
         for type in wer cer ter; do
@@ -67,7 +67,7 @@ EOF
             		grep -H -e Sum/Avg "${expdir}"/*/*/score_wer/scoring/*.filt.sys \
 				| sed -e "s#${expdir}/\([^/]*/[^/]*\)/score_wer/scoring/\([[:graph:]]*\):#|\1/\2#g" \
 			| sed -e 's#Sum/Avg##g' | tr '|' ' ' | tr -s ' ' '|'
-	    		echo 
+	    		echo
 	    	elif ls "${expdir}"/*/*/score_${type}/result.txt &> /dev/null; then
                 		grep -H -e Avg "${expdir}"/*/*/score_${type}/result.txt \
                     		| sed -e "s#${expdir}/\([^/]*/[^/]*\)/score_${type}/result.txt:#|\1#g" \

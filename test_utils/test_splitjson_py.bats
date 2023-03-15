@@ -117,4 +117,3 @@ teardown() {
     jsondiff $tmpdir/split2utt/input.1.json $tmpdir/valid1
     jsondiff $tmpdir/split2utt/input.2.json $tmpdir/valid2
 }
-

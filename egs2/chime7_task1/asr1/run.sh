@@ -244,3 +244,4 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   python local/chime7dasr_score.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
      -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 0 2>&1 | tee $LOG_OUT
 fi
+

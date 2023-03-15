@@ -16,7 +16,7 @@ duration=10min # duration can be either 10min or 1h
 multilingual=true
 lid=false
 only_lid=false
-single_lang=eng # lang for single lang data preparation 
+single_lang=eng # lang for single lang data preparation
                 # candidates: eng, deu, rus, pol, swe, jpn, cmn, sat, nob, xty
 
  . utils/parse_options.sh || exit 1;
@@ -41,7 +41,7 @@ set -o pipefail
 
 log "data preparation started"
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${MSUPERB}"
     log "Not released yet"
 fi
@@ -62,7 +62,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mkdir -p data/train_${duration}${suffix}
         mkdir -p data/dev_${duration}${suffix}
         mkdir -p data/test_${duration}${suffix}
- 
+
         python local/data_prep.py \
             --train_set train_${duration}${suffix} \
             --train_dev dev_${duration}${suffix} \
@@ -82,7 +82,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         for x in "train" "dev" "test"; do
             mkdir -p data/${x}_${duration}_${single_lang}
         done
-        
+
         python local/single_lang_data_prep.py \
             --duration ${duration} \
             --source ${MSUPERB} \

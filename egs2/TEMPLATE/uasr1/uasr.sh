@@ -99,7 +99,7 @@ word_vocab_size=10000 # Size of word vocabulary.
 # UASR V1 feature clustering related
 use_feature_clustering=false        # Do PCA and k-means on input feature
 feature_clustering_tool="faiss"     # Tool for feature clustering (faiss or cuml)
-feature_pca_dim=512                 # Dimension of PCAed feature vector 
+feature_pca_dim=512                 # Dimension of PCAed feature vector
 feature_num_clusters=128            # Number of feature clusters
 
 # uasr model related
@@ -589,8 +589,8 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                if [ ! -f data/"${dset}"/wav.scp ]; then 
-                    if [ ! -f data/"${dset}"/segments ]; then 
+                if [ ! -f data/"${dset}"/wav.scp ]; then
+                    if [ ! -f data/"${dset}"/segments ]; then
                         <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                     else
                         <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
@@ -740,8 +740,8 @@ if ! "${skip_data_prep}"; then
                 --write_vocabulary false \
                 --field "2-"
 
-            # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal 
-            # evaluation (however, the results with unpaired text are not suppose to be used for model 
+            # Note(Jiatong): though name as unpaired text, we here utilize the paired data for internal
+            # evaluation (however, the results with unpaired text are not suppose to be used for model
             # selection)
             paste -d ' ' "${data_feats}/${valid_set}/utt_ids" "${data_feats}/${valid_set}/unpaired_text.tmp" \
             > "${data_feats}/${valid_set}/unpaired_text"
@@ -788,7 +788,7 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos}" \
                 --add_symbol "${pad}" \
                 --add_symbol "${eos}" \
-                --add_symbol "${oov}" 
+                --add_symbol "${oov}"
 
             cp "${data_feats}/${train_set}/tokens.txt" "${token_list}"
 
@@ -1197,7 +1197,7 @@ if ! "${skip_train}"; then
         <"${uasr_stats_dir}/valid/text_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${uasr_stats_dir}/valid/text_shape.${token_type}"
-        
+
         cp ${uasr_stats_dir}/train/collect_feats/feats.scp "${data_feats}/${train_set}"/feats.scp
         cp ${uasr_stats_dir}/valid/collect_feats/feats.scp "${data_feats}/${valid_set}"/feats.scp
     fi
@@ -1219,7 +1219,7 @@ if ! "${skip_train}"; then
                     --dim ${feature_pca_dim} \
                     --num_clusters ${feature_num_clusters} \
                     ${uasr_stats_dir} \
-                    ${output_feats_dir} 
+                    ${output_feats_dir}
 
             elif [ "${feature_clustering_tool}" = "cuml" ]; then
                 scripts/feats/feats_clustering_cuml.sh \
@@ -1228,12 +1228,12 @@ if ! "${skip_train}"; then
                     --dim ${feature_pca_dim} \
                     --num_clusters ${feature_num_clusters} \
                     ${uasr_stats_dir} \
-                    ${output_feats_dir} 
+                    ${output_feats_dir}
 
             else
                 log "${feature_clustering_tool}" is not supported
             fi
-            
+
             echo "${feature_pca_dim}" > ${uasr_stats_dir}/train/feats_dim
             echo "${feature_pca_dim}" > ${uasr_stats_dir}/valid/feats_dim
 
@@ -1447,8 +1447,8 @@ if ! "${skip_eval}"; then
                     --test_sets "${test_sets}" \
                     --skip_training true \
                     ${uasr_stats_dir} \
-                    ${output_feats_dir} 
-            
+                    ${output_feats_dir}
+
             elif [ "${feature_clustering_tool}" = "cuml" ]; then
                 scripts/feats/feats_clustering_cuml.sh \
                     --cmd "${cuda_cmd}" \
@@ -1459,7 +1459,7 @@ if ! "${skip_eval}"; then
                     --test_sets "${test_sets}" \
                     --skip_training true \
                     ${uasr_stats_dir} \
-                    ${output_feats_dir} 
+                    ${output_feats_dir}
 
             else
                 log "${feature_clustering_tool}" is not supported
@@ -1596,7 +1596,7 @@ if ! "${skip_eval}"; then
                 _scoredir="${_dir}/score_per"
                 mkdir -p "${_scoredir}"
 
-                log "${_data}/text" 
+                log "${_data}/text"
 
                 # Tokenize text to phn level (the phn is separate as word)
                 ${python} -m espnet2.bin.tokenize_text \
@@ -1895,4 +1895,3 @@ else
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-

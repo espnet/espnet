@@ -7,6 +7,7 @@ set -o pipefail
 
 ./asr.sh \
     --lang en \
+    --asr_config conf/train_asr_rnn.yaml \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \

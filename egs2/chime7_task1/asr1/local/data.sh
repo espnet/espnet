@@ -180,5 +180,3 @@ fi
 
 
 log "ASR data preparation successfully finished. [elapsed=${SECONDS}s]"
-
-

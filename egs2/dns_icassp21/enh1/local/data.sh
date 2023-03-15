@@ -21,7 +21,7 @@ Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>]
         You can download the data by using download-dns-challenge-2.sh in the master branch without git lfs
         In addition, "datasets/wideband/acoustic_params_wideband" and "datasets/wideband/dev_testset_wideband/track1" are required, which are not downloaded by the above script
         You can find them in interspeech/adddata branch
-        For evaluation, synthetic data in the "datasets/wideband/dev_testset_wideband/track1" in the the interspeech2021/adddata branch is used 
+        For evaluation, synthetic data in the "datasets/wideband/dev_testset_wideband/track1" in the the interspeech2021/adddata branch is used
         To avoid issues related to hard-coded paths, please change the current directory to DNS-Challenge in noisyspeech_synthesizer_singleprocess.py
         Also, please make sure the destination is under data/dns_wav
 EOF
