@@ -245,17 +245,17 @@ ASR model. This is the configuration that gave the best results overall on the d
     <td rowspan="3">dev</td>
     <td>GSS (EV top 80%)</td>
     <td> 33.6 </td>
-    <td rowspan="3"> 30.0 </td>
+    <td rowspan="3"> 28.81 </td>
   </tr>
   <tr>
     <td>DiPCo</td>
     <td>GSS (EV top 80%)</td>
-    <td> 34.5 </td>
+    <td> 33.54 </td>
   </tr>
   <tr>
     <td>Mixer-6</td>
     <td>GSS (EV top 80%)</td>
-    <td> 21.8 </td>
+    <td> 20.59 </td>
   </tr>
 </tbody>
 </table>
@@ -269,7 +269,8 @@ Results on the evaluation set will be released after the end of the CHiME-7 DASR
 
 Will be added together with the diarization baseline. 
 Evaluation will be performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription. 
-by computing SA-WER for each speaker, where the hypothesis are re-ordered based on the best reordering defined by diarization error rate.
+by computing diarization-attributed word error rate (DA-WER) for each speaker, where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate
+and then concatenated together. It is similar to the CHiME-6 Challenge cpWER but here we use diarization to define the permutation.
 
 
 ## <a id="common_issues"> 5. Common Issues </a>
