@@ -386,7 +386,9 @@
 
         <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_score</span><span class="p">(</span><span class="n">new_hyps</span><span class="p">,</span> <span class="n">ctc_score_dp_next</span><span class="p">)</span>
 
-        <span class="n">hyps</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">new_hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">]</span>
+        <span class="n">hyps</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">new_hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">ll</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="n">ll</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span>
+            <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span>
+        <span class="p">]</span>
         <span class="n">ctc_score_dp</span> <span class="o">=</span> <span class="n">ctc_score_dp_next</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">ctc_score_dp</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">scores</span></div>
 
