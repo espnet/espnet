@@ -1,4 +1,4 @@
-name: Check the consistency of the files which was copied from Kaldi
+name: Check kaldi scripts
 
 on:
   push:
