@@ -192,9 +192,9 @@ class BeamSearchTimeSync(torch.nn.Module):
 
         scores = self.joint_score(new_hyps, ctc_score_dp_next)
 
-        hyps = sorted(
-            new_hyps, key=lambda ll: scores[ll], reverse=True
-        )[: self.beam_size]
+        hyps = sorted(new_hyps, key=lambda ll: scores[ll], reverse=True)[
+            : self.beam_size
+        ]
         ctc_score_dp = ctc_score_dp_next.copy()
         return ctc_score_dp, hyps, scores
 
