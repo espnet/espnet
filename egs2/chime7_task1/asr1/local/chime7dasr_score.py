@@ -2,6 +2,7 @@ import argparse
 import glob
 import json
 import os
+import pickle
 import warnings
 from copy import deepcopy
 from pathlib import Path
@@ -19,10 +20,36 @@ from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
 
-DEBUG = True
 
-if DEBUG:
-    from meeteval import wer as meeteval_wer
+def compute_der(df_or_dict):
+    if isinstance(df_or_dict, dict):
+        der = (
+            df_or_dict["false alarm"]
+            + df_or_dict["missed detection"]
+            + df_or_dict["confusion"]
+        ) / df_or_dict["total"]
+    elif isinstance(df_or_dict, pd.DataFrame):
+        der = (
+            df_or_dict["false alarm"].sum()
+            + df_or_dict["missed detection"].sum()
+            + df_or_dict["confusion"].sum()
+        ) / df_or_dict["total"].sum()
+    else:
+        raise NotImplementedError
+
+    return der
+
+
+def compute_jer(df_or_dict):
+    if isinstance(df_or_dict, dict):
+        jer = df_or_dict["speaker error"] / df_or_dict["speaker count"]
+    elif isinstance(df_or_dict, pd.DataFrame):
+        jer = df_or_dict["speaker error"].sum() / df_or_dict["speaker count"].sum()
+    else:
+        raise NotImplementedError
+
+    return jer
+
 
 class DERComputer(IdentificationErrorRate):
     """Modified from https://github.com/pyannote/
@@ -64,16 +91,16 @@ class DERComputer(IdentificationErrorRate):
         components = super(DERComputer, self).compute_components(
             reference, mapped, uem=uem, collar=0.0, skip_overlap=False, **kwargs
         )
-        der = (
-            components["false alarm"]
-            + components["missed detection"]
-            + components["confusion"]
-        ) / components["total"]
+        der = compute_der(components)
         components.update({"diarization error rate": der})
         return components
 
 
 class JERComputer(DiarizationErrorRate):
+    """Modified from https://github.com/pyannote/
+    pyannote-metrics/blob/14af03ca61527621cfc0a3ed7237cc2969681915/
+    pyannote/metrics/diarization.py"""
+
     def __init__(self, collar=0.0, skip_overlap=False, **kwargs):
         super().__init__(collar=collar, skip_overlap=skip_overlap, **kwargs)
         self.mapper_ = HungarianMapper()
@@ -101,66 +128,37 @@ class JERComputer(DiarizationErrorRate):
             detail["speaker count"] += 1
             detail["speaker error"] += jer
 
-        jer = detail["speaker error"] / detail["speaker count"]
+        jer = compute_jer(detail)
         detail.update({"Jaccard error rate": jer})
         return detail
 
 
 def compute_wer(df_or_dict):
     if isinstance(df_or_dict, dict):
-        wer = (df_or_dict["substitutions"] + df_or_dict["deletions"] + df_or_dict["insertions"]
+        wer = (
+            df_or_dict["substitutions"]
+            + df_or_dict["deletions"]
+            + df_or_dict["insertions"]
         ) / (df_or_dict["substitutions"] + df_or_dict["deletions"] + df_or_dict["hits"])
     elif isinstance(df_or_dict, pd.DataFrame):
-        wer = (df_or_dict["substitutions"].sum() + df_or_dict["deletions"].sum() +
-               df_or_dict["insertions"].sum()
-               ) / (df_or_dict["substitutions"].sum() + df_or_dict["deletions"].sum() +
-                    df_or_dict["hits"].sum())
+        wer = (
+            df_or_dict["substitutions"].sum()
+            + df_or_dict["deletions"].sum()
+            + df_or_dict["insertions"].sum()
+        ) / (
+            df_or_dict["substitutions"].sum()
+            + df_or_dict["deletions"].sum()
+            + df_or_dict["hits"].sum()
+        )
     else:
         raise NotImplementedError
 
     return wer
 
 
-
-
-def contaminate_hyps(hyp_segs):
-    import numpy as np
-
-    speakers = list(set([x["speaker"] for x in hyp_segs]))
-    new = []
-    for seg in hyp_segs:
-        if np.random.rand() > 0.9:
-            continue
-        elif np.random.rand() > 0.0:
-
-            new_seg = deepcopy(seg)
-            new_seg["speaker"] = np.random.choice(["spk1"])
-            duration = float(seg["end_time"]) - float(seg["start_time"])
-            new_seg["start_time"] = str(
-                float(seg["start_time"]) + np.random.uniform(-1, 1) * duration / 2
-            )
-            new_seg["end_time"] = str(
-                float(seg["end_time"]) + np.random.uniform(-1, 1) * duration / 2
-            )
-            new.append(new_seg)
-        else:
-            new_seg = deepcopy(seg)
-            duration = float(seg["end_time"]) - float(seg["start_time"])
-            new_seg["start_time"] = str(
-                float(seg["start_time"]) + np.random.uniform(-1, 1) * duration / 4
-            )
-            new_seg["end_time"] = str(
-                float(seg["end_time"]) + np.random.uniform(-1, 1) * duration / 2
-            )
-            new.append(new_seg)
-    return new
-
-
 def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
-    # contaminate hypothesis
-
-
-
+    # computing all diarization errors for each session here.
+    # find optimal mapping too, which will then be used to find the WER.
     if uem_boundaries is not None:
         uem = Timeline([Segment(start=uem_boundaries[0], end=uem_boundaries[-1])])
     else:
@@ -199,15 +197,14 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
 
 
 def compute_asr_errors(hyp_segs, ref_segs, mapping=None, uem=None):
-
-    if mapping is not None: # using diarization
+    if mapping is not None:  # using diarization
         hyp_segs_reordered = []
         for s in hyp_segs:
             new_segment = deepcopy(s)
             c_speaker = new_segment["speaker"]
 
             if c_speaker not in mapping.keys():
-                mapping[c_speaker] = "FA_" + c_speaker # false speaker
+                mapping[c_speaker] = "FA_" + c_speaker  # false speaker
             new_segment["speaker"] = mapping[c_speaker]
             hyp_segs_reordered.append(new_segment)
         hyp_segs = hyp_segs_reordered
@@ -245,7 +242,12 @@ def compute_asr_errors(hyp_segs, ref_segs, mapping=None, uem=None):
         cat_hyps = " ".join([x["words"] for x in hyp[spk]])
         if len(cat_refs) == 0:
             # need this because jiwer cannot handle empty refs
-            ldist = {"hits": 0, "substitutions": 0, "deletions": 0, "insertions": len(cat_hyps.split())}
+            ldist = {
+                "hits": 0,
+                "substitutions": 0,
+                "deletions": 0,
+                "insertions": len(cat_hyps.split()),
+            }
         else:
             ldist = jiwer.compute_measures(cat_refs, cat_hyps)
         ldist.update(
@@ -261,24 +263,40 @@ def compute_asr_errors(hyp_segs, ref_segs, mapping=None, uem=None):
 
     c_wer = compute_wer(tot_stats)
     tot_stats.update({"wer": c_wer})
-    if DEBUG:
-        if mapping is not None:
-            # remove the dummy speakers
-            if missed_speakers:
-                for m_spk in list(missed_speakers):
-                    del hyp[m_spk]
-            if false_speakers:
-                for f_spk in list(false_speakers):
-                    del ref[f_spk]
-        # check consistency with meeteval cpWER, note if diarization is terrible
-        # this consistency will fail.
-        cp_wer = meeteval_wer.cp_word_error_rate(
-            {k: " ".join([x["words"] for x in ref[k]]) for k in ref.keys()},
-            {k: " ".join([x["words"] for x in hyp[k]]) for k in hyp.keys()},
-        )
-        assert abs(cp_wer.error_rate - c_wer) < 1e-4
 
     return tot_stats, speakers_stats
+
+
+def log_diarization(
+    output_folder, scenario_tag, session, reference, hypothesis, errors
+):
+    """
+    Logging diarization output to the specified output folder for each session.
+    This is useful for analyzing errors.
+    """
+
+    sess_folder = os.path.join(output_folder, scenario_tag, session)
+    Path(sess_folder).mkdir(exist_ok=True, parents=True)
+
+    with open(os.path.join(sess_folder, "diar_errors_summary.txt"), "w") as f:
+        print(errors.chart(), file=f)
+
+    # save to disk as you may want to use them to analyze errors.
+    # pyannote has some useful visualization features.
+    with open(os.path.join(sess_folder, "diar_errors_pyannote.pickle"), "wb") as handle:
+        pickle.dump(errors, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open(os.path.join(sess_folder, "diar_ref_pyannote.pickle"), "wb") as handle:
+        pickle.dump(reference, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    with open(os.path.join(sess_folder, "diar_hyp_pyannote.pickle"), "wb") as handle:
+        pickle.dump(hypothesis, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(os.path.join(sess_folder, "errors.rttm"), "w") as f:
+        f.write(errors.to_rttm())
+    with open(os.path.join(sess_folder, "reference.rttm"), "w") as f:
+        f.write(reference.to_rttm())
+    with open(os.path.join(sess_folder, "hypothesis.rttm"), "w") as f:
+        f.write(hypothesis.to_rttm())
+
 
 def score(
     hyp_json,
@@ -333,7 +351,9 @@ def score(
 
     all_sess_stats = []
     all_spk_stats = []
-    for indx, session in tqdm(enumerate(r_sess2segs.keys())):
+    sessions = list(r_sess2segs.keys())
+    for indx in tqdm(range(len(sessions))):
+        session = sessions[indx]
         hyp_segs = sorted(h_sess2segs[session], key=lambda x: float(x["start_time"]))
         ref_segs = sorted(r_sess2segs[session], key=lambda x: float(x["start_time"]))
         # compute diarization error and best permutation here
@@ -346,8 +366,6 @@ def score(
         Path(sess_dir).mkdir(exist_ok=True)
 
         if use_diarization:
-            if DEBUG:
-                hyp_segs = contaminate_hyps(hyp_segs)
             (
                 mapping,
                 der_score,
@@ -357,6 +375,9 @@ def score(
                 errors,
             ) = compute_diar_errors(hyp_segs, ref_segs, c_uem, collar=collar)
 
+            log_diarization(
+                output_folder, scenario_tag, session, reference, hypothesis, errors
+            )
             # save ref hyps and errors in a folder
             # save also compatible format for audacity
             c_sess_stats = {
@@ -368,17 +389,24 @@ def score(
                 "tot utterances ref": len(reference),
             }
 
-            c_sess_stats.update({"der_{}".format(k): v for k, v in der_score.items()})
-            c_sess_stats.update({"jer_{}".format(k): v for k, v in jer_score.items()})
+            c_sess_stats.update({k: v for k, v in der_score.items()})
+            c_sess_stats.update({k: v for k, v in jer_score.items()})
             asr_err_sess, asr_err_spk = compute_asr_errors(
                 hyp_segs, ref_segs, mapping, uem=c_uem
             )
 
         else:
-            assert len(hyp_segs) == len(
-                ref_segs
-            ), "If diarization re-ordering is not used"
-            asr_err_sess, asr_err_spk = compute_asr_errors(hyp_segs, ref_segs, uem=c_uem)
+            if not len(hyp_segs) == len(ref_segs):
+                warnings.warn(
+                    "If oracle diarization was used, "
+                    "I expect the hypothesis to have the same number "
+                    "of utterances as the "
+                    "reference. Have you discarded some utterances ?"
+                    "These will be counted as deletions so be careful !"
+                )
+            asr_err_sess, asr_err_spk = compute_asr_errors(
+                hyp_segs, ref_segs, uem=c_uem
+            )
             c_sess_stats = {
                 "session id": session,
                 "scenario": scenario_tag,
@@ -397,17 +425,23 @@ def score(
         all_sess_stats.append(c_sess_stats)
         all_spk_stats.extend(asr_err_spk)
 
-    # get scenario-wise stats
-    #if "" in all_sess_stats.keys():
-        # has diarization, need to recompute jer and der
+    sess_df = pd.DataFrame(all_sess_stats)
+    # pretty print because it may be useful
+    print(tabulate(sess_df, headers="keys", tablefmt="psql"))
+    # accumulate for all scenario
+    scenario_wise_df = sess_df.sum(0).to_frame().transpose()
+    scenario_wise_df["scenario"] = scenario_tag
+    # need to recompute these
+    scenario_wer = compute_wer(sess_df)
+    scenario_wise_df["wer"] = scenario_wer
+    if use_diarization:
+        scenario_der = compute_der(sess_df)
+        scenario_wise_df["der"] = scenario_der
+        scenario_jer = compute_jer(sess_df)
+        scenario_wise_df["jer"] = scenario_jer
+    del scenario_wise_df["session id"]  # delete session
 
-    # recompute wer here
-
-    import pdb
-    pdb.set_trace()
-    print(tabulate(pd.DataFrame(all_sess_stats), headers="keys", tablefmt="psql"))
-
-    return all_sess_stats, all_spk_stats
+    return scenario_wise_df, all_sess_stats, all_spk_stats
 
 
 if __name__ == "__main__":
@@ -419,7 +453,7 @@ if __name__ == "__main__":
         " for a particular partition e.g. dev set or eval. "
         "The JSON should contain predictions for all session in that partition."
         " Each JSON should contain speaker id, start, stop, session id"
-        " and predicted words for each utterance.",
+        " and predicted words entries for each predicted utterance.",
         add_help=True,
         usage="%(prog)s [options]",
     )
@@ -474,8 +508,7 @@ if __name__ == "__main__":
         type=int,
         default=500,
         required=False,
-        help="Folder containing 500ms collar in pyannote "
-        "equal to 250ms start and end.",
+        help="500ms collar in pyannote " "equal to 250ms start and end.",
         metavar="INT",
         dest="collar",
     )
@@ -488,15 +521,17 @@ if __name__ == "__main__":
         required=False,
         dest="ignore_missing",
         help="If 1 will ignore missing JSON for a particular scenario, "
-        "in case you want to score e.g. only DiPCo.",
+        "in case you want to score e.g. only DiPCo. If 0 missing the "
+        "corresponding JSON for a particular scenario will raise an error.",
     )
 
     args = parser.parse_args()
     skip_macro = False
-    utt_wise_df = []
+    spk_wise_df = []
     sess_wise_df = []
     scenario_wise_df = []
-    scenarios = ["mixer6"]
+    scenarios = ["chime6", "dipco", "mixer6"]
+    Path(args.output_folder).mkdir(exist_ok=True)
     for indx, scenario in enumerate(scenarios):
         hyp_json = os.path.join(args.hyp_folder, scenario + ".json")
         if bool(args.ignore_missing):
@@ -512,6 +547,9 @@ if __name__ == "__main__":
             assert os.path.exists(hyp_json), "I cannot find {}, exiting.".format(
                 hyp_json
             )
+        print("###################################################")
+        print("### Scoring {} Scenario ###########################".format(scenario))
+        print("###################################################")
         reference_json = glob.glob(
             os.path.join(
                 args.dasr_root,
@@ -533,7 +571,7 @@ if __name__ == "__main__":
                 "*.json",
             )
         )
-        all_sess_stats, all_spk_stats = score(
+        scenario_stats, all_sess_stats, all_spk_stats = score(
             hyp_json,
             reference_json,
             scenario,
@@ -542,21 +580,26 @@ if __name__ == "__main__":
             collar=float(args.collar / 1000),
             use_diarization=args.diarization,
         )
+        sess_wise_df.extend(all_sess_stats)
+        spk_wise_df.extend(all_spk_stats)
+        scenario_wise_df.append(scenario_stats)
 
-
-        # scenario_wise_df.extend(c_scenario_wise)
-
-    scenario_wise_df = pd.DataFrame(scenario_wise_df)
     sess_wise_df = pd.DataFrame(sess_wise_df)
-    utt_wise_df = pd.DataFrame(utt_wise_df)
+    spk_wise_df = pd.DataFrame(spk_wise_df)
+    scenario_wise_df = pd.concat(scenario_wise_df, 0)
+    sess_wise_df.to_csv(os.path.join(args.output_folder, "sessions_stats.csv"))
+    spk_wise_df.to_csv(os.path.join(args.output_folder, "speakers_stats.csv"))
+    scenario_wise_df.to_csv(os.path.join(args.output_folder, "scenarios_stats.csv"))
 
-    # for score_name in macro_scores.keys():
-    #   print("{} {}".format(score_name, macro_scores[score_name] / len(scenarios)))
+    # compute scenario-wise metrics
+    print("###################################################")
+    print("### Metrics for all Scenarios ###")
+    print("###################################################")
     print(tabulate(scenario_wise_df, headers="keys", tablefmt="psql"))
     if not skip_macro:
-        print("###################################################")
-        print("### Macro-Averaged Metrics across all Scenarios ###")
-        print("###################################################")
-        scenario_wise_df.mean(0)
-    # save all dataframes to csv files
-    # save also them as tabulate suitable for markdown
+        print("####################################################################")
+        print("### Macro-Averaged Metrics across all Scenarios (Ranking Metric) ###")
+        print("####################################################################")
+        macro_avg = scenario_wise_df.mean(0).to_frame().T
+        macro_avg.insert(0, "scenario", "macro-average")
+        print(tabulate(macro_avg, headers="keys", tablefmt="psql"))

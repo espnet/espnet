@@ -218,11 +218,14 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # final scoring
-  echo "Scoring ASR predictions for CHiME-7 DASR challenge."
+  log "Scoring ASR predictions for CHiME-7 DASR challenge."
   # note, we re-create the asr exp folder here based on asr.sh
-  # internal operation
-  #asr_tag=#"$(basename "${asr_config}" .yaml)_raw"
-  asr_exp=exp/popcornell/chime7_task1_asr1_baseline/ #"exp/asr_${asr_tag}"
+  if [ -n "$use_pretrained" ]; then
+    asr_exp="exp/${use_pretrained}"
+  else
+    asr_tag="$(basename "${asr_config}" .yaml)_raw"
+    asr_exp="exp/asr_${asr_tag}"
+  fi
   inference_tag="$(basename "${inference_config}" .yaml)"
   inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 
@@ -237,6 +240,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
 
   done
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/chime7dasr_score.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/chime7dasr_score
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 0 2>&1 | tee $LOG_OUT
 fi

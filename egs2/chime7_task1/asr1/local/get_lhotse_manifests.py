@@ -534,7 +534,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="output_root",
-        help="Path where the new CHiME-7 Task 1 dataset will be saved."
+        help="Path where the new CHiME-7 Task 1 dataset will be saved. "
         "Note that for audio files symbolic links are used.",
     )
     parser.add_argument(
@@ -544,7 +544,7 @@ if __name__ == "__main__":
         metavar="STR",
         required=False,
         help="Choose between chime6 and chime7, this"
-        " select the text normalization applied when creating"
+        " select the text normalization applied when creating "
         "the scoring annotation.",
     )
     parser.add_argument(
@@ -556,7 +556,7 @@ if __name__ == "__main__":
         required=False,
         help="Path to a directory with same structure "
         "as CHiME-7 Task 1 transcription directory, "
-        "containing JSON files"
+        "containing JSON files "
         "with the same structure but from a diarization "
         "system (words field could be missing and will be ignored).",
     )
@@ -567,7 +567,7 @@ if __name__ == "__main__":
         dest="ignore_shorter",
         default=0.0,
         required=False,
-        help="Ignore segments that are shorter than" " this value in the supervision.",
+        help="Ignore segments that are shorter than this value in the supervision.",
     )
 
     args = parser.parse_args()

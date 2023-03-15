@@ -99,16 +99,16 @@ class MicRanking(Dataset):
                 stop=int(start * fs) + int(duration * fs),
             )
             c_wav = torch.from_numpy(c_wav).float().unsqueeze(0)
-            assert c_wav.shape[0] == 1, (
-                "Input audio should be mono for " "channel selection in this script."
-            )
+            assert (
+                c_wav.shape[0] == 1
+            ), "Input audio should be mono for channel selection in this script."
 
             if len(to_tensor) > 0:
                 if c_wav.shape[-1] != to_tensor[0].shape[-1]:
                     print(
                         "Discarded recording {} from {} supervision start {:.3f} "
                         "stop {:.3f} . There is a difference of length of {} (samples)"
-                        "with the other recordings. It may be that one recording "
+                        " with the other recordings. It may be that one recording "
                         "is shorter than the others and this segment exceed "
                         "the length of the shorter one."
                         "".format(

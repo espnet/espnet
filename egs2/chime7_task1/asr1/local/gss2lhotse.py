@@ -36,9 +36,9 @@ def get_new_manifests(input_dir, output_filename):
             warnings.warn(
                 "Skipped example {}, of length {:.2f}, it was not found in GSS input. "
                 "This may lead to significant errors for ASR if this is inference."
-                "It could be that it was discarded by GSS "
+                " It could be that it was discarded by GSS "
                 "because the segment was too long,"
-                "check GSS max-segment-length argument.".format(
+                " check GSS max-segment-length argument.".format(
                     gss_id, c_cut.end - c_cut.start
                 )
             )

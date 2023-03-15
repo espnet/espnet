@@ -508,7 +508,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="chime6_root",
-        help="Path to CHiME-6 dataset main directory."
+        help="Path to CHiME-6 dataset main directory. "
         "It should contain audio and transcriptions as sub-folders.",
     )
     parser.add_argument(
@@ -516,7 +516,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="dipco_root",
-        help="Path to DiPCo dataset main directory. "
+        help="Path to DiPCo dataset main directory."
         "It should contain audio and transcriptions as sub-folders.",
     )
     parser.add_argument(
@@ -524,14 +524,14 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="mixer6_root",
-        help="Path to DiPCo dataset main directory." "It should contain ",
+        help="Path to Mixer6 dataset main directory.",
     )
     parser.add_argument(
         "-o,--output_root",
         type=str,
         metavar="STR",
         dest="output_root",
-        help="Path where the new CHiME-7 Task 1 dataset will be saved."
+        help="Path where the new CHiME-7 Task 1 dataset will be saved. "
         "Note that for audio files symbolic links are used.",
     )
     parser.add_argument(
@@ -539,10 +539,10 @@ if __name__ == "__main__":
         type=int,
         default=0,
         metavar="INT",
-        help="Choose between 0, do not create eval annotation."
-        "1 creates ONLY eval annotation for sub-track1 (skip the other splits)"
-        "(oracle diarization, no words field in JSONs)."
-        "Note that for using 1 Mixer6 evaluation set needs to be released."
+        help="Choose between 0, do not create eval annotation. "
+        "1 creates ONLY eval annotation for sub-track1 (skip the other splits) "
+        "(oracle diarization, no words field in JSONs). "
+        "Note that for using 1 Mixer6 evaluation set needs to be released. "
         "Option 2 is for Organizers only "
         "(full annotation on eval used for scoring).",
     )
@@ -553,7 +553,7 @@ if __name__ == "__main__":
         default="chime7",
         metavar="STR",
         help="Choose between chime6 and chime7, "
-        "this select the text normalization applied when creating"
+        "this select the text normalization applied when creating "
         "the scoring annotation.",
     )
     args = parser.parse_args()
