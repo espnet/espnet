@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/sid,doc,tools"
+exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/sid,doc,tools,bats-core"
 
 # flake8
 # "$(dirname $0)"/test_flake8.sh
