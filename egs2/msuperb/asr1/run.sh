@@ -29,7 +29,7 @@ if "${multilingual}"; then
     train_set=train_${duration}${suffix}
     train_dev=dev_${duration}${suffix}
     test_set="${train_dev} test_${duration}${suffix}"
-    lang="multilingual"   
+    lang="multilingual"
 else
     train_set=train_${duration}_${single_lang}
     train_dev=dev_${duration}_${single_lang}

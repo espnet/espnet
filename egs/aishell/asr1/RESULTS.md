@@ -158,8 +158,8 @@ exp/train_sp_pytorch_no_patience/decode_test_beam20_emodel.acc.best_p0.0_len0.0-
 |    Sum/Avg    |     7176         104765     |     92.2           7.6            0.2           0.2            8.0          50.2     |
 ```
 
-# Ngram related 
-   - decoding with ngram and RNNLM 
+# Ngram related
+   - decoding with ngram and RNNLM
 ```
 exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_dev_decode_pytorch_transformer_lm0.7_4gramfull0.3/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
@@ -185,4 +185,3 @@ exp/train_sp_pytorch_train_pytorch_transformer_lr1.0/decode_test_decode_pytorch_
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
 |   Sum/Avg  |   7176       104765  |   92.7        7.1        0.2        0.1        7.4      49.8    |
 ```
-

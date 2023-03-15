@@ -30,11 +30,11 @@ do
                         frombreak=false
                         shift
                         break 2
-                    fi 
-                done 
+                    fi
+                done
             done
             if ${frombreak} ; then
-                echo "bad option $1" 
+                echo "bad option $1"
                 exit 1
             fi
             ;;
@@ -47,11 +47,11 @@ do
                         eval ${ext}=true
                         frombreak=false
                         break 2
-                    fi 
-                done 
+                    fi
+                done
             done
             if ${frombreak} ; then
-                echo "bad option $1" 
+                echo "bad option $1"
                 exit 1
             fi
             ;;
@@ -108,7 +108,7 @@ fi
 if [ ${is_root} = false ]; then
     # Build a container with the user account
     container_tag="${from_tag}-user-${HOME##*/}"
-    docker_image=$( docker images -q espnet/espnet:${container_tag} ) 
+    docker_image=$( docker images -q espnet/espnet:${container_tag} )
     if ! [[ -n ${docker_image}  ]]; then
         echo "Building docker image..."
         build_args="--build-arg FROM_TAG=${from_tag}"
@@ -144,7 +144,7 @@ cd ..
 
 vols="-v ${PWD}/egs:/espnet/egs
       -v ${PWD}/espnet:/espnet/espnet
-      -v ${PWD}/test:/espnet/test 
+      -v ${PWD}/test:/espnet/test
       -v ${PWD}/utils:/espnet/utils"
 
 in_egs=egs
@@ -181,7 +181,7 @@ if [ ! -z "${docker_env}" ]; then
     docker_env=$(echo ${docker_env} | tr "," "\n")
     for i in ${docker_env[@]}
     do
-        this_env="-e $i ${this_env}" 
+        this_env="-e $i ${this_env}"
     done
 fi
 

@@ -17,4 +17,3 @@
 |--------------------------------------------|-------|-------|
 | decode_asr_hf_asr_model_valid.acc.ave/dev  | 17.49 | 21.15 |
 | decode_asr_hf_asr_model_valid.acc.ave/test | 20.06 | 23.49 |
-

@@ -59,7 +59,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data preparation"
-    
+
     mictype=worn
     for dset in dev eval; do
         local/prepare_data.sh --mictype ${mictype} \
@@ -137,7 +137,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # utils/copy_data_dir.sh data/train_worn_u200k data/train_worn_u200k_org
     # remove_longshortdata.sh --nlsyms ${nlsyms} --minchars 1 data/train_worn_u200k_org data/train_worn_u200k
 
-    # dump features 
+    # dump features
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \

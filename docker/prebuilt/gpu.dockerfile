@@ -4,8 +4,8 @@ ARG DOCKER_VER
 FROM espnet/espnet:${FROM_TAG} AS cuda_builder
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
-## FROM CUDA 11.1 base 
-## [https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.1.1/ubuntu20.04-x86_64/base/Dockerfile] 
+## FROM CUDA 11.1 base
+## [https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.1.1/ubuntu20.04-x86_64/base/Dockerfile]
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg2 curl ca-certificates && \
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub | apt-key add - && \

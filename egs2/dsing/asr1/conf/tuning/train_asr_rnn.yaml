@@ -32,4 +32,3 @@ batch_size: 30
 optim: adadelta
 max_epoch: 15
 patience: 3
-

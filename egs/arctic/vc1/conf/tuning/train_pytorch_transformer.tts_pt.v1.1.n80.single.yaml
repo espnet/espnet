@@ -33,7 +33,7 @@ transformer-input-layer: conv2d-scaled-pos-enc
 
 # minibatch related
 batch-sort-key: input # shuffle or input or output
-batch-bins: 556800 
+batch-bins: 556800
 
 # training related
 transformer-init: pytorch

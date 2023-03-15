@@ -14,7 +14,7 @@ Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--total_hours <total_ho
   optional argument:
     [--stage]: 0 (default), or 1, or 2
     [--stop_stage]: 0, or 1, or 2 (default)
-    [--total_hours]: amount (in hours) of synthetic noisy speech to generate (default=150, DNS4-en read speech has ~600 hours, 
+    [--total_hours]: amount (in hours) of synthetic noisy speech to generate (default=150, DNS4-en read speech has ~600 hours,
                      set this somewhat below that to avoid duplicate data)
     [--nj] number of jobs created to synthesize noisy data (default=1)
     [--fs] sample rate of synthesized noisy data (default=48000)

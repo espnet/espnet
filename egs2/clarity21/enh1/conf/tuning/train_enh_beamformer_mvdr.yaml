@@ -63,7 +63,7 @@ separator_conf:
     flooring_thres_bf: 1e-6
     use_torch_solver: True
 
-criterions: 
+criterions:
   # The first criterion
   - name: snr
     conf:

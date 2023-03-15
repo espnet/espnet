@@ -5,7 +5,7 @@ git clone https://github.com/fgnt/pb_chime5.git
 cd pb_chime5
 
 # Download submodule dependencies  # https://stackoverflow.com/a/3796947/5766934
-git submodule init  
+git submodule init
 git submodule update
 
 # sudo apt install libopenmpi-dev -- if you have problem with mpi4py installation

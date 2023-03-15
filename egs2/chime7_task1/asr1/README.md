@@ -21,7 +21,7 @@
 
 <img src="https://www.chimechallenge.org/current/task1/images/task_overview.png" width="450" height="230" />
 
-This CHiME-7 Challenge Task inherits directly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/). 
+This CHiME-7 Challenge Task inherits directly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/).
 Its focus is on distant automatic speech transcription and segmentation with multiple recording devices.
 
 The goal of each participant is to devise an automated system that can tackle this problem, and is able to generalize across different array topologies and different application scenarios: meetings, dinner parties and interviews.
@@ -44,13 +44,13 @@ Follow us on [Twitter][Twitter], we will also use that to make announcements. <b
 
 ## <a id="installation">2. Installation </a>
 
-**NOTE, if you don't want to use the baseline at all**, you can 
+**NOTE, if you don't want to use the baseline at all**, you can
 skip this following procedure and go directly to Section 2.
-For data generation, only the scripts local/data/gen_task1_data.sh, local/data/gen_task1_data.py and 
+For data generation, only the scripts local/data/gen_task1_data.sh, local/data/gen_task1_data.py and
 local/data/generate_chime6_data.sh are used. You can git clone ESPNet, and run these without
-ESPNet installation as their dependencies are minimal (`local/data/generate_chime6_data.sh` needs [sox](https://sox.sourceforge.net/) however). 
+ESPNet installation as their dependencies are minimal (`local/data/generate_chime6_data.sh` needs [sox](https://sox.sourceforge.net/) however).
 
-### <a id="espnet_installation">2.1 ESPNet Installation  </a> 
+### <a id="espnet_installation">2.1 ESPNet Installation  </a>
 
 Firstly, clone ESPNet. <br/>
 ```bash
@@ -66,7 +66,7 @@ Activate this new environment.
 ```bash
 source ./venv/bin/activate
 ```
-Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for **cudatoolkit**. 
+Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for **cudatoolkit**.
 ```bash
 make TH_VERSION=1.13.1 CUDA_VERSION=11.6
 ```
@@ -88,21 +88,21 @@ Or reach us, see <a href="#reach_us">Section 2.</a>
 
 
 ## <a id="data_creation">2. Data Download and Creation </a>
-See Data page in [CHiME-7 DASR webpage](https://www.chimechallenge.org/current/task1/data) 
-for instructions on how data is structured. 
-See the [Rules page](https://www.chimechallenge.org/current/task1/rules) too for info about allowed external datasets and pre-trained models. 
+See Data page in [CHiME-7 DASR webpage](https://www.chimechallenge.org/current/task1/data)
+for instructions on how data is structured.
+See the [Rules page](https://www.chimechallenge.org/current/task1/rules) too for info about allowed external datasets and pre-trained models.
 
-CHiME-7 DASR makes use of three datasets (but participants can use optionally also allowed external datasets), 
+CHiME-7 DASR makes use of three datasets (but participants can use optionally also allowed external datasets),
 these are:
 
 1. CHiME-6 Challenge [1]
 2. Amazon Alexa Dinner Party Corpus (DiPCO) [2]
 3. LDC Mixer 6 Speech (here we use a new re-annotated version) [3]
 
-Unfortunately, only DiPCo can be downloaded automatically, the others must be 
+Unfortunately, only DiPCo can be downloaded automatically, the others must be
 downloaded manually and then processed via our scripts here. <br>
-See [Data page](https://www.chimechallenge.org/current/task1/data) for 
-the instructions on how to obtain the re-annotated Mixer 6 Speech and CHiME-6 data.  
+See [Data page](https://www.chimechallenge.org/current/task1/data) for
+the instructions on how to obtain the re-annotated Mixer 6 Speech and CHiME-6 data.
 
 ### <a id="data_description">2.1 Generating the Data</a>
 To generate the data you need to have downloaded and unpacked manually Mixer 6 Speech
@@ -116,31 +116,31 @@ To **ONLY** generate the data you will need to run:
 ./run.sh --chime5-root YOUR_PATH_TO_CHiME5 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --chime6-path PATH_WHERE_STORE_CHiME6 --stage 0 --stop-stage 0
 ```
-If you have already CHiME-6 data you can use that without re-creating it from CHiME-5. 
+If you have already CHiME-6 data you can use that without re-creating it from CHiME-5.
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --stop-stage 0
 ```
 **If you want to run the recipe from data prep to ASR training and decoding**, instead remove the stop-stage flag.
-But please you want to take a look at arguments such as `gss_max_batch_dur` 
-and `asr_batch_size` because you may want to adjust these based on your hardware. 
+But please you want to take a look at arguments such as `gss_max_batch_dur`
+and `asr_batch_size` because you may want to adjust these based on your hardware.
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs
 ```
-**We also provide a pre-trained model**, you can run only inference on development set 
+**We also provide a pre-trained model**, you can run only inference on development set
 using:
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode_only 1 
+--decode_only 1
 ```
-You should be able to replicate our results detailed in Section 3.1.2 with the 
+You should be able to replicate our results detailed in Section 3.1.2 with the
 top 80% envelope variance automatic channel selection (a bit more than 34% WER on CHiME-6). <br>
-Note that results may differ a little because GSS inference is not deterministic. 
+Note that results may differ a little because GSS inference is not deterministic.
 ### <a id="data_description">2.2 Quick Data Overview</a>
-The generated dataset folder after running the script should look like this: 
+The generated dataset folder after running the script should look like this:
 ```
 chime7_task1
 ├── chime6
@@ -182,19 +182,19 @@ chime7_task1
         └── train_intv
 ```
 **NOTE**: eval directories for chime6 are empty at this stage. <br>
-Eval data (which is actually blind only for Mixer6) can be generated by using as an argument 
+Eval data (which is actually blind only for Mixer6) can be generated by using as an argument
 `--gen-eval 1` (note you will need the Mixer6 eval set which will be released [later](https://www.chimechallenge.org/current/dates)).
 <br>
 
 ---
-To find out if the data has been generated correctly, you can run this 
+To find out if the data has been generated correctly, you can run this
 script from this directory <br>
 If it runs successfully your MD5 checksums are correct. <br>
 These are stored here in this repo in `local/chime7_dasr_md5.json`.
 ```bash
-python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA 
+python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA
 ```
-When evaluation data is released, please re-check again: 
+When evaluation data is released, please re-check again:
 ```bash
 python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA -e 1
 ```
@@ -203,19 +203,19 @@ Additional data description is available in [Data page](https://www.chimechallen
 
 ## <a id="baseline">3. Baseline System</a>
 
-The baseline system in this recipe is similar to `egs2/chime6` one, which 
+The baseline system in this recipe is similar to `egs2/chime6` one, which
 itself is inherited direcly from CHiME-6 Challenge Kaldi recipe for Track 1 [s5_track1](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1). <br>
 
 It is composed of two modules (with an optional channel selection module):
 1. Guided Source Separation (GSS) [5], here we employ the GPU-based version (much faster) from [Desh Raj](https://github.com/desh2608/gss).
 2. End-to-end ASR model based on [4], which is a transformer encoder/decoder model trained <br>
-with joint CTC/attention [6]. It uses WavLM [7] as a feature extractor. 
+with joint CTC/attention [6]. It uses WavLM [7] as a feature extractor.
 3. Optional Automatic Channel selection based on Envelope Variance Measure (EV) [8].
 
-### 3.1 Results 
+### 3.1 Results
 
 #### 3.1.1 Main Track [Work in Progress]
-The main track baseline unfortunately is currently WIP, we hope we can finish it 
+The main track baseline unfortunately is currently WIP, we hope we can finish it
 in the next weeks. <br>
 It will be based on a TS-VAD diarization model which leverages pre-trained self-supervised
 representation. <br>
@@ -225,8 +225,7 @@ The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 #### 3.1.2 Acoustic Robustness Sub-Track: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
 Detailed decoding results (insertions, deletions etc) are available in `baseline_logs/RESULTS.md` here.
-Here we report the results obtained using channel selection (
-retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
+Here we report the results obtained using channel selection (retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
 ASR model. This is the configuration that gave the best results overall on the dev set. 
 
 <table>
@@ -260,6 +259,7 @@ ASR model. This is the configuration that gave the best results overall on the d
 </tbody>
 </table>
 
+
 Such baseline system would rank fourth on dev set based on the rules of the past CHiME-6 Challenge 
 on Track 1 (unconstrained LM). 
 Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge. 
@@ -271,6 +271,7 @@ by computing diarization-attributed word error rate (DA-WER) for each speaker, w
 and then concatenated together. It is similar to the CHiME-6 Challenge cpWER but here we use diarization to define the permutation.
 
 It is performed here at the stage 4 in run.sh. 
+
 
 
 
@@ -325,6 +326,7 @@ ${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag}:
 
 We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for 
 reporting many bugs and the memory consumption figures. 
+
 
 ## <a id="reference"> 6. References </a>
 

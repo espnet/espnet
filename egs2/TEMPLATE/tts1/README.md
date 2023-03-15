@@ -1008,4 +1008,3 @@ This is because we use prenet in the decoder, which always applies dropout.
 See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).
 
 If you want to fix the results, you can use [`--always_fix_seed` option](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/espnet2/bin/tts_inference.py#L601-L606).
-
