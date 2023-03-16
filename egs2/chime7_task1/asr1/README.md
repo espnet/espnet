@@ -232,7 +232,8 @@ Detailed decoding results (insertions, deletions etc) are available in `baseline
 Note that WER figures in `baseline_logs/RESULTS.md` and in the model card in [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) will
 be different slighly (a bit higher) from the final score which is based on concatenated utterances for each speaker.
 The final score is described in Section 4. and is similar to the one used in previous CHiME-6 Challenge except 
-that it is not permutation invariant now.
+that it is not permutation invariant now. We can call this metric diarization-attributed WER (DA-WER) 
+as the permutation is assigned via diarization. 
 
 Here we report the results obtained using channel selection (retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained
 ASR model. This is the configuration that gave the best results overall on the dev set.
@@ -243,8 +244,8 @@ ASR model. This is the configuration that gave the best results overall on the d
     <th>Dataset</th>
     <th>split</th>
     <th>front-end</th>
-    <th>SA-WER (%)</th>
-    <th>macro SA-WER (%)</th>
+    <th>DA-WER (%)</th>
+    <th>macro DA-WER (%)</th>
   </tr>
 </thead>
 <tbody>
@@ -252,7 +253,7 @@ ASR model. This is the configuration that gave the best results overall on the d
     <td>CHiME-6</td>
     <td rowspan="3">dev</td>
     <td>GSS (EV top 80%)</td>
-    <td> 33.6 </td>
+    <td> 32.64 </td>
     <td rowspan="3"> 28.81 </td>
   </tr>
   <tr>
@@ -263,7 +264,7 @@ ASR model. This is the configuration that gave the best results overall on the d
   <tr>
     <td>Mixer-6</td>
     <td>GSS (EV top 80%)</td>
-    <td> 20.59 </td>
+    <td> 20.25 </td>
   </tr>
 </tbody>
 </table>
@@ -286,8 +287,11 @@ It is performed here in stage 4 in `run.sh` and the scoring takes place
 in `local/da_wer_scoring.py`.
 
 The main motivation behind the use of this metric is that we want participants
-to
+to produce also reasonable timestamps for each utterance. 
 
+cpWER [1] or MIMO-WER [9] do not account directly for timestamps. **asclite** can (time cost option) but it requires 
+per-words boundaries for which the ground truth is difficult to define and obtain on 
+the scenarios here. 
 
 
 
@@ -354,6 +358,7 @@ reporting many bugs and the memory consumption figures.
 [6] Kim, S., Hori, T., & Watanabe, S. (2017, March). Joint CTC-attention based end-to-end speech recognition using multi-task learning. Proc. of ICASSP (pp. 4835-4839). IEEE. <br>
 [7] Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). Wavlm: Large-scale self-supervised pre-training for full stack speech processing. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505-1518. <br>
 [8] Wolf, M., & Nadeu, C. (2014). Channel selection measures for multi-microphone speech recognition. Speech Communication, 57, 170-180.
+[9] von Neumann T, Boeddeker C, Kinoshita K, Delcroix M, Haeb-Umbach R. On Word Error Rate Definitions and their Efficient Computation for Multi-Speaker Speech Recognition Systems. arXiv preprint arXiv:2211.16112. 2022 Nov 29.
 
 [slack-badge]: https://img.shields.io/badge/slack-chat-green.svg?logo=slack
 [slack-invite]: https://join.slack.com/t/chime-fey5388/shared_invite/zt-1oha0gedv-JEUr1mSztR7~iK9AxM4HOA
