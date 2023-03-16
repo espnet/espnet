@@ -53,7 +53,7 @@ bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
-asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/eval/gss_inf kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -76,7 +76,7 @@ asr_warmup=$(calc_int 40000.0/$ngpu)
 
 if [ $decode_only == 1 ]; then
   # apply gss only on dev
-  gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
+  gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
 fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
@@ -94,7 +94,7 @@ fi
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
-    for dset_part in train dev; do
+    for dset_part in train dev "eval"; do
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
@@ -173,7 +173,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set=data/kaldi/dev_ihm_all # dummy one, it is not used
+    asr_train_set=kaldi/dev_ihm_all # dummy one, it is not used
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
@@ -233,7 +233,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     split="$(cut -d'/' -f3 <<<${tt_dset})"
     dset_name="$(cut -d'/' -f2 <<<${tt_dset})"
     if [ ${dset_name} == mixer6 ]; then
-      regex="([0-9]+_[0-9]+_LDC_[0-9]+)"
+      regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)" # different session naming
     else
       regex="(S[0-9]+)"
     fi
