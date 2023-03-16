@@ -10,7 +10,7 @@ fi
 
 # install lhotse from master, we need the most up-to-date one
 # jiwer
-pip install jiwer
+python3 -m pip install jiwer
 
 #check if kaldi has been installed and compiled
 if ! command -v wav-reverberate &>/dev/null; then
@@ -47,6 +47,7 @@ if [ ! -z "$ffmpeg" ]; then
   fi
 fi
 
-pip install git+https://github.com/lhotse-speech/lhotse
+python3 -m pip install git+https://github.com/lhotse-speech/lhotse
+python3 -m pip install pyannote-metrics
 
 echo "All dependencies installed successfully"
