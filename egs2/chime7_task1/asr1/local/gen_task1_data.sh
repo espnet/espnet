@@ -51,4 +51,13 @@ fi
 if [ ${stage} -le 2 ] && ! contains $skip_stages 2; then
   python local/gen_task1_data.py -c $chime6_root \
       -d $dipco_root -m $mixer6_root -o $chime7_root --eval_opt $gen_eval
+  if [ $gen_eval -le 0 ]; then
+    mkdir $chime7_root/mixer6/uem/train_intv
+    awk -F'[,_]' '(NR>1){print $4"_"$1"_"$2"_"$3"_"$4, 1, $7, $8}' \
+    $mixer6_root/metadata/iv_components_final.csv | sort -u | cut -d'_' -f2- > $chime7_root/mixer6/uem/train_intv/all.uem
+
+    mkdir $chime7_root/mixer6/uem/train_call
+    awk -F'[,_]' '(NR>1){print $4"_"$1"_"$2"_"$3"_"$4, 1, $11, $12}' \
+    $mixer6_root/metadata/iv_components_final.csv | sort -u | cut -d'_' -f2- > $chime7_root/mixer6/uem/train_call/all.uem
+  fi
 fi
