@@ -4,10 +4,10 @@ import json
 import os
 import pickle
 import warnings
+from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Optional
-from collections import OrderedDict
 
 import jiwer
 import pandas as pd
@@ -202,16 +202,19 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
 
     return mapping, der_score, jer_score, reference, hypothesis, errors
 
+
 def log_asr(output_folder, hyp_segs, ref_segs):
     """
     Dump re-ordered hypothesis as JSON files to allow for analyze errors.
     This is done for each session.
     """
+
     def flatten_segs(spk2utts):
         all = []
         for k in spk2utts.keys():
             all.extend(spk2utts[k])
         return all
+
     hyp_segs = flatten_segs(hyp_segs)
     ref_segs = flatten_segs(ref_segs)
     hyp_segs = sorted(hyp_segs, key=lambda x: float(x["start_time"]))
@@ -222,8 +225,7 @@ def log_asr(output_folder, hyp_segs, ref_segs):
         json.dump(ref_segs, f, indent=4)
 
 
-def compute_asr_errors(output_folder,
-                       hyp_segs, ref_segs, mapping=None, uem=None):
+def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None):
     if mapping is not None:  # using diarization
         hyp_segs_reordered = []
         for s in hyp_segs:
@@ -265,10 +267,7 @@ def compute_asr_errors(output_folder,
             for m_spk in list(missed_speakers):
                 hyp[m_spk] = [{"words": "", "speaker": m_spk}]
 
-    tot_stats = {"hits": 0,
-                 "substitutions": 0,
-                 "deletions": 0,
-                 "insertions": 0}
+    tot_stats = {"hits": 0, "substitutions": 0, "deletions": 0, "insertions": 0}
     speakers_stats = []
     for spk in ref.keys():
         cat_refs = " ".join([x["words"] for x in ref[spk]])
@@ -300,9 +299,7 @@ def compute_asr_errors(output_folder,
     return tot_stats, speakers_stats
 
 
-def log_diarization(
-    sess_folder, reference, hypothesis, errors
-):
+def log_diarization(sess_folder, reference, hypothesis, errors):
     """
     Logging diarization output to the specified output folder for each session.
     This is useful for analyzing errors.
@@ -326,6 +323,7 @@ def log_diarization(
         f.write(reference.to_rttm())
     with open(os.path.join(sess_folder, "hypothesis.rttm"), "w") as f:
         f.write(hypothesis.to_rttm())
+
 
 def score(
     hyp_json,
@@ -404,9 +402,7 @@ def score(
                 errors,
             ) = compute_diar_errors(hyp_segs, ref_segs, c_uem, collar=collar)
 
-            log_diarization(
-                sess_dir, reference, hypothesis, errors
-            )
+            log_diarization(sess_dir, reference, hypothesis, errors)
             # save ref hyps and errors in a folder
             # save also compatible format for audacity
             c_sess_stats = {
@@ -420,8 +416,8 @@ def score(
 
             c_sess_stats.update({k: v for k, v in der_score.items()})
             c_sess_stats.update({k: v for k, v in jer_score.items()})
-            asr_err_sess, asr_err_spk, hyp_reordered = compute_asr_errors(sess_dir,
-                hyp_segs, ref_segs, mapping, uem=c_uem
+            asr_err_sess, asr_err_spk, hyp_reordered = compute_asr_errors(
+                sess_dir, hyp_segs, ref_segs, mapping, uem=c_uem
             )
 
         else:
@@ -434,8 +430,8 @@ def score(
                     "(e.g. too long) ? "
                     "These will be counted as deletions so be careful !"
                 )
-            asr_err_sess, asr_err_spk = compute_asr_errors(output_folder, scenario_tag,
-                hyp_segs, ref_segs, uem=c_uem
+            asr_err_sess, asr_err_spk = compute_asr_errors(
+                output_folder, scenario_tag, hyp_segs, ref_segs, uem=c_uem
             )
             c_sess_stats = {
                 "session id": session,
