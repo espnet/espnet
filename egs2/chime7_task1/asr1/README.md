@@ -70,13 +70,13 @@ Then install ESPNet with Pytorch 1.13.1 be sure to put the correct version for *
 ```bash
 make TH_VERSION=1.13.1 CUDA_VERSION=11.6
 ```
-If you plan to train the ASR model, you would need to compile Kaldi. Otherwise you can 
-skip this step. Go to the `kaldi` directory and follow instructions in `INSTALL`.  
+If you plan to train the ASR model, you would need to compile Kaldi. Otherwise you can
+skip this step. Go to the `kaldi` directory and follow instructions in `INSTALL`.
 ```bash
 cd kaldi
 nano INSTALL
 ```
-Finally, get in this recipe folder and install other baseline required packages (e.g. lhotse) using this script: 
+Finally, get in this recipe folder and install other baseline required packages (e.g. lhotse) using this script:
 ```bash
 cd ../egs2/chime7_task1/asr1
 ./local/install_dependencies.sh
@@ -225,8 +225,8 @@ The result of the diarization will be fed to this recipe GSS+ASR pipeline.
 #### 3.1.2 Acoustic Robustness Sub-Track: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
 Detailed decoding results (insertions, deletions etc) are available in `baseline_logs/RESULTS.md` here.
-Here we report the results obtained using channel selection (retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained 
-ASR model. This is the configuration that gave the best results overall on the dev set. 
+Here we report the results obtained using channel selection (retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained
+ASR model. This is the configuration that gave the best results overall on the dev set.
 
 <table>
 <thead>
@@ -260,24 +260,24 @@ ASR model. This is the configuration that gave the best results overall on the d
 </table>
 
 
-Such baseline system would rank fourth on dev set based on the rules of the past CHiME-6 Challenge 
-on Track 1 (unconstrained LM). 
-Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge. 
+Such baseline system would rank fourth on dev set based on the rules of the past CHiME-6 Challenge
+on Track 1 (unconstrained LM).
+Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge.
 
 
 ## <a id="eval_script"> 4. Evaluation Script </a>
-The evaluation protocol is depicted here below: 
+The evaluation protocol is depicted here below:
 
-Evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription. 
+Evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription.
 by computing diarization-attributed word error rate (DA-WER) for each speaker, where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate
 and then concatenated together. It is similar to the CHiME-6 Challenge cpWER but here we use diarization to define the permutation.
 
 
-It is performed here in stage 4 in `run.sh` and the scoring takes place 
-in `local/da_wer_scoring.py`. 
+It is performed here in stage 4 in `run.sh` and the scoring takes place
+in `local/da_wer_scoring.py`.
 
-The main motivation behind the use of this metric is that we want participants 
-to 
+The main motivation behind the use of this metric is that we want participants
+to
 
 
 
@@ -288,15 +288,15 @@ to
  Please install Pytorch with CUDA support as explained in [pytorch website](https://pytorch.org/).
 2. `ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: 'YOUR_PATH/espnet/tools/venv/lib/pyth
 on3.9/site-packages/numpy-1.23.5.dist-info/METADATA'`. This is due to numpy installation getting corrupted for some reason.
-You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip. 
+You can remove the site-packages/numpy- folder manually and try to reinstall numpy 1.23.5 with pip.
 3. `FileNotFoundError: [Errno 2] No such file or directory: 'PATH2YOURESPNET/espnet/tools/venv/bin/sox'
 ` during CHiME-6 generation from CHiME-5, `correct_signals_for_clock_drift.py` script: try to install conda sox again, via `conda install -c conda-forge sox`.
 4. `ModuleNotFoundError: No module named 's3prl'` for some reason s3prl did not install, run `YOUR_ESPNET_ROOT/tools/installers/install_s3prl.sh`
-5. `Command 'gss' not found` for some reason gss did not install, you can run `YOUR_ESPNET_ROOT/tools/installers/install_gss.sh` 
-7. `wav-reverberate command not found` you need to install Kaldi. go to `YOUR_ESPNET_ROOT/tools/kaldi` and follow the instructions 
+5. `Command 'gss' not found` for some reason gss did not install, you can run `YOUR_ESPNET_ROOT/tools/installers/install_gss.sh`
+7. `wav-reverberate command not found` you need to install Kaldi. go to `YOUR_ESPNET_ROOT/tools/kaldi` and follow the instructions
 in `INSTALL`.
-8. `WARNING  [enhancer.py:245] Out of memory error while processing the batch` you got out-of-memory (OOM) when running GSS. 
-You could try changing parameters as `gss_max_batch_dur` and in local/run_gss.sh `context-duration` 
+8. `WARNING  [enhancer.py:245] Out of memory error while processing the batch` you got out-of-memory (OOM) when running GSS.
+You could try changing parameters as `gss_max_batch_dur` and in local/run_gss.sh `context-duration`
 (this latter could degrade results however). See local/run_gss.sh for more info.
 9. Much worse WER than baseline and you are using `run.pl`. Check the GSS results, GSS currently does not work well
 if you use multi-gpu inference and your GPUs are in shared mode. You need to run `set nvidia-smi -c 3`.
@@ -305,8 +305,8 @@ if you use multi-gpu inference and your GPUs are in shared mode. You need to run
 ## Memory Consumption (Useful for SLURM etc.)
 
 Figures kindly reported by Christoph Boeddeker, running this baseline code
-on Paderborn Center for Parallel Computing cluster (which uses SLURM). 
-These figures could be useful to anyone that uses job schedulers and clusters 
+on Paderborn Center for Parallel Computing cluster (which uses SLURM).
+These figures could be useful to anyone that uses job schedulers and clusters
 for which resources are assigned strictly (e.g. job killed if it exceed requested
 memory resources).
 
@@ -320,7 +320,7 @@ GSS:
  - time 45 h per job (but might be faster)
  - num_threads=5 (1 for main process, 4 for DataLoader processes)
  - Mem: 2 GB per core or 10 GB per job. In SLURM it is --mem 2GB, since mem means mem-per-core in SLURM.
- 
+
 scripts/audio/format_wav_scp.sh:
  - Some spikes to the range of 15 to 17 GB
 
@@ -331,8 +331,8 @@ ${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag}:
 
 ## Acknowledgements
 
-We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for 
-reporting many bugs and the memory consumption figures. 
+We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for
+reporting many bugs and the memory consumption figures.
 
 
 ## <a id="reference"> 6. References </a>
