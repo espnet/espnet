@@ -401,7 +401,8 @@ def score(
                     "If oracle diarization was used, "
                     "I expect the hypothesis to have the same number "
                     "of utterances as the "
-                    "reference. Have you discarded some utterances ?"
+                    "reference. Have you discarded some utterances "
+                    "(e.g. too long) ? "
                     "These will be counted as deletions so be careful !"
                 )
             asr_err_sess, asr_err_spk = compute_asr_errors(
@@ -415,8 +416,7 @@ def score(
                 "tot utterances hyp": len(hyp_segs),
                 "tot utterances ref": len(ref_segs),
             }
-
-            # add to each speaker session id and scenario
+            # add to each speaker, session id and scenario
         [
             x.update({"session_id": session, "scenario": scenario_tag})
             for x in asr_err_spk
@@ -504,6 +504,16 @@ if __name__ == "__main__":
         help="Whether or not use diarization to re-order the system output, if "
         "set to false we will not re-order the system output (you can set "
         "to false if you are using oracle diarization).",
+    )
+
+    parser.add_argument(
+        "-f,--falign",
+        type=str,
+        default="",
+        required=False,
+        metavar="STR",
+        dest="falign",
+        help="Path to folder containing forced-alignment rttms. (not used now)",
     )
 
     parser.add_argument(
