@@ -136,14 +136,14 @@ using:
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
 --decode_only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
 ```
-Note that `gss-max-batch-dur` affects a lot your inference time. 
+Note that `gss-max-batch-dur` affects a lot your inference time.
 Also note that getting `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]`
-this warning for a single utterance (but multiple recordings) in the dev set is fine. 
+this warning for a single utterance (but multiple recordings) in the dev set is fine.
 
 You should be able to replicate our results detailed in Section 3.1.2 with the
 top 80% envelope variance automatic channel selection. <br>
 Note that results may differ a little because GSS inference is not deterministic.
-We report the logs for running the full inference procedure with the pre-trained 
+We report the logs for running the full inference procedure with the pre-trained
 ASR model in `baseline_logs/inference.log`.
 ### <a id="data_description">2.2 Quick Data Overview</a>
 The generated dataset folder after running the script should look like this:
@@ -233,9 +233,9 @@ Detailed decoding results (insertions, deletions etc) are available in `baseline
 
 Note that WER figures in `baseline_logs/RESULTS.md` and in the model card in [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) will
 be different slighly (a bit higher) from the final score which is based on concatenated utterances for each speaker.
-The final score is described in Section 4. and is similar to the one used in previous CHiME-6 Challenge except 
-that it is not permutation invariant now. We can call this metric diarization-attributed WER (DA-WER) 
-as the permutation is assigned via diarization. 
+The final score is described in Section 4. and is similar to the one used in previous CHiME-6 Challenge except
+that it is not permutation invariant now. We can call this metric diarization-attributed WER (DA-WER)
+as the permutation is assigned via diarization.
 
 Here we report the results obtained using channel selection (retaining 80% of all channels) prior to performing GSS and decoding with the baseline pre-trained
 ASR model. This is the configuration that gave the best results overall on the dev set.
@@ -289,14 +289,14 @@ It is performed here in stage 4 in `run.sh` and the scoring takes place
 in `local/da_wer_scoring.py`.
 
 The main motivation behind the use of this metric is that we want participants
-to produce also reasonable timestamps for each utterance. 
+to produce also reasonable timestamps for each utterance.
 
-cpWER [1] or MIMO-WER [9] do not account directly for timestamps. **asclite** can (time cost option) but it requires 
-per-words boundaries for which the ground truth is difficult to define and obtain on 
-the scenarios here. Of course, the choice of DA-WER comes also with drawbacks, 
-e.g. for short meetings with lots of participants and a lot of overlapped speech 
-diarization may assign a bad permutation. This however would not be a crucial problem in 
-the scenarios considered (even > 70% DER will often assign the correct permutation). 
+cpWER [1] or MIMO-WER [9] do not account directly for timestamps. **asclite** can (time cost option) but it requires
+per-words boundaries for which the ground truth is difficult to define and obtain on
+the scenarios here. Of course, the choice of DA-WER comes also with drawbacks,
+e.g. for short meetings with lots of participants and a lot of overlapped speech
+diarization may assign a bad permutation. This however would not be a crucial problem in
+the scenarios considered (even > 70% DER will often assign the correct permutation).
 
 
 
@@ -350,7 +350,7 @@ ${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag}:
 ## Acknowledgements
 
 We would like to thank Naoyuki Kamo for his precious help, Christoph Boeddeker for
-reporting many bugs and the memory consumption figures and feedback for evaluation script. 
+reporting many bugs and the memory consumption figures and feedback for evaluation script.
 
 
 ## <a id="reference"> 6. References </a>
