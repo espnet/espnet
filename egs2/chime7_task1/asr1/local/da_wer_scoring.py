@@ -313,10 +313,10 @@ def score(
     if uem_file is not None:
         with open(uem_file, "r") as f:
             lines = f.readlines()
-        lines = [l.rstrip("\n") for l in lines]
+        lines = [x.rstrip("\n") for x in lines]
         uem2sess = {}
-        for l in lines:
-            sess_id, _, start, stop = l.split(" ")
+        for x in lines:
+            sess_id, _, start, stop = x.split(" ")
             uem2sess[sess_id] = (float(start), float(stop))
 
     # load all reference jsons
