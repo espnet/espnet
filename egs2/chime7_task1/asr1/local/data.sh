@@ -161,7 +161,6 @@ if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
       ./utils/fix_data_dir.sh data/kaldi/dev_all_gss
     fi
 
-    ./utils/copy_data_dir.sh data/kaldi/chime6/dev/gss data/kaldi/chime6/dev/gss_inf
 fi
 
 
