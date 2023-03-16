@@ -31,6 +31,6 @@ cd ../../enh1
     --enh_config "${enh_config}" \
     --use_dereverb_ref false \
     --use_noise_ref false \
-    --inference_model "valid.loss.best.pth" 
+    --inference_model "valid.loss.best.pth"
 
 cd $dir

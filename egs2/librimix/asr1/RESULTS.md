@@ -25,4 +25,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_multi_asrtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/dev|6000|655222|90.5|6.3|3.2|4.1|13.6|89.6|
 |decode_multi_asrtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test|6000|590408|90.5|6.1|3.5|3.9|13.5|88.0|
-

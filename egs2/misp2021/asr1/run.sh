@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 
-train_set=train_far 
+train_set=train_far
 valid_set=dev_far
 test_sets=dev_far
 

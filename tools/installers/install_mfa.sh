@@ -14,7 +14,7 @@ if "${use_conda}"; then
     conda install -c conda-forge ngram  -y # for training g2p
     conda install -c conda-forge baumwelch -y # for training g2p
 else
-    #TODO(fhrozen): review the required packages on pip 
+    #TODO(fhrozen): review the required packages on pip
     pip install --only-binary :all: pynini
 fi
 

@@ -7,8 +7,8 @@
 # LICENSE file in the root directory of this source tree.
 
 # Begin configuration section.
-set -e 
-set -u 
+set -e
+set -u
 set -o pipefail
 
 cmd="run.pl"
@@ -45,7 +45,7 @@ if "${reduce}"; then
     echo "$0: Reducing ${train_feats_scp}"
     sort "${train_feats_scp}" | awk 'NR % 10 == 0'  > ${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp
     train_feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats_reduced.scp"
-fi    
+fi
 
 if ! ${skip_training}; then
     feats_scp="${uasr_stats_dir}/${train_set}/collect_feats/feats.scp"
@@ -54,7 +54,7 @@ if ! ${skip_training}; then
     train_split_feats_scp=""
     for n in $(seq ${nj}); do
         mkdir -p "${split_dir}/${n}"
-        train_split_feats_scp="${train_split_feats_scp} ${split_dir}/${n}/feats.scp"        
+        train_split_feats_scp="${train_split_feats_scp} ${split_dir}/${n}/feats.scp"
     done
     utils/split_scp.pl "${feats_scp}" ${train_split_feats_scp}
 fi
@@ -66,7 +66,7 @@ if [ -n "${valid_set}" ]; then
     valid_split_feats_scp=""
     for n in $(seq ${nj}); do
         mkdir -p "${split_dir}/${n}"
-        valid_split_feats_scp="${valid_split_feats_scp} ${split_dir}/${n}/feats.scp"        
+        valid_split_feats_scp="${valid_split_feats_scp} ${split_dir}/${n}/feats.scp"
     done
     utils/split_scp.pl "${feats_scp}" ${valid_split_feats_scp}
 fi
@@ -79,7 +79,7 @@ for test_set in ${test_sets}; do
         test_split_feats_scp=""
         for n in $(seq ${nj}); do
             mkdir -p "${split_dir}/${n}"
-            test_split_feats_scp="${test_split_feats_scp} ${split_dir}/${n}/feats.scp"        
+            test_split_feats_scp="${test_split_feats_scp} ${split_dir}/${n}/feats.scp"
         done
         utils/split_scp.pl "${feats_scp}" ${test_split_feats_scp}
     fi
@@ -141,7 +141,7 @@ for split in ${all_sets}; do
     for n in $(seq ${nj}); do
         cat ${output_feats_dir}/precompute_pca${dim}_cls${num_clusters}_mean/${n}/${split}.lengths >> "${uasr_stats_dir}/${split}/speech_shape"
     done
-    
+
     echo "Averaging ${split}"
     ${cmd} JOB=1:${nj} ${logdir}/merge_pca_${split}.JOB.log \
         python pyscripts/feats/mean_pool_scp.py \

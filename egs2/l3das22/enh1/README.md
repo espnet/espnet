@@ -17,4 +17,3 @@ config: conf/tuning/train_enh_dprnntac_fasnet.yaml
 |---|---|---|---|---|---|
 |enhanced_dev_multich|73.26|3.35|3.35|0.00|-4.07|
 |enhanced_test_multich|73.61|2.64|2.64|0.00|-5.40|
-

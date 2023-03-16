@@ -9,8 +9,8 @@ src_lang=ta
 tgt_lang=fr
 
 # train: 17 hours of Tamasheq audio data aligned to French translations
-# train_full: a 19 hour version of this corpus, 
-# including 2 additional hours of data that was labeled by annotators as potentially noisy 
+# train_full: a 19 hour version of this corpus,
+# including 2 additional hours of data that was labeled by annotators as potentially noisy
 train_set=train
 train_dev=valid
 test_set="test"

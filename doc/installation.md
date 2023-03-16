@@ -62,7 +62,7 @@ to prepare the appropriate environments
 
 
 ### Step 1) [Optional] Install Kaldi
-- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.  
+- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.
 - If you'll use ESPnet2 (under egs2/): You can skip installation of Kaldi.
 
 <details><summary>Click to compile Kaldi...</summary><div>
@@ -143,7 +143,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <espnet-root>/tools
     $ ln -s <kaldi-root> .
     ```
-    
+
     If you don't have `espnet/tools/kaldi` when `make`, Kaldi repository is automatically put without compiling.
 1. Setup Python environment
 
@@ -186,7 +186,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ ./setup_python.sh $(command -v python3)
         ```
     - Option D) Without setting Python environment.
-    
+
         `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
 
         ```sh
@@ -207,9 +207,9 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <espnet-root>/tools
     $ make TH_VERSION=1.10.1
     ```
-    
+
     Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
-    
+
     ```sh
     $ cd <espnet-root>/tools
     $ make TH_VERSION=1.10.1 CUDA_VERSION=11.3
@@ -224,11 +224,11 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```
 
 ### Step 3) [Optional] Custom tool installation
-Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default, 
+Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default,
 so if you meet some installation error when running these recipe, you need to install them optionally.
 
 
-e.g. 
+e.g.
 
 - To install Warp Transducer
     ```sh

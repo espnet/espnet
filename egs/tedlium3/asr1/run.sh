@@ -189,9 +189,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ -n "${preprocess_config}" ]; then 
-	expname=${expname}_$(basename ${preprocess_config%.*}) 
-    fi 
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi

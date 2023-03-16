@@ -8,7 +8,7 @@ use warnings; #sed replacement for -w perl parameter
 
 sub trim {
     (my $s = $_[0]) =~ s/^\s+|\s+$//g;
-    return $s;        
+    return $s;
 }
 
 if ($#ARGV != 1) {
@@ -22,10 +22,10 @@ $dir = $ARGV[1];
 %conv_to_spk = ();
 
 open(my $conv_tab, '<', $tab_file) or die "Could not open '$tab_file' $!\n";
- 
+
 while (my $line = <$conv_tab>) {
   chomp $line;
- 
+
   my @fields = split "," , $line;
   #$fields[0] = trim($fields[0]);
   $fields[2] = trim($fields[2]);
@@ -48,7 +48,7 @@ while (my $line = <$utt2spk>) {
 
   my @fields = split " " , $line;
   my $convid = substr $fields[0], 0, 9;
-  
+
   if (exists $conv_to_spk{ $convid }) {
     my $spkid = $conv_to_spk{ $convid };
     $spkid = "sw" . $spkid;
@@ -58,7 +58,7 @@ while (my $line = <$utt2spk>) {
   } else {
     my $convid = substr $convid, 3, 4;
     $missingconv{$convid} = 1;
-    
+
     print $utt2spk_new $fields[0]." ".$fields[1]."\n";
   }
 }

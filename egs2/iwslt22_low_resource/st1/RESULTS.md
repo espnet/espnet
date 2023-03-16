@@ -23,4 +23,3 @@
 |dataset|score|verbose_score|
 |---|---|---|
 |decode_pen2_st_model_valid.acc.ave/test|3.6|24.7/5.4/2.1/1.0 (BP = 0.894 ratio = 0.899 hyp_len = 20241 ref_len = 22504)|
-
