@@ -5,7 +5,6 @@ import random
 from argparse import Namespace
 
 import numpy as np
-import six
 import torch
 import torch.nn.functional as F
 
@@ -81,7 +80,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
             else torch.nn.GRUCell(dunits + eprojs, dunits)
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             self.decoder += [
                 torch.nn.LSTMCell(dunits, dunits)
                 if self.dtype == "lstm"
@@ -124,13 +123,13 @@ class Decoder(torch.nn.Module, ScorerInterface):
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
             z_list[0], c_list[0] = self.decoder[0](ey, (z_prev[0], c_prev[0]))
-            for i in six.moves.range(1, self.dlayers):
+            for i in range(1, self.dlayers):
                 z_list[i], c_list[i] = self.decoder[i](
                     self.dropout_dec[i - 1](z_list[i - 1]), (z_prev[i], c_prev[i])
                 )
         else:
             z_list[0] = self.decoder[0](ey, z_prev[0])
-            for i in six.moves.range(1, self.dlayers):
+            for i in range(1, self.dlayers):
                 z_list[i] = self.decoder[i](
                     self.dropout_dec[i - 1](z_list[i - 1]), z_prev[i]
                 )
@@ -205,7 +204,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         # initialization
         c_list = [self.zero_state(hs_pad[0])]
         z_list = [self.zero_state(hs_pad[0])]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(self.zero_state(hs_pad[0]))
             z_list.append(self.zero_state(hs_pad[0]))
         z_all = []
@@ -222,7 +221,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
-        for i in six.moves.range(olength):
+        for i in range(olength):
             if self.num_encs == 1:
                 att_c, att_w = self.att[att_idx](
                     hs_pad[0], hlens[0], self.dropout_dec[0](z_list[0]), att_w
@@ -338,7 +337,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         # initialization
         c_list = [self.zero_state(h[0].unsqueeze(0))]
         z_list = [self.zero_state(h[0].unsqueeze(0))]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(self.zero_state(h[0].unsqueeze(0)))
             z_list.append(self.zero_state(h[0].unsqueeze(0)))
         if self.num_encs == 1:
@@ -420,7 +419,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         hyps = [hyp]
         ended_hyps = []
 
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
             hyps_best_kept = []
@@ -511,7 +510,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                         local_scores, beam, dim=1
                     )
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     # [:] is needed!
                     new_hyp["z_prev"] = z_list[:]
@@ -716,22 +715,18 @@ class Decoder(torch.nn.Module, ScorerInterface):
         if self.replace_sos and recog_args.tgt_lang:
             logging.info("<sos> index: " + str(char_list.index(recog_args.tgt_lang)))
             logging.info("<sos> mark: " + recog_args.tgt_lang)
-            yseq = [
-                [char_list.index(recog_args.tgt_lang)] for _ in six.moves.range(n_bb)
-            ]
+            yseq = [[char_list.index(recog_args.tgt_lang)] for _ in range(n_bb)]
         elif lang_ids is not None:
             # NOTE: used for evaluation during training
-            yseq = [
-                [lang_ids[b // recog_args.beam_size]] for b in six.moves.range(n_bb)
-            ]
+            yseq = [[lang_ids[b // recog_args.beam_size]] for b in range(n_bb)]
         else:
             logging.info("<sos> index: " + str(self.sos))
             logging.info("<sos> mark: " + char_list[self.sos])
-            yseq = [[self.sos] for _ in six.moves.range(n_bb)]
+            yseq = [[self.sos] for _ in range(n_bb)]
 
-        accum_odim_ids = [self.sos for _ in six.moves.range(n_bb)]
-        stop_search = [False for _ in six.moves.range(batch)]
-        nbest_hyps = [[] for _ in six.moves.range(batch)]
+        accum_odim_ids = [self.sos for _ in range(n_bb)]
+        stop_search = [False for _ in range(batch)]
+        nbest_hyps = [[] for _ in range(batch)]
         ended_hyps = [[] for _ in range(batch)]
 
         exp_hlens = [
@@ -766,7 +761,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 for idx in range(self.num_encs)
             ]
 
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
             vy = to_device(h[0], torch.LongTensor(self._get_last_yseq(yseq)))
@@ -892,11 +887,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
                 k = 0
                 penalty_i = (i + 1) * penalty
                 thr = accum_best_scores[:, -1]
-                for samp_i in six.moves.range(batch):
+                for samp_i in range(batch):
                     if stop_search[samp_i]:
                         k = k + beam
                         continue
-                    for beam_j in six.moves.range(beam):
+                    for beam_j in range(beam):
                         _vscore = None
                         if eos_vscores[samp_i, beam_j] > thr[samp_i]:
                             yk = y_prev[k][:]
@@ -922,7 +917,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
             # end detection
             stop_search = [
                 stop_search[samp_i] or end_detect(ended_hyps[samp_i], i)
-                for samp_i in six.moves.range(batch)
+                for samp_i in range(batch)
             ]
             stop_search_summary = list(set(stop_search))
             if len(stop_search_summary) == 1 and stop_search_summary[0]:
@@ -943,10 +938,10 @@ class Decoder(torch.nn.Module, ScorerInterface):
         ]
         ended_hyps = [
             ended_hyps[samp_i] if len(ended_hyps[samp_i]) != 0 else dummy_hyps
-            for samp_i in six.moves.range(batch)
+            for samp_i in range(batch)
         ]
         if normalize_score:
-            for samp_i in six.moves.range(batch):
+            for samp_i in range(batch):
                 for x in ended_hyps[samp_i]:
                     x["score"] /= len(x["yseq"])
 
@@ -954,7 +949,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
             sorted(ended_hyps[samp_i], key=lambda x: x["score"], reverse=True)[
                 : min(len(ended_hyps[samp_i]), recog_args.nbest)
             ]
-            for samp_i in six.moves.range(batch)
+            for samp_i in range(batch)
         ]
 
         return nbest_hyps
@@ -1015,7 +1010,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         # initialization
         c_list = [self.zero_state(hs_pad[0])]
         z_list = [self.zero_state(hs_pad[0])]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(self.zero_state(hs_pad[0]))
             z_list.append(self.zero_state(hs_pad[0]))
         att_ws = []
@@ -1032,7 +1027,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
         eys = self.dropout_emb(self.embed(ys_in_pad))  # utt x olen x zdim
 
         # loop for an output sequence
-        for i in six.moves.range(olength):
+        for i in range(olength):
             if self.num_encs == 1:
                 att_c, att_w = self.att[att_idx](
                     hs_pad[0], hlen[0], self.dropout_dec[0](z_list[0]), att_w
@@ -1114,7 +1109,7 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         c_list = [self.zero_state(x[0].unsqueeze(0))]
         z_list = [self.zero_state(x[0].unsqueeze(0))]
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(self.zero_state(x[0].unsqueeze(0)))
             z_list.append(self.zero_state(x[0].unsqueeze(0)))
         # TODO(karita): support strm_index for `asr_mix`

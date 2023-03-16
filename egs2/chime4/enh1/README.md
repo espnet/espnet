@@ -58,4 +58,3 @@ Pretrained model: https://huggingface.co/lichenda/chime4_fasnet_dprnn_tac
 |---|---|---|---|---|
 |enhanced_dt05_simu_isolated_6ch_track|0.95|15.75|15.75|0.00|
 |enhanced_et05_simu_isolated_6ch_track|0.94|15.40|15.40|0.00|
-

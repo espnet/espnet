@@ -46,4 +46,4 @@ patience: 4
 
 # minibatch related
 batch_type: folded
-batch_size: 30 
+batch_size: 30

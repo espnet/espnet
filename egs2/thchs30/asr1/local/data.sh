@@ -33,7 +33,7 @@ db_root=${THCHS30}
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage -1: download data from openslr"
-    local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/18/data_thchs30.tgz" data_thchs30.tgz 
+    local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/18/data_thchs30.tgz" data_thchs30.tgz
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

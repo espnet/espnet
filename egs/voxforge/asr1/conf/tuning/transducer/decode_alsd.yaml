@@ -3,4 +3,3 @@ batch: 0
 beam-size: 5
 search-type: alsd
 u-max: 100
-

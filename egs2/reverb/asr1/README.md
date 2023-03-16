@@ -183,4 +183,3 @@
 |decode_lm_lm_train_lm_transformer_char_valid.loss.ave_asr_model_valid.acc.ave/et_real_8ch_beamformit_near|186|18433|98.6|0.6|0.8|0.6|1.9|33.3|
 |decode_lm_lm_train_lm_transformer_char_valid.loss.ave_asr_model_valid.acc.ave/et_simu_8ch_beamformit_far|1088|105480|99.0|0.4|0.6|0.2|1.2|30.1|
 |decode_lm_lm_train_lm_transformer_char_valid.loss.ave_asr_model_valid.acc.ave/et_simu_8ch_beamformit_near|1088|105480|99.0|0.4|0.6|0.2|1.2|29.6|
-

@@ -140,6 +140,8 @@ def enh_s2t_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--asr_decoder",
+            "rnn",
         ]
     )
 

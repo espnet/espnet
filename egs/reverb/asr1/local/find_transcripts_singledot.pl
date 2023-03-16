@@ -24,7 +24,7 @@
 # It takes as
 # Extracts from the dot files the transcripts for a given
 # dataset (represented by a file list).
-# 
+#
 
 use strict;
 
@@ -43,7 +43,7 @@ while(<F>) {
 }
 
 
-while(<STDIN>){ 
+while(<STDIN>){
     chop;
     my $uttid = $_;
     $uttid =~ m:\w{8}: || die "Bad utterance id $_";
@@ -53,5 +53,3 @@ while(<STDIN>){
         print "$uttid $utt2trans{$uttid}\n";
     }
 }
-
-

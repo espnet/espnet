@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import six
 import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -25,7 +24,7 @@ class RNNP(torch.nn.Module):
     def __init__(self, idim, elayers, cdim, hdim, subsample, dropout, typ="blstm"):
         super(RNNP, self).__init__()
         bidir = typ[0] == "b"
-        for i in six.moves.range(elayers):
+        for i in range(elayers):
             if i == 0:
                 inputdim = idim
             else:
@@ -62,7 +61,7 @@ class RNNP(torch.nn.Module):
         """
         logging.debug(self.__class__.__name__ + " input lengths: " + str(ilens))
         elayer_states = []
-        for layer in six.moves.range(self.elayers):
+        for layer in range(self.elayers):
             if not isinstance(ilens, torch.Tensor):
                 ilens = torch.tensor(ilens)
             xs_pack = pack_padded_sequence(xs_pad, ilens.cpu(), batch_first=True)

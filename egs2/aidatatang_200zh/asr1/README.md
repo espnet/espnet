@@ -1,3 +1,28 @@
+# E-Branchformer: 16 encoder layers
+
+## Environments
+- date: `Wed Feb 22 23:08:40 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `232a317a66eda6c5caee094db4b714bc912dce95`
+  - Commit date: `Wed Feb 22 14:22:01 2023 -0600`
+
+## With LM
+- ASR config: [conf/tuning/train_asr_e_branchformer_e16_linear1024_lr1e-3.yaml](conf/tuning/train_asr_e_branchformer_e16_linear1024_lr1e-3.yaml)
+- Params: 45.43M
+- LM config: [conf/train_lm_transformer.yaml](conf/train_lm_transformer.yaml)
+- Model link: [https://huggingface.co/pyf98/aidatatang_200zh_e_branchformer_e16](https://huggingface.co/pyf98/aidatatang_200zh_e_branchformer_e16)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|24216|234524|96.7|2.9|0.4|0.2|3.4|17.6|
+|decode_asr_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|48144|468933|96.1|3.5|0.4|0.2|4.1|20.1|
+
+
+
 # E-Branchformer
 
 ## Environments

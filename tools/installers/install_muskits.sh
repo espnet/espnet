@@ -56,4 +56,3 @@ if [ ! -e muskits.done ]; then
 else
     echo "muskits is already installed."
 fi
-

@@ -62,20 +62,19 @@ separator_conf:
     unit: 128
     segment_size: 250
     dropout: 0.05
-    mem_type: hc 
+    mem_type: hc
     seg_overlap: True
 
 # A list for criterions
 # The overlall loss in the multi-task learning will be:
 # loss = weight_1 * loss_1 + ... + weight_N * loss_N
 # The default `weight` for each sub-loss is 1.0
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-6
     wrapper: pit
     wrapper_conf:
       weight: 1.0
       independent_perm: True
-

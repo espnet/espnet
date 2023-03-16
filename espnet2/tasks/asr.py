@@ -183,7 +183,7 @@ decoder_choices = ClassChoices(
         s4=S4Decoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
     optional=True,
 )
 preprocessor_choices = ClassChoices(

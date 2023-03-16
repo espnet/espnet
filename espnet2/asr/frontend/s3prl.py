@@ -52,12 +52,12 @@ class S3prlFrontend(AbsFrontend):
         )
         upstream.eval()
         if getattr(
-            upstream, "model", None
-        ) is not None and upstream.model.__class__.__name__ in [
+            upstream.upstream, "model", None
+        ) is not None and upstream.upstream.model.__class__.__name__ in [
             "Wav2Vec2Model",
             "HubertModel",
         ]:
-            upstream.model.encoder.layerdrop = 0.0
+            upstream.upstream.model.encoder.layerdrop = 0.0
 
         if layer != -1:
             layer_selections = [layer]

@@ -1,6 +1,6 @@
 # generator architecture
 generator: conv
-generator_conf: 
+generator_conf:
   conv_stride: 1
   conv_kernel: 4
   bias: False
@@ -102,7 +102,7 @@ optim_conf:
 optim2: adamw
 optim2_conf:
     lr: 0.0005
-    betas: 
+    betas:
        - 0.5
        - 0.98
     eps: 1.0e-6

@@ -10,7 +10,7 @@ raw_data=$1     # raw data with metadata, txt and wav
 data=$2         # data transformed into kaldi format
 
 # generate kaldi format data for all
-if [ -d ${raw_data} ];then 
+if [ -d ${raw_data} ];then
     echo "Generating kaldi format data."
     mkdir -p $data/data_all
     find $raw_data -type f -name "*.wav" > $data/data_all/wavpath
@@ -26,10 +26,10 @@ if [ -d $data/data_all ];then
     tr '[a-z]' '[A-Z]' < $data/data_all/trans > $data/data_all/trans_upper
     # turn "." in specific abbreviations into "<m>" tag
     sed -i -e 's: MR\.: MR<m>:g' -e 's: MRS\.: MRS<m>:g' -e 's: MS\.: MS<m>:g' \
-        -e 's:^MR\.:MR<m>:g' -e 's:^MRS\.:MRS<m>:g' -e 's:^MS\.:MS<m>:g' $data/data_all/trans_upper 
+        -e 's:^MR\.:MR<m>:g' -e 's:^MRS\.:MRS<m>:g' -e 's:^MS\.:MS<m>:g' $data/data_all/trans_upper
 	# fix bug
-    sed -i 's:^ST\.:STREET:g' $data/data_all/trans_upper 
-    sed -i 's: ST\.: STREET:g' $data/data_all/trans_upper 
+    sed -i 's:^ST\.:STREET:g' $data/data_all/trans_upper
+    sed -i 's: ST\.: STREET:g' $data/data_all/trans_upper
     # punctuation marks
     sed -i "s%,\|\.\|?\|!\|;\|-\|:\|,'\|\.'\|?'\|!'\| '% %g" $data/data_all/trans_upper
     sed -i 's:<m>:.:g' $data/data_all/trans_upper

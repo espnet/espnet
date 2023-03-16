@@ -5,7 +5,7 @@
 #
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-# Note: To train the model with a flexible number of speakers, 
+# Note: To train the model with a flexible number of speakers,
 # run local/run_adapt.sh after running this script until stage 5 (training).
 
 set -e

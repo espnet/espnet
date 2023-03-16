@@ -105,7 +105,7 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
-use_src_lang=true          # Incorporate ASR loss (use src texts) or not 
+use_src_lang=true          # Incorporate ASR loss (use src texts) or not
 
 # Upload model related
 hf_repo=
@@ -226,7 +226,7 @@ Options:
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
-    --use_src_lang=    # Incorporate ASR loss (use src texts) or not 
+    --use_src_lang=    # Incorporate ASR loss (use src texts) or not
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -237,7 +237,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_st_model # ST model path for decoding (default="${inference_st_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-    
+
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
@@ -616,7 +616,13 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                if [ ! -f data/"${dset}"/wav.scp ]; then
+		            if [ ! -f data/"${dset}"/segments ]; then
+		                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                    else
+		                <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
+		            fi
+		        fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
                 # expand the utt_extra_files for multi-references
@@ -1184,7 +1190,7 @@ if ! "${skip_train}"; then
             awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
             >"${st_stats_dir}/valid/text_shape.${tgt_token_type}"
 
-        
+
         if [ $use_src_lang = true ]; then
             <"${st_stats_dir}/train/src_text_shape" \
                 awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
@@ -1235,8 +1241,8 @@ if ! "${skip_train}"; then
 
         _num_splits_opts=
         if [ $use_src_lang = true ]; then
-            _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} " 
-            _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} " 
+            _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} "
+            _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
         if [ "${num_splits_st}" -gt 1 ]; then
@@ -1269,7 +1275,7 @@ if ! "${skip_train}"; then
             if [ $use_src_lang = true ]; then
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
                 _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
-            fi 
+            fi
         else
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
@@ -1295,8 +1301,8 @@ if ! "${skip_train}"; then
 
         if [ $use_src_lang = true ]; then
             _opts+="--src_bpemodel ${src_bpemodel} "
-            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text " 
-            _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} " 
+            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} "
             _opts+="--fold_length ${st_text_fold_length} "
         fi
 
