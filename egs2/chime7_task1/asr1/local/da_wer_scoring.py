@@ -461,8 +461,8 @@ if __name__ == "__main__":
         "-s,--hyp_folder",
         type=str,
         help="Folder containing the JSON files relative to the system output. "
-             "One file for each scenario: chime6.json, dipco.json and mixer6.json. "
-             "These should contain all sessions in e.g. eval set.",
+        "One file for each scenario: chime6.json, dipco.json and mixer6.json. "
+        "These should contain all sessions in e.g. eval set.",
         metavar="STR",
         dest="hyp_folder",
     )
@@ -502,8 +502,8 @@ if __name__ == "__main__":
         metavar="INT",
         dest="diarization",
         help="Whether or not use diarization to re-order the system output, if "
-             "set to false we will not re-order the system output (you can set "
-             "to false if you are using oracle diarization).",
+        "set to false we will not re-order the system output (you can set "
+        "to false if you are using oracle diarization).",
     )
 
     parser.add_argument(
@@ -512,7 +512,7 @@ if __name__ == "__main__":
         default=500,
         required=False,
         help="Diarization metrics collar in ms. 500ms collar in pyannote "
-             "is equivalent to 250ms start and end collar in dscore.",
+        "is equivalent to 250ms start and end collar in dscore.",
         metavar="INT",
         dest="collar",
     )
