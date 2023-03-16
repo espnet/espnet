@@ -27,6 +27,9 @@ token_types="bpe char"
 for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
 done
+cp -r dump/raw data/
+./run.sh --stage 2 --stop-stage 4 --feats-type "raw_copy" \
+    --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}"
 for t in ${token_types}; do
     ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
 done
@@ -36,6 +39,11 @@ for t in ${feats_types}; do
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
     done
+    echo "==== feats_type=raw_copy, token_types=bpe ==="
+    cp -r dump/raw data/
+    ./run.sh --ngpu 0 --stage 4 --stop-stage 13 --skip-upload false --feats-type "raw_copy" --token-type "${t2}" \
+        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test \
+        --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
@@ -86,8 +94,10 @@ fi
 
 echo "==== [PIT_ASR] feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 for i in $(seq 2); do
-    cp dump/raw/train_nodev/text dump/raw/train_nodev/text_spk${i}
-    cp dump/raw/train_dev/text dump/raw/train_dev/text_spk${i}
+    for rr in raw raw/org; do
+        cp dump/${rr}/train_nodev/text dump/${rr}/train_nodev/text_spk${i}
+        cp dump/${rr}/train_dev/text dump/${rr}/train_dev/text_spk${i}
+    done
     cp dump/raw/test/text dump/raw/test/text_spk${i}
     cp dump/raw/test_seg/text dump/raw/test_seg/text_spk${i}
 done
