@@ -4,23 +4,23 @@ espnet2.utils package
 
 
 
-.. _espnet2.utils.get_default_kwargs:
+.. _espnet2.utils.kwargs2args:
 
-espnet2.utils.get_default_kwargs
---------------------------------
+espnet2.utils.kwargs2args
+-------------------------
 
-.. automodule:: espnet2.utils.get_default_kwargs
+.. automodule:: espnet2.utils.kwargs2args
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.utils.config_argparse:
+.. _espnet2.utils.yaml_no_alias_safe_dump:
 
-espnet2.utils.config_argparse
------------------------------
+espnet2.utils.yaml_no_alias_safe_dump
+-------------------------------------
 
-.. automodule:: espnet2.utils.config_argparse
+.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,6 +48,28 @@ espnet2.utils.griffin_lim
     :show-inheritance:
 
 
+.. _espnet2.utils.sized_dict:
+
+espnet2.utils.sized_dict
+------------------------
+
+.. automodule:: espnet2.utils.sized_dict
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.utils.__init__:
+
+espnet2.utils.__init__
+----------------------
+
+.. automodule:: espnet2.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.utils.nested_dict_action:
 
 espnet2.utils.nested_dict_action
@@ -59,23 +81,12 @@ espnet2.utils.nested_dict_action
     :show-inheritance:
 
 
-.. _espnet2.utils.yaml_no_alias_safe_dump:
+.. _espnet2.utils.get_default_kwargs:
 
-espnet2.utils.yaml_no_alias_safe_dump
--------------------------------------
+espnet2.utils.get_default_kwargs
+--------------------------------
 
-.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.utils.sized_dict:
-
-espnet2.utils.sized_dict
-------------------------
-
-.. automodule:: espnet2.utils.sized_dict
+.. automodule:: espnet2.utils.get_default_kwargs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,23 +103,12 @@ espnet2.utils.build_dataclass
     :show-inheritance:
 
 
-.. _espnet2.utils.kwargs2args:
+.. _espnet2.utils.config_argparse:
 
-espnet2.utils.kwargs2args
--------------------------
+espnet2.utils.config_argparse
+-----------------------------
 
-.. automodule:: espnet2.utils.kwargs2args
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.utils.__init__:
-
-espnet2.utils.__init__
-----------------------
-
-.. automodule:: espnet2.utils.__init__
+.. automodule:: espnet2.utils.config_argparse
     :members:
     :undoc-members:
     :show-inheritance:
