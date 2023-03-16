@@ -14,7 +14,7 @@
 
 |dataset|score|verbose_score|
 |---|---|---|
-|decode_pen2_st_model_valid.acc.ave/test|2.6|22.5/4.5/1.8/0.8 (BP = 0.736 ratio = 0.765 hyp_len = 17223 ref_len = 22504)|
+|decode_st_full_transformer_st_model_valid.acc.ave/test|2.7|22.1/4.6/1.9/0.8 (BP = 0.756 ratio = 0.782 hyp_len = 17593 ref_len = 22504)|
 
 ## st_full_wav2vec-transformer-warmup-15k
 
@@ -22,4 +22,4 @@
 
 |dataset|score|verbose_score|
 |---|---|---|
-|decode_pen2_st_model_valid.acc.ave/test|3.6|24.7/5.4/2.1/1.0 (BP = 0.894 ratio = 0.899 hyp_len = 20241 ref_len = 22504)|
+|decode_st_full_transformer_st_model_valid.acc.ave/test|3.7|24.4/5.2/2.0/0.9 (BP = 0.928 ratio = 0.931 hyp_len = 20945 ref_len = 22504)|
