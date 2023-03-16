@@ -10,7 +10,8 @@
 # general configuration
 lid=$1
 only_lid=$2
-asr_exp=$3
+score_type=$3
+asr_exp=$4
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -33,17 +34,23 @@ set -o pipefail
 log "Linguistic scoring started"
 log "$0 $*"
 
-# . utils/parse_options.sh || exit 1;
+if [ "${score_type}" = "monolingual" ]; then
+    log "Skip local/score.sh for monolingual cases"
+    exit 1
+fi
 
-mkdir -p downloads
-if [ ! -f downloads/linguistic.json ]; then
-    wget -O downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
-fi
-if [ ! -f downloads/macro.json ]; then
-    wget -O downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
-fi
-if [ ! -f downloads/exception.json ]; then
-    wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true
+
+if [ "${score_type}" = language_family ]; then
+    mkdir -p downloads
+    if [ ! -f downloads/linguistic.json ]; then
+        wget -O downloads/linguistic.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/linguistic.json?raw=true
+    fi
+    if [ ! -f downloads/macro.json ]; then
+        wget -O downloads/macro.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/macro.json?raw=true
+    fi
+    if [ ! -f downloads/exception.json ]; then
+        wget -O downloads/exception.json https://github.com/hhhaaahhhaa/LinguisticTree/blob/main/exception.json?raw=true
+    fi
 fi
 
 python local/split_results.py \
@@ -52,13 +59,18 @@ python local/split_results.py \
     --only_lid ${only_lid}
 
 if "${only_lid}" || "${lid}"; then
-    # directories=$(find ${asr_exp} -wholename "*/*/score_lid/independent/*" -type d -not -path '/\.')
-    # directories+=" "
-    directories=$(find ${asr_exp} -wholename "*/*/score_lid/few_shot/*" -type d -not -path '/\.')
-    # directories+=" "
-    # directories+=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.')
-    # directories+=" "
-    # directories+=$(find ${asr_exp} -wholename "*/*/score_lid/all/*" -type d -not -path '/\.')
+    if [ "${score_type}" = independent ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/independent/*" -type d -not -path '/\.')
+    elif [ "${score_type}" = "normal" ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/few_shot/*" -type d -not -path '/\.')
+    elif [ "${score_type}" = "language_family" ]; then
+	directories=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.') 
+    elif [ "${score_type}" = "all" ]; then
+	directories=$(find ${asr_exp} -wholename "*/*/score_lid/all/*" -type d -not -path '/\.')
+    else
+	log "Not recognized score_type ${score_type}"
+	exit 1
+    fi
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/scores.txt"
@@ -68,13 +80,19 @@ if "${only_lid}" || "${lid}"; then
 fi
 
 if ! "${only_lid}"; then
-    # directories=$(find ${asr_exp} -wholename "*/*/score_cer/independent/*" -type d -not -path '/\.')
-    # directories+=" "
-    directories=$(find ${asr_exp} -wholename "*/*/score_cer/few_shot/*" -type d -not -path '/\.')
-    # directories+=" "
-    # directories+=$(find ${asr_exp} -wholename "*/*/score_cer/language_family/*" -type d -not -path '/\.')
-    # directories+=" "
-    # directories+=$(find ${asr_exp} -wholename "*/*/score_cer/all/*" -type d -not -path '/\.')
+    if [ "${score_type}" = independent ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/independent/*" -type d -not -path '/\.')
+    elif [ "${score_type}" = "normal" ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/few_shot/*" -type d -not -path '/\.')
+    elif [ "${score_type}" = "language_family" ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.') 
+    elif [ "${score_type}" = "all" ]; then
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/all/*" -type d -not -path '/\.')
+    else
+        log "Not recognized score_type ${score_type}"
+	exit 1
+    fi
+    
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/result.txt"

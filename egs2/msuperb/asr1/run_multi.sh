@@ -7,35 +7,26 @@ set -o pipefail
 
 duration=10min
 
-multilingual=true
 lid=false
 only_lid=true
-single_lang=xty
 stage=1
-nj=4
+nj=32
 
 token_type=char
-if "${multilingual}"; then
-    if "${only_lid}"; then
-        suffix="_only_lid"
-        token_type=word
-    else
-        if "${lid}"; then
-            suffix="_lid"
-        else
-            suffix=""
-        fi
-    fi
-    train_set=train_${duration}${suffix}
-    train_dev=dev_${duration}${suffix}
-    test_set="${train_dev} test_${duration}${suffix}"
-    lang="multilingual"
+if "${only_lid}"; then
+    suffix="_only_lid"
+    token_type=word
 else
-    train_set=train_${duration}_${single_lang}
-    train_dev=dev_${duration}_${single_lang}
-    test_set="${train_dev} test_${duration}_${single_lang}"
-    lang=${single_lang}
+    if "${lid}"; then
+       suffix="_lid"
+    else
+        suffix=""
+    fi
 fi
+train_set=train_${duration}${suffix}
+train_dev=dev_${duration}${suffix}
+test_set="${train_dev} test_${duration}${suffix}"
+lang="multilingual"
 
 nlsyms_txt=data/local/nlsyms.txt
 lm_config=conf/train_lm.yaml
@@ -50,7 +41,7 @@ asr_tag="$(basename "${asr_config}" .yaml)_${lang}_${duration}"
     --nj ${nj} \
     --inference_nj ${nj} \
     --inference_asr_model valid.loss.ave.pth \
-    --local_data_opts "--duration ${duration} --lid ${lid} --only_lid ${only_lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
+    --local_data_opts "--duration ${duration} --lid ${lid} --only_lid ${only_lid} --multilingual true --nlsyms_txt ${nlsyms_txt}" \
     --nlsyms_txt ${nlsyms_txt} \
     --use_lm false \
     --lm_config "${lm_config}" \
