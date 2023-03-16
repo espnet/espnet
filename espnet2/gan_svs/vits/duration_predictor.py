@@ -68,5 +68,5 @@ class DurationPredictor(torch.nn.Module):
         x = self.drop(x)
 
         x = self.proj(x * x_mask)
-        
+
         return x * x_mask
