@@ -219,9 +219,9 @@ def log_asr(output_folder, hyp_segs, ref_segs):
     ref_segs = flatten_segs(ref_segs)
     hyp_segs = sorted(hyp_segs, key=lambda x: float(x["start_time"]))
     ref_segs = sorted(ref_segs, key=lambda x: float(x["start_time"]))
-    with open(os.path.join(output_folder, "hyp_reordered.json"), "r") as f:
+    with open(os.path.join(output_folder, "hyp_reordered.json"), "w") as f:
         json.dump(hyp_segs, f, indent=4)
-    with open(os.path.join(output_folder, "ref.json"), "r") as f:
+    with open(os.path.join(output_folder, "ref.json"), "w") as f:
         json.dump(ref_segs, f, indent=4)
 
 
@@ -247,6 +247,7 @@ def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None
             if uem is not None and (end < st_uem or start > end_uem):
                 continue
             spk2utt[s["speaker"]].append(s)
+
         for spk in spk2utt.keys():
             spk2utt[spk] = sorted(spk2utt[spk], key=lambda x: float(x["start_time"]))
         return spk2utt
@@ -254,7 +255,7 @@ def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None
     hyp = spk2utts(hyp_segs, uem)
     ref = spk2utts(ref_segs, uem)
 
-    log_asr(output_folder, hyp_segs, ref_segs)
+    log_asr(output_folder, hyp, ref)
 
     if mapping is not None:
         # check if they have same speakers
@@ -416,7 +417,7 @@ def score(
 
             c_sess_stats.update({k: v for k, v in der_score.items()})
             c_sess_stats.update({k: v for k, v in jer_score.items()})
-            asr_err_sess, asr_err_spk, hyp_reordered = compute_asr_errors(
+            asr_err_sess, asr_err_spk = compute_asr_errors(
                 sess_dir, hyp_segs, ref_segs, mapping, uem=c_uem
             )
 
@@ -431,7 +432,7 @@ def score(
                     "These will be counted as deletions so be careful !"
                 )
             asr_err_sess, asr_err_spk = compute_asr_errors(
-                output_folder, scenario_tag, hyp_segs, ref_segs, uem=c_uem
+                sess_dir, hyp_segs, ref_segs, mapping=None, uem=c_uem
             )
             c_sess_stats = {
                 "session id": session,
@@ -625,7 +626,7 @@ if __name__ == "__main__":
 
     sess_wise_df = pd.DataFrame(sess_wise_df)
     spk_wise_df = pd.DataFrame(spk_wise_df)
-    scenario_wise_df = pd.concat(scenario_wise_df, 0)
+    scenario_wise_df = pd.concat(scenario_wise_df, axis=0)
     sess_wise_df.to_csv(os.path.join(args.output_folder, "sessions_stats.csv"))
     spk_wise_df.to_csv(os.path.join(args.output_folder, "speakers_stats.csv"))
     scenario_wise_df.to_csv(os.path.join(args.output_folder, "scenarios_stats.csv"))
