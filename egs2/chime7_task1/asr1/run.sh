@@ -53,7 +53,7 @@ bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
-asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/eval/gss_inf kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -164,12 +164,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
   # NOTE that ESPNet will not make copies of the original Kaldi manifests
-  # e.g. for training and cv, so if you set $train_max_segment_length these
-  # will be discarded also from the test set (if the test set is the same as evaluation)
-  # you need to make a copy, here we make a copy inside local/data.sh called gss_inf!
-  #asr_tt_set+=" kaldi/chime6/dev/ihm kaldi/dipco/dev/ihm/ kaldi/mixer6/dev/ihm/"
-  # uncomment if you do want to decode also on close-talk microphones
-  # note however that it could be bad because there won't be any separation.
+  # e.g. for training and validation, so if you set $train_max_segment_length and
+  # use the same dataset in validation and also for inference it may happen that
+  # some long recordings are discarded also from inference !
+  # you need to make a copy yourself using utils/copy_data_dir.sh !
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
