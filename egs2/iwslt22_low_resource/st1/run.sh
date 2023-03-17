@@ -16,6 +16,7 @@ train_dev=valid
 test_set="test"
 
 st_config=conf/train_st_transformer.yaml
+# for train_full, use decode_st_full_transformer.yaml
 inference_config=conf/decode_st_transformer.yaml
 
 tgt_nbpe=1000
@@ -28,7 +29,7 @@ tgt_case=tc
 
 ./st.sh \
     --stage 1 \
-    --stop_stage 11 \
+    --stop_stage 13 \
     --use_lm false \
     --token_joint false \
     --audio_format "wav" \
