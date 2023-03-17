@@ -342,7 +342,7 @@ GSS:
 scripts/audio/format_wav_scp.sh:
  - Some spikes to the range of 15 to 17 GB
 
-${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag}:
+`${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag`}:
  - Few spikes to the 9 to 11 GB range.
 
 
