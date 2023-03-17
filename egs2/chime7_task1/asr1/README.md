@@ -208,8 +208,11 @@ Additional data description is available in [Data page](https://www.chimechallen
 
 ## <a id="baseline">3. Baseline System</a>
 
+<img src="https://www.chimechallenge.org/current/task1/images/baseline.png" width="450" height="120" />
+
 The baseline system in this recipe is similar to `egs2/chime6` one, which
 itself is inherited direcly from CHiME-6 Challenge Kaldi recipe for Track 1 [s5_track1](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1). <br>
+
 
 It is composed of two modules (with an optional channel selection module):
 1. Guided Source Separation (GSS) [5], here we employ the GPU-based version (much faster) from [Desh Raj](https://github.com/desh2608/gss).
@@ -280,13 +283,46 @@ Results on the evaluation set will be released after the end of the CHiME-7 DASR
 ## <a id="eval_script"> 4. Evaluation Script </a>
 The evaluation protocol is depicted here below:
 
+<img src="https://www.chimechallenge.org/current/task1/images/main_eval.png" width="450" height="230" />
+
 Evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription.
 by computing diarization-attributed word error rate (DA-WER) for each speaker, where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate
 and then concatenated together. It is similar to the CHiME-6 Challenge cpWER but here we use diarization to define the permutation.
+<br>
+For the acoustic robustness sub-track we skip the re-ordering process as the participants can use oracle diarization 
+to provide correctly named speaker labels.
+The final ranking is given by the DA-WER macro-averaged across all three scenarios (sample from evaluation script output):
 
+```bash
+###################################################
+### Metrics for all Scenarios ###
+###################################################
++----+------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------+
+|    | scenario   |   num spk hyp |   num spk ref |   tot utterances hyp |   tot utterances ref |   hits |   substitutions |   deletions |   insertions |      wer |
+|----+------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------|
+|  0 | chime6     |             8 |             8 |                 6644 |                 6644 |  42748 |           11836 |        4297 |         3090 | 0.326472 |
+|  0 | dipco      |            20 |            20 |                 3673 |                 3673 |  22125 |            5859 |        1982 |         2212 | 0.33548  |
+|  0 | mixer6     |           118 |           118 |                14804 |                14804 | 126617 |           16012 |        6352 |         7818 | 0.20259  |
++----+------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------+
+####################################################################
+### Macro-Averaged Metrics across all Scenarios (Ranking Metric) ###
+####################################################################
++----+---------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------+
+|    | scenario      |   num spk hyp |   num spk ref |   tot utterances hyp |   tot utterances ref |   hits |   substitutions |   deletions |   insertions |      wer |
+|----+---------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------|
+|  0 | macro-average |       48.6667 |       48.6667 |              8373.67 |              8373.67 |  63830 |         11235.7 |     4210.33 |      4373.33 | 0.288181 |
++----+---------------+---------------+---------------+----------------------+----------------------+--------+-----------------+-------------+--------------+----------+
+```
 
 It is performed here in stage 4 in `run.sh` and the scoring takes place
 in `local/da_wer_scoring.py`.
+The output of the scoring script on the acoustic robustness sub-track for the baseline 
+is reported in `baseline_logs/inference.log`. <br> 
+Note that it also produces a lot of information useful for debugging in `${asr_exp}/${inference_tag}/scoring`, 
+e.g. error statistics in form of `csv` files for all sessions and all speakers as well as 
+reordered JSON hypotheses with diarization-derived speaker mapping. <br> 
+When diarization error rate is computed we also log 
+pyannote annotation and error analysis segmentation, for each session. 
 
 The main motivation behind the use of this metric is that we want participants
 to produce also reasonable timestamps for each utterance.
