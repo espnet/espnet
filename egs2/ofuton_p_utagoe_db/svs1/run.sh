@@ -29,11 +29,13 @@ inference_config=conf/decode.yaml
 g2p=pyopenjtalk
 cleaner=none
 
+pitch_extract=dio
+
 ./svs.sh \
     --lang jp \
     --local_data_opts "--stage 0" \
     --feats_type raw \
-    --pitch_extract None \
+    --pitch_extract "${pitch_extract}" \
     --fs "${fs}" \
     --fmax "${fmax}" \
     --fmin "${fmin}" \
