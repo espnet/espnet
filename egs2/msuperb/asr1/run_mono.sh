@@ -5,24 +5,25 @@ set -e
 set -u
 set -o pipefail
 
+# Process Pipeline
+stage=1
+stop_stage=13
+nj=32
+inference_nj=32
+gpu_inference=false
 
-multilingual=false
-lid=false
-nlsyms_txt=data/local/nlsyms.txt
+# Model/Inference Configs
 asr_config=conf/tuning/train_asr_fbank_single.yaml
-lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-
+./utils/parse_options.sh || exit 1
 
 for duration in 10min 1h; do
-    echo ${duration}
     for single_lang in eng1 eng2 eng3 fra1 fra2 deu1 deu2 rus swa swe jpn cmn xty ; do
-        echo ${single_lang}
+        echo "processing ${single_lang} ${duration}"
         train_set=train_${duration}_${single_lang}
         train_dev=dev_10min_${single_lang}
         test_set="${train_dev} test_10min_${single_lang}"
-        lang=${single_lang}
         asr_tag="$(basename "${asr_config}" .yaml)_${single_lang}_${duration}"
 
         if [ "${single_lang}" == "cmn" ] || [ "${single_lang}" == "jpn" ]; then
@@ -31,17 +32,20 @@ for duration in 10min 1h; do
             token_type=char
         fi
 
+	local_data_opts="--duration ${duration} --lid false --multilingual false "
+	local_data_opts+="--single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}"
+
         ./asr.sh \
             --ngpu 1 \
-            --stage 1 \
-            --stop_stage 13 \
-            --lang ${lang} \
-            --nj 4 \
-            --inference_nj 4 \
+	    --stage ${stage} \
+            --stop_stage ${stop_stage} \
+	    --nj ${nj} \
+	    --inference_nj ${inference_nj} \
+	    --gpu_inference ${gpu_inference} \
+            --lang ${single_lang} \
             --inference_asr_model "valid.loss.ave.pth" \
-            --local_data_opts "--duration ${duration} --lid ${lid} --multilingual ${multilingual} --single_lang ${single_lang} --nlsyms_txt ${nlsyms_txt}" \
+            --local_data_opts "${local_data_opts}" \
             --use_lm false \
-            --lm_config "${lm_config}" \
             --token_type ${token_type} \
             --feats_type raw \
             --feats_normalize utterance_mvn \
@@ -50,10 +54,8 @@ for duration in 10min 1h; do
             --train_set "${train_set}" \
             --valid_set "${train_dev}" \
             --test_sets "${test_set}" \
-            --bpe_train_text "data/${train_set}/text" \
             --asr_tag "${asr_tag}" \
             --asr_stats_dir exp/asr_stats_${lang}_${duration} \
-            --lm_train_text "data/${train_set}/text" "$@" \
             --local_score_opts "false false monolingual"
     done
 done
