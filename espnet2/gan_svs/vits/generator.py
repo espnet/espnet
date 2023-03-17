@@ -585,6 +585,7 @@ class VITSGenerator(torch.nn.Module):
                     logw = self.duration_predictor(x, x_mask, beat, g=g)
                     logw = (torch.exp(logw) - 1) * x_mask
                     logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
+                    logw[logw < 0] = 0
                     logw = logw.squeeze(1).to(torch.long)
 
                     x, frame_pitch, x_lengths = self.lr(x, melody, logw, label_lengths)
