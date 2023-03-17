@@ -36,6 +36,7 @@ train_min_segment_length=1 # discard sub one second examples, they are a lot in 
 train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
+use_selection=1 # always use selection
 gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
@@ -53,7 +54,7 @@ bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
-asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -76,7 +77,7 @@ asr_warmup=$(calc_int 40000.0/$ngpu)
 
 if [ $decode_only == 1 ]; then
   # apply gss only on dev
-  gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
 fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
@@ -94,7 +95,7 @@ fi
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
-    for dset_part in train dev "eval"; do
+    for dset_part in train dev; do
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
@@ -132,12 +133,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       exit
     fi
 
-    if [ ${dset_part} == dev ]; then # use only outer mics
-      use_selection=1
-    else
-      use_selection=0
-    fi
-
     if [ ${dset_part} == train ]; then
       max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
     fi
@@ -159,21 +154,19 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-
-  asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-  asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
-  # NOTE that ESPNet will not make copies of the original Kaldi manifests
-  # e.g. for training and validation, so if you set $train_max_segment_length and
-  # use the same dataset in validation and also for inference it may happen that
-  # some long recordings are discarded also from inference !
-  # you need to make a copy yourself using utils/copy_data_dir.sh !
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set=kaldi/dev_ihm_all # dummy one, it is not used
+    asr_train_set=""#kaldi/dev_ihm_all # dummy one, it is not used
+    asr_cv_set=""  #kaldi/dev_ihm_all
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
+  else
+    asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
+    asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
+    # note that if it is also in test a copy named org/${valid} is created
+    # will have to handle it in stage 4
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -236,8 +229,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       regex="(S[0-9]+)"
     fi
     python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
-
+    # the content of this folder is what you should send for evaluation to the
+    # organizers.
   done
+  split=dev
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
      -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 0 2>&1 | tee $LOG_OUT
