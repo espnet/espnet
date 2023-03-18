@@ -8,7 +8,9 @@
 import importlib
 import shutil
 import sys
+import subprocess
 from pathlib import Path
+import re
 
 from packaging.version import parse
 
@@ -40,13 +42,17 @@ module_list = [
 ]
 
 executable_list = [
-    ("sclite", "installers/install_sctk.sh"),
-    ("sph2pipe", "installers/install_sph2pipe.sh"),
-    ("PESQ", "installers/install_pesq.sh"),
-    ("BeamformIt", "installers/install_beamformit.sh"),
-    ("spm_train", None),
-    ("spm_encode", None),
-    ("spm_decode", None),
+    ("sclite", "installers/install_sctk.sh", None),
+    ("sph2pipe", "installers/install_sph2pipe.sh", None),
+    ("PESQ", "installers/install_pesq.sh", None),
+    ("BeamformIt", "installers/install_beamformit.sh", None),
+    ("spm_train", None, None),
+    ("spm_encode", None, None),
+    ("spm_decode", None, None),
+    ("sox", None, "--version"),
+    ("ffmpeg", None, "-version"),
+    ("flac", None, "--version"),
+    ("cmake", None, "--version"),
 ]
 
 
@@ -157,9 +163,26 @@ def main():
 
     print()
     print("Executables:")
-    for name, installer in executable_list:
+
+    pattern = re.compile(r"([0-9]+.[0-9]+.[0-9]+[^\s]*)\s*")
+
+    for name, installer, version_option in executable_list:
         if shutil.which(name) is not None:
-            print(f"[x] {name}")
+            string = f"[x] {name}"
+            if version_option is not None:
+                cp = subprocess.run(
+                    [name, version_option], capture_output=True, text=True
+                )
+                if cp.returncode == 0:
+                    ma = re.search(pattern, cp.stdout)
+                    if ma is not None:
+                        string = f"[x] {name}={ma.group(1)}"
+                    else:
+                        ma = re.search(pattern, cp.stderr)
+                        if ma is not None:
+                            string = f"[x] {name}={ma.group(1)}"
+            print(string)
+
         else:
             print(f"[ ] {name}")
             if installer is not None:
