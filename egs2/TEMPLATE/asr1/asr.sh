@@ -273,7 +273,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -309,7 +309,7 @@ for dset in ${test_sets}; do
         exit 1
     fi
     if [ "${dset}" = "${valid_set}" ]; then
-        log "Info: The valid_set ${valid_set} is included in the specified test_sets. Change to --eval_valid_set true and remove the ${valid_set} from the test_sets"
+        log "Info: The valid_set ${valid_set} is included in the test_sets. '--eval_valid_set true' is set and '${valid_set}' is removed from the test_sets"
         eval_valid_set=true
     elif contains "${dset}" "${_test_sets}"; then
         log "Info: ${dset} is duplicated in the test_sets. One is removed"
