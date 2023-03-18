@@ -6,7 +6,11 @@ export PATH=$PWD/utils/:$PATH
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-[ -f "${MAIN_ROOT}"/tools/activate_python.sh ] && . "${MAIN_ROOT}"/tools/activate_python.sh
+if [ -f "${MAIN_ROOT}"/tools/activate_python.sh ]; then
+    . "${MAIN_ROOT}"/tools/activate_python.sh
+else
+    echo "[INFO] "${MAIN_ROOT}"/tools/activate_python.sh is not present"
+fi
 . "${MAIN_ROOT}"/tools/extra_path.sh
 
 export OMP_NUM_THREADS=1
