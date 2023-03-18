@@ -6,7 +6,7 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
-import os
+from pathlib import Path
 import shutil
 import sys
 
@@ -134,11 +134,23 @@ def main():
                 to_install.append(f"Use '{installer}' to install {name}")
 
     # check muskits install
-    if os.path.exists("muskits.done"):
-        print(f"[x] muskits")
+    if Path("muskits.done").exists():
+        print("[x] muskits")
     else:
-        print(f"[ ] muskits")
-        to_install.append(f"Use 'installers/install_muskits.sh' to install muskits")
+        print("[ ] muskits")
+        to_install.append("Use 'installers/install_muskits.sh' to install muskits")
+
+    if not Path("kaldi/egs/wsj/s5/utils/parse_options.sh").exists():
+        print("[ ] Kaldi")
+        to_install.append(
+            "Type 'git clone --depth 1 https://github.com/kaldi-asr/kaldi'"
+            " and see 'kaldi/tools/INSTALL' to install Kaldi"
+        )
+    elif not Path("kaldi/src/bin/copy-matrix").exists():
+        print("[x] Kaldi (not compiled)")
+        to_install.append("See 'kaldi/tools/INSTALL' to install Kaldi")
+    else:
+        print("[x] Kaldi (compiled)")
 
     print()
     print("Executables:")
