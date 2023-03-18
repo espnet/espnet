@@ -26,7 +26,8 @@ setup_venv.sh      # To generate activate_python.sh with venv of your python
 # If the conda-root already exists at the path, it tries to create in the conda
 # ./setup_anaconda.sh /some/where/miniconda espnet
 
-# e.g. make TH_VERSION=<torch-ver|default=latest torch>
+# make TH_VERSION=<torch-ver|default=latest torch>
+# e.g.
 make
 ```
 
