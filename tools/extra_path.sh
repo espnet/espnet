@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# This file is a configuration fle for the commond setting
+# and set the environment variable for the extra tools installed by tools/installers/*.sh.
+# This file is mainly sourced in egs2/*/*/path.sh. e.g. egs2/mini_an4/asr1/path.sh
+
 if [ -n "${BASH_VERSION:-}" ]; then
     # shellcheck disable=SC2046
     TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
