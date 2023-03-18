@@ -1,5 +1,8 @@
 # Tools for setup
 
+<div align="left"><img src="../doc/image/environment_structure.png" width="700"/></div>
+
+
 See also https://espnet.github.io/espnet/installation.html
 
 ## Contents
