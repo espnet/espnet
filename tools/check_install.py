@@ -6,11 +6,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import importlib
-import shutil
-import sys
-import subprocess
-from pathlib import Path
 import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
 
 from packaging.version import parse
 
