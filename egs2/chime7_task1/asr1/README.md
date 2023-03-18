@@ -297,8 +297,8 @@ Such baseline system would rank third on dev set based on the rules of the past 
 on Track 1 (unconstrained LM).
 Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge. <br>
 Note that as explained in  [CHiME-7 DASR website Data page](https://www.chimechallenge.org/current/task1/data)
-the evaluation set for CHiME-6 is different from the one in previous edition and is supposed to be 
-more challenging. 
+the evaluation set for CHiME-6 is different from the one in previous edition and is supposed to be
+more challenging.
 
 
 ## <a id="eval_script"> 4. Evaluation Script </a>
