@@ -40,6 +40,7 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs*/*/*/score*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
