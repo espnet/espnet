@@ -129,8 +129,10 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 </div></details>
 
 ### Step 2) Installation ESPnet
+    
+<div align="left"><img src="image/environment_structure.png" width="700"/></div>
 
-![environment_structure](image/environment_structure.pdf)
+
 
 1. Git clone ESPnet
     ```sh
