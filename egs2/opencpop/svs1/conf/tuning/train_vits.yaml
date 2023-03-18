@@ -39,7 +39,7 @@ svs_conf:
         use_conformer_conv_in_text_encoder: false
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
-        decoder_channels: 512
+        decoder_channels: 64
         decoder_upsample_scales: [8, 8, 2, 2]
         decoder_upsample_kernel_sizes: [16, 16, 4, 4]
         decoder_resblock_kernel_sizes: [3, 7, 11]
@@ -132,7 +132,8 @@ svs_conf:
 pitch_extract: dio           # pitch extractor type
 pitch_extract_conf:
     use_token_averaged_f0: false
-pitch_normalize: global_mvn  # normalizer for the pitch feature
+    use_log_f0: false
+pitch_normalize: None # global_mvn  # normalizer for the pitch feature
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -163,7 +164,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 600            # number of epochs
+max_epoch: 300            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_bins: 500000        # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
