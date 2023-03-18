@@ -36,5 +36,5 @@ For more detail: https://espnet.github.io/espnet/installation.html#step-2-instal
 ## Check installation
 
 ```sh
-. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
+bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 ```
