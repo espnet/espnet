@@ -107,7 +107,7 @@ if [ -n "${segments}" ]; then
             --fs ${fs} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
-            "${scp}" "${outdir}/format.JOB"
+            "${scp}" "${outdir}/format.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 else
     log "[info]: without segments"
     nutt=$(<${scp} wc -l)
@@ -124,7 +124,7 @@ else
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
-        "${logdir}/wav.JOB.scp" "${outdir}/format.JOB"
+        "${logdir}/wav.JOB.scp" "${outdir}/format.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 fi
 
 # Workaround for the NFS problem
