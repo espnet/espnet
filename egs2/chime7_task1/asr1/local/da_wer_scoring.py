@@ -282,7 +282,11 @@ def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None
                 "insertions": len(cat_hyps.split()),
             }
         else:
-            ldist = jiwer.compute_measures(cat_refs, cat_hyps)
+            wordsout = jiwer.process_words(cat_refs, cat_hyps)
+            ldist = {
+                k: v for k, v in wordsout.__dict__.items() if k in tot_stats.keys()
+            }
+
         ldist.update(
             {
                 "speaker": spk,
@@ -564,6 +568,9 @@ if __name__ == "__main__":
         "in case you want to score e.g. only DiPCo. If 0 missing the "
         "corresponding JSON for a particular scenario will raise an error.",
     )
+
+    if not hasattr(jiwer, "process_words"):
+        raise RuntimeError("Please update jiwer package to 3.0.0 version.")
 
     args = parser.parse_args()
     skip_macro = False
