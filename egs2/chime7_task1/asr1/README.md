@@ -289,7 +289,7 @@ Evaluation is performed as described in the [Task Main Page](https://www.chimech
 by computing diarization-attributed word error rate (DA-WER) for each speaker, where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate
 and then concatenated together. It is similar to the CHiME-6 Challenge cpWER but here we use diarization to define the permutation.
 <br>
-For the acoustic robustness sub-track we skip the re-ordering process as the participants can use oracle diarization 
+For the acoustic robustness sub-track we skip the re-ordering process as the participants can use oracle diarization
 to provide correctly named speaker labels.
 The final ranking is given by the DA-WER macro-averaged across all three scenarios (sample from evaluation script output):
 
@@ -316,13 +316,13 @@ The final ranking is given by the DA-WER macro-averaged across all three scenari
 
 It is performed here in stage 4 in `run.sh` and the scoring takes place
 in `local/da_wer_scoring.py`.
-The output of the scoring script on the acoustic robustness sub-track for the baseline 
-is reported in `baseline_logs/inference.log`. <br> 
-Note that it also produces a lot of information useful for debugging in `${asr_exp}/${inference_tag}/scoring`, 
-e.g. error statistics in form of `csv` files for all sessions and all speakers as well as 
-reordered JSON hypotheses with diarization-derived speaker mapping. <br> 
-When diarization error rate is computed we also log 
-pyannote annotation and error analysis segmentation, for each session. 
+The output of the scoring script on the acoustic robustness sub-track for the baseline
+is reported in `baseline_logs/inference.log`. <br>
+Note that it also produces a lot of information useful for debugging in `${asr_exp}/${inference_tag}/scoring`,
+e.g. error statistics in form of `csv` files for all sessions and all speakers as well as
+reordered JSON hypotheses with diarization-derived speaker mapping. <br>
+When diarization error rate is computed we also log
+pyannote annotation and error analysis segmentation, for each session.
 
 The main motivation behind the use of this metric is that we want participants
 to produce also reasonable timestamps for each utterance.
