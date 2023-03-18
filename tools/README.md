@@ -6,7 +6,7 @@ See also https://espnet.github.io/espnet/installation.html
 ```
 installers/        # Instllation scripts for extra tools
 Makefile           # Makefile to make an environment for experiments in espnet
-check_install.py   # To check the status of installation 
+check_install.py   # To check the status of installation
 extra_path.sh      # Setup script for environment variables for extra tools
 setup_cuda_env.sh  # Setup script for environment variables for cuda
 setup_anaconda.sh  # To generate activate_python.sh with conda environment
