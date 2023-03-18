@@ -306,7 +306,7 @@ The evaluation protocol is depicted here below:
 
 <img src="https://www.chimechallenge.org/current/task1/images/main_eval.png" width="450" height="230" />
 
-Evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription.
+evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription.
 Systems are evaluated by diarization-attributed word error rate (DA-WER). It is a form of speaker-attributed WER (SA-WER),
 where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate (DER), concatenated together
 and finally WER is accumulated across all the speakers.
