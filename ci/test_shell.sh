@@ -15,6 +15,7 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
+. tools/extra_path.sh
 
 set -euo pipefail
 
