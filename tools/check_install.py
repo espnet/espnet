@@ -44,6 +44,9 @@ executable_list = [
     ("sph2pipe", "installers/install_sph2pipe.sh"),
     ("PESQ", "installers/install_pesq.sh"),
     ("BeamformIt", "installers/install_beamformit.sh"),
+    ("spm_train", None),
+    ("spm_encode", None),
+    ("spm_decode", None),
 ]
 
 
