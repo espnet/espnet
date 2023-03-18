@@ -137,7 +137,7 @@ using:
 --decode_only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
 ```
 Note that `gss-max-batch-dur` affects a lot your inference time.
-Also note that getting this warning `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]` 
+Also note that getting this warning `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]`
 for a single utterance (but multiple recordings) in the DiPCo dev set is fine. <br>
 It is due to some recordings in that DiPCo session being shorter.
 
