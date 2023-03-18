@@ -13,6 +13,7 @@ else
     TOOL_DIR="$(pwd)"
 fi
 
+export PATH="${TOOL_DIR}"/sentencepiece_commands:"${PATH:-}"
 export PATH="${TOOL_DIR}"/sph2pipe:"${PATH:-}"
 export PATH="${TOOL_DIR}"/sctk/bin:"${PATH:-}"
 export PATH="${TOOL_DIR}"/mwerSegmenter:"${PATH:-}"
