@@ -22,7 +22,7 @@ setup_venv.sh      # To generate activate_python.sh with venv of your python
 ```sh
 # ./setup_anaconda.sh <conda-root|default="venv"> <env-name|default=root env> <python-version|default=latest python>
 # e.g.
-./setup_anaconda.sh miniconda espnet  
+./setup_anaconda.sh miniconda espnet
 # If the conda-root already exists at the path, it tries to create in the conda
 # ./setup_anaconda.sh /some/where/miniconda espnet
 
