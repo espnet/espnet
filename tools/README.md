@@ -1,5 +1,8 @@
 # Tools for setup
 
+<div align="left"><img src="../doc/image/environment_structure.png" width="700"/></div>
+
+
 See also https://espnet.github.io/espnet/installation.html
 
 ## Contents
@@ -14,8 +17,23 @@ setup_python.sh    # To generate activate_python.sh with the specified python
 setup_venv.sh      # To generate activate_python.sh with venv of your python
 ```
 
+## Install
+
+```sh
+# ./setup_anaconda.sh <conda-root|default="venv"> <env-name|default=root env> <python-version|default=latest python>
+# e.g.
+./setup_anaconda.sh miniconda espnet
+# If the conda-root already exists at the path, it tries to create in the conda
+# ./setup_anaconda.sh /some/where/miniconda espnet
+
+# e.g. make TH_VERSION=<torch-ver|default=latest torch>
+make
+```
+
+For more detail: https://espnet.github.io/espnet/installation.html#step-2-installation-espnet
+
 ## Check installation
 
-```
+```sh
 . ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 ```
