@@ -12,6 +12,7 @@ bats test_utils/integration_test_*.bats
 echo "=== report ==="
 
 source tools/activate_python.sh
+source tools/extra_path.sh
 coverage combine egs/*/*/.coverage
 coverage report
 coverage xml
