@@ -6,7 +6,7 @@ export PATH=$PWD/utils/:$PATH
 . $KALDI_ROOT/tools/config/common_path.sh
 export LC_ALL=C
 
-[ -f . "${MAIN_ROOT}"/tools/activate_python.sh ] && . "${MAIN_ROOT}"/tools/activate_python.sh
+[ -f "${MAIN_ROOT}"/tools/activate_python.sh ] && . "${MAIN_ROOT}"/tools/activate_python.sh
 . "${MAIN_ROOT}"/tools/extra_path.sh
 
 export OMP_NUM_THREADS=1
