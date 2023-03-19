@@ -53,7 +53,7 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     else
         local/data_download.sh "${db_root}" "${spk}"
     fi
-    
+
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

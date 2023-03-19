@@ -18,6 +18,7 @@ pull_request_rules:
       - "check-success=linter_and_test (ubuntu-latest, 3.9, 1.13.1, false, 6.0.0)"
       - "check-success=linter_and_test (ubuntu-latest, 3.10, 1.13.1, false, 6.0.0)"
       - "check-success=test_import (ubuntu-latest, 3.10, 1.13.1)"
+      - "check-success=check_kaldi_symlinks"
     actions:
       merge:
         method: merge

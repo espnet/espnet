@@ -34,6 +34,3 @@ do
   fi
   done
 done
-
-
-

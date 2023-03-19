@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This script provides a way to pretrain and finetune using cmu-arctic only data.  
+# This script provides a way to pretrain and finetune using cmu-arctic only data.
 # With pretrain_stage and finetune_stage flags data processing for both pretrain and finetune model can be performed.
 
 # Set bash to 'debug' mode, it will exit on :

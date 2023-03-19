@@ -4,7 +4,7 @@
 
 # The script - based on punctuation times - splits segments longer than #words (input parameter)
 # and produces bit more more normalised form of transcripts, as follows
-# MeetID Channel Spkr stime etime transcripts 
+# MeetID Channel Spkr stime etime transcripts
 
 #use List::MoreUtils 'indexes';
 use strict;
@@ -48,7 +48,7 @@ sub split_on_comma {
    my %comma_hash = %$comma_times;
 
    print "Btime, Etime : $btime, $etime\n";
-  
+
    my $stime = ($etime+$btime)/2; #split time
    my $skey = "";
    my $otime = $btime;
@@ -62,23 +62,23 @@ sub split_on_comma {
          $skey = $k;
       }
    }
-  
+
    my %transcripts = ();
 
    if (!($skey =~ /[\,][0-9]+/)) {
       print "Cannot split into less than $max_words_per_seg words! Leaving : $text\n";
       $transcripts{get_name($btime, $etime)}=$text;
       return %transcripts;
-   }   
+   }
 
-   print "Splitting $text on $skey at time $otime (stime is $stime)\n";  
+   print "Splitting $text on $skey at time $otime (stime is $stime)\n";
    my @utts1 = split(/$skey\s+/, $text);
    for (my $i=0; $i<=$#utts1; $i++) {
      my $st = $btime;
      my $et = $comma_hash{$skey};
-     if ($i>0) { 
-        $st=$comma_hash{$skey}; 
-        $et = $etime; 
+     if ($i>0) {
+        $st=$comma_hash{$skey};
+        $et = $etime;
      }
      my (@utts) = split (' ', $utts1[$i]);
      if ($#utts < $max_words_per_seg) {
@@ -93,7 +93,7 @@ sub split_on_comma {
    }
    return %transcripts;
 }
-  
+
 sub split_transcripts {
   @_ == 4 || die 'split_transcripts: transcript btime etime max_word_per_seg';
 
@@ -102,14 +102,14 @@ sub split_transcripts {
 
   my (@punct_indices) = grep { $transcript[$_] =~ /^[\.,\?\!\:]$/ } 0..$#transcript;
   my (@time_indices) = grep { $transcript[$_] =~ /^[0-9]+\.[0-9]*/ } 0..$#transcript;
-  my (@puncts_times) = delete @transcript[@time_indices]; 
+  my (@puncts_times) = delete @transcript[@time_indices];
   my (@puncts) = @transcript[@punct_indices];
 
   if ($#puncts_times != $#puncts) {
      print 'Ooops, different number of punctuation signs and timestamps! Skipping.';
      return ();
   }
- 
+
   #first split on full stops
   my (@full_stop_indices) = grep { $puncts[$_] =~ /[\.\?]/ } 0..$#puncts;
   my (@full_stop_times) = @puncts_times[@full_stop_indices];
@@ -127,7 +127,7 @@ sub split_transcripts {
   }
 
   #print_hash(\%comma_puncts);
-  
+
   print "InpTrans : @transcript\n";
   print "Full stops: @full_stop_times\n";
 
@@ -146,7 +146,7 @@ sub split_transcripts {
         %transcripts = merge_hashes(\%transcripts, \%transcripts2);
         print "Hash TR_NEW : \n"; print_hash(\%transcripts);
      }
-  }   
+  }
   return %transcripts;
 }
 
@@ -184,7 +184,7 @@ if (@ARGV != 2) {
 }
 
 my $meet_file = shift @ARGV;
-my $out_file = shift @ARGV; 
+my $out_file = shift @ARGV;
 my %transcripts = ();
 
 open(W, ">$out_file") || die "opening output file $out_file";
@@ -194,14 +194,14 @@ while(<S>) {
 
   my @A = split(" ", $_);
   if (@A < 9) { print "Skipping line @A"; next; }
-  
+
   my ($meet_id, $channel, $spk, $channel2, $trans_btime, $trans_etime, $aut_btime, $aut_etime) = @A[0..7];
   my @transcript = @A[8..$#A];
-  my %transcript = split_transcripts(\@transcript, $aut_btime, $aut_etime, 30); 
+  my %transcript = split_transcripts(\@transcript, $aut_btime, $aut_etime, 30);
 
   for my $key (keys %transcript) {
     my $value = $transcript{$key};
-    my $segment = normalise_transcripts($value); 
+    my $segment = normalise_transcripts($value);
     my @times = split(/\_/, $key);
     if ($times[0] >= $times[1]) {
        print "Warning, $meet_id, $spk, $times[0] > $times[1]. Skipping. \n"; next;

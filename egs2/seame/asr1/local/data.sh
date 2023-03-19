@@ -35,15 +35,15 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${dev_repo_dir}" ]; then
     log "stage 1: Clone official SEAME repository"
-    
+
     git clone https://github.com/zengzp0912/SEAME-dev-set.git ${dev_repo_dir}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    
+
     local/preprocess.py --out data --data ${SEAME} --repo ${dev_repo_dir}
-    
+
     for set in train valid devman devsge
     do
         cp data/${set}/text.rm.noise data/${set}/text

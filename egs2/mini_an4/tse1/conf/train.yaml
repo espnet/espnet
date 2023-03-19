@@ -42,9 +42,9 @@ extractor_conf:
     adapt_layer_type: mul
     adapt_enroll_dim: 8
 
-criterions: 
+criterions:
   # The first criterion
-  - name: snr 
+  - name: snr
     conf:
       eps: 1.0e-7
     wrapper: fixed_order

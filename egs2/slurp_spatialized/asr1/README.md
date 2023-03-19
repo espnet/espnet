@@ -9,7 +9,7 @@
   - Commit date: `Thu Mar 24 07:54:19 2022 +0000`
 
 ## asr_train_asr_raw_en_word
-### Intent Classification 
+### Intent Classification
 - ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
 - token_type: word
 

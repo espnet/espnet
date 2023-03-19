@@ -1,9 +1,9 @@
 # Using Job scheduling system
 
-Our recipes support some Job scheduling systems, SGE, PBS/Torque, 
-and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html). 
-By default, the job runs at local machine. If there are any Job scheduling systems in your environment, 
-you can submit more number of Jobs with multiple machines. 
+Our recipes support some Job scheduling systems, SGE, PBS/Torque,
+and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html).
+By default, the job runs at local machine. If there are any Job scheduling systems in your environment,
+you can submit more number of Jobs with multiple machines.
 
 Please ask the administrator to install it if you have multiple machines.
 
@@ -23,7 +23,7 @@ Please ask the administrator to install it if you have multiple machines.
 
 ## Usage of run.pl
 
-`run.pl`, `queue.pl`, `slurm.pl`, `pbs.pl` and `ssh.pl` have a unified interface, 
+`run.pl`, `queue.pl`, `slurm.pl`, `pbs.pl` and `ssh.pl` have a unified interface,
 therefore we can assign any one of them to `${cmd}` in the shell script:
 
 ```bash
@@ -31,10 +31,10 @@ nj=4
 ${cmd} JOB=1:${nj} JOB.log echo JOB
 ```
 
-`JOB=1:${nj}` indicates the parallelization, which is known as "array-job", with `${nj}` number of jobs. 
-`JOB.log` is a destination of the stdout and stderr from jobs. 
-The string of `JOB` will be changed to the job number 
-if it's included in the log file name or command line arguments. 
+`JOB=1:${nj}` indicates the parallelization, which is known as "array-job", with `${nj}` number of jobs.
+`JOB.log` is a destination of the stdout and stderr from jobs.
+The string of `JOB` will be changed to the job number
+if it's included in the log file name or command line arguments.
 i.e. The following commands are almost equivalent to the above:
 
 ```bash
@@ -75,7 +75,7 @@ Take a look at the following:
 option gpu=* -l gpu=$0 -q g.q
 ```
 
-This line means that the optional argument specified by the second column, `gpu=*`, 
+This line means that the optional argument specified by the second column, `gpu=*`,
 will be converted to the options after it: `-l gpu=$0 -q g.q`:
 
 ```bash

@@ -1,16 +1,21 @@
 import sys
 
-import pandas as pd
 from espnet_model_zoo.downloader import ModelDownloader
 
-tts_reference = "@inproceedings{hayashi2020espnet,\n\
-  title={{Espnet-TTS}: Unified, reproducible, and integratable open source end-to-end text-to-speech toolkit},\n\
-  author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},\n\
-  booktitle={Proceedings of IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},\n\
-  pages={7654--7658},\n\
-  year={2020},\n\
-  organization={IEEE}\n\
-}"
+tts_reference = (
+    "@inproceedings{hayashi2020espnet,\n"
+    "title={{Espnet-TTS}: Unified, reproducible, "
+    "and integratable open source end-to-end text-to-speech toolkit},\n"
+    "author={Hayashi, Tomoki and Yamamoto, Ryuichi and Inoue, "
+    "Katsuki and Yoshimura, Takenori and Watanabe, Shinji and Toda, "
+    "Tomoki and Takeda, Kazuya and Zhang, Yu and Tan, Xu},\n"
+    "booktitle={Proceedings of IEEE International Conference on Acoustics, "
+    "Speech and Signal Processing (ICASSP)},\n"
+    "pages={7654--7658},\n"
+    "year={2020},\n"
+    "organization={IEEE}\n"
+    "}"
+)
 
 
 def create_Readme_file(repo_name, model_name):
@@ -24,7 +29,6 @@ def create_Readme_file(repo_name, model_name):
     template_Readme = open("TEMPLATE_Readme.md")
     new_Readme = open(repo_name + "/README.md", "w")
     lines_arr = [line for line in template_Readme]
-    line_final_arr = []
     for line in lines_arr:
         if "<add_more_tags>" in line:
             if task_name == "asr":

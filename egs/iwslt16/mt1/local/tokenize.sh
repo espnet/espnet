@@ -32,4 +32,3 @@ for ts in $(echo ${trans_set} | tr '_' ' '); do
     normalize-punctuation.perl -l ${src_lang} < ${data}/${src_lang}-${tgt_lang}/${name}.raw.${src_lang} | tokenizer.perl -a -l ${src_lang} > ${dumpdir}/${ts}/${name}.tkn.${src_lang}
     normalize-punctuation.perl -l ${tgt_lang} < ${data}/${src_lang}-${tgt_lang}/${name}.raw.${tgt_lang} | tokenizer.perl -a -l ${tgt_lang} > ${dumpdir}/${ts}/${name}.tkn.${tgt_lang}
 done
-

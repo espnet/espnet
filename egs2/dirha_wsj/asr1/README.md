@@ -221,4 +221,3 @@ The result of only `Beam_Circular_Array`
 |---|---|---|---|---|---|---|---|---|
 |decode_dirha_real_Beam_Circular_Arraydecode_lm_valid.loss.best_asr_model_valid.loss.best|409|39842|77.8|15.1|7.1|12.0|34.2|97.3|
 |decode_dirha_sim_Beam_Circular_Arraydecode_lm_valid.loss.best_asr_model_valid.loss.best|409|39869|80.0|13.4|6.6|8.7|28.6|96.3|
-

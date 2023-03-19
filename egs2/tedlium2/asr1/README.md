@@ -334,4 +334,3 @@
 |decode_asr_streaming_lm_lm_train_lm_en_bpe500_valid.loss.ave_asr_model_valid.acc.ave/dev|466|27927|92.2|5.1|2.7|1.8|9.6|82.4|
 |decode_asr_streaming_lm_lm_train_lm_en_bpe500_valid.loss.ave_asr_model_valid.acc.ave/test|1155|51430|92.4|4.6|3.0|1.3|8.9|77.5|
 |decode_asr_streaming_lm_lm_train_lm_en_bpe500_valid.loss.ave_asr_model_valid.acc.best/test|1155|51430|91.0|5.3|3.7|1.5|10.5|80.8|
-

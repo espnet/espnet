@@ -98,7 +98,7 @@ for nch in 1 2 8; do
 	    cat ${dir}/${task}_cln.trans1 | local/normalize_transcript.pl ${noiseword} > ${dir}/${task}_cln.txt || exit 1;
         fi
     done
-    
+
     # Make the utt2spk and spk2utt files.
     for task in tr dt et; do
 	cat ${dir}/${task}_simu_${nch}ch_wav.scp | awk '{print $1}' | awk -F '_' '{print $0 " " $1}' > ${dir}/${task}_simu_${nch}ch.utt2spk || exit 1;

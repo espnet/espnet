@@ -56,7 +56,7 @@ best_model_criterion:
     - loss
     - min
 keep_nbest_models: 10
-use_amp: false     
+use_amp: false
 
 optim: adam
 optim_conf:

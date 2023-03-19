@@ -120,7 +120,9 @@ svs_conf:
     lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0       # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
-    lambda_dur: 1.0        # loss scaling coefficient for duration loss
+    lambda_dur: 0.1        # loss scaling coefficient for duration loss
+    lambda_pitch: 1.0      # loss scaling coefficient for pitch loss
+    lambda_phoneme: 1.0    # loss scaling coefficient for ctc loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
     sampling_rate: 22050          # needed in the inference for saving wav
