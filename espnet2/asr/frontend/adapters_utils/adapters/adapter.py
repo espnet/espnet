@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 from fairseq import utils
 from fairseq.modules import LayerNorm
 
@@ -25,7 +24,7 @@ class Adapter(nn.Module):
         self.up_projection = nn.Linear(down_dim, orig_dim)
         nn.init.xavier_uniform_(self.down_projection.weight)
         nn.init.xavier_uniform_(self.up_projection.weight)
-        #these two lines are necessary for initialization
+        # these two lines are necessary for initialization
         self.activation = utils.get_activation_fn(activation_fn)
 
         self.layer_norm_opt = layer_norm

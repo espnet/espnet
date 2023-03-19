@@ -7,9 +7,10 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters_wav2vec2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
-from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters_wav2vec2
+
 
 class S3prlFrontend(AbsFrontend):
     """Speech Pretrained Representation frontend structure for ASR."""
@@ -59,22 +60,22 @@ class S3prlFrontend(AbsFrontend):
         ]:
             upstream.upstream.model.encoder.layerdrop = 0.0
 
-
-         # check if adapter is added
+        # check if adapter is added
         if (
             upstream.upstream.model.__class__.__name__ == "Wav2Vec2Model"
-            and frontend_conf.get("add_adapters",None)
+            and frontend_conf.get("add_adapters", None)
         ):
             upstream.upstream = add_adapters_wav2vec2(
-                upstream.upstream, adapter_down_dim=192, adapt_layers= frontend_conf.get("adapter_layers",None)
+                upstream.upstream,
+                adapter_down_dim=192,
+                adapt_layers=frontend_conf.get("adapter_layers", None),
             )
-        elif(
+        elif (
             upstream.upstream.model.__class__.__name__ == "Wav2Vec2Model"
-            and  frontend_conf.get("adapter_find",None)
+            and frontend_conf.get("adapter_find", None)
         ):
             multilayer_feature = True
-            self.adapter_num = frontend_conf.get("adapter_num",None)
-
+            self.adapter_num = frontend_conf.get("adapter_num", None)
 
         if layer != -1:
             layer_selections = [layer]
