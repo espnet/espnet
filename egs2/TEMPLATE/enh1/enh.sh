@@ -309,7 +309,7 @@ if ! "${skip_data_prep}"; then
             done
 
            for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                    scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
@@ -976,7 +976,7 @@ if "${score_with_asr}"; then
                     log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
                     # shellcheck disable=SC2086
                     ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                        python3 -m espnet2.bin.asr_inference \
+                        ${python} -m espnet2.bin.asr_inference \
                             --ngpu "${_ngpu}" \
                             --data_path_and_name_and_type "${_ddir}/wav.scp,speech,${_type}" \
                             --key_file "${_logdir}"/keys.JOB.scp \
@@ -1040,7 +1040,7 @@ if "${score_with_asr}"; then
                             # Tokenize text to word level
                             paste \
                                 <(<"${_ddir}/text" \
-                                    python3 -m espnet2.bin.tokenize_text  \
+                                    ${python} -m espnet2.bin.tokenize_text  \
                                         -f 2- --input - --output - \
                                         --token_type word \
                                         --non_linguistic_symbols "${nlsyms_txt}" \
@@ -1053,7 +1053,7 @@ if "${score_with_asr}"; then
                             # NOTE(kamo): Don't use cleaner for hyp
                             paste \
                                 <(<"${_decode_dir}/text"  \
-                                    python3 -m espnet2.bin.tokenize_text  \
+                                    ${python} -m espnet2.bin.tokenize_text  \
                                         -f 2- --input - --output - \
                                         --token_type word \
                                         --non_linguistic_symbols "${nlsyms_txt}" \
@@ -1065,7 +1065,7 @@ if "${score_with_asr}"; then
                             # Tokenize text to char level
                             paste \
                                 <(<"${_ddir}/text" \
-                                    python3 -m espnet2.bin.tokenize_text  \
+                                    ${python} -m espnet2.bin.tokenize_text  \
                                         -f 2- --input - --output - \
                                         --token_type char \
                                         --non_linguistic_symbols "${nlsyms_txt}" \
@@ -1078,7 +1078,7 @@ if "${score_with_asr}"; then
                             # NOTE(kamo): Don't use cleaner for hyp
                             paste \
                                 <(<"${_decode_dir}/text"  \
-                                    python3 -m espnet2.bin.tokenize_text  \
+                                    ${python} -m espnet2.bin.tokenize_text  \
                                         -f 2- --input - --output - \
                                         --token_type char \
                                         --non_linguistic_symbols "${nlsyms_txt}" \

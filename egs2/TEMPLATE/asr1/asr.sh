@@ -571,7 +571,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! contains "${skip_stages}" 
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
-           if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+           if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                scripts/utils/perturb_data_dir_speed.sh \
                    ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
                    "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
@@ -1516,13 +1516,13 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! contains "${skip_stages}
             _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
             _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
             ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                calculate_rtf.py \
+                pyscripts/utils/calculate_rtf.py \
                     --log-dir ${_logdir} \
                     --log-name "asr_inference" \
                     --input-shift ${_sample_shift} \
                     --start-times-marker "speech length" \
                     --end-times-marker "best hypo" \
-                    --inf-num ${num_inf}
+                    --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
         fi
 
         # 4. Concatenates the output files from each jobs
