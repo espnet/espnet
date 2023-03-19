@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 from fairseq.models.wav2vec.wav2vec2 import TransformerSentenceEncoderLayer
 
 from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
@@ -23,7 +22,6 @@ class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
         layer_norm_first: bool = False,
         adapter_down_dim: int = 192,
     ) -> None:
-
         super().__init__(
             embedding_dim,
             ffn_embedding_dim,

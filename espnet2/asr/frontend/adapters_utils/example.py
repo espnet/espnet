@@ -1,7 +1,5 @@
 import s3prl.hub as hub
-
 from add_adapters import add_adapters_wav2vec2
-
 
 model = getattr(hub, "wav2vec2")()
 

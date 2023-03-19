@@ -19,7 +19,7 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     # freeze all layers
     for param in wav2vec2_model.parameters():
         param.requires_grad = False
-    #hard coded the adapters layers
+    # hard coded the adapters layers
 
     adapted_layers = []
     print(adapt_layers)
