@@ -309,7 +309,7 @@ if ! "${skip_data_prep}"; then
             done
 
            for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                    scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
@@ -455,9 +455,9 @@ if ! "${skip_data_prep}"; then
                 fi
             done
 
-            _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$(${python} -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$(${python} -c "print(int(${max_wav_duration} * ${_fs}))")
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             <"${data_feats}/org/${dset}/utt2num_samples" \

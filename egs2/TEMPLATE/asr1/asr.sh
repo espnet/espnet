@@ -571,7 +571,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! contains "${skip_stages}" 
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
-           if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+           if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                scripts/utils/perturb_data_dir_speed.sh \
                    ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
                    "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
@@ -665,7 +665,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! contains "${skip_stages}" 
                 _suf="/org"
 
                 if [ -e "data/${dset}/utt2dur" ]; then
-                    _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                    _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
                     <data/${dset}/utt2dur awk '{ print $1, int($2*'${_fs}'); }' > "${data_feats}${_suf}/${dset}"/utt2num_samples
 
                 elif [ -e "data/${dset}/utt2num_samples" ]; then
@@ -789,9 +789,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! contains "${skip_stages}" 
         # Remove short utterances
         _feats_type="$(<${data_feats}/${dset}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
-            _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$(${python} -c "print(int(${min_wav_duration} * ${_fs}))")
-            _max_length=$(${python} -c "print(int(${max_wav_duration} * ${_fs}))")
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             <"${data_feats}/org/${dset}/utt2num_samples" \
@@ -814,8 +814,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! contains "${skip_stages}" 
                 _frame_shift=10
             fi
 
-            _min_length=$(${python} -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
-            _max_length=$(${python} -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
 
             cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
             <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
@@ -1513,8 +1513,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! contains "${skip_stages}
         if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
             log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
             rm -f "${_logdir}"/calculate_rtf.log
-            _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _sample_shift=$(${python} -c "print(1 / ${_fs} * 1000)") # in ms
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
             ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
                 calculate_rtf.py \
                     --log-dir ${_logdir} \

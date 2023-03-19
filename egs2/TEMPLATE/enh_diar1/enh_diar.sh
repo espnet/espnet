@@ -302,8 +302,8 @@ if ! "${skip_data_prep}"; then
                 cp "${data_feats}/org/${dset}/${spk}.scp" "${data_feats}/${dset}/${spk}.scp"
             done
 
-            _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _min_length=$(${python} -c "print(int(${min_wav_duration} * ${_fs}))")
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
 
             # utt2num_samples is created by format_wav_scp.sh
             # diarization typically accept long recordings, so does not has
