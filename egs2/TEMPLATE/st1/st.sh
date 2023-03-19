@@ -672,9 +672,9 @@ if ! "${skip_data_prep}"; then
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
-                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-                _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+                _fs=$(${python} -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                _min_length=$(${python} -c "print(int(${min_wav_duration} * ${_fs}))")
+                _max_length=$(${python} -c "print(int(${max_wav_duration} * ${_fs}))")
 
                 # utt2num_samples is created by format_wav_scp.sh
                 <"${data_feats}/org/${dset}/utt2num_samples" \
@@ -697,8 +697,8 @@ if ! "${skip_data_prep}"; then
                     _frame_shift=10
                 fi
 
-                _min_length=$(python3 -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
-                _max_length=$(python3 -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
+                _min_length=$(${python} -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
+                _max_length=$(${python} -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
 
                 cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
                 <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
