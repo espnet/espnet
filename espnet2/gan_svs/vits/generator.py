@@ -22,10 +22,13 @@ from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
+from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
+from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.gan_svs.utils.expand_f0 import expand_f0
 
 
 class VITSGenerator(torch.nn.Module):
@@ -73,6 +76,8 @@ class VITSGenerator(torch.nn.Module):
         use_conformer_conv_in_text_encoder: bool = True,
         decoder_kernel_size: int = 7,
         decoder_channels: int = 512,
+        decoder_downsample_scales: List[int] = [2, 2, 8, 8],
+        decoder_downsample_kernel_sizes: List[int] = [4, 4, 16, 16],
         decoder_upsample_scales: List[int] = [8, 8, 2, 2],
         decoder_upsample_kernel_sizes: List[int] = [16, 16, 4, 4],
         decoder_resblock_kernel_sizes: List[int] = [3, 7, 11],
@@ -93,6 +98,9 @@ class VITSGenerator(torch.nn.Module):
         use_only_mean_in_flow: bool = True,
         use_dp: bool = True,
         use_visinger: bool = True,
+        use_uhifigan: bool = True,
+        fs: int = 22050,
+        hop_length: int = 256,
     ):
         """Initialize VITS generator module.
 
@@ -189,19 +197,39 @@ class VITSGenerator(torch.nn.Module):
             beat_dim=beat_dim,
             use_visinger=use_visinger,
         )
-
-        self.decoder = HiFiGANGenerator(
-            in_channels=hidden_channels,
-            out_channels=1,
-            channels=decoder_channels,
-            global_channels=global_channels,
-            kernel_size=decoder_kernel_size,
-            upsample_scales=decoder_upsample_scales,
-            upsample_kernel_sizes=decoder_upsample_kernel_sizes,
-            resblock_kernel_sizes=decoder_resblock_kernel_sizes,
-            resblock_dilations=decoder_resblock_dilations,
-            use_weight_norm=use_weight_norm_in_decoder,
-        )
+        if use_uhifigan:
+            self.decoder = UHiFiGANGenerator(
+                in_channels=hidden_channels,
+                out_channels=1,
+                channels=decoder_channels,
+                global_channels=global_channels,
+                kernel_size=decoder_kernel_size,
+                downsample_scales=decoder_downsample_scales,
+                downsample_kernel_sizes=decoder_downsample_kernel_sizes,
+                upsample_scales=decoder_upsample_scales,
+                upsample_kernel_sizes=decoder_upsample_kernel_sizes,
+                resblock_kernel_sizes=decoder_resblock_kernel_sizes,
+                resblock_dilations=decoder_resblock_dilations,
+                use_weight_norm=use_weight_norm_in_decoder,
+            )
+            self.sine_generator = SineGen(
+                sample_rate=fs,
+            )
+            self.fs = fs
+            self.hop_length = hop_length
+        else:
+            self.decoder = HiFiGANGenerator(
+                in_channels=hidden_channels,
+                out_channels=1,
+                channels=decoder_channels,
+                global_channels=global_channels,
+                kernel_size=decoder_kernel_size,
+                upsample_scales=decoder_upsample_scales,
+                upsample_kernel_sizes=decoder_upsample_kernel_sizes,
+                resblock_kernel_sizes=decoder_resblock_kernel_sizes,
+                resblock_dilations=decoder_resblock_dilations,
+                use_weight_norm=use_weight_norm_in_decoder,
+            )
         self.posterior_encoder = PosteriorEncoder(
             in_channels=aux_channels,
             out_channels=hidden_channels,
@@ -278,6 +306,8 @@ class VITSGenerator(torch.nn.Module):
             assert global_channels > 0
             self.langs = langs
             self.lang_emb = torch.nn.Embedding(langs, global_channels)
+
+        self.use_uhifigan = use_uhifigan
 
     def forward(
         self,
@@ -443,14 +473,53 @@ class VITSGenerator(torch.nn.Module):
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
         # get random segments
-        z_segments, z_start_idxs = get_random_segments(
+        z_segments, z_start_idxs, pitch_segments = get_random_segments(
             z,
             feats_lengths,
             self.segment_size,
+            pitch=gt_pitch.unsqueeze(1) if self.use_uhifigan else None,
         )
 
-        # forward decoder with random segments
-        wav = self.decoder(z_segments, g=g)
+        if self.use_uhifigan:
+            # get sine wave
+            # print("gt_pitch", gt_pitch)
+            # print("gt_pitch.shape", gt_pitch.shape)
+
+            # def plot_sine_waves(sine_waves, name):
+            #     import matplotlib.pyplot as plt
+
+            #     sine_waves_np = sine_waves[0].detach().cpu().numpy()
+            #     plt.plot(sine_waves_np)
+            #     plt.xlabel("Time (samples)")
+            #     plt.ylabel("Amplitude")
+            #     plt.title("Sine Wave")
+            #     plt.savefig(name + ".png")
+            #     plt.close()
+
+            # plot_sine_waves(pitch_segments[0], "pitch_segments")
+            pitch_segments_expended = expand_f0(
+                pitch_segments, self.hop_length, method="repeat"
+            )
+
+            # plot_sine_waves(
+            #     pitch_segments_expended[0].unsqueeze(0), "pitch_segments_expended"
+            # )
+            pitch_segments_expended = pitch_segments_expended.reshape(
+                -1, pitch_segments_expended.shape[-1], 1
+            )
+            # print("pitch_segments_expended", pitch_segments_expended.shape)
+
+            sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
+
+            sine_waves = sine_waves.transpose(1, 2)
+
+            wav = self.decoder(z_segments, excitation=sine_waves, g=g)
+        else:
+            wav = self.decoder(z_segments, g=g)
+
+        # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
+        pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
+        gt_pitch = 2595.0 * torch.log10(1.0 + gt_pitch / 700.0) / 500
 
         if self.use_visinger:
             if self.use_dp:
@@ -596,13 +665,28 @@ class VITSGenerator(torch.nn.Module):
                 )
                 x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
 
-                _, pitch_embedding = self.pitch_predictor(x, x_mask)
+                pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
+
                 x = self.frame_prior_net(x, pitch_embedding, x_mask)
                 m_p, logs_p = self.project(x, x_mask)
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
             z = self.flow(z_p, x_mask, g=g, inverse=True)
-            wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
+
+            if self.use_uhifigan:
+                pitch_segments_expended = expand_f0(
+                    pred_pitch, self.hop_length, method="repeat"
+                )
+                pitch_segments_expended = pitch_segments_expended.reshape(
+                    -1, pitch_segments_expended.shape[-1], 1
+                )
+                sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
+                sine_waves = sine_waves.transpose(1, 2)
+                wav = self.decoder(
+                    (z * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
+                )
+            else:
+                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
         return wav.squeeze(1)

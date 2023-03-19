@@ -231,6 +231,8 @@ class VITS(AbsGANSVS):
         self.use_dp = use_dp
         generator_params.update(use_visinger=self.use_visinger)
         generator_params.update(use_dp=self.use_dp)
+        generator_params.update(fs=mel_loss_params["fs"])
+        generator_params.update(hop_length=mel_loss_params["hop_length"])
         self.generator = generator_class(
             **generator_params,
         )
