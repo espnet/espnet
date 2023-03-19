@@ -348,7 +348,6 @@ $<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span
 $<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>&lt;kaldi-root&gt;<span class="w"> </span>.
 </pre></div>
 </div>
-<p>If you don’t have <code class="docutils literal notranslate"><span class="pre">espnet/tools/kaldi</span></code> when <code class="docutils literal notranslate"><span class="pre">make</span></code>, Kaldi repository is automatically put without compiling.</p>
 </li>
 <li><p>Setup Python environment</p>
 <p>You have to create <code class="docutils literal notranslate"><span class="pre">&lt;espnet-root&gt;/tools/activate_python.sh</span></code> to specify the Python interpreter used in espnet recipes.
@@ -387,7 +386,7 @@ $<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k
 <li><p>Option D) Without setting Python environment.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost same. This option might be suitable for Google colab.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
+$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh
 </pre></div>
 </div>
 </li>
