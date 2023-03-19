@@ -18,6 +18,9 @@ else
     TOOL_DIR="$(pwd)"
 fi
 
+KALDI_ROOT="${TOOL_DIR}"/kaldi
+[ -f "${KALDI_ROOT}"/tools/config/common_path.sh ] && . "${KALDI_ROOT}"/tools/config/common_path.sh
+
 export PATH="${TOOL_DIR}"/sentencepiece_commands:"${PATH:-}"
 export PATH="${TOOL_DIR}"/sph2pipe:"${PATH:-}"
 export PATH="${TOOL_DIR}"/sctk/bin:"${PATH:-}"
