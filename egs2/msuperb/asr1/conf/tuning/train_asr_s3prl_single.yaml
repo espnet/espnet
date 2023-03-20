@@ -67,4 +67,4 @@ specaug_conf:
 
 
 num_iters_per_epoch: 500 # number of iterations per epoch
-max_epoch: 30   
+max_epoch: 30

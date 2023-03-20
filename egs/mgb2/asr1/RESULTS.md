@@ -10,7 +10,7 @@
   - Commit date: `Tue Jun 2 20:58:08 2020 +0900`
 
 
-- Model files 
+- Model files
     - e2e model link: `To be added`
     - lm model link: `To be added`
     - lm config file: `./conf/lm_transformer.yaml`
@@ -18,7 +18,7 @@
     - decoding config file: `./conf/decode.yaml`
     - e2e JSON file: `./exp/train_trim_sp_pytorch_3_specaug/results/model.json`
     - lm JSON file: `./exp/exp/train_lm_pytorch_lm_transformer_unigram5000_segmented_text/model.json`
-- Results 
+- Results
 
 ```
 write a CER (or TER) result in exp/train_trim_sp_pytorch_2_specaug/decode_dev_model.val5.avg.best_decode_lm_transformer/result.txt
@@ -36,10 +36,10 @@ write a WER result in exp/train_trim_sp_pytorch_2_specaug/decode_test_model.val5
 
 ```
 
-# pytorch large Transformer with specaug (4 GPUs) + RNN LM 
+# pytorch large Transformer with specaug (4 GPUs) + RNN LM
 
 
-- Model files 
+- Model files
     - e2e model link: `To be added`
     - lm model link: `To be added`
     - lm config file: `./conf/lm.yaml`
@@ -47,7 +47,7 @@ write a WER result in exp/train_trim_sp_pytorch_2_specaug/decode_test_model.val5
     - decoding config file: `./conf/decode.yaml`
     - e2e JSON file: `./exp/train_trim_sp_pytorch_3_specaug/results/model.json`
     - lm JSON file: `./exp/exp/train_lm_unigram5000_segmented_text/model.json`
-- Results 
+- Results
 
 ```
 write a CER (or TER) result in exp/train_trim_sp_pytorch_2_specaug/decode_dev_model.val5.avg.best_decode_lm_transformer/result.txt

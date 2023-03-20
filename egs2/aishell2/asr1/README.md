@@ -14,8 +14,8 @@
 ## Model info
 - Model link: https://huggingface.co/espnet/aishell2_att_ctc_espnet2
 - ASR config: conf/train_asr_conformer.yaml
-- Decode config: conf/decode_asr_rnn.yaml 
-- LM config: conf/train_lm_transformer.yaml 
+- Decode config: conf/decode_asr_rnn.yaml
+- LM config: conf/train_lm_transformer.yaml
 
 ### CER
 

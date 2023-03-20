@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-# Copyright 2013-2019 Lukas Burget, Mireia Diez (burget@fit.vutbr.cz, mireia@fit.vutbr.cz)
+# Copyright 2013-2019 Lukas Burget, Mireia Diez
+# (burget@fit.vutbr.cz, mireia@fit.vutbr.cz)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +25,13 @@
 #   03/10/19 02:27PM - speaker regularization coefficient Fb added
 #
 
-import numpy as np
-from scipy.sparse import coo_matrix
-import scipy.linalg as spl
 import numexpr as ne  # the dependency on this modul can be avoided by replacing
+import numpy as np
+import scipy.linalg as spl
+from scipy.sparse import coo_matrix
 
 # logsumexp_ne and exp_ne with logsumexp and np.exp
+
 
 # [gamma pi Li] =
 def VB_diarization(
@@ -56,7 +58,6 @@ def VB_diarization(
     Fa=1.0,
     Fb=1.0,
 ):
-
     """
     This a generalized version of speaker diarization described in:
 
@@ -124,17 +125,18 @@ def VB_diarization(
         maxSpeakers = len(pi)
 
     if gamma is None:
-        # initialize gamma from flat Dirichlet prior with concentration parameter alphaQInit
+        # initialize gamma from flat Dirichlet prior with concentration parameter
+        # alphaQInit
         gamma = np.random.gamma(alphaQInit, size=(nframes, maxSpeakers))
         gamma = gamma / gamma.sum(1, keepdims=True)
 
     # calculate UBM mixture frame posteriors (i.e. per-frame zero order statistics)
     ll = (
-        (X ** 2).dot(-0.5 * invSigma.T)
+        (X**2).dot(-0.5 * invSigma.T)
         + X.dot(invSigma.T * m.T)
         - 0.5
         * (
-            (invSigma * m ** 2 - np.log(invSigma)).sum(1)
+            (invSigma * m**2 - np.log(invSigma)).sum(1)
             - 2 * np.log(w)
             + D * np.log(2 * np.pi)
         )
@@ -152,8 +154,8 @@ def VB_diarization(
     LL = np.sum(G)  # total log-likelihod as calculated using UBM
 
     mixture_sum = coo_matrix((np.ones(C * D), (np.repeat(range(C), D), range(C * D))))
-
-    # G = np.sum((zeta.multiply(ll - np.log(w))).toarray(), 1) + Kx  # from eq. (30) # Aleready calculated above
+    # Aleready calculated above
+    # G = np.sum((zeta.multiply(ll - np.log(w))).toarray(), 1) + Kx  # from eq. (30)
 
     # Calculate per-frame first order statistics projected into the R-dim. subspace
     # V^T \Sigma^{-1} F_m
@@ -168,15 +170,20 @@ def VB_diarization(
     )
     rho = F_s.tocsr().dot((invSigma.flat * V).T)
     del F_s
-    ## The code above is only efficient implementation of the following comented code
+    # # The code above is only efficient implementation of the following comented code
     # rho = 0;
     # for ii in range(C):
-    #  rho = rho + V[ii*D:(ii+1)*D,:].T.dot(zeta[ii,:] * invSigma[:,[ii]] *  (X - m[:,[ii]]))
+    #  rho = rho + V[ii*D:(ii+1)*D,:].T.dot(zeta[ii,:] * invSigma[:,[ii]] * \
+    #       (X - m[:,[ii]]))
 
     if downsample is not None:
-        # Downsample zeta, rho, G and gamma by summing the statistic over 'downsample' frames
+        # Downsample zeta, rho, G and gamma by summing the statistic
+        # over 'downsample' frames
         # This speeds-up diarization for the price of lowering its frame resolution
-        # downsampler = coo_matrix((np.ones(nframes), (np.ceil(np.arange(nframes)/downsample).astype(int), np.arange(nframes))))
+        # downsampler = coo_matrix(
+        #   (np.ones(nframes),
+        #   (np.ceil(np.arange(nframes)/downsample).astype(int), np.arange(nframes)))
+        # )
         downsampler = coo_matrix(
             (
                 np.ones(nframes),
@@ -230,7 +237,7 @@ def VB_diarization(
                     )
                 )
             )  # eq. (23)
-            ELBO += Fb * 0.5 * (logdet(invL) - np.sum(np.diag(invL) + a ** 2, 0) + R)
+            ELBO += Fb * 0.5 * (logdet(invL) - np.sum(np.diag(invL) + a**2, 0) + R)
 
         # Construct transition probability matrix with linear chain of 'minDur'
         # states for each of 'maxSpeaker' speaker. The last state in each chain has
@@ -240,14 +247,16 @@ def VB_diarization(
         tr[minDur - 1 :: minDur, 0::minDur] = (1 - loopProb) * pi
         tr[(np.arange(1, maxSpeakers + 1) * minDur - 1,) * 2] += loopProb
         ip[::minDur] = pi
-        # per-frame HMM state posteriors. Note that we can have linear chain of minDur states
+        # per-frame HMM state posteriors. Note that we can have linear
+        # chain of minDur states
         # for each speaker.
         gamma, tll, lf, lb = forward_backward(
             ln_p.repeat(minDur, axis=1), tr, ip
         )  # , np.arange(1,maxSpeakers+1)*minDur-1)
 
         # Right after updating q(Z), tll is E{log p(X|,Y,Z)} - KL{q(Z)||p(Z)}.
-        # ELBO now contains -KL{q(Y)||p(Y)}. Therefore, ELBO+ttl is correct value for ELBO.
+        # ELBO now contains -KL{q(Y)||p(Y)}. Therefore,
+        # ELBO+ttl is correct value for ELBO.
         ELBO += tll
         Li.append([ELBO])
 
@@ -372,7 +381,7 @@ def logsumexp(x, axis=0):
 # the dependency on the module.
 def logsumexp_ne(x, axis=0):
     xmax = np.array(x).max(axis=axis)
-    xmax_e = np.expand_dims(xmax, axis)
+    # xmax_e = np.expand_dims(xmax, axis)
     x = ne.evaluate("sum(exp(x - xmax_e), axis=%d)" % axis)
     x = ne.evaluate("xmax + log(x)")
     infs = np.isinf(xmax)

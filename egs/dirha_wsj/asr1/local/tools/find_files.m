@@ -12,7 +12,7 @@ function fileList = find_files(dirName,ext)
   fileList = {dirData(~dirIndex).name}';  %'# Get a list of the files
   if ~isempty(fileList)
     fileList = cellfun(@(x) fullfile(dirName,x),...  %# Prepend path to files
-                       fileList,'UniformOutput',false);    
+                       fileList,'UniformOutput',false);
   end
   subDirs = {dirData(dirIndex).name};  %# Get a list of the subdirectories
   validIndex = ~ismember(subDirs,{'.','..'});  %# Find index of subdirectories
@@ -21,8 +21,8 @@ function fileList = find_files(dirName,ext)
     nextDir = fullfile(dirName,subDirs{iDir});    %# Get the subdirectory path
     fileList = [fileList; find_files(nextDir,ext)];  %# Recursively call getAllFiles
   end
-  
-   fileListOut=[]; 
+
+   fileListOut=[];
    count=0;
    for i=1:length(fileList)
      if length(strfind(fileList{i},ext))>0 && length(strfind(fileList{i},strcat(ext, '.')))==0
@@ -30,8 +30,7 @@ function fileList = find_files(dirName,ext)
      fileListOut{count}=fileList{i};
      end
    end
-   
+
    fileList=fileListOut';
 
 end
-

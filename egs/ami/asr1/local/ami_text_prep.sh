@@ -44,5 +44,3 @@ local/ami_split_segments.pl $wdir/transcripts1 $wdir/transcripts2 &> $wdir/log/s
 for dset in train eval dev; do
   grep -f local/split_$dset.orig $wdir/transcripts2 > $wdir/$dset.txt
 done
-
-

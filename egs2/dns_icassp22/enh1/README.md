@@ -16,4 +16,3 @@ config: ./conf/train.yaml
 |dataset|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|
 |enhanced_cv_synthetic|91.14|15.76|15.76|0.00|15.56|
-

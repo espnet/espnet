@@ -35,4 +35,3 @@ This is Swahili ASR system from our IWSLT 2021 Low-Resource Speech Translation s
 |decode_asr_lm_lm_train_lm_transformer_sw_bpe100_valid.loss.ave_asr_model_valid.acc.ave/test_iwslt_swa_raw|868|76488|90.7|4.0|5.3|5.1|14.4|94.9|
 |decode_asr_lm_lm_train_lm_transformer_sw_bpe100_valid.loss.ave_asr_model_valid.acc.ave/test_iwslt_swc|868|74644|93.2|4.0|2.8|2.3|9.1|84.2|
 |decode_asr_lm_lm_train_lm_transformer_sw_bpe100_valid.loss.ave_asr_model_valid.acc.ave/test_iwslt_swc_raw|868|77530|87.9|5.2|6.9|2.6|14.8|96.7|
-

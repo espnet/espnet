@@ -105,7 +105,7 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
-use_src_lang=true          # Incorporate ASR loss (use src texts) or not 
+use_src_lang=true          # Incorporate ASR loss (use src texts) or not
 
 # Upload model related
 hf_repo=
@@ -226,7 +226,7 @@ Options:
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
-    --use_src_lang=    # Incorporate ASR loss (use src texts) or not 
+    --use_src_lang=    # Incorporate ASR loss (use src texts) or not
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -237,7 +237,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_st_model # ST model path for decoding (default="${inference_st_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-    
+
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
@@ -261,7 +261,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -482,7 +482,7 @@ if ! "${skip_data_prep}"; then
         if [ -n "${speed_perturb_factors}" ]; then
             log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
             for factor in ${speed_perturb_factors}; do
-                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+                if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                     scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
                          "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                     _dirs+="data/${train_set}_sp${factor} "
@@ -616,8 +616,8 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-                if [ ! -f data/"${dset}"/wav.scp ]; then 
-		            if [ ! -f data/"${dset}"/segments ]; then 
+                if [ ! -f data/"${dset}"/wav.scp ]; then
+		            if [ ! -f data/"${dset}"/segments ]; then
 		                <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                     else
 		                <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
@@ -1190,7 +1190,7 @@ if ! "${skip_train}"; then
             awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
             >"${st_stats_dir}/valid/text_shape.${tgt_token_type}"
 
-        
+
         if [ $use_src_lang = true ]; then
             <"${st_stats_dir}/train/src_text_shape" \
                 awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
@@ -1241,8 +1241,8 @@ if ! "${skip_train}"; then
 
         _num_splits_opts=
         if [ $use_src_lang = true ]; then
-            _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} " 
-            _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} " 
+            _num_splits_opts+="${_st_train_dir}/text.${src_case}.${src_lang} "
+            _num_splits_opts+="${st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
         if [ "${num_splits_st}" -gt 1 ]; then
@@ -1275,7 +1275,7 @@ if ! "${skip_train}"; then
             if [ $use_src_lang = true ]; then
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
                 _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
-            fi 
+            fi
         else
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
@@ -1301,8 +1301,8 @@ if ! "${skip_train}"; then
 
         if [ $use_src_lang = true ]; then
             _opts+="--src_bpemodel ${src_bpemodel} "
-            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text " 
-            _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} " 
+            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} "
             _opts+="--fold_length ${st_text_fold_length} "
         fi
 
@@ -1527,8 +1527,8 @@ if ! "${skip_eval}"; then
             fi
 
             # detokenize & remove punctuation except apostrophe
-            remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
-            remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+            scripts/utils/remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
+            scripts/utils/remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
             echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
@@ -1558,7 +1558,7 @@ if ! "${skip_eval}"; then
                     # remove utterance id
                     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
                     detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
-                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                    scripts/utils/remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                 done

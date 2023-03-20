@@ -1,6 +1,6 @@
-cudnn_benchmark: false 
-cudnn_deterministic: false 
-use_amp: true 
+cudnn_benchmark: false
+cudnn_deterministic: false
+use_amp: true
 encoder: conformer
 encoder_conf:
     output_size: 512
@@ -41,10 +41,6 @@ freeze_param: [
 "frontend.upstream"
 ]
 
-frontend_conf:
-  n_fft: 512
-  hop_length: 256
-
 frontend: s3prl
 frontend_conf:
     frontend_conf:
@@ -83,4 +79,4 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10 
+keep_nbest_models: 10

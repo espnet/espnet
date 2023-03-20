@@ -51,19 +51,19 @@ echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text (only for the utts in utt2spk)
 case "${lang_char}" in
-    "M") 
+    "M")
         lang_tag=zh_ZH
         local/clean_text_mandarin.py \
             ${db}/prompts/${lang}_transcriptions.txt \
             ${utt2spk} $trans_type ${lang_tag} ${spk} > ${text}
         ;;
-    "F") 
+    "F")
         lang_tag=fi_FI
         local/clean_text_finnish.py \
             ${db}/prompts/${lang}_transcriptions.txt \
             ${utt2spk} $trans_type ${lang_tag} ${spk} > ${text}
         ;;
-    "G") 
+    "G")
         lang_tag=de_DE
         local/clean_text_german.py \
             ${db}/prompts/${lang}_transcriptions.txt \
