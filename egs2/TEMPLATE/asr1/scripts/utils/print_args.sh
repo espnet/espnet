@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-extra_chars=(
-)
-
 new_args=""
 for arg in "${@}"; do
     if [[ ${arg} = *"'"* ]]; then
