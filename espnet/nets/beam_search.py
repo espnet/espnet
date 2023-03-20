@@ -165,7 +165,7 @@ class BeamSearch(torch.nn.Module):
         return torch.cat((xs, x))
 
     def score_full(
-        self, hyp: Hypothesis, x: torch.Tensor, pre_x: torch.Tensor=None
+        self, hyp: Hypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -184,8 +184,10 @@ class BeamSearch(torch.nn.Module):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            if 'decoder' in k and self.return_hs:
-                scores[k], hs, states[k] = d.score(hyp.yseq, hyp.states[k], x, return_hs=self.return_hs)
+            if "decoder" in k and self.return_hs:
+                scores[k], hs, states[k] = d.score(
+                    hyp.yseq, hyp.states[k], x, return_hs=self.return_hs
+                )
             elif pre_x is not None:
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x, pre_x)
             else:
@@ -302,7 +304,10 @@ class BeamSearch(torch.nn.Module):
         return new_states
 
     def search(
-        self, running_hyps: List[Hypothesis], x: torch.Tensor, pre_x: torch.Tensor=None
+        self,
+        running_hyps: List[Hypothesis],
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> List[Hypothesis]:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -344,7 +349,7 @@ class BeamSearch(torch.nn.Module):
             for j, part_j in zip(*self.beam(weighted_scores, part_ids)):
                 # will be (2 x beam at most)
                 if self.return_hs:
-                    new_hs=hyp.hs + [hs.squeeze(0)]
+                    new_hs = hyp.hs + [hs.squeeze(0)]
                 else:
                     new_hs = []
                 best_hyps.append(
@@ -366,7 +371,11 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, pre_x: torch.Tensor = None
+        self,
+        x: torch.Tensor,
+        maxlenratio: float = 0.0,
+        minlenratio: float = 0.0,
+        pre_x: torch.Tensor = None,
     ) -> List[Hypothesis]:
         """Perform beam search.
 

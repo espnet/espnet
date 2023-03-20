@@ -496,7 +496,11 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             # st decoder
             if self.st_decoder is not None and "tgt_attn" in self.losses:
-                (tgt_attn_loss, acc_tgt_attn, bleu_tgt_attn,) = self._calc_st_att_loss(
+                (
+                    tgt_attn_loss,
+                    acc_tgt_attn,
+                    bleu_tgt_attn,
+                ) = self._calc_st_att_loss(
                     inter_encoder_out[encoder_layer_for_st],
                     encoder_out_lens,
                     tgt_text,
@@ -666,7 +670,6 @@ class ESPnetS2STModel(AbsESPnetModel):
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
-
         assert check_argument_types()
 
         # 0. Target feature extract
@@ -874,7 +877,10 @@ class ESPnetS2STModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_outs, decoder_out_lengths, = self.synthesizer(
+        (
+            decoder_outs,
+            decoder_out_lengths,
+        ) = self.synthesizer(
             encoder_out,
             encoder_out_lens,
             ys_in_pad,
@@ -921,7 +927,10 @@ class ESPnetS2STModel(AbsESPnetModel):
         ), "cannot return both last hiddens or all hiddens"
 
         # 1. Forward decoder
-        decoder_outs, decoder_out_lengths, = self.st_decoder(
+        (
+            decoder_outs,
+            decoder_out_lengths,
+        ) = self.st_decoder(
             encoder_out,
             encoder_out_lens,
             ys_in_pad,

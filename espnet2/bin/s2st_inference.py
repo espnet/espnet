@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Sequence, Tuple, Union, List
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import soundfile as sf
@@ -16,8 +16,8 @@ import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.s2st import S2STTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -102,7 +102,7 @@ class Speech2Speech:
         # setup decoding config
         self.decode_conf = {}  # use for specotrogram-based decoding
         scorers = {}  # use for beam-search decoding
-        st_subtask_scorers = {} # use for beam-search in st_subtask
+        st_subtask_scorers = {}  # use for beam-search in st_subtask
         if self.s2st_type == "translatotron":
             self.decode_conf.update(
                 threshold=threshold,
@@ -114,7 +114,6 @@ class Speech2Speech:
                 use_teacher_forcing=use_teacher_forcing,
             )
         elif self.s2st_type == "discrete_unit" or self.s2st_type == "unity":
-
             decoder = model.synthesizer
             token_list = model.unit_token_list
             scorers.update(decoder=decoder, length_bonus=LengthBonus(len(token_list)))
@@ -162,7 +161,7 @@ class Speech2Speech:
                 st_subtask_decoder = model.st_decoder
                 st_subtask_scorers.update(
                     decoder=st_subtask_decoder,
-                    length_bonus=LengthBonus(len(model.tgt_token_list))
+                    length_bonus=LengthBonus(len(model.tgt_token_list)),
                 )
                 st_subtask_weights = {
                     "decoder": 1.0,
@@ -193,10 +192,14 @@ class Speech2Speech:
                         f"As non-batch st_subtask_scorers {non_batch} are found, "
                         f"fall back to non-batch implementation."
                     )
-                st_subtask_beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+                st_subtask_beam_search.to(
+                    device=device, dtype=getattr(torch, dtype)
+                ).eval()
                 for st_subtask_scorers in st_subtask_scorers.values():
                     if isinstance(st_subtask_scorers, torch.nn.Module):
-                        st_subtask_scorers.to(device=device, dtype=getattr(torch, dtype)).eval()
+                        st_subtask_scorers.to(
+                            device=device, dtype=getattr(torch, dtype)
+                        ).eval()
                 logging.info(f"st_subtask Beam_search: {st_subtask_beam_search}")
                 logging.info(f"st_subtask Decoding device={device}, dtype={dtype}")
 
@@ -208,13 +211,19 @@ class Speech2Speech:
                     st_subtask_token_type = train_args.tgt_token_type
                 elif st_subtask_token_type == "bpe":
                     if st_subtask_tokenizer is not None:
-                        self.st_subtask_tokenizer = build_tokenizer(token_type=st_subtask_token_type, bpemodel=st_subtask_bpemodel)
+                        self.st_subtask_tokenizer = build_tokenizer(
+                            token_type=st_subtask_token_type,
+                            bpemodel=st_subtask_bpemodel,
+                        )
                     else:
                         self.st_subtask_tokenizer = None
                 else:
-                    self.st_subtask_tokenizer = build_tokenizer(token_type=st_subtask_token_type)
-                self.st_subtask_converter = TokenIDConverter(token_list=self.model.tgt_token_list)
-                
+                    self.st_subtask_tokenizer = build_tokenizer(
+                        token_type=st_subtask_token_type
+                    )
+                self.st_subtask_converter = TokenIDConverter(
+                    token_list=self.model.tgt_token_list
+                )
 
         else:
             raise NotImplementedError(
@@ -301,23 +310,33 @@ class Speech2Speech:
                 if len(token_int) == 0:
                     output_dict.update(wav=torch.tensor([0] * 100))
                 else:
-                    input_discrete_unit = to_device(torch.tensor(token_int).view(-1, 1), device=self.device)
+                    input_discrete_unit = to_device(
+                        torch.tensor(token_int).view(-1, 1), device=self.device
+                    )
                     # NOTE(jiatong): we default take the last token in the token list as <unk>
                     # see scripts/feats/performa_kemans.sh for details
-                    input_discrete_unit = input_discrete_unit[input_discrete_unit != self.model.unit_vocab_size - 1].view(-1, 1)
+                    input_discrete_unit = input_discrete_unit[
+                        input_discrete_unit != self.model.unit_vocab_size - 1
+                    ].view(-1, 1)
                     wav = self.vocoder(input_discrete_unit)
                     output_dict.update(wav=wav)
-        
+
         elif self.s2st_type == "unity":
             output_dict = {}
             # Forward Encoder
             enc, _ = self.model.encode(batch["src_speech"], batch["src_speech_lengths"])
 
             st_subtask_nbest_hyps = self.st_subtask_beam_search(
-                x=enc[0], maxlenratio=self.st_subtask_maxlenratio, minlenratio=self.st_subtask_minlenratio,
+                x=enc[0],
+                maxlenratio=self.st_subtask_maxlenratio,
+                minlenratio=self.st_subtask_minlenratio,
             )
 
-            logging.info("st_subtask_token_int: {}".format(st_subtask_nbest_hyps[0].yseq[1: -1].tolist()))
+            logging.info(
+                "st_subtask_token_int: {}".format(
+                    st_subtask_nbest_hyps[0].yseq[1:-1].tolist()
+                )
+            )
 
             st_subtask_result = []
             for hyp in st_subtask_nbest_hyps:
@@ -328,18 +347,34 @@ class Speech2Speech:
                     st_subtask_hs = torch.stack(hyp.hs)
                 else:
                     st_subtask_hs = hyp.hs
-                
+
                 st_subtask_token_int = hyp.yseq[1:-1].tolist()
-                st_subtask_token = self.st_subtask_converter.ids2tokens(st_subtask_token_int)
+                st_subtask_token = self.st_subtask_converter.ids2tokens(
+                    st_subtask_token_int
+                )
                 if self.st_subtask_tokenizer is not None:
-                    st_subtask_hyp_text = self.st_subtask_tokenizer.tokens2text(st_subtask_token)
+                    st_subtask_hyp_text = self.st_subtask_tokenizer.tokens2text(
+                        st_subtask_token
+                    )
                 else:
                     st_subtask_hyp_text = None
-                
-                st_subtask_result.append((st_subtask_hyp_text, st_subtask_token, st_subtask_token_int, st_subtask_hs))
+
+                st_subtask_result.append(
+                    (
+                        st_subtask_hyp_text,
+                        st_subtask_token,
+                        st_subtask_token_int,
+                        st_subtask_hs,
+                    )
+                )
 
             if self.st_subtask_tokenizer is not None:
-                st_subtask_hyp_text, st_subtask_token, st_subtask_token_int, _ = st_subtask_result[0]
+                (
+                    st_subtask_hyp_text,
+                    st_subtask_token,
+                    st_subtask_token_int,
+                    _,
+                ) = st_subtask_result[0]
                 logging.info("st_subtask_text: {}".format(st_subtask_result[0][0]))
                 output_dict.update(st_subtask_text=st_subtask_hyp_text)
                 output_dict.update(st_subtask_token=st_subtask_token)
@@ -348,9 +383,15 @@ class Speech2Speech:
             # encoder 1best st_subtask result
             st_subtask_hs = st_subtask_result[0][-1].unsqueeze(0)
             st_subtask_hs = to_device(st_subtask_hs, device=self.device)
-            st_subtask_hs_lengths = st_subtask_hs.new_full([1], dtype=torch.long, fill_value=st_subtask_hs.size(1))
+            st_subtask_hs_lengths = st_subtask_hs.new_full(
+                [1], dtype=torch.long, fill_value=st_subtask_hs.size(1)
+            )
             md_enc, _, _ = self.model.unit_encoder(st_subtask_hs, st_subtask_hs_lengths)
-            nbest_hyps = self.beam_search(md_enc[0], maxlenratio=self.maxlenratio * 100, minlenratio=self.minlenratio)
+            nbest_hyps = self.beam_search(
+                md_enc[0],
+                maxlenratio=self.maxlenratio * 100,
+                minlenratio=self.minlenratio,
+            )
 
             # TODO(jiatong): get nbest list instead of just best hyp
             best_hyp = nbest_hyps[0]  # just use the best
@@ -364,10 +405,14 @@ class Speech2Speech:
                 if len(token_int) == 0:
                     output_dict.update(wav=torch.tensor([0] * 100))
                 else:
-                    input_discrete_unit = to_device(torch.tensor(token_int).view(-1, 1), device=self.device)
+                    input_discrete_unit = to_device(
+                        torch.tensor(token_int).view(-1, 1), device=self.device
+                    )
                     # NOTE(jiatong): we default take the last token in the token list as <unk>
                     # see scripts/feats/performa_kemans.sh for details
-                    input_discrete_unit = input_discrete_unit[input_discrete_unit != self.model.unit_vocab_size - 1].view(-1, 1)
+                    input_discrete_unit = input_discrete_unit[
+                        input_discrete_unit != self.model.unit_vocab_size - 1
+                    ].view(-1, 1)
                     wav = self.vocoder(input_discrete_unit)
                     output_dict.update(wav=wav)
 
@@ -578,7 +623,7 @@ def inference(
         output_dir / "focus_rates/focus_rates", "w"
     ) as focus_rate_writer, DatadirWriter(
         output_dir / "st_subtask"
-    ) as st_subtask_wrtier :
+    ) as st_subtask_wrtier:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
@@ -681,13 +726,14 @@ def inference(
                     speech2speech.fs,
                     "PCM_16",
                 )
-            
+
             if output_dict.get("st_subtask_token") is not None:
                 writer["token"][key] = " ".join(output_dict["st_subtask_token"])
-                writer["token_int"][key] == " ".join(map(str, output_dict["st_subtask_token_int"]))
+                writer["token_int"][key] == " ".join(
+                    map(str, output_dict["st_subtask_token_int"])
+                )
                 if output_dict.get("st_subtask_text") is not None:
                     writer["text"][key] = output_dict["st_subtask_text"]
-
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:
@@ -857,9 +903,21 @@ def get_parser():
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument("--st_subtask_nbest", type=int, default=1, help="Output N-best hypotheses for st subtask")
-    group.add_argument("--st_subtask_beam_size", type=int, default=5, help="Beam size for st subtask")
-    group.add_argument("--st_subtask_penalty", type=float, default=0.0, help="Insertion penalty for st subtask")
+    group.add_argument(
+        "--st_subtask_nbest",
+        type=int,
+        default=1,
+        help="Output N-best hypotheses for st subtask",
+    )
+    group.add_argument(
+        "--st_subtask_beam_size", type=int, default=5, help="Beam size for st subtask"
+    )
+    group.add_argument(
+        "--st_subtask_penalty",
+        type=float,
+        default=0.0,
+        help="Insertion penalty for st subtask",
+    )
 
     group = parser.add_argument_group("Vocoder related")
     group.add_argument(

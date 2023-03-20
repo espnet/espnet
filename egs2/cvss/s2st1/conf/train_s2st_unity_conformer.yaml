@@ -134,4 +134,3 @@ best_model_criterion:
     - loss
     - min
 keep_nbest_models: 5
-

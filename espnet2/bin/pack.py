@@ -52,6 +52,7 @@ class SSLPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
+
 class S2STPackedContents(PackedContents):
     # These names must be consistent with the argument of inference functions
     files = ["s2st_model_file"]

@@ -262,7 +262,7 @@ Options:
     --score_nlsyms_text           # Scoring asr nlsyms text file for filtering (default="${score_nlsyms_text}").
     --score_cleaner               # Scoring cleaner for text normalizing (default="${score_cleaner}").
     --score_st_subtask            # Whether to score st subtask (default="${score_st_subtask}").
-    
+
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
@@ -512,7 +512,7 @@ if ! "${skip_data_prep}"; then
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${tgt_lang}" \
                     --out_filename "wav.scp.${tgt_lang}" \
                     "data/${dset}/wav.scp.${tgt_lang}" "${data_feats}${_suf}/${dset}"
-                
+
                 log "Format source wav.scp"
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
@@ -876,7 +876,7 @@ if ! "${skip_data_prep}"; then
                 --clustering_method "${feature_clustering_tool}" \
                 --nclusters "${feature_num_clusters}" \
                 --dictdir "${unit_tokendir}"
-            
+
             # NOTE(jiatong): use the pseudo label without unique to train the vocoder
             log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}.${tgt_lang}"
             log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}.${tgt_lang}"
@@ -1032,7 +1032,7 @@ if ! "${skip_train}"; then
                 >"${s2st_stats_dir}/valid/tgt_text_shape.${tgt_token_type}"
         fi
 
-        
+
         if [ ${use_src_lang} = true ]; then
             <${s2st_stats_dir}/train/src_text_shape \
                 awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
@@ -1115,12 +1115,12 @@ if ! "${skip_train}"; then
 
         _num_splits_opts=
         if [ ${use_tgt_lang} = true ]; then
-            _num_splits_opts+="${_s2st_train_dir}/text.${tgt_lang} " 
-            _num_splits_opts+="${s2st_stats_dir}/train/tgt_text_shape.${tgt_token_type} " 
+            _num_splits_opts+="${_s2st_train_dir}/text.${tgt_lang} "
+            _num_splits_opts+="${s2st_stats_dir}/train/tgt_text_shape.${tgt_token_type} "
         fi
         if [ ${use_src_lang} = true ]; then
-            _num_splits_opts+="${_s2st_train_dir}/text.${src_lang} " 
-            _num_splits_opts+="${s2st_stats_dir}/train/src_text_shape.${src_token_type} " 
+            _num_splits_opts+="${_s2st_train_dir}/text.${src_lang} "
+            _num_splits_opts+="${s2st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
         if [ "${num_splits_s2st}" -gt 1 ]; then
@@ -1153,11 +1153,11 @@ if ! "${skip_train}"; then
             if [ ${use_src_lang} = true ]; then
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_lang},src_text,text "
                 _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
-            fi 
+            fi
             if [ ${use_tgt_lang} = true ]; then
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_lang},tgt_text,text "
                 _opts+="--train_shape_file ${_split_dir}/tgt_text_shape.${tgt_token_type} "
-            fi 
+            fi
         else
             _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_tgt_scp},tgt_speech,${_tgt_type} "
             _opts+="--train_data_path_and_name_and_type ${_s2st_train_dir}/${_src_scp},src_speech,${_src_type} "
@@ -1189,16 +1189,16 @@ if ! "${skip_train}"; then
             _opts+="--tgt_token_type ${tgt_token_type} "
             _opts+="--tgt_token_list ${tgt_token_list} "
             _opts+="--tgt_bpemodel ${tgt_bpemodel} "
-            _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${tgt_lang},tgt_text,text " 
-            _opts+="--valid_shape_file ${s2st_stats_dir}/valid/tgt_text_shape.${tgt_token_type} " 
+            _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${tgt_lang},tgt_text,text "
+            _opts+="--valid_shape_file ${s2st_stats_dir}/valid/tgt_text_shape.${tgt_token_type} "
             _opts+="--fold_length ${s2st_text_fold_length} "
         fi
         if [ ${use_src_lang} = true ]; then
             _opts+="--src_token_type ${src_token_type} "
             _opts+="--src_token_list ${src_token_list} "
             _opts+="--src_bpemodel ${src_bpemodel} "
-            _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${src_lang},src_text,text " 
-            _opts+="--valid_shape_file ${s2st_stats_dir}/valid/src_text_shape.${src_token_type} " 
+            _opts+="--valid_data_path_and_name_and_type ${_s2st_valid_dir}/text.${src_lang},src_text,text "
+            _opts+="--valid_shape_file ${s2st_stats_dir}/valid/src_text_shape.${src_token_type} "
             _opts+="--fold_length ${s2st_text_fold_length} "
         fi
         if [ $use_discrete_unit = true ]; then
@@ -1441,7 +1441,7 @@ if ! "${skip_eval}"; then
                 --inference_args "${score_asr_inference_args}" \
                 --nlsyms_txt "${score_nlsyms_text}" \
                 --cleaner "${score_cleaner}"
-            
+
             if [ -e "${_dir}/st_subtak/text" ] || ${score_st_subtask} ; then
                 _scoredir="${_dir}/score_st_subtask_bleu"
                 mkdir -p ${_scoredir}

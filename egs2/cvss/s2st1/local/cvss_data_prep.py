@@ -25,19 +25,32 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    full_id_info = get_full_id(os.path.join(args.dest, "wav.scp.{}".format(args.src_lang)))
+    full_id_info = get_full_id(
+        os.path.join(args.dest, "wav.scp.{}".format(args.src_lang))
+    )
 
-    tgt_wavscp = open(os.path.join(args.dest, "wav.scp.{}".format(TGT_LANG)), "w", encoding="utf-8")
-    tgt_text = open(os.path.join(args.dest, "text.{}".format(TGT_LANG)), "w", encoding="utf-8")
+    tgt_wavscp = open(
+        os.path.join(args.dest, "wav.scp.{}".format(TGT_LANG)), "w", encoding="utf-8"
+    )
+    tgt_text = open(
+        os.path.join(args.dest, "text.{}".format(TGT_LANG)), "w", encoding="utf-8"
+    )
 
-    manifest = open(os.path.join(args.datadir, "{}.tsv".format(args.subset)), "r", encoding="utf-8")
+    manifest = open(
+        os.path.join(args.datadir, "{}.tsv".format(args.subset)), "r", encoding="utf-8"
+    )
     for line in manifest.readlines():
         wav, text = line.strip().split("\t", maxsplit=1)
-        wav = wav[:-4] # remove suffix .mp3
+        wav = wav[:-4]  # remove suffix .mp3
         if wav not in full_id_info.keys():
             print("{} not found, possibly due to data mismatch".format(wav))
         full_id = full_id_info[wav]
-        tgt_wavscp.write("{} {}\n".format(full_id, os.path.join(args.datadir, args.subset, "{}.mp3.wav".format(wav))))
+        tgt_wavscp.write(
+            "{} {}\n".format(
+                full_id,
+                os.path.join(args.datadir, args.subset, "{}.mp3.wav".format(wav)),
+            )
+        )
         tgt_text.write("{} {}\n".format(full_id, text))
     tgt_wavscp.close()
     tgt_text.close()

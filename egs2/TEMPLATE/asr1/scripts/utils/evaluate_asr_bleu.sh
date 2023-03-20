@@ -234,7 +234,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                     ) \
         <(<"${source_wavscp}" awk '{ print "(" $1 ")" }') \
             >"${_scoredir}/hyp.trn.org"
-    
+
     # remove utterance id
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"

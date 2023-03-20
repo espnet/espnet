@@ -27,11 +27,11 @@ from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
 )
+from espnet2.asr.encoder.linear_encoder import LinearEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
-from espnet2.asr.encoder.linear_encoder import LinearEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -57,8 +57,8 @@ from espnet2.s2st.losses.ctc_loss import S2STCTCLoss
 from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.s2st.synthesizer.discrete_synthesizer import TransformerDiscreteSynthesizer
+from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
 from espnet2.s2st.tgt_feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.s2st.tgt_feats_extract.log_mel_fbank import LogMelFbank
