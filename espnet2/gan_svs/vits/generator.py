@@ -6,6 +6,12 @@
 
 This code is based on https://github.com/jaywalnut310/vits.
 
+    This is a module of VISinger described in `VISinger: Variational Inference
+      with Adversarial Learning for End-to-End Singing Voice Synthesis`_.
+
+    .. _`VISinger: Variational Inference with Adversarial Learning for
+      End-to-End Singing Voice Synthesis`: https://arxiv.org/abs/2110.08813
+
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -23,6 +29,7 @@ from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
+from espnet2.gan_svs.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
@@ -31,19 +38,8 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.gan_svs.utils.expand_f0 import expand_f0
 
 
-class VITSGenerator(torch.nn.Module):
-    """Generator module in VITS.
-
-    This is a module of VITS described in `Conditional Variational Autoencoder
-    with Adversarial Learning for End-to-End Text-to-Speech`_.
-
-    As text encoder, we use conformer architecture instead of the relative positional
-    Transformer, which contains additional convolution layers.
-
-    .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
-        Text-to-Speech`: https://arxiv.org/abs/2006.04558
-
-    """
+class VISingerGenerator(torch.nn.Module):
+    """Generator module in VISinger."""
 
     def __init__(
         self,
@@ -82,6 +78,8 @@ class VITSGenerator(torch.nn.Module):
         decoder_upsample_kernel_sizes: List[int] = [16, 16, 4, 4],
         decoder_resblock_kernel_sizes: List[int] = [3, 7, 11],
         decoder_resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        projection_filters: List[int] = [0, 1, 1, 1],
+        projection_kernels: List[int] = [0, 5, 7, 11],
         use_weight_norm_in_decoder: bool = True,
         posterior_encoder_kernel_size: int = 5,
         posterior_encoder_layers: int = 16,
@@ -98,7 +96,7 @@ class VITSGenerator(torch.nn.Module):
         use_only_mean_in_flow: bool = True,
         use_dp: bool = True,
         use_visinger: bool = True,
-        use_uhifigan: bool = True,
+        vocoder_generator_type: str = "uhifigan",
         fs: int = 22050,
         hop_length: int = 256,
     ):
@@ -197,7 +195,7 @@ class VITSGenerator(torch.nn.Module):
             beat_dim=beat_dim,
             use_visinger=use_visinger,
         )
-        if use_uhifigan:
+        if vocoder_generator_type == "uhifigan":
             self.decoder = UHiFiGANGenerator(
                 in_channels=hidden_channels,
                 out_channels=1,
@@ -217,7 +215,7 @@ class VITSGenerator(torch.nn.Module):
             )
             self.fs = fs
             self.hop_length = hop_length
-        else:
+        elif vocoder_generator_type == "hifigan":
             self.decoder = HiFiGANGenerator(
                 in_channels=hidden_channels,
                 out_channels=1,
@@ -228,6 +226,21 @@ class VITSGenerator(torch.nn.Module):
                 upsample_kernel_sizes=decoder_upsample_kernel_sizes,
                 resblock_kernel_sizes=decoder_resblock_kernel_sizes,
                 resblock_dilations=decoder_resblock_dilations,
+                use_weight_norm=use_weight_norm_in_decoder,
+            )
+        elif vocoder_generator_type == "avocodo":
+            self.decoder = AvocodoGenerator(
+                in_channels=hidden_channels,
+                out_channels=1,
+                channels=decoder_channels,
+                global_channels=global_channels,
+                kernel_size=decoder_kernel_size,
+                upsample_scales=decoder_upsample_scales,
+                upsample_kernel_sizes=decoder_upsample_kernel_sizes,
+                resblock_kernel_sizes=decoder_resblock_kernel_sizes,
+                resblock_dilations=decoder_resblock_dilations,
+                projection_filters=projection_filters,
+                projection_kernels=projection_kernels,
                 use_weight_norm=use_weight_norm_in_decoder,
             )
         self.posterior_encoder = PosteriorEncoder(
@@ -307,7 +320,7 @@ class VITSGenerator(torch.nn.Module):
             self.langs = langs
             self.lang_emb = torch.nn.Embedding(langs, global_channels)
 
-        self.use_uhifigan = use_uhifigan
+        self.vocoder_generator_type = vocoder_generator_type
 
     def forward(
         self,
@@ -477,10 +490,12 @@ class VITSGenerator(torch.nn.Module):
             z,
             feats_lengths,
             self.segment_size,
-            pitch=gt_pitch.unsqueeze(1) if self.use_uhifigan else None,
+            pitch=gt_pitch.unsqueeze(1)
+            if self.vocoder_generator_type == "uhifigan"
+            else None,
         )
 
-        if self.use_uhifigan:
+        if self.vocoder_generator_type == "uhifigan":
             # get sine wave
             # print("gt_pitch", gt_pitch)
             # print("gt_pitch.shape", gt_pitch.shape)
@@ -674,7 +689,7 @@ class VITSGenerator(torch.nn.Module):
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
             z = self.flow(z_p, x_mask, g=g, inverse=True)
 
-            if self.use_uhifigan:
+            if self.vocoder_generator_type == "uhifigan":
                 pitch_segments_expended = expand_f0(
                     pred_pitch, self.hop_length, method="repeat"
                 )

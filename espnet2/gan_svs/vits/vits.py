@@ -12,7 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
-from espnet2.gan_svs.vits.generator import VITSGenerator
+from espnet2.gan_svs.vits.generator import VISingerGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -30,8 +30,17 @@ from espnet2.gan_tts.utils import get_segments
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 
+from espnet2.gan_svs.avocodo.avocodo import (
+    CoMBD,
+    SBD,
+    AvocodoDiscriminator,
+)
+
 AVAILABLE_GENERATERS = {
-    "vits_generator": VITSGenerator,
+    "visinger_generator": VISingerGenerator,
+    # TODO(yifeng): add more generators
+    # "visinger2_generator": VISinger2Generator,
+    # "pisinger_generator": PISingerGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -39,6 +48,9 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_period_discriminator": HiFiGANMultiPeriodDiscriminator,
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
+    "combd": CoMBD,
+    "sbd": SBD,
+    "avocodo": AvocodoDiscriminator,
 }
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -67,9 +79,10 @@ class VITS(AbsGANSVS):
         idim: int,
         odim: int,
         sampling_rate: int = 22050,
-        generator_type: str = "vits_generator",
+        generator_type: str = "visinger_generator",
         use_visinger: bool = True,
         use_dp: bool = True,
+        vocoder_generator_type: str = "uhifigan",
         generator_params: Dict[str, Any] = {
             "midi_dim": 129,
             "midi_embed_integration_type": "add",
@@ -100,6 +113,8 @@ class VITS(AbsGANSVS):
             "decoder_upsample_kernel_sizes": [16, 16, 4, 4],
             "decoder_resblock_kernel_sizes": [3, 7, 11],
             "decoder_resblock_dilations": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+            "projection_filters": [0, 1, 1, 1],
+            "projection_kernels": [0, 5, 7, 11],
             "use_weight_norm_in_decoder": True,
             "posterior_encoder_kernel_size": 5,
             "posterior_encoder_layers": 16,
@@ -154,6 +169,79 @@ class VITS(AbsGANSVS):
                 "use_weight_norm": True,
                 "use_spectral_norm": False,
             },
+            "combd": {
+                "combd_h_u": [
+                    [16, 64, 256, 1024, 1024, 1024],
+                    [16, 64, 256, 1024, 1024, 1024],
+                    [16, 64, 256, 1024, 1024, 1024],
+                ],
+                "combd_d_k": [
+                    [7, 11, 11, 11, 11, 5],
+                    [11, 21, 21, 21, 21, 5],
+                    [15, 41, 41, 41, 41, 5],
+                ],
+                "combd_d_s": [
+                    [1, 1, 4, 4, 4, 1],
+                    [1, 1, 4, 4, 4, 1],
+                    [1, 1, 4, 4, 4, 1],
+                ],
+                "combd_d_d": [
+                    [1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1, 1],
+                ],
+                "combd_d_g": [
+                    [1, 4, 16, 64, 256, 1],
+                    [1, 4, 16, 64, 256, 1],
+                    [1, 4, 16, 64, 256, 1],
+                ],
+                "combd_d_p": [
+                    [3, 5, 5, 5, 5, 2],
+                    [5, 10, 10, 10, 10, 2],
+                    [7, 20, 20, 20, 20, 2],
+                ],
+                "combd_op_f": [1, 1, 1],
+                "combd_op_k": [3, 3, 3],
+                "combd_op_g": [1, 1, 1],
+            },
+            "sbd": {
+                "use_sbd": True,
+                "sbd_filters": [
+                    [64, 128, 256, 256, 256],
+                    [64, 128, 256, 256, 256],
+                    [64, 128, 256, 256, 256],
+                    [32, 64, 128, 128, 128],
+                ],
+                "sbd_strides": [
+                    [1, 1, 3, 3, 1],
+                    [1, 1, 3, 3, 1],
+                    [1, 1, 3, 3, 1],
+                    [1, 1, 3, 3, 1],
+                ],
+                "sbd_kernel_sizes": [
+                    [[7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7]],
+                    [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+                    [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
+                    [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+                ],
+                "sbd_dilations": [
+                    [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
+                    [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
+                    [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                    [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]],
+                ],
+                "sbd_band_ranges": [[0, 6], [0, 11], [0, 16], [0, 64]],
+                "sbd_transpose": [False, False, False, True],
+                "pqmf_config": {
+                    "sbd": [16, 256, 0.03, 10.0],
+                    "fsbd": [64, 256, 0.1, 9.0],
+                },
+                "segment_size": 8192,  # 32 * hop_size
+                # TODO(Yifeng): Is it better that segment_size should be
+                #  the same as the one in the generator, which is 32,
+                #  and we should multiply it by hop_size?
+            },
+            "pqmf_config": {"lv1": [2, 256, 0.25, 10.0], "lv2": [4, 192, 0.13, 10.0]},
         },
         # loss related
         generator_adv_loss_params: Dict[str, Any] = {
@@ -221,7 +309,7 @@ class VITS(AbsGANSVS):
 
         # define modules
         generator_class = AVAILABLE_GENERATERS[generator_type]
-        if generator_type == "vits_generator":
+        if generator_type == "visinger_generator":
             # NOTE(kan-bayashi): Update parameters for the compatibility.
             #   The idim and odim is automatically decided from input data,
             #   where idim represents #vocabularies and odim represents
@@ -229,14 +317,21 @@ class VITS(AbsGANSVS):
             generator_params.update(vocabs=idim, aux_channels=odim)
         self.use_visinger = use_visinger
         self.use_dp = use_dp
-        generator_params.update(use_visinger=self.use_visinger)
-        generator_params.update(use_dp=self.use_dp)
+        self.vocoder_generator_type = vocoder_generator_type
+        generator_params.update(use_visinger=use_visinger)
+        generator_params.update(vocoder_generator_type=vocoder_generator_type)
+        generator_params.update(use_dp=use_dp)
         generator_params.update(fs=mel_loss_params["fs"])
         generator_params.update(hop_length=mel_loss_params["hop_length"])
         self.generator = generator_class(
             **generator_params,
         )
+        self.discriminator_type = discriminator_type
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
+        if vocoder_generator_type == "avocodo":
+            discriminator_params.update(
+                projection_filters=generator_params["projection_filters"]
+            )
         self.discriminator = discriminator_class(
             **discriminator_params,
         )
@@ -512,17 +607,32 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        p_hat = self.discriminator(singing_hat_)
-        with torch.no_grad():
-            # do not store discriminator gradient in generator turn
-            p = self.discriminator(singing_)
+        if self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator":
+            p_hat = self.discriminator(singing_hat_)
+            with torch.no_grad():
+                # do not store discriminator gradient in generator turn
+                p = self.discriminator(singing_)
+        elif self.discriminator_type == "avocodo":
+            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
+                singing_, singing_hat_
+            )
 
         # calculate losses
         with autocast(enabled=False):
-            mel_loss = self.mel_loss(singing_hat_, singing_)
+            if self.vocoder_generator_type == "avocodo":
+                mel_loss = self.mel_loss(singing_hat_[-1], singing_)
+            else:
+                mel_loss = self.mel_loss(singing_hat_, singing_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-            adv_loss = self.generator_adv_loss(p_hat)
-            feat_match_loss = self.feat_match_loss(p_hat, p)
+            if (
+                self.discriminator_type
+                == "hifigan_multi_scale_multi_period_discriminator"
+            ):
+                adv_loss = self.generator_adv_loss(p_hat)
+                feat_match_loss = self.feat_match_loss(p_hat, p)
+            elif self.discriminator_type == "avocodo":
+                adv_loss = self.generator_adv_loss(p_hat)
+                feat_match_loss = self.feat_match_loss(fmaps_fake, fmaps_real)
 
             if self.use_visinger:
                 pitch_loss = self.mse_loss(pred_pitch, gt_pitch)
@@ -699,8 +809,14 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        p_hat = self.discriminator(singing_hat_.detach())
-        p = self.discriminator(singing_)
+        if self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator":
+            p_hat = self.discriminator(singing_hat_.detach())
+            p = self.discriminator(singing_)
+        elif self.discriminator_type == "avocodo":
+            detached_singing_hat_ = [x.detach() for x in singing_hat_]
+            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
+                singing_, detached_singing_hat_
+            )
 
         # calculate losses
         with autocast(enabled=False):
