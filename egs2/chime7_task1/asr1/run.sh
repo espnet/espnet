@@ -158,8 +158,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set="" #kaldi/dev_ihm_all # dummy one, it is not used
-    asr_cv_set=""  #kaldi/dev_ihm_all
+    asr_train_set="dummy_tr" # dummy one, it is not used
+    asr_cv_set="dummy_cv"
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   else
