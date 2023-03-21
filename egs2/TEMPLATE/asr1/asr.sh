@@ -310,7 +310,7 @@ for dset in ${test_sets}; do
     if [ "${dset}" = "${valid_set}" ]; then
         log "Info: The valid_set '${valid_set}' is included in the test_sets. '--eval_valid_set true' is set and '${valid_set}' is removed from the test_sets"
         eval_valid_set=true
-    elif [[ " ${_test_sets} " = [[:space:]]${dset}[[:space:]] ]]; then
+    elif [[ " ${_test_sets} " =~ [[:space:]]${dset}[[:space:]] ]]; then
         log "Info: ${dset} is duplicated in the test_sets. One is removed"
     else
         _test_sets+="${dset} "
@@ -559,14 +559,14 @@ log "Skipped stages: ${skip_stages}"
 
 
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " = [[:space:]]1[[:space:]] ]]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]] ]]; then
     log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
     # [Task dependent] Need to create data.sh for new corpus
     local/data.sh ${local_data_opts}
 fi
 
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " = [[:space:]]2[[:space:]] ]]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
     if [ -n "${speed_perturb_factors}" ]; then
        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
        for factor in ${speed_perturb_factors}; do
@@ -592,7 +592,7 @@ if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " = [[:space:]]3[[:space:]] ]]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [[:space:]]3[[:space:]] ]]; then
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
             _dsets="${valid_set} ${test_sets}"
@@ -775,7 +775,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " = [[:space:]]4[[:space:]] ]]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
     log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
     # NOTE(kamo): Not applying to test_sets to keep original data
@@ -852,7 +852,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " = [[:space:]]5[[:space:]] ]]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
     if [ "${token_type}" = bpe ]; then
         log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
 
@@ -947,7 +947,7 @@ fi
 # ========================== Data preparation is done here. ==========================
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " = [[:space:]]6[[:space:]] ]]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
     log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
     _opts=
@@ -1024,7 +1024,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " = [[:space:]]7[[:space:]] ]]; then
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [[:space:]]7[[:space:]] ]]; then
     log "Stage 7: LM Training: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
     _opts=
@@ -1100,7 +1100,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " = [[:space:]]8[[:space:]] ]]; then
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [[:space:]]8[[:space:]] ]]; then
     log "Stage 8: Calc perplexity: ${lm_test_text}"
     _opts=
     # TODO(kamo): Parallelize?
@@ -1119,7 +1119,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " = [[:space:]]9[[:space:]] ]]; then
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [[:space:]]9[[:space:]] ]]; then
     log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
     mkdir -p ${ngram_exp}
     cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
@@ -1127,7 +1127,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " = [[
 fi
 
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " = [[:space:]]10[[:space:]] ]]; then
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~ [[:space:]]10[[:space:]] ]]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_valid_dir="${data_feats}/${valid_set}"
     log "Stage 10: ASR collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
@@ -1239,7 +1239,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " = 
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " = [[:space:]]11[[:space:]] ]]; then
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_valid_dir="${data_feats}/${valid_set}"
     log "Stage 11: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
@@ -1403,7 +1403,7 @@ if [ -n "${download_model}" ]; then
 fi
 
 
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " = [[:space:]]12[[:space:]] ]]; then
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
     log "Stage 12: Decoding: training_dir=${asr_exp}"
 
     if ${gpu_inference}; then
@@ -1541,7 +1541,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " = 
 fi
 
 
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " = [[:space:]]13[[:space:]] ]]; then
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
     log "Stage 13: Scoring"
     if [ "${token_type}" = phn ]; then
         log "Error: Not implemented for token_type=phn"
@@ -1643,7 +1643,7 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " = [[:space:]]14[[:space:]] ]]; then
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then
     log "Stage 14: Pack model: ${packed_model}"
 
     _opts=
@@ -1673,7 +1673,7 @@ if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " = 
 fi
 
 
-if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " = [[:space:]]15[[:space:]] ]]; then
+if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~ [[:space:]]15[[:space:]] ]]; then
     log "Stage 15: Upload model to Zenodo: ${packed_model}"
     log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
@@ -1731,7 +1731,7 @@ EOF
 fi
 
 
-if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " = [[:space:]]16[[:space:]] ]]; then
+if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~ [[:space:]]16[[:space:]] ]]; then
     [ -z "${hf_repo}" ] && \
         log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
     exit 1
