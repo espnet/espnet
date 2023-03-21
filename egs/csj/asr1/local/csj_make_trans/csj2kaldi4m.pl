@@ -45,7 +45,7 @@ while (<IN>) {
 
     foreach $var($pos,$acf,$kacf,$kav,$ec,$other){
     $var = &checkempty($var);
-    }    
+    }
 
     $morph ="$pos/$acf/$kacf/$kav/$ec"; # Exclude "other" information
 #    $morph ="$pos/$acf/$kacf/$kav/$ec/$other"; # Include "other" information

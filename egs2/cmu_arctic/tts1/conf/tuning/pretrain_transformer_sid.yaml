@@ -3,7 +3,7 @@
 # loss to accelerate the learning of the diagonal attention. It requires
 # 4 GPUs with 32 GB memory and it will finish within 1 day to finish the
 # training on Tesla V100.
-# The pretrain config has one change: spks: 8 
+# The pretrain config has one change: spks: 8
 
 ##########################################################
 #                  TTS MODEL SETTING                     #

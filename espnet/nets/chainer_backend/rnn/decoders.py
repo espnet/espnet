@@ -6,7 +6,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-import six
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
@@ -61,7 +60,7 @@ class Decoder(chainer.Chain):
                 if dtype == "lstm"
                 else L.StatelessGRU(dunits + eprojs, dunits)
             )
-            for i in six.moves.range(1, dlayers):
+            for i in range(1, dlayers):
                 setattr(
                     self,
                     "rnn%d" % i,
@@ -88,7 +87,7 @@ class Decoder(chainer.Chain):
     def rnn_forward(self, ey, z_list, c_list, z_prev, c_prev):
         if self.dtype == "lstm":
             c_list[0], z_list[0] = self.rnn0(c_prev[0], z_prev[0], ey)
-            for i in six.moves.range(1, self.dlayers):
+            for i in range(1, self.dlayers):
                 c_list[i], z_list[i] = self["rnn%d" % i](
                     c_prev[i], z_prev[i], z_list[i - 1]
                 )
@@ -100,7 +99,7 @@ class Decoder(chainer.Chain):
                         xp.zeros((ey.shape[0], self.dunits), dtype=ey.dtype)
                     )
             z_list[0] = self.rnn0(z_prev[0], ey)
-            for i in six.moves.range(1, self.dlayers):
+            for i in range(1, self.dlayers):
                 if z_prev[i] is None:
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
@@ -156,7 +155,7 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -168,7 +167,7 @@ class Decoder(chainer.Chain):
         eys = F.separate(eys, axis=1)
 
         # loop for an output sequence
-        for i in six.moves.range(olength):
+        for i in range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             if i > 0 and random.random() < self.sampling_probability:
                 logging.info(" scheduled sampling ")
@@ -234,7 +233,7 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         a = None
@@ -286,7 +285,7 @@ class Decoder(chainer.Chain):
         hyps = [hyp]
         ended_hyps = []
 
-        for i in six.moves.range(maxlen):
+        for i in range(maxlen):
             logging.debug("position " + str(i))
 
             hyps_best_kept = []
@@ -336,7 +335,7 @@ class Decoder(chainer.Chain):
                     ]
                     local_best_scores = local_scores[:, local_best_ids]
 
-                for j in six.moves.range(beam):
+                for j in range(beam):
                     new_hyp = {}
                     # do not copy {z,c}_list directly
                     new_hyp["z_prev"] = z_list[:]
@@ -469,7 +468,7 @@ class Decoder(chainer.Chain):
         # initialization
         c_list = [None]  # list of cell state of each layer
         z_list = [None]  # list of hidden state of each layer
-        for _ in six.moves.range(1, self.dlayers):
+        for _ in range(1, self.dlayers):
             c_list.append(None)
             z_list.append(None)
         att_w = None
@@ -481,7 +480,7 @@ class Decoder(chainer.Chain):
         eys = F.separate(eys, axis=1)
 
         # loop for an output sequence
-        for i in six.moves.range(olength):
+        for i in range(olength):
             att_c, att_w = self.att(hs, z_list[0], att_w)
             ey = F.hstack((eys[i], att_c))  # utt x (zdim + hdim)
             z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)

@@ -23,7 +23,6 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 def test_tf_domain_criterion_forward(
     criterion_class, mask_type, compute_on_mask, input_ch
 ):
-
     criterion = criterion_class(compute_on_mask=compute_on_mask, mask_type=mask_type)
     complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
 
@@ -46,7 +45,6 @@ def test_tf_domain_criterion_forward(
 
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_coh_criterion_forward(input_ch):
-
     criterion = FrequencyDomainAbsCoherence()
     complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
 
@@ -61,7 +59,6 @@ def test_tf_coh_criterion_forward(input_ch):
 
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_coh_criterion_invalid_forward(input_ch):
-
     criterion = FrequencyDomainAbsCoherence()
     complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
 
@@ -82,7 +79,6 @@ def test_tf_coh_criterion_invalid_forward(input_ch):
 
 @pytest.mark.parametrize("input_ch", [1, 2])
 def test_tf_ce_criterion_forward(input_ch):
-
     criterion = FrequencyDomainCrossEntropy()
 
     batch = 2
@@ -98,7 +94,6 @@ def test_tf_ce_criterion_forward(input_ch):
 
 @pytest.mark.parametrize("loss_type", ["dpcl", "mdc"])
 def test_tf_dpcl_loss_criterion_forward(loss_type):
-
     criterion = FrequencyDomainDPCL(loss_type=loss_type)
 
     batch = 2

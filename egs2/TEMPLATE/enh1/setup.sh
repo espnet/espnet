@@ -49,18 +49,11 @@ done
 
 
 # Symlinks to TEMPLATE/asr1
-for f in db.sh pyscripts; do
+for f in db.sh pyscripts utils steps; do
     target=../../TEMPLATE/asr1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
-
-# Symlinks to Kaldi
-for f in steps utils; do
-    target=../../../tools/kaldi/egs/wsj/s5/"${f}"
-    ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
 
 log "Created: ${targets}"

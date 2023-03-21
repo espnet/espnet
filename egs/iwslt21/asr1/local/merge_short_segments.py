@@ -29,7 +29,6 @@ args = parser.parse_args()
 
 
 def merge(segments, segments_dict):
-
     while True:
         num_merge = 0
         new_segments = deque([])

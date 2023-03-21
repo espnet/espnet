@@ -12,7 +12,7 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 
+Usage: $0
   optional argument:
     None
 EOF
@@ -32,14 +32,14 @@ fi
 if [ ! -e "${NOISY_REVERBERANT_SPEECH}" ] || [ ! -e "${NOISY_SPEECH}" ] ; then
     log "
     Please fill the value of 'NOISY_REVERBERANT_SPEECH' and 'NOISY_SPEECH' in db.sh
-    The 'NOISY_REVERBERANT_SPEECH' (https://doi.org/10.7488/ds/2139) 
-    directory should be like:  
+    The 'NOISY_REVERBERANT_SPEECH' (https://doi.org/10.7488/ds/2139)
+    directory should be like:
         noisy_reverberant_speech
         ├── logfiles
         ├── noisyreverb_testset_wav
         ├── noisyreverb_trainset_28spk_wav
         └── noisyreverb_trainset_56spk_wav
-    the 'NOISY_SPEECH' (https://doi.org/10.7488/ds/2117) directory 
+    the 'NOISY_SPEECH' (https://doi.org/10.7488/ds/2117) directory
     should at least contain the clean reference:
         noisy_speech
         ├── clean_testset_wav

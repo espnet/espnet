@@ -183,7 +183,7 @@ decoder_choices = ClassChoices(
         s4=S4Decoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
     optional=True,
 )
 preprocessor_choices = ClassChoices(
@@ -403,7 +403,6 @@ class ASRTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-
             try:
                 _ = getattr(args, "preprocessor")
             except AttributeError:

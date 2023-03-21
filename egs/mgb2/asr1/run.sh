@@ -4,12 +4,12 @@
 
 
 # To use this recipe you'll need
-# 1) Download MGB-2 corpus from https://arabicspeech.org/mgb2 into a 
+# 1) Download MGB-2 corpus from https://arabicspeech.org/mgb2 into a
 #    DB directory. After downloading, it must have DB/{train,dev,test}.tar.gz
 
 
 . ./path.sh || exit 1;
-. ./cmd.sh || exit 1;  
+. ./cmd.sh || exit 1;
 
 # general configuration
 backend=pytorch
@@ -56,7 +56,7 @@ recog_model=model.acc.best  # set a model to be used for decoding: 'model.acc.be
 lang_model=rnnlm.model.best # set a language model to be used for decoding
 
 # bpemode (unigram or bpe)
-nbpe=5000     
+nbpe=5000
 bpemode=unigram
 
 # exp tag
@@ -113,7 +113,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # remove utt having more than 400 characters
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/${train} data/train_trim
     remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/dev data/${train_dev}
-    
+
     # speed perturbation
     utils/perturb_data_dir_speed.sh 0.9 data/train_trim data/temp1
     utils/perturb_data_dir_speed.sh 1.0 data/train_trim data/temp2
@@ -123,7 +123,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj $nj --write_utt2num_frames true \
         data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
     utils/fix_data_dir.sh data/${train_set}
-    
+
     # compute global CMVN cepstral mean and variance normalization
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
@@ -151,9 +151,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/lang_char/
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
     cut -f 2- -d" " data/train/text > data/lang_char/input.txt
-  
+
     # --model_type: model type. Choose from unigram (default), bpe, char, or word. The input sentence must be pretokenized when using word type.
-    
+
     spm_train --input=data/lang_char/input.txt --vocab_size=${nbpe} --model_type=${bpemode} \
         --model_prefix=${bpemodel%%.*} --input_sentence_size=100000000
     spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_char/input.txt | \
@@ -192,12 +192,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         lm_text=data/local/segmented_text
         cut -f 2- -d" " data/train/text | gzip -c > data/local/${train_set}_text.gz
         gzip -c $lm_text> data/local/segmented_text.gz
-        # combine external text and transcriptions 
+        # combine external text and transcriptions
         zcat data/local/segmented_text.gz data/local/${train_set}_text.gz |\
         sed 's/ <\/s>//g' | local/join_suffix.py|\
 	      spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/train.txt
         cut -f 2- -d" " data/${train_dev}/text | spm_encode --model=${bpemodel}.model --output_format=piece > ${lmdatadir}/valid.txt
-    
+
     fi
     ${cuda_cmd} --gpu ${ngpu} ${lmexpdir}/train.log \
         lm_train.py \
@@ -219,9 +219,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ -n "${preprocess_config}" ]; then 
-	expname=${expname}_$(basename ${preprocess_config%.*}) 
-    fi 
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -253,7 +253,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
            [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then 
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best

@@ -172,6 +172,8 @@ class SeparateSpeech:
                 "Overwrite enh_model.separator.ref_channel with {}".format(ref_channel)
             )
             enh_model.separator.ref_channel = ref_channel
+            if hasattr(enh_model.separator, "beamformer"):
+                enh_model.separator.beamformer.ref_channel = ref_channel
             self.ref_channel = ref_channel
         else:
             self.ref_channel = enh_model.ref_channel
@@ -472,7 +474,7 @@ def inference(
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         waves = separate_speech(**batch)
-        for (spk, w) in enumerate(waves):
+        for spk, w in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
 

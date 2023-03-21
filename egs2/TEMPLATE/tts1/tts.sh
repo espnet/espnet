@@ -210,7 +210,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -675,6 +675,10 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+        if [ "${feats_normalize}" != global_mvn ]; then
+            # Skip summerizaing stats if not using global MVN
+            _opts+="--skip_sum_stats"
+        fi
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count

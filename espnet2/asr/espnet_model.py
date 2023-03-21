@@ -148,6 +148,9 @@ class ESPnetASRModel(AbsESPnetModel):
                 assert (
                     decoder is not None
                 ), "decoder should not be None when attention is used"
+            else:
+                decoder = None
+                logging.warning("Set decoder to none as ctc_weight==1.0")
 
             self.decoder = decoder
 
@@ -342,16 +345,7 @@ class ESPnetASRModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        if self.extract_feats_in_collect_stats:
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-        else:
-            # Generate dummy stats if extract_feats_in_collect_stats is False
-            logging.warning(
-                "Generating dummy stats for feats and feats_lengths, "
-                "because encoder_conf.extract_feats_in_collect_stats is "
-                f"{self.extract_feats_in_collect_stats}"
-            )
-            feats, feats_lengths = speech, speech_lengths
+        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
