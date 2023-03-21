@@ -46,6 +46,8 @@ for arg in "${@}"; do
         surround=true
     elif [[ ${arg} = *\$* ]]; then
         surround=true
+    elif [ -z "${arg}" ]; then
+        surround=true
     fi
 
     if "${surround}"; then
