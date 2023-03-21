@@ -1,23 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-extra_chars=(
-    ' '
-    ';'
-    '&'
-    '|'
-    '<'
-    '>'
-    '~'
-    '`'
-    '"'
-    ' '
-    '{'
-    '}'
-    '('
-    ')'
-)
-
 new_args=""
 for arg in "${@}"; do
     if [[ ${arg} = *"'"* ]]; then
@@ -31,13 +14,40 @@ for arg in "${@}"; do
         surround=true
     elif [[ ${arg} = *\\* ]]; then
         surround=true
-    else
-        for char in "${extra_chars[@]}"; do
-            if [[ ${arg} = *${char}* ]]; then
-                surround=true
-                break
-            fi
-        done
+    elif [[ ${arg} = *\ * ]]; then
+        surround=true
+    elif [[ ${arg} = *\;* ]]; then
+        surround=true
+    elif [[ ${arg} = *\&* ]]; then
+        surround=true
+    elif [[ ${arg} = *\|* ]]; then
+        surround=true
+    elif [[ ${arg} = *\<* ]]; then
+        surround=true
+    elif [[ ${arg} = *\>* ]]; then
+        surround=true
+    elif [[ ${arg} = *\`* ]]; then
+        surround=true
+    elif [[ ${arg} = *\(* ]]; then
+        surround=true
+    elif [[ ${arg} = *\)* ]]; then
+        surround=true
+    elif [[ ${arg} = *\{* ]]; then
+        surround=true
+    elif [[ ${arg} = *\}* ]]; then
+        surround=true
+    elif [[ ${arg} = *\[* ]]; then
+        surround=true
+    elif [[ ${arg} = *\]* ]]; then
+        surround=true
+    elif [[ ${arg} = *\"* ]]; then
+        surround=true
+    elif [[ ${arg} = *\#* ]]; then
+        surround=true
+    elif [[ ${arg} = *\$* ]]; then
+        surround=true
+    elif [ -z "${arg}" ]; then
+        surround=true
     fi
 
     if "${surround}"; then
