@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 DEBUG = False
 if DEBUG:
-    from meeteval import wer as meeteval_wer # isort: skip
+    from meeteval import wer as meeteval_wer  # isort: skip
 
 
 def compute_der(df_or_dict):
