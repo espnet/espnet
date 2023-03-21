@@ -190,17 +190,11 @@
 <section id="requirements">
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>Python 3.6.1+</p></li>
-<li><p>gcc 4.9+ for PyTorch1.0.0+</p></li>
-</ul>
-<p>Optionally, GPU environment requires the following libraries:</p>
-<ul class="simple">
-<li><p>Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library</p></li>
-<li><p>Cudnn 6+, 7+</p></li>
-<li><p>NCCL 2.0+ (for the use of multi-GPUs)</p></li>
+<li><p>Python 3.7+</p></li>
+<li><p>gcc 4.9+ for PyTorch1.4.0+</p></li>
 </ul>
 <p>(If you’ll use anaconda environment at installation step2,
-the following packages are installed using Anaconda, so you can skip them.)</p>
+the following packages are installed using conda, so you can skip them.)</p>
 <ul>
 <li><p>cmake3 for some extensions</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
@@ -213,22 +207,6 @@ $<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </s
 $<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>sox
 <span class="c1"># For CentOS</span>
 $<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>sox
-</pre></div>
-</div>
-</li>
-<li><p>sndfile</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>libsndfile1-dev
-<span class="c1"># For CentOS</span>
-$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>libsndfile
-</pre></div>
-</div>
-</li>
-<li><p>ffmpeg (This is not required when installing, but used in some recipes)</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For Ubuntu</span>
-$<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>ffmpeg
-<span class="c1"># For CentOS</span>
-$<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>install<span class="w"> </span>ffmpeg
 </pre></div>
 </div>
 </li>
@@ -354,20 +332,20 @@ $<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>&lt
 (To understand how ESPnet specifies Python, see <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh">path.sh</a> for example.)</p>
 <p>We also have some scripts to generate <code class="docutils literal notranslate"><span class="pre">tools/activate_python.sh</span></code>.</p>
 <ul>
-<li><p>Option A) Setup Anaconda environment</p>
+<li><p>Option A) Setup conda environment</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="o">[</span>output-dir-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>venv<span class="o">]</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="p">|</span><span class="nv">default</span><span class="o">=</span>root<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="p">|</span><span class="nv">default</span><span class="o">=</span>none<span class="o">]</span>
 <span class="c1"># e.g.</span>
-$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span>anaconda<span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span>miniconda<span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
 </pre></div>
 </div>
 <p>This script tries to create a new miniconda if the output directory doesn’t exist.
-If you already have Anaconda and you’ll use it then,</p>
+If you already have conda and you’ll use it then,</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span><span class="nv">CONDA_TOOLS_DIR</span><span class="o">=</span><span class="k">$(</span>dirname<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_EXE</span><span class="si">}</span><span class="k">)</span>/..
-$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="o">]</span>
+$<span class="w"> </span><span class="nv">CONDA_ROOT</span><span class="o">=</span><span class="si">${</span><span class="nv">CONDA_EXE</span><span class="si">}</span>/../..<span class="w">  </span><span class="c1"># CONDA_EXE is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh</span>
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="w"> </span><span class="o">[</span>conda-env-name<span class="o">]</span><span class="w"> </span><span class="o">[</span>python-version<span class="o">]</span>
 <span class="c1"># e.g.</span>
-$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_TOOLS_DIR</span><span class="si">}</span><span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
+$<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="w"> </span>espnet<span class="w"> </span><span class="m">3</span>.8
 </pre></div>
 </div>
 </li>
@@ -386,7 +364,7 @@ $<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k
 <li><p>Option D) Without setting Python environment.</p>
 <p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost same. This option might be suitable for Google colab.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh
+$<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
 </pre></div>
 </div>
 </li>
@@ -451,7 +429,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ipython
 <h2>Check installation<a class="headerlink" href="#check-installation" title="Permalink to this headline">¶</a></h2>
 <p>You can check whether your installation is successfully finished by</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-.<span class="w"> </span>./activate_python.sh<span class="p">;</span><span class="w"> </span>python3<span class="w"> </span>check_install.py
+bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py&quot;</span>
 </pre></div>
 </div>
 <p>Note that this check is always called in the last stage of the above installation.</p>
