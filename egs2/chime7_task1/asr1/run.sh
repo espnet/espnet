@@ -165,8 +165,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   else
     asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
     asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
-    # note that if it is also in test a copy named org/${valid} is created
-    # will have to handle it in stage 4
+    # we will make a copy to avoid ESPNet modify this as it will discard
+    # utterances longer than $train_max_segment_length.
+    ./utils/copy_data_dir.sh ./data/$asr_cv_set ./data/${asr_cv_set}_discard_long
+    asr_cv_set=${asr_cv_set}_discard_long
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -229,7 +231,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       regex="(S[0-9]+)"
     fi
     python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
-    # the content of this folder is what you should send for evaluation to the
+    # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
   split=dev
