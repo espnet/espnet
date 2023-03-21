@@ -747,6 +747,10 @@ if ! "${skip_data_prep}"; then
             fi
 
             if ${sot_asr}; then
+                # For SOT training, we add <sc> as an user-defined modeling unit.
+                # The input text may be `text^1 <sc> text^2 <sc> text^3`, where `text^n`
+                # refers to the transcription of `speaker n`.
+                # The order of different texts is determined by their start times.
                 _opts_spm+=" --user_defined_symbols=<sc>"
             fi
 
@@ -773,6 +777,10 @@ if ! "${skip_data_prep}"; then
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
             if ${sot_asr} && [ "${token_type}" = char ]; then
+                # For SOT training, we add <sc> as an user-defined modeling unit.
+                # The input text may be `text^1 <sc> text^2 <sc> text^3`, where `text^n`
+                # refers to the transcription of `speaker n`.
+                # The order of different texts is determined by their start times.
                 _opts+=" --add_nonsplit_symbol <sc>:2 "
             fi
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
@@ -789,6 +797,7 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
 
             # Remove the possible duplicated <sc> tokens
+            # Duplicated <sc> token will be counted, so we shoud remove it
             if ${sot_asr} && [ "${token_type}" = char ]; then
                 cp ${token_list} ${token_list}".duplicated"
                 awk '!seen[$0]++' ${token_list}".duplicated" > ${token_list}
