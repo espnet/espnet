@@ -164,7 +164,7 @@ def main():
     print()
     print("Executables:")
 
-    pattern = re.compile(r"([0-9]+.[0-9]+.[0-9]+[^\s]*)\s*")
+    pattern = re.compile(r"([0-9]+\.[0-9]+(?:\.[0-9]+[^\s]*)?)\s*")
 
     for name, installer, version_option in executable_list:
         if shutil.which(name) is not None:
