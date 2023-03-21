@@ -9,6 +9,9 @@ if ! command conda  &>/dev/null; then
 fi
 
 # install lhotse from master, we need the most up-to-date one
+python3 -m pip install git+https://github.com/lhotse-speech/lhotse
+# pyannote
+python3 -m pip install pyannote-metrics
 # jiwer
 python3 -m pip install jiwer
 
@@ -46,8 +49,5 @@ if [ ! -z "$ffmpeg" ]; then
     exit 1
   fi
 fi
-
-python3 -m pip install git+https://github.com/lhotse-speech/lhotse
-python3 -m pip install pyannote-metrics
 
 echo "All dependencies installed successfully"
