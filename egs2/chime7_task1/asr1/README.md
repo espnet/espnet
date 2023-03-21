@@ -377,6 +377,9 @@ You could try changing parameters as `gss_max_batch_dur` and in local/run_gss.sh
 and all jobs are placed in the same GPU. You need to set them in exclusive mode.
 9. Much worse WER than baseline and you are using `run.pl`. Check the GSS results, GSS currently does not work well
 if you use multi-gpu inference and your GPUs are in shared mode. You need to run `set nvidia-smi -c 3`.
+10. `Kaldi export of Recordings with multiple audio sources is currently not supported.` you have to install lhotse from the latest 
+unreleased version using `pip install git+https://github.com/lhotse-speech/lhotse`.
+
 
 
 ## Memory Consumption (Useful for SLURM etc.)
