@@ -8,6 +8,9 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
+    HuggingFaceTransformersDecoder,
+)
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
@@ -54,6 +57,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
+from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -140,6 +144,7 @@ decoder_choices = ClassChoices(
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
         transducer=TransducerDecoder,
+        hugging_face_transformers=HuggingFaceTransformersDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -313,7 +318,7 @@ class STTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", "hugging_face"],
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -403,6 +408,12 @@ class STTask(AbsTask):
             default=0.0,
             help="Sample greedy CTC output as AR decoder target.",
         )
+        group.add_argument(
+            "--md_version",
+            type=str,
+            default="v1",
+            help="",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -485,7 +496,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTModelMD2]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -652,6 +663,29 @@ class STTask(AbsTask):
             md_encoder = None
 
         # 10. Build model
+        # if getattr(args, "md_version", None) == "v2":
+        #         model = ESPnetSTModelMD2(
+        #         vocab_size=vocab_size,
+        #         src_vocab_size=src_vocab_size,
+        #         frontend=frontend,
+        #         specaug=specaug,
+        #         normalize=normalize,
+        #         preencoder=preencoder,
+        #         encoder=encoder,
+        #         hier_encoder=hier_encoder,
+        #         md_encoder=md_encoder,
+        #         postencoder=postencoder,
+        #         decoder=decoder,
+        #         ctc=ctc,
+        #         st_ctc=st_ctc,
+        #         st_joint_network=st_joint_network,
+        #         extra_asr_decoder=extra_asr_decoder,
+        #         extra_mt_decoder=extra_mt_decoder,
+        #         token_list=token_list,
+        #         src_token_list=src_token_list,
+        #         **args.model_conf,
+        #     )
+        # else:
         model = ESPnetSTModel(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,

@@ -73,8 +73,13 @@ class ESPnetSTModel(AbsESPnetModel):
         report_bleu: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        tgt_sym_space: str = "<space>",
+        tgt_sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
         ctc_sample_rate: float = 0.0,
+        tgt_sym_sos: str = "<sos/eos>",
+        tgt_sym_eos: str = "<sos/eos>",
+        lang_token_id: int = -1,
     ):
         assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
@@ -83,8 +88,14 @@ class ESPnetSTModel(AbsESPnetModel):
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
-        self.sos = vocab_size - 1
-        self.eos = vocab_size - 1
+        if tgt_sym_sos in token_list:
+            self.sos = token_list.index(tgt_sym_sos)
+        else:
+            self.sos = vocab_size - 1
+        if tgt_sym_eos in token_list:
+            self.eos = token_list.index(tgt_sym_eos)
+        else:
+            self.eos = vocab_size - 1
         self.src_sos = src_vocab_size - 1 if src_vocab_size else None
         self.src_eos = src_vocab_size - 1 if src_vocab_size else None
         self.vocab_size = vocab_size
@@ -122,7 +133,7 @@ class ESPnetSTModel(AbsESPnetModel):
             from warprnnt_pytorch import RNNTLoss
 
             self.st_joint_network = st_joint_network
-            self.blank_id = token_list.index(sym_blank)
+            self.blank_id = token_list.index(tgt_sym_blank)
             self.st_criterion_transducer = RNNTLoss(
                 blank=self.blank_id,
                 fastemit_lambda=0.0,
@@ -172,7 +183,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # MT error calculator
         if report_bleu:
             self.mt_error_calculator = MTErrorCalculator(
-                token_list, sym_space, sym_blank, report_bleu
+                token_list, tgt_sym_space, tgt_sym_blank, report_bleu
             )
         else:
             self.mt_error_calculator = None
@@ -197,6 +208,11 @@ class ESPnetSTModel(AbsESPnetModel):
             self.use_speech_attn = None
 
         # TODO(jiatong): add multilingual related functions
+
+        if lang_token_id != -1:
+            self.lang_token_id = torch.tensor([[lang_token_id]])
+        else:
+            self.lang_token_id = None
 
     def forward(
         self,
@@ -238,6 +254,8 @@ class ESPnetSTModel(AbsESPnetModel):
             )
 
         batch_size = speech.shape[0]
+
+        text[text == -1] = self.ignore_id
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
@@ -496,6 +514,16 @@ class ESPnetSTModel(AbsESPnetModel):
         speech_lens: Optional[torch.Tensor],
         st: bool = True,
     ):
+        if hasattr(self, "lang_token_id") and self.lang_token_id is not None:
+            ys_pad = torch.cat(
+                [
+                    self.lang_token_id.repeat(ys_pad.size(0), 1).to(ys_pad.device),
+                    ys_pad,
+                ],
+                dim=1,
+            )
+            ys_pad_lens += 1
+
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
