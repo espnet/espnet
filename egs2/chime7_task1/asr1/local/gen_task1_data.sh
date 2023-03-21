@@ -33,7 +33,7 @@ if [ ${stage} -le 0 ] && ! contains $skip_stages 0 ; then
       wget https://s3.amazonaws.com/dipco/DiPCo.tgz -O ${dipco_root}/dipco.tgz
     fi
 
-    if ! [-d "${dipco_root}/audio"]; then
+    if ! [ -d "${dipco_root}/audio" ]; then
       tar -xf ${dipco_root}/dipco.tgz -C ${dipco_root} --strip-components=1
     fi
   fi
