@@ -13,7 +13,6 @@ dirname=ffmpeg-release
 rm -rf ${dirname}
 
 if [[ ${unames} =~ Linux ]]; then
-    script="Miniconda3-latest-Linux-${unamem}.sh"
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64
     fi
