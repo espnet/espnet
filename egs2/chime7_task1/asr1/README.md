@@ -422,7 +422,7 @@ There are two possible approaches.
 either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
 
 To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or 
-from command line: `run.sh --stage 3 --asr-tt-set kaldi/chime6/dev/gss --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`. 
+from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`. 
 
 
 
