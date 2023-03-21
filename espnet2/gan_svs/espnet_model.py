@@ -32,7 +32,7 @@ else:
 
 
 class ESPnetGANSVSModel(AbsGANESPnetModel):
-    """ESPnet model for GAN-based text-to-speech task."""
+    """ESPnet model for GAN-based singing voice synthesis task."""
 
     def __init__(
         self,

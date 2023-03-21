@@ -113,7 +113,7 @@ class SegmentsExtractor:
                         with BytesIO(f.read()) as g:
                             retval = soundfile.read(g)
                 else:
-                    retval = soundfile.read(g)
+                    retval = soundfile.read(wavpath)
                 cached[recodeid] = retval
             retval = cached[recodeid]
 
