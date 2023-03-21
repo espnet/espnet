@@ -9,7 +9,6 @@ To use the scripts under `steps`, **you need to install Kaldi**. See https://esp
 
 ### Extract fbank feats
 
-
 ```sh
 number_of_parallel_jobs=32
 cmd=utils/run.pl  # utils/slurm.pl, utils/queue.pl or utils/pbs.pl
@@ -18,4 +17,6 @@ steps/make_fbank_pitch.sh --nj "${number_of_parallel_jobs}" --cmd "${cmd}" data/
 
 You can find `data/train/feats.scp`.
 
-The scirpts of Kaldi expects the directory specified by the argument, `data/train` in this case, following **a specific directory structure**. See https://github.com/espnet/data_example
+The scirpts of Kaldi expect the directory specified by the argument, `data/train` in this case, following **a specific directory structure**. See https://github.com/espnet/data_example
+
+See about `utils/run.pl`: https://espnet.github.io/espnet/parallelization.html
