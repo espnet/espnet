@@ -421,7 +421,8 @@ There are two possible approaches.
 2. Directly create your Kaldi or lhotse manifests for the ASR decoding, you can follow
 either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
 
-To evaluate the new enhanced data, e.g. `data/chime6/dev/my_enhanced`, you can `run ./asr.sh --feats_type raw_copy --skip_train true --test_sets chime6/dev/enhanced`.
+To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or 
+from command line: `run.sh --stage 3 --asr-tt-set kaldi/chime6/dev/gss --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`. 
 
 
 
