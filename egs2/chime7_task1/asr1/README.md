@@ -408,6 +408,22 @@ scripts/audio/format_wav_scp.sh:
  - Few spikes to the 9 to 11 GB range.
 
 
+## Using your own Speech Separation Front-End with the pre-trained ASR model.
+
+Some suggestions from Naoyuki Kamo see https://github.com/espnet/espnet/pull/4999 <br>
+There are two possible approaches.  
+
+1. After obtaining the output of the baseline GSS enhancement. 
+   1. (you are more familiar with Kaldi): copy data/kaldi/{chime6,dipco,mixer6}/{dev,eval}/gss using utils/copy_data_dir.sh and then substitute the 
+   file paths in each `wav.scp` manifest file with the ones produced by your approach.
+   2. (you are more familiar with lhotse): copy data/lhotse/{chime6,dipco,mixer6}/{dev,eval}/gss lhotse manifests and then 
+   replace the recordings manifests with the paths to your own recordings. 
+2. Directly create your Kaldi or lhotse manifests for the ASR decoding, you can follow
+either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
+
+To evaluate the new enhanced data, e.g. `data/chime6/dev/my_enhanced`, you can `run ./asr.sh --feats_type raw_copy --skip_train true --test_sets chime6/dev/enhanced`.
+
+
 
 ## Acknowledgements
 
