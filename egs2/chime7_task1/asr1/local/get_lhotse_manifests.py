@@ -165,7 +165,7 @@ def prepare_chime6(
                     f"{round(100*start):06d}_{round(100*end):06d}-{mic}"
                 )
 
-                if not hasattr(segment, "words"):
+                if "words" not in segment.keys():
                     assert json_dir is not None
                     segment["words"] = "placeholder"
 
@@ -315,7 +315,7 @@ def prepare_dipco(
                     f"{spk_id}_dipco_{session}_{idx}-"
                     f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
                 )
-                if not hasattr(segment, "words"):
+                if "words" not in segment.keys():
                     assert json_dir is not None
                     segment["words"] = "placeholder"
                 supervisions.append(
@@ -473,7 +473,7 @@ def prepare_mixer6(
                 f"{spk_id}_mixer6_{sess}_{dset_part}_{idx}-"
                 f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
             )
-            if not hasattr(segment, "words"):
+            if "words" not in segment.keys():
                 assert json_dir is not None
                 segment["words"] = "placeholder"
             supervisions.append(
