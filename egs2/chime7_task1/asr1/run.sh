@@ -169,18 +169,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set="dummy_tr" # dummy one, it is not used
-    asr_cv_set="dummy_cv"
+    asr_train_set=kaldi/train_all_ihm # dummy one, it is not used
+    asr_cv_set=kaldi/chime6/dev/gss # dummy one, it is not used
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   else
     asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
     asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
     # you can also try using all datasets after gss: kaldi/dev_all_gss
-    # we will make a copy to avoid ESPNet modify this as it will discard
-    # utterances longer than $train_max_segment_length.
-    ./utils/copy_data_dir.sh ./data/$asr_cv_set ./data/${asr_cv_set}_discard_long
-    asr_cv_set=${asr_cv_set}_discard_long
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -233,6 +229,13 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"
   inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+  # when a dataset is both in cv and tt in ESPNet2, the tt dataset is
+  # placed unmodified into org. we create a symbolic link
+  # so it can be parsed as the other datasets.
+  for tt_dset in $asr_tt_set; do
+   [ -d  ${asr_exp}/${inference_tag}/org/${tt_dset} ] && ln -s ${asr_exp}/${inference_tag}/org/${tt_dset} ${asr_exp}/${inference_tag}/${tt_dset}
+  done
 
   for tt_dset in $asr_tt_set; do
     split="$(cut -d'/' -f3 <<<${tt_dset})"
