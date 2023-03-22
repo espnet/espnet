@@ -36,6 +36,7 @@ train_min_segment_length=1 # discard sub one second examples, they are a lot in 
 train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
+use_chime6_falign=0
 use_selection=1 # always use selection
 gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
@@ -104,11 +105,21 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         continue
       fi
 
+      if [ $use_chime6_falign ] && [ $dset == chime6 ]; then
+           if ! [ -d ./CHiME7_DASR_falign ]; then
+               log "Getting forced alignment annotation for CHiME-6 Scenario"
+               git clone https://github.com/chimechallenge/CHiME7_DASR_falign
+           fi
+           falign_dir=./CHiME7_DASR_falign
+      else
+           falign_dir=
+      fi
+
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
            -p $dset_part \
-           -o $manifests_root \
+           -o $manifests_root --diar_jsons_root "$falign_dir" \
            --ignore_shorter 0.2
     done
   done

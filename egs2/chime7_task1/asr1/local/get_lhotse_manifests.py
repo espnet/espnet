@@ -582,6 +582,18 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    if args.diar_json:
+        diarization_json_dir = args.diar_json
+
+        assert os.path.exists(diarization_json_dir), (
+            "{} does not appear to exist"
+            "did you pass the argument "
+            "correctly ?".format(diarization_json_dir)
+        )
+    else:
+        diarization_json_dir = None
+
     if args.diar_json:
         diarization_json_dir = args.diar_json
         assert os.path.exists(diarization_json_dir), (
