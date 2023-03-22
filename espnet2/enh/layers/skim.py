@@ -72,7 +72,7 @@ class MemLSTM(nn.Module):
 
     def extra_repr(self) -> str:
         return f"Mem_type: {self.mem_type}, bidirectional: {self.bidirectional}"
-    
+
     def forward(self, hc, S):
         # hc = (h, c), tuple of hidden and cell states from SegLSTM
         # shape of h and c: (d, B*S, H)
@@ -327,42 +327,58 @@ class SkiM(nn.Module):
         return input, rest
 
     def forward_stream(self, input_frame, states):
-         # input_frame # B, 1, N
+        # input_frame # B, 1, N
 
         B, _, N = input_frame.shape
 
         def empty_seg_states():
-            return (torch.zeros(1, B, self.hidden_size, device=input_frame.device, dtype=input_frame.dtype), torch.zeros(1, B, self.hidden_size, device=input_frame.device, dtype=input_frame.dtype))
+            return (
+                torch.zeros(
+                    1,
+                    B,
+                    self.hidden_size,
+                    device=input_frame.device,
+                    dtype=input_frame.dtype,
+                ),
+                torch.zeros(
+                    1,
+                    B,
+                    self.hidden_size,
+                    device=input_frame.device,
+                    dtype=input_frame.dtype,
+                ),
+            )
 
         B, _, N = input_frame.shape
         if not states:
             states = {
                 "current_step": 0,
                 "seg_state": [empty_seg_states() for i in range(self.num_blocks)],
-                "mem_state": [[None, None] for i in range(self.num_blocks-1)],
+                "mem_state": [[None, None] for i in range(self.num_blocks - 1)],
             }
 
         output = input_frame
 
-        if states['current_step'] and (states['current_step']) % self.segment_size == 0:
+        if states["current_step"] and (states["current_step"]) % self.segment_size == 0:
 
             tmp_states = [empty_seg_states() for i in range(self.num_blocks)]
             for i in range(self.num_blocks - 1):
-                tmp_states[i+1], states["mem_state"][i] = self.mem_lstms[i].forward_one_step(states["seg_state"][i], states["mem_state"][i])
+                tmp_states[i + 1], states["mem_state"][i] = self.mem_lstms[
+                    i
+                ].forward_one_step(states["seg_state"][i], states["mem_state"][i])
 
             states["seg_state"] = tmp_states
 
         for i in range(self.num_blocks):
-            output, states["seg_state"][i] = self.seg_lstms[i](output, states["seg_state"][i])
-            
-        states['current_step'] += 1
+            output, states["seg_state"][i] = self.seg_lstms[i](
+                output, states["seg_state"][i]
+            )
+
+        states["current_step"] += 1
 
         output = self.output_fc(output.transpose(1, 2)).transpose(1, 2)
 
         return output, states
-
-
-
 
 
 if __name__ == "__main__":
@@ -390,9 +406,8 @@ if __name__ == "__main__":
 
     state = None
     for i in range(seq_len):
-        input_frame = input[:, i:i+1, :]
+        input_frame = input[:, i : i + 1, :]
         output, state = model.forward_stream(input_frame=input_frame, states=state)
-        torch.testing.assert_allclose(output, seg_output[:, i:i+1, :])
-        
-        
+        torch.testing.assert_allclose(output, seg_output[:, i : i + 1, :])
+
     print("streaming ok")

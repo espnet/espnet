@@ -32,6 +32,17 @@ class STFTDecoder(AbsDecoder):
             onesided=onesided,
         )
 
+        self.win_length = win_length
+        self.hop_length = hop_length
+
+    @property
+    def frame_size(self) -> int:
+        return self.win_length
+
+    @property
+    def hop_size(self) -> int:
+        return self.hop_length
+
     def forward(self, input: ComplexTensor, ilens: torch.Tensor):
         """Forward.
 

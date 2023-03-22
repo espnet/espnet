@@ -22,6 +22,14 @@ class ConvEncoder(AbsEncoder):
         self._output_dim = channel
 
     @property
+    def frame_size(self) -> int:
+        return self.kernel_size
+
+    @property
+    def hop_size(self) -> int:
+        return self.stride
+
+    @property
     def output_dim(self) -> int:
         return self._output_dim
 

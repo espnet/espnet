@@ -17,3 +17,13 @@ class AbsEncoder(torch.nn.Module, ABC):
     @abstractmethod
     def output_dim(self) -> int:
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def frame_size(self) -> int:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def hop_size(self) -> int:
+        raise NotImplementedError

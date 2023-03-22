@@ -113,23 +113,21 @@ class TCNSeparator(AbsSeparator):
             others["noise1"] = input * mask_noise
 
         return masked, ilens, others
-    
+
     def forward_streaming(self, input_frame: torch.Tensor, buffer=None):
         # input_frame: B, 1, N
 
         B, _, N = input_frame.shape
 
-
         receptive_field = self.tcn.receptive_field
 
         if buffer is None:
             buffer = torch.zeros((B, receptive_field, N), device=input_frame.device)
-        
 
         buffer = torch.roll(buffer, shifts=-1, dims=1)
         buffer[:, -1, :] = input_frame[:, 0, :]
 
-        masked, ilens, others = self.forward(buffer, None )
+        masked, ilens, others = self.forward(buffer, None)
 
         masked = [m[:, -1, :].unsqueeze(1) for m in masked]
 
@@ -140,12 +138,11 @@ class TCNSeparator(AbsSeparator):
         return self._num_spk
 
 
-
 if __name__ == "__main__":
 
+    import time
 
     import humanfriendly
-    import time
 
     SEQ_LEN = 10000
     num_spk = 2
@@ -159,18 +156,20 @@ if __name__ == "__main__":
         hidden_dim=64,
         kernel=3,
         causal=True,
-        norm_type="cLN"
+        norm_type="cLN",
     )
 
     separator.eval()
 
-    print(f"Number of parameters: {humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}" )
+    print(
+        f"Number of parameters: {humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}"
+    )
 
     input_feature = torch.randn((3, SEQ_LEN, 128))
     ilens = torch.LongTensor([SEQ_LEN, SEQ_LEN, SEQ_LEN])
 
     with torch.no_grad():
-        
+
         start = time.time()
         seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
         end = time.time()
@@ -180,17 +179,15 @@ if __name__ == "__main__":
         state = None
         stream_outputs = []
         for i in range(SEQ_LEN):
-            frame = input_feature[:,i:i+1,:]
+            frame = input_feature[:, i : i + 1, :]
             frame_out, state, _ = separator.forward_streaming(frame, state)
             stream_outputs.append(frame_out)
         end = time.time()
-        print(f"streaming processing, time cost: {end - start}")         
+        print(f"streaming processing, time cost: {end - start}")
         for i in range(SEQ_LEN):
             for s in range(num_spk):
-                torch.testing.assert_allclose(stream_outputs[i][s], seq_output[s][:, i:i+1, :])
-    
+                torch.testing.assert_allclose(
+                    stream_outputs[i][s], seq_output[s][:, i : i + 1, :]
+                )
 
     print("Streaming OKey")
-
-
-    

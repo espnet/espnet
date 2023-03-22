@@ -36,6 +36,17 @@ class STFTEncoder(AbsEncoder):
         self._output_dim = n_fft // 2 + 1 if onesided else n_fft
         self.use_builtin_complex = use_builtin_complex
 
+        self.win_length = win_length
+        self.hop_length = hop_length
+
+    @property
+    def frame_size(self) -> int:
+        return self.win_length
+
+    @property
+    def hop_size(self) -> int:
+        return self.hop_length
+
     @property
     def output_dim(self) -> int:
         return self._output_dim

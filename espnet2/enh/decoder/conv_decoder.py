@@ -17,6 +17,17 @@ class ConvDecoder(AbsDecoder):
             channel, 1, kernel_size, bias=False, stride=stride
         )
 
+        self.kernel_size = kernel_size
+        self.stride = stride
+
+    @property
+    def frame_size(self) -> int:
+        return self.kernel_size
+
+    @property
+    def hop_size(self) -> int:
+        return self.stride
+
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
 

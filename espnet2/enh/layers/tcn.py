@@ -71,10 +71,10 @@ class TemporalConvNet(nn.Module):
             blocks = []
             for x in range(X):
                 dilation = 2**x
-                if r ==0 and x ==0:
+                if r == 0 and x == 0:
                     self.receptive_field += P
                 else:
-                    self.receptive_field += (P-1) * dilation
+                    self.receptive_field += (P - 1) * dilation
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
