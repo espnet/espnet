@@ -2,7 +2,7 @@
 
 
 # Data Download and Preparation
-HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe. 
+HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe.
 
 You can request the use of this data using our (data request form)[https://docs.google.com/forms/d/e/1FAIpQLSfW2i8UnjuoH2KKSU0BvcKRbhnk_vL3HcNlM0QLsJGb_UEDVQ/viewform]
 

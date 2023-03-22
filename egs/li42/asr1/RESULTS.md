@@ -239,4 +239,3 @@
 |decode_et_zh_aishell_decode|7176|7176|33.0|67.0|0.0|0.0|67.0|67.0|
 |decode_et_zh_hkust_decode|5413|5237|26.5|73.4|0.1|0.7|74.1|71.5|
 |decode_et_zulu_babel_decode|10505|66870|33.1|49.6|17.4|4.0|71.0|86.2|
-

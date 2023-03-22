@@ -28,9 +28,9 @@ preprocessor_conf:
     source_scp_name: "spk1.scp"
     mixture_source_name: "speech_mix"
 
-criterions: 
+criterions:
   # The first criterion
-  - name: mse 
+  - name: mse
     conf:
       compute_on_mask: True
       mask_type: PSM^2

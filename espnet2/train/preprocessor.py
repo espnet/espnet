@@ -891,6 +891,16 @@ class EnhPreprocessor(CommonPreprocessor):
             speech_mix = data[self.speech_name]
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
+                if self.noise_ref_name_prefix + "1" in data:
+                    noise = data[self.noise_ref_name_prefix + "1"]
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref) + noise), np.squeeze(speech_mix)
+                    )
+                else:
+                    np.testing.assert_allclose(
+                        np.squeeze(sum(speech_ref)), np.squeeze(speech_mix)
+                    )
+
                 speech_ref, rir_ref = zip(
                     *[
                         self._convolve_rir(sp, power)
@@ -932,14 +942,16 @@ class EnhPreprocessor(CommonPreprocessor):
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = data[speech_ref_name]
 
-                # NOTE(Wangyou): Must be careful here in case that the original
-                # `speech_ref` dones not sum up to `speech_mix`
-                # (such as in the TSE task)
-                speech_mix = sum(speech_ref)
-            power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
+                if self.noise_ref_name_prefix + "1" in data:
+                    speech_mix = sum(speech_ref) + noise
+                else:
+                    speech_mix = sum(speech_ref)
 
             # 2. Add Noise
             if self.noises is not None and self.noise_apply_prob >= np.random.random():
+                if self.noise_ref_name_prefix + "1" in data:
+                    speech_mix -= data[self.noise_ref_name_prefix + "1"]
+                power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
                 speech_mix, noise = self._add_noise(speech_mix, power_mix)
                 if self.force_single_channel:
                     if speech_mix.shape[0] > 1:
@@ -1197,9 +1209,7 @@ class TSEPreprocessor(EnhPreprocessor):
         if train and rir_scp is not None and rir_apply_prob > 0:
             logging.warning(
                 "Be cautious when applying RIRs on the fly in the TSE task! "
-                "Please ensure `speech_ref` sums up to `speech_mix` for each sample. "
-                "Otherwise, the preprocessed training data will be wrong after the "
-                "line:\n        data = super()._speech_process(data)"
+                "Please ensure `speech_ref` sums up to `speech_mix` for each sample."
             )
 
         if train:

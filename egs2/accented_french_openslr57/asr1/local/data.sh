@@ -56,7 +56,7 @@ python3 local/remove_missing.py --folder "downloads/African_Accented_French/" --
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for train"
 
-    # train set ca16_conv: 
+    # train set ca16_conv:
     FILE=${ACCENTED_FR}/African_Accented_French/transcripts/train/ca16_conv/new_transcripts.txt
 
     # .split('_') starts at 1, put in aux file, aux is the folder
@@ -78,7 +78,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # identity function
     paste  -d " " uttid2 uttid2  > auxutt1
 
-    # train set ca16_conv: 
+    # train set ca16_conv:
     FILE=${ACCENTED_FR}/African_Accented_French/transcripts/train/ca16_read/new_conditioned.txt
 
     # .split('_') starts at 1, put in aux file, aux is the folder
@@ -158,22 +158,22 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "sub-stage 2: Preparing Data for dev"
     mkdir -p data/dev
-    
+
     FILE=${ACCENTED_FR}/African_Accented_French/transcripts/dev/niger_west_african_fr/transcripts.txt
 
     cut -d '/' -f 3 "$FILE" > aux5
     cut -d ' ' -f 1 aux5 > aux6
 
-    cut -d '/' -f 2-3 "$FILE" > aux9 
+    cut -d '/' -f 2-3 "$FILE" > aux9
     cut -d ' ' -f 1 aux9 > aux10
 
     cut -c -16 aux6 > uttid
 
     cut -d ' ' -f 2- "$FILE" > aux8
-    paste -d ' ' uttid aux8 > data/dev/text 
+    paste -d ' ' uttid aux8 > data/dev/text
 
     awk '{print "downloads/African_Accented_French/speech/dev/niger_west_african_fr/"$0}' aux10 > aux11
-    paste -d ' ' uttid aux11 > data/dev/wav.scp 
+    paste -d ' ' uttid aux11 > data/dev/wav.scp
 
     paste -d ' ' uttid uttid > data/dev/utt2spk
 

@@ -1,6 +1,6 @@
 ## End to End Speech Summarization
 
-This recipe can be used to build E2E Speech Summarization models using restricted self-attention on the HowTo corpus of instructional videos. 
+This recipe can be used to build E2E Speech Summarization models using restricted self-attention on the HowTo corpus of instructional videos.
 
 # Data Download and Preparation
 HowTo 2000h fbank-pitch features have been released to enable reproduction of this recipe. Please raise data related issues on the How-2 dataset (Github)[https://github.com/srvk/how2-dataset]
@@ -17,7 +17,7 @@ Then you can prepare the data directory by providing your link as follows:
 ./run.sh --local_data_opts "--data_url <insert-link-here>"
 ```
 
-# Two-stage Training 
+# Two-stage Training
 
 Training is done in two stages, (a) ASR Pretraining, and (b) Summarization fine-tuning
 
@@ -26,7 +26,7 @@ The recipe is based on asr1
 
 ```bash
 local/run_asr.sh --asr_tag asr_pretrain
-``` 
+```
 Then run the finetuning on summarization using the previously trained model as the initialization
 
 ```bash
@@ -76,8 +76,8 @@ Please cite the following paper if you use this recipe:
 ```Bibtex
 @inproceedings{sharma2022speech,
   author={Sharma, Roshan and Palaskar, Shruti and Black, Alan W and Metze, Florian},
-  booktitle={ICASSP 2022 - 2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
-  title={End-to-End Speech Summarization Using Restricted Self-Attention}, 
+  booktitle={ICASSP 2022 - 2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  title={End-to-End Speech Summarization Using Restricted Self-Attention},
   year={2022},
   volume={},
   number={},

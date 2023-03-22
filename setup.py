@@ -11,7 +11,7 @@ requirements = {
         "setuptools>=38.5.1",
         "packaging",
         "configargparse>=1.2.1",
-        "typeguard>=2.7.0",
+        "typeguard==2.13.3",
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
@@ -46,7 +46,6 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
-        "six",
     ],
     # train: The modules invoked when training only.
     "train": [

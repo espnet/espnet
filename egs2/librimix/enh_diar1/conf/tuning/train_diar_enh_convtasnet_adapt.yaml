@@ -82,9 +82,9 @@ diar_attractor_conf:
     dropout: 0.0
     attractor_grad: True
 
-enh_criterions: 
+enh_criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: pit

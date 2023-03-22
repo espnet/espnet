@@ -46,9 +46,9 @@ separator_conf:
     norm_type: "gLN"
     nonlinear: "relu"
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: fixed_order
