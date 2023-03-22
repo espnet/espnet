@@ -62,9 +62,8 @@ if [ ${stage} -le 1 ] && ! [[ " ${skip_stages[*]} " =~ " 1 " ]]; then
         # remove bad sessions from ihm, mdm are fine
         log "Removing possibly bad close-talk microphones from CHiME-6 data."
         utils/copy_data_dir.sh data/kaldi/chime6/train/ihm data/kaldi/chime6/train/ihm_bad_sessions # back up
-        grep -v -e "^P11-S03" -e "^P52-S19" -e "^P53-S24" -e "^P54-S24" data/kaldi/chime6/train/ihm_bad_sessions/text > data/kaldi/chime6/train/ihm/text
+        grep -v -e "^P11_chime6_S03" -e "^P52_chime6_S19" -e "^P53_chime6_S24" -e "^P54_chime6_S24" data/kaldi/chime6/train/ihm_bad_sessions/text > data/kaldi/chime6/train/ihm/text
         utils/fix_data_dir.sh data/kaldi/chime6/train/ihm
-      fi
 
       if [ $mic == ihm ]; then
         all_tr_manifests_ihm+=( "data/kaldi/$dset/$dset_part/$mic" )
