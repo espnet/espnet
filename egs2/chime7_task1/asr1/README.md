@@ -380,7 +380,33 @@ if you use multi-gpu inference and your GPUs are in shared mode. You need to run
 10. `Kaldi export of Recordings with multiple audio sources is currently not supported.` you have to install lhotse from the latest
 unreleased version using `pip install git+https://github.com/lhotse-speech/lhotse`.
 
+## Number of Utterances for Each Dataset in this Recipe
+### Training Set
+#### all
+- kaldi/train_all_ihm: 175403
+- kaldi/train_all_ihm_rvb: 701612
+- kaldi/train_all_mdm_ihm: 2150180
+- kaldi/train_all_mdm_ihm_rvb: 2851792
+- kaldi/train_all_mdm_ihm_rvb_gss: 2914483 (used for training here)
+#### chime6
 
+- kaldi/chime6/train/mdm: 1403340
+- kaldi/chime6/train/gss: 62691
+- kaldi/chime6/train/ihm: 118234
+#### mixer6
+
+- kaldi/mixer6/train/mdm: 571437
+- kaldi/mixer6/train/ihm: 57169
+
+### Development Set
+#### all
+- kaldi/dev_ihm_all; kaldi/dev_all_gss: 25121
+#### chime6
+- kaldi/chime6/dev/gss (used for validation here); kaldi/chime6/dev/ihm: 6644
+#### dipco
+- kaldi/dipco/dev/gss; kaldi/dipco/dev/ihm: 3673
+#### mixer6
+- kaldi/mixer6/dev/gss; kaldi/mixer6/dev/ihm: 14804
 
 ## Memory Consumption (Useful for SLURM etc.)
 
@@ -423,6 +449,7 @@ either the "style" of the baseline GSS ones or the ones belonging to close-talk 
 
 To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or
 from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
+
 
 ## Acknowledgements
 
