@@ -176,6 +176,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   else
     asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
     asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
+    # you can also try using all datasets after gss: kaldi/dev_all_gss
     # we will make a copy to avoid ESPNet modify this as it will discard
     # utterances longer than $train_max_segment_length.
     ./utils/copy_data_dir.sh ./data/$asr_cv_set ./data/${asr_cv_set}_discard_long
