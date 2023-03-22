@@ -10,7 +10,7 @@ fi
 
 # install lhotse from master, we need the most up-to-date one
 python3 -m pip install git+https://github.com/lhotse-speech/lhotse
-# install pyannote metrics
+# pyannote
 python3 -m pip install pyannote-metrics
 # jiwer
 python3 -m pip install jiwer

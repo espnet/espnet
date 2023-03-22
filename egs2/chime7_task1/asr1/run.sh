@@ -36,6 +36,7 @@ train_min_segment_length=1 # discard sub one second examples, they are a lot in 
 train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
+use_chime6_falign=0
 use_selection=1 # always use selection
 gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
@@ -104,11 +105,21 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         continue
       fi
 
+      if [ $use_chime6_falign ] && [ $dset == chime6 ]; then
+           if ! [ -d ./CHiME7_DASR_falign ]; then
+               log "Getting forced alignment annotation for CHiME-6 Scenario"
+               git clone https://github.com/chimechallenge/CHiME7_DASR_falign
+           fi
+           falign_dir=./CHiME7_DASR_falign
+      else
+           falign_dir=
+      fi
+
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
            -p $dset_part \
-           -o $manifests_root \
+           -o $manifests_root --diar_jsons_root "$falign_dir" \
            --ignore_shorter 0.2
     done
   done
@@ -158,15 +169,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set="" #kaldi/dev_ihm_all # dummy one, it is not used
-    asr_cv_set=""  #kaldi/dev_ihm_all
+    asr_train_set="dummy_tr" # dummy one, it is not used
+    asr_cv_set="dummy_cv"
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   else
     asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
     asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
-    # note that if it is also in test a copy named org/${valid} is created
-    # will have to handle it in stage 4
+    # we will make a copy to avoid ESPNet modify this as it will discard
+    # utterances longer than $train_max_segment_length.
+    ./utils/copy_data_dir.sh ./data/$asr_cv_set ./data/${asr_cv_set}_discard_long
+    asr_cv_set=${asr_cv_set}_discard_long
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -229,7 +242,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
       regex="(S[0-9]+)"
     fi
     python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
-    # the content of this folder is what you should send for evaluation to the
+    # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
   split=dev
