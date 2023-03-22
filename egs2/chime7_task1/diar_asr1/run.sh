@@ -28,6 +28,12 @@ cmd_dprep=run.pl
 dprep_stage=0
 gen_eval=0 # please not generate eval before release of mixer 6 eval
 
+# DIARIZATION config
+diarization_backend=nemo
+diarization_model=
+
+# GSS config
+
 asr_use_pretrained=
 asr_decode_only=0
 
@@ -50,17 +56,13 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 fi
 
 
-# git clone diarization system here if it does not exist
-if ! [ -d "./vader" ]; then
-   log("Getting the diarization baseline codebase")
-   git clone -b chime7dasr https://github.com/popcornell/vader
-fi
+if [ $diarization_model == pyannote ]; then
 
-
-if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
-  # optional training
-  python vader/train.py --train_manifests
-
+  for dset in chime6 dipco mixer6; do
+    for split in dev; do
+  ./local/pyannote_diarize.sh --chime7-root $chime7_root --split $split --out_folder exp/diarization/$dset/$split
+    done
+  done
 fi
 
 
@@ -68,7 +70,39 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
   log("Performing GSS+Channel Selection+ASR inference on diarized output")
   # now that we have diarized the dataset, we can run the sub-track 1 baseline
   # and use the diarization output in place of oracle diarization.
-  ./../asr1/run.sh --chime7-root $chime7_root --stage 2 --ngpu $ngpu \
+  ./../asr1/run.sh --chime7-root $chime7_root --stage 2 --stop-stage 3 --ngpu $ngpu \
         --use-pretrained $asr_use_pretrained \
         --decode_only $asr_decode_only --gss-max-batch-dur $gss_max_batch_dur
+fi
+
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  # final scoring
+  log "Scoring ASR predictions for CHiME-7 DASR challenge."
+  # note, we re-create the asr exp folder here based on asr.sh
+  if [ -n "$use_pretrained" ]; then
+    asr_exp="exp/${use_pretrained}"
+  else
+    asr_tag="$(basename "${asr_config}" .yaml)_raw"
+    asr_exp="exp/asr_${asr_tag}"
+  fi
+  inference_tag="$(basename "${inference_config}" .yaml)"
+  inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+  for tt_dset in $asr_tt_set; do
+    split="$(cut -d'/' -f3 <<<${tt_dset})"
+    dset_name="$(cut -d'/' -f2 <<<${tt_dset})"
+    if [ ${dset_name} == mixer6 ]; then
+      regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)" # different session naming
+    else
+      regex="(S[0-9]+)"
+    fi
+    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
+    # the content of this output folder is what you should send for evaluation to the
+    # organizers.
+  done
+  split=dev
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
+  python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 1 2>&1 | tee $LOG_OUT
 fi
