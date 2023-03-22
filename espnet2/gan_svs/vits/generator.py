@@ -701,6 +701,8 @@ class VISingerGenerator(torch.nn.Module):
                 wav = self.decoder(
                     (z * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
                 )
+            elif self.vocoder_generator_type == "avocodo":
+                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)[-1]
             else:
                 wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
