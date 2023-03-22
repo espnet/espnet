@@ -164,6 +164,11 @@ def prepare_chime6(
                     f"{spk_id}_chime6_{session}_{idx}-"
                     f"{round(100*start):06d}_{round(100*end):06d}-{mic}"
                 )
+
+                if not hasattr(segment, "words"):
+                    assert json_dir is not None
+                    segment["words"] = "placeholder"
+
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
@@ -310,6 +315,9 @@ def prepare_dipco(
                     f"{spk_id}_dipco_{session}_{idx}-"
                     f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
                 )
+                if not hasattr(segment, "words"):
+                    assert json_dir is not None
+                    segment["words"] = "placeholder"
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
@@ -465,6 +473,9 @@ def prepare_mixer6(
                 f"{spk_id}_mixer6_{sess}_{dset_part}_{idx}-"
                 f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
             )
+            if not hasattr(segment, "words"):
+                assert json_dir is not None
+                segment["words"] = "placeholder"
             supervisions.append(
                 SupervisionSegment(
                     id=ex_id,
@@ -571,6 +582,15 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    if args.diar_json:
+        diarization_json_dir = args.diar_json
+        assert os.path.exists(diarization_json_dir), (
+            "{} does not appear to exist"
+            "did you pass the argument "
+            "correctly ?".format(diarization_json_dir)
+        )
+    else:
+        diarization_json_dir = None
     assert args.dset_name in ["chime6", "dipco", "mixer6"], (
         "Datasets supported in this script " "are chime6, dipco and mixer6"
     )
@@ -595,6 +615,7 @@ if __name__ == "__main__":
                 args.dset_part,
                 mic=mic,
                 ignore_shorter=args.ignore_shorter,
+                json_dir=diarization_json_dir,
             )
         elif args.dset_name == "dipco":
             prepare_dipco(
@@ -603,6 +624,7 @@ if __name__ == "__main__":
                 args.dset_part,
                 mic=mic,
                 ignore_shorter=args.ignore_shorter,
+                json_dir=diarization_json_dir,
             )
 
         elif args.dset_name == "mixer6":
@@ -619,6 +641,7 @@ if __name__ == "__main__":
                         dset_part,
                         mic=mic,
                         ignore_shorter=args.ignore_shorter,
+                        json_dir=diarization_json_dir,
                     )
 
                     supervisions.append(c_manifest[dset_part]["supervisions"])
@@ -651,4 +674,5 @@ if __name__ == "__main__":
                     args.dset_part,
                     mic=mic,
                     ignore_shorter=args.ignore_shorter,
+                    json_dir=diarization_json_dir,
                 )
