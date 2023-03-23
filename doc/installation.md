@@ -1,17 +1,11 @@
 ## Installation
 ### Requirements
 
-- Python 3.6.1+
-- gcc 4.9+ for PyTorch1.0.0+
-
-Optionally, GPU environment requires the following libraries:
-
-- Cuda 8.0, 9.0, 9.1, 10.0 depending on each DNN library
-- Cudnn 6+, 7+
-- NCCL 2.0+ (for the use of multi-GPUs)
+- Python 3.7+
+- gcc 4.9+ for PyTorch1.4.0+
 
 (If you'll use anaconda environment at installation step2,
-the following packages are installed using Anaconda, so you can skip them.)
+the following packages are installed using conda, so you can skip them.)
 
 - cmake3 for some extensions
     ```sh
@@ -24,20 +18,6 @@ the following packages are installed using Anaconda, so you can skip them.)
     $ sudo apt-get install sox
     # For CentOS
     $ sudo yum install sox
-    ```
-- sndfile
-    ```sh
-    # For Ubuntu
-    $ sudo apt-get install libsndfile1-dev
-    # For CentOS
-    $ sudo yum install libsndfile
-    ```
-- ffmpeg (This is not required when installing, but used in some recipes)
-    ```sh
-    # For Ubuntu
-    $ sudo apt-get install ffmpeg
-    # For CentOS
-    $ sudo yum install ffmpeg
     ```
 - flac (This is not required when installing, but used in some recipes)
     ```sh
@@ -156,24 +136,24 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
     We also have some scripts to generate `tools/activate_python.sh`.
 
-    - Option A) Setup Anaconda environment
+    - Option A) Setup conda environment
 
         ```sh
         $ cd <espnet-root>/tools
         $ ./setup_anaconda.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
         # e.g.
-        $ ./setup_anaconda.sh anaconda espnet 3.8
+        $ ./setup_anaconda.sh miniconda espnet 3.8
         ```
 
         This script tries to create a new miniconda if the output directory doesn't exist.
-        If you already have Anaconda and you'll use it then,
+        If you already have conda and you'll use it then,
 
         ```sh
         $ cd <espnet-root>/tools
-        $ CONDA_TOOLS_DIR=$(dirname ${CONDA_EXE})/..
-        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} [conda-env-name] [python-version]
+        $ CONDA_ROOT=${CONDA_EXE}/../..  # CONDA_EXE is an environment variable set by ${CONDA_ROOT}/etc/profile.d/conda.sh
+        $ ./setup_anaconda.sh ${CONDA_ROOT} [conda-env-name] [python-version]
         # e.g.
-        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} espnet 3.8
+        $ ./setup_anaconda.sh ${CONDA_ROOT} espnet 3.8
         ```
 
     - Option B) Setup venv from system Python
@@ -195,7 +175,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
         ```sh
         $ cd <espnet-root>/tools
-        $ rm -f activate_python.sh
+        $ rm -f activate_python.sh && touch activate_python.sh
         ```
 1. Install ESPnet
 
@@ -258,6 +238,6 @@ e.g.
 You can check whether your installation is successfully finished by
 ```sh
 cd <espnet-root>/tools
-. ./activate_python.sh; python3 check_install.py
+bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 ```
 Note that this check is always called in the last stage of the above installation.

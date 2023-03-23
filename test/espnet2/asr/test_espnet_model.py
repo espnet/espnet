@@ -2,12 +2,12 @@ import pytest
 import torch
 
 from espnet2.asr.ctc import CTC
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
