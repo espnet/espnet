@@ -396,12 +396,12 @@ unreleased version using `pip install git+https://github.com/lhotse-speech/lhots
 #### mixer6
 
 - kaldi/mixer6/train/mdm: 571437
-- kaldi/mixer6/train/ihm: 57169 
+- kaldi/mixer6/train/ihm: 57169
 
 ### Development Set
 #### all
 - kaldi/dev_ihm_all; kaldi/dev_all_gss: 25121
-#### chime6 
+#### chime6
 - kaldi/chime6/dev/gss (used for validation here); kaldi/chime6/dev/ihm: 6644
 #### dipco
 - kaldi/dipco/dev/gss; kaldi/dipco/dev/ihm: 3673
