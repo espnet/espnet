@@ -33,6 +33,7 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 diarization_backend=pyannote
 pyannote_access_token=
 diarization_dir=exp/diarization
+diar_inf_dset="dev"
 
 # GSS config
 ngpu=4
@@ -86,7 +87,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
   fi
 
   for dset in chime6 dipco mixer6; do
-    for split in dev; do
+    for split in $diar_inf_dset; do
         if [ $dset == mixer6 ]; then
           mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
           sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
@@ -109,7 +110,7 @@ fi
 if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
-    for dset_part in dev; do
+    for dset_part in $diar_inf_dset; do
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
