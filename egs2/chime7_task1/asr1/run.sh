@@ -180,6 +180,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # you can also try using all datasets after gss: kaldi/dev_all_gss
   fi
 
+  if [ $diar_score ]; then
+    asr_dprep_stage=3
+  fi
+
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"

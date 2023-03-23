@@ -119,6 +119,8 @@ def diarize_audio(pipeline, wav_file, uem_boundaries=None):
     # max speakers < 4. we can use this
     #  per rules here https://www.chimechallenge.org/current/task1/index
     result = pipeline.apply({"waveform": audio, "sample_rate": fs}, max_speakers=4)
+    # NOTE: this is suboptimal, it would be better to leverage all mics
+    # in the clustering phase.
     # result is an annotation, put back uem offset
     speakers = result.labels()
     offset = uem_boundaries[0] / fs
@@ -143,7 +145,8 @@ def read_uem(uem_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        "This script performs diarization using Pyannote audio diarization pipeline "
+        "This script performs diarization using "
+        "Pyannote audio diarization pipeline "
         "plus dover-lap system combination across multiple microphones.",
         add_help=True,
         usage="%(prog)s [options]",
@@ -178,21 +181,23 @@ if __name__ == "__main__":
         "--token",
         type=str,
         help="Access token for HuggingFace Pyannote model."
-        "see https://github.com/pyannote/pyannote-audio/blob/develop/tutorials/applying_a_pipeline.ipynb",
+        "see https://github.com/pyannote/pyannote-audio"
+        "/blob/develop/tutorials/applying_a_pipeline.ipynb",
         metavar="STR",
         dest="token",
     )
     parser.add_argument(
         "--mic_regex",
         type=str,
-        help="Regular expression to extract the microphone channel from audio filename.",
+        help="Regular expression to extract the microphone "
+        "channel from audio filename.",
         metavar="STR",
         dest="mic_regex",
     )
     parser.add_argument(
         "--sess_regex",
         type=str,
-        help="Regular expression to extract the session from audio filename.",
+        help="Regular expression to extract the session" " from audio filename.",
         metavar="STR",
         dest="sess_regex",
     )
