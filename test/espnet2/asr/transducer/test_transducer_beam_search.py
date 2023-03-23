@@ -27,9 +27,10 @@ from espnet2.lm.transformer_lm import TransformerLM
         {"search_type": "nsc", "nstep": 2},
         {"search_type": "maes", "nstep": 2, "lm": None},
         {"search_type": "maes", "nstep": 2},
-        {"search_type": "mbg",
-         "multi_blank_durations": [2, 1],
-         "multi_blank_indices": [0, 1],
+        {
+            "search_type": "mbg",
+            "multi_blank_durations": [2, 1],
+            "multi_blank_indices": [0, 1],
         },
     ],
 )
