@@ -19,7 +19,7 @@ chime7_root=${PWD}/chime7_task1
 chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
 # but if you have it already it will be skipped, please put your own path
-dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
+dipco_root=${PWD}/../asr1/datasets/dipco # this will be automatically downloaded
 mixer6_root=/raid/users/popcornell/mixer6/ # put yours here
 
 # DATAPREP CONFIG
@@ -30,19 +30,20 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
+pyannote_access_token=
+diarization_dir=exp/diarization
 
 # GSS config
 asr_use_pretrained=
 asr_decode_only=0
 
-. ./path.sh#!/usr/bin/env bash
-
+. ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
 
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
-  log("Generating CHiME-7 DASR Challenge data.")
+  log "Generating CHiME-7 DASR Challenge data."
   # this script creates the task1 dataset
   local/gen_task1_data.sh --chime6-root $chime6_root --stage $dprep_stage  --chime7-root $chime7_root \
     --chime5_root "$chime5_root" \
@@ -54,22 +55,46 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 fi
 
 
-if [ $diarization_model == pyannote ]; then
+if [ $diarization_backend == pyannote ]; then
   # check if pyannote is installed
-  if ! command -v python -c "import pyannote.audio" &>/dev/null; then
+  if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
-    python3 -m pip install pyannote-audio
+    (
+        python3 -m pip install pyannote-audio
+    )
   fi
 
+  # check if doverlap is installed too
+  if ! command -v dover-lap &>/dev/null; then
+  log "Installing DOVER-Lap."
+  (
+        python3 -m pip install dover-lap
+  )
+  fi
 
   for dset in chime6 dipco mixer6; do
     for split in dev; do
-        ./local/pyannote_diarize.sh --chime7-root ${chime7_root} --split ${split} --out_folder exp/diarization/${dset}/${split}
+        ./local/pyannote_diarize.sh --chime7-root ${chime7_root} --split ${split} \
+              --out_folder ${diarization_dir}/${dset}/${split} --token $pyannote_access_token
     done
   done
 fi
 
-exit
+
+if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
+  # parse all datasets to lhotse
+  for dset in chime6 dipco mixer6; do
+    for dset_part in dev; do
+      log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
+      python local/get_lhotse_manifests.py -c $chime7_root \
+           -d $dset \
+           -p $dset_part \
+           -o $manifests_root --diar_jsons_root "$diarization_dir" \
+           --ignore_shorter 0.2
+    done
+  done
+fi
+
 
 if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
   log("Performing GSS+Channel Selection+ASR inference on diarized output")
