@@ -10,9 +10,9 @@ import soundfile as sf
 import torch
 import tqdm
 from dover_lap import dover_lap
+from intervaltree import IntervalTree
 from pyannote.audio import Pipeline
 from pyannote.metrics.segmentation import Annotation, Segment
-from intervaltree import IntervalTree
 
 IS_CUDA = torch.cuda.is_available()
 
@@ -42,6 +42,7 @@ def merge_closer(turns, distance=0.5):
             speaker_turns = sorted(speaker_turns, key=lambda x: (x.onset, x.offset))
         new_turns.extend(speaker_turns)
     return new_turns
+
 
 def rttm2json(rttm_file):
     with open(rttm_file, "r") as f:
@@ -92,7 +93,7 @@ def ensemble_doverlap(session_id, rttms, out_dir):
 
     # Write output RTTM file
     output = sum(list(file_to_out_turns.values()), [])
-    output = merge_closer(output, distance=0.3) # 0.5 full extension of collar
+    output = merge_closer(output, distance=0.3)  # 0.5 full extension of collar
     # between two adjacent segments
     dover_lap.write_rttm(
         os.path.join(out_dir, session_id + ".rttm"),
@@ -218,10 +219,10 @@ if __name__ == "__main__":
             c_uem = uem_map[sess_name]
         else:
             c_uem = None
-        #c_result = diarize_audio(pipeline, audio_file, c_uem)
+        # c_result = diarize_audio(pipeline, audio_file, c_uem)
         c_rttm_out = os.path.join(args.out_dir, Path(audio_file).stem + ".rttm")
-        #with open(c_rttm_out, "w") as f:
-         #   f.write(c_result.to_rttm())
+        # with open(c_rttm_out, "w") as f:
+        #   f.write(c_result.to_rttm())
 
         if sess_name not in sess2rttm.keys():
             sess2rttm[sess_name] = []
