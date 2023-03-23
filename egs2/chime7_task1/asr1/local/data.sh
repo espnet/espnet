@@ -64,6 +64,7 @@ if [ ${stage} -le 1 ] && ! [[ " ${skip_stages[*]} " =~ " 1 " ]]; then
         utils/copy_data_dir.sh data/kaldi/chime6/train/ihm data/kaldi/chime6/train/ihm_bad_sessions # back up
         grep -v -e "^P11_chime6_S03" -e "^P52_chime6_S19" -e "^P53_chime6_S24" -e "^P54_chime6_S24" data/kaldi/chime6/train/ihm_bad_sessions/text > data/kaldi/chime6/train/ihm/text
         utils/fix_data_dir.sh data/kaldi/chime6/train/ihm
+      fi
 
       if [ $mic == ihm ]; then
         all_tr_manifests_ihm+=( "data/kaldi/$dset/$dset_part/$mic" )
