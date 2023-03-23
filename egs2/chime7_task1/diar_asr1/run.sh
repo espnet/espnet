@@ -34,8 +34,12 @@ pyannote_access_token=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 #FIXME #TODO
 diarization_dir=exp/diarization
 
 # GSS config
-asr_use_pretrained=
-asr_decode_only=0
+ngpu=4
+gss_max_batch_dur=90
+
+# ASR config
+use_pretrained=
+decode_only=1
 
 . ./path.sh
 . ./cmd.sh
@@ -55,7 +59,7 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 fi
 
 
-if [ $diarization_backend == pyannote ]; then
+if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ]; then
   # check if pyannote is installed
   if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
@@ -63,53 +67,61 @@ if [ $diarization_backend == pyannote ]; then
         python3 -m pip install pyannote-audio
     )
   fi
-
-  # check if doverlap is installed too
+  # check if dover-lap is installed too
   if ! command -v dover-lap &>/dev/null; then
   log "Installing DOVER-Lap."
   (
         python3 -m pip install dover-lap
+        # need intervaltree with merge_neightbours
+        python3 -m pip --upgrade --force-reinstall git+https://github.com/chaimleib/intervaltree
   )
   fi
 
   for dset in chime6 dipco mixer6; do
     for split in dev; do
         if [ $dset == mixer6 ]; then
-          mic_regex="(CH0[[4-9]|10])" # exclude close-talk CH01, CH02, CH03
+          mic_regex="(CH04|CH05)" #"(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
+          sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
         else
-          mic_regex="(U[0-9]+)" # exclude close-talk
+          mic_regex="(U01)" #"(U[0-9]+)" # exclude close-talk
+          sess_regex="(S[0-9]+)"
         fi
         # diarizing with pyannote + ensembling across mics with dover-lap
-        python local/pyannote_diarize.py --in-dir ${chime7_root}/${dset}/audio/${split} \
-              --uem ${chime7_root}/${dset}/uem/${split}/all.uem --mic_regex $mic_regex \
-              --out_folder ${diarization_dir}/${dset}/${split} --token $pyannote_access_token
+        python local/pyannote_diarize.py -i ${chime7_root}/${dset}/audio/${split} \
+              -o ${diarization_dir}/${dset}/${split} \
+              -u ${chime7_root}/${dset}/uem/${split}/all.uem \
+              --mic_regex $mic_regex \
+              --sess_regex $sess_regex \
+              --token ${pyannote_access_token}
     done
   done
 fi
 
 
-if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
   # parse all datasets to lhotse
-  for dset in chime6 dipco mixer6; do
+  for dset in chime6; do
     for dset_part in dev; do
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
            -p $dset_part \
-           -o $manifests_root --diar_jsons_root "$diarization_dir" \
-           --ignore_shorter 0.2
+           -o $manifests_root --diar_jsons_root ${diarization_dir}/${dset} \
+           --ignore_shorter 0.5
     done
   done
 fi
 
 
 if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
-  log("Performing GSS+Channel Selection+ASR inference on diarized output")
+  log "Performing GSS+Channel Selection+ASR inference on diarized output"
   # now that we have diarized the dataset, we can run the sub-track 1 baseline
   # and use the diarization output in place of oracle diarization.
-  ./../asr1/run.sh --chime7-root $chime7_root --stage 2 --stop-stage 3 --ngpu $ngpu \
-        --use-pretrained $asr_use_pretrained \
-        --decode_only $asr_decode_only --gss-max-batch-dur $gss_max_batch_dur
+  # NOTE that it is supposed you either trained the ASR model or
+  # use the pretrained one: popcornell/chime7_task1_asr1_baseline
+  ./run_gss_asr.sh --chime7-root $chime7_root --stage 2 --stop-stage 3 --ngpu $ngpu \
+        --use-pretrained $use_pretrained \
+        --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur
 fi
 
 
