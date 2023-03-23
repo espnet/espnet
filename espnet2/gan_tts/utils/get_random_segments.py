@@ -12,7 +12,6 @@ def get_random_segments(
     x: torch.Tensor,
     x_lengths: torch.Tensor,
     segment_size: int,
-    pitch: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Get random segments.
 
@@ -32,11 +31,8 @@ def get_random_segments(
         dtype=torch.long,
     )
     segments = get_segments(x, start_idxs, segment_size)
-    if pitch is not None:
-        pitch_segments = get_segments(pitch, start_idxs, segment_size)
-    else:
-        pitch_segments = None
-    return segments, start_idxs, pitch_segments
+
+    return segments, start_idxs
 
 
 def get_segments(

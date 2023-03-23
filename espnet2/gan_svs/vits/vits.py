@@ -330,6 +330,8 @@ class VITS(AbsGANSVS):
         generator_params.update(use_dp=use_dp)
         generator_params.update(fs=mel_loss_params["fs"])
         generator_params.update(hop_length=mel_loss_params["hop_length"])
+        generator_params.update(win_length=mel_loss_params["win_length"])
+        generator_params.update(n_fft=mel_loss_params["n_fft"])
         self.generator = generator_class(
             **generator_params,
         )
@@ -340,7 +342,7 @@ class VITS(AbsGANSVS):
                 projection_filters=generator_params["projection_filters"]
             )
         self.discriminator = discriminator_class(
-            **discriminator_params[vocoder_generator_type],
+            **discriminator_params[discriminator_type],
         )
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
@@ -587,7 +589,10 @@ class VITS(AbsGANSVS):
             self._cache = outs
 
         # parse outputs
-        singing_hat_, start_idxs, _, z_mask, outs_ = outs
+        if self.vocoder_generator_type == "visinger2":
+            singing_hat_, start_idxs, _, z_mask, outs_, singing_hat_ddsp_ = outs
+        else:
+            singing_hat_, start_idxs, _, z_mask, outs_ = outs
         if not self.use_visinger:
             _, z_p, m_p, logs_p, _, logs_q = outs_
         else:
@@ -628,6 +633,9 @@ class VITS(AbsGANSVS):
         with autocast(enabled=False):
             if self.vocoder_generator_type == "avocodo":
                 mel_loss = self.mel_loss(singing_hat_[-1], singing_)
+            elif self.vocoder_generator_type == "visinger2":
+                mel_loss = self.mel_loss(singing_hat_, singing_)
+                ddsp_mel_loss = self.mel_loss(singing_hat_ddsp_, singing_)
             else:
                 mel_loss = self.mel_loss(singing_hat_, singing_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
@@ -661,6 +669,9 @@ class VITS(AbsGANSVS):
                     dur_loss = dur_loss * self.lambda_dur
 
             loss = mel_loss + kl_loss + adv_loss + feat_match_loss
+            if self.vocoder_generator_type == "visinger2":
+                ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
+                loss += ddsp_mel_loss
             if self.use_visinger:
                 loss += pitch_loss
             if self.use_dp:
@@ -678,16 +689,29 @@ class VITS(AbsGANSVS):
                     pitch_loss=pitch_loss.item(),
                 )
             else:
-                stats = dict(
-                    generator_loss=loss.item(),
-                    generator_mel_loss=mel_loss.item(),
-                    generator_kl_loss=kl_loss.item(),
-                    generator_dur_loss=dur_loss.item(),
-                    generator_adv_loss=adv_loss.item(),
-                    generator_feat_match_loss=feat_match_loss.item(),
-                    pitch_loss=pitch_loss.item(),
-                    ctc_loss=ctc_loss.item(),
-                )
+                if self.vocoder_generator_type == "visinger2":
+                    stats = dict(
+                        generator_loss=loss.item(),
+                        generator_mel_loss=mel_loss.item(),
+                        generator_mel_ddsp_loss=ddsp_mel_loss.item(),
+                        generator_kl_loss=kl_loss.item(),
+                        generator_dur_loss=dur_loss.item(),
+                        generator_adv_loss=adv_loss.item(),
+                        generator_feat_match_loss=feat_match_loss.item(),
+                        pitch_loss=pitch_loss.item(),
+                        ctc_loss=ctc_loss.item(),
+                    )
+                else:
+                    stats = dict(
+                        generator_loss=loss.item(),
+                        generator_mel_loss=mel_loss.item(),
+                        generator_kl_loss=kl_loss.item(),
+                        generator_dur_loss=dur_loss.item(),
+                        generator_adv_loss=adv_loss.item(),
+                        generator_feat_match_loss=feat_match_loss.item(),
+                        pitch_loss=pitch_loss.item(),
+                        ctc_loss=ctc_loss.item(),
+                    )
         else:
             stats = dict(
                 generator_loss=loss.item(),

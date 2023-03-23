@@ -16,6 +16,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 
 from typing import Dict, List, Optional, Tuple
 
+import math
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -29,13 +30,22 @@ from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
+from espnet2.gan_svs.visinger2 import (
+    VISinger2VocoderGenerator,
+    Generator_Harm,
+    Generator_Noise,
+)
 from espnet2.gan_svs.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen
-from espnet2.gan_tts.utils import get_random_segments
+from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.gan_svs.utils.expand_f0 import expand_f0
+
+from espnet2.gan_svs.visinger2.ddsp import (
+    upsample,
+)
 
 
 class VISingerGenerator(torch.nn.Module):
@@ -80,6 +90,9 @@ class VISingerGenerator(torch.nn.Module):
         decoder_resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
         projection_filters: List[int] = [0, 1, 1, 1],
         projection_kernels: List[int] = [0, 5, 7, 11],
+        # visinger 2
+        n_harmonic: int = 64,
+        n_bands: int = 65,
         use_weight_norm_in_decoder: bool = True,
         posterior_encoder_kernel_size: int = 5,
         posterior_encoder_layers: int = 16,
@@ -99,6 +112,8 @@ class VISingerGenerator(torch.nn.Module):
         vocoder_generator_type: str = "uhifigan",
         fs: int = 22050,
         hop_length: int = 256,
+        win_length: int = 1024,
+        n_fft: int = 1024,
     ):
         """Initialize VITS generator module.
 
@@ -213,8 +228,6 @@ class VISingerGenerator(torch.nn.Module):
             self.sine_generator = SineGen(
                 sample_rate=fs,
             )
-            self.fs = fs
-            self.hop_length = hop_length
         elif vocoder_generator_type == "hifigan":
             self.decoder = HiFiGANGenerator(
                 in_channels=hidden_channels,
@@ -242,6 +255,45 @@ class VISingerGenerator(torch.nn.Module):
                 projection_filters=projection_filters,
                 projection_kernels=projection_kernels,
                 use_weight_norm=use_weight_norm_in_decoder,
+            )
+        elif vocoder_generator_type == "visinger2":
+            self.decoder = VISinger2VocoderGenerator(
+                in_channels=hidden_channels,
+                out_channels=1,
+                channels=decoder_channels,
+                global_channels=global_channels,
+                kernel_size=decoder_kernel_size,
+                upsample_scales=decoder_upsample_scales,
+                upsample_kernel_sizes=decoder_upsample_kernel_sizes,
+                resblock_kernel_sizes=decoder_resblock_kernel_sizes,
+                resblock_dilations=decoder_resblock_dilations,
+                use_weight_norm=use_weight_norm_in_decoder,
+                n_harmonic=n_harmonic,
+            )
+            self.dec_harm = Generator_Harm(
+                hidden_channels=hidden_channels,
+                n_harmonic=n_harmonic,
+                kernel_size=3,
+                padding=1,
+                p_dropout=0.1,
+                sample_rate=fs,
+                hop_size=hop_length,
+            )
+            self.dec_noise = Generator_Noise(
+                win_length=win_length,
+                hop_length=hop_length,
+                n_fft=n_fft,
+                hidden_channels=hidden_channels,
+                kernel_size=3,
+                padding=1,
+                p_dropout=0.1,
+            )
+            self.sin_prenet = torch.nn.Conv1d(1, n_harmonic + 2, 3, padding=1)
+            self.sample_rate = fs
+            self.hop_length = hop_length
+        else:
+            raise ValueError(
+                f"Not supported vocoder generator type: {vocoder_generator_type}"
             )
         self.posterior_encoder = PosteriorEncoder(
             in_channels=aux_channels,
@@ -486,13 +538,8 @@ class VISingerGenerator(torch.nn.Module):
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
         # get random segments
-        z_segments, z_start_idxs, pitch_segments = get_random_segments(
-            z,
-            feats_lengths,
-            self.segment_size,
-            pitch=gt_pitch.unsqueeze(1)
-            if self.vocoder_generator_type == "uhifigan"
-            else None,
+        z_segments, z_start_idxs = get_random_segments(
+            z, feats_lengths, self.segment_size
         )
 
         if self.vocoder_generator_type == "uhifigan":
@@ -512,6 +559,9 @@ class VISingerGenerator(torch.nn.Module):
             #     plt.close()
 
             # plot_sine_waves(pitch_segments[0], "pitch_segments")
+            pitch_segments = get_segments(
+                gt_pitch.unsqueeze(1), z_start_idxs, self.segment_size
+            )
             pitch_segments_expended = expand_f0(
                 pitch_segments, self.hop_length, method="repeat"
             )
@@ -529,8 +579,37 @@ class VISingerGenerator(torch.nn.Module):
             sine_waves = sine_waves.transpose(1, 2)
 
             wav = self.decoder(z_segments, excitation=sine_waves, g=g)
-        else:
+        elif self.vocoder_generator_type == "hifigan":
             wav = self.decoder(z_segments, g=g)
+        elif self.vocoder_generator_type == "visinger2":
+            pitch_ = upsample(pitch, self.hop_length)
+            omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
+            sin = torch.sin(omega).transpose(1, 2)
+
+            # dsp synthesize
+            noise_x = self.dec_noise(z, y_mask)
+            pitch = pitch.transpose(1, 2)
+            harm_x = self.dec_harm(pitch, z, y_mask)
+
+            # dsp waveform
+            dsp_o = torch.cat([harm_x, noise_x], axis=1)
+
+            # decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)
+            decoder_condition = self.sin_prenet(sin)
+
+            # dsp based HiFiGAN vocoder
+            F0_slice = get_segments(pitch, z_start_idxs, self.segment_size)
+            dsp_slice = get_segments(
+                dsp_o,
+                z_start_idxs * self.hop_length,
+                self.segment_size * self.hop_length,
+            )
+            condition_slice = get_segments(
+                decoder_condition,
+                z_start_idxs * self.hop_length,
+                self.segment_size * self.hop_length,
+            )
+            wav = self.decoder(z_segments, condition_slice)
 
         # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
         pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
@@ -538,25 +617,47 @@ class VISingerGenerator(torch.nn.Module):
 
         if self.use_visinger:
             if self.use_dp:
-                return (
-                    wav,
-                    z_start_idxs,
-                    x_mask,
-                    y_mask,
-                    (
-                        z,
-                        z_p,
-                        m_p,
-                        logs_p,
-                        m_q,
-                        logs_q,
-                        pred_pitch,
-                        gt_pitch,
-                        logw,
-                        logw_gt,
-                        log_probs,
-                    ),
-                )
+                if self.vocoder_generator_type == "visinger2":
+                    return (
+                        wav,
+                        z_start_idxs,
+                        x_mask,
+                        y_mask,
+                        (
+                            z,
+                            z_p,
+                            m_p,
+                            logs_p,
+                            m_q,
+                            logs_q,
+                            pred_pitch,
+                            gt_pitch,
+                            logw,
+                            logw_gt,
+                            log_probs,
+                        ),
+                        dsp_slice.sum(1),
+                    )
+                else:
+                    return (
+                        wav,
+                        z_start_idxs,
+                        x_mask,
+                        y_mask,
+                        (
+                            z,
+                            z_p,
+                            m_p,
+                            logs_p,
+                            m_q,
+                            logs_q,
+                            pred_pitch,
+                            gt_pitch,
+                            logw,
+                            logw_gt,
+                            log_probs,
+                        ),
+                    )
             else:
                 return (
                     wav,
@@ -703,6 +804,24 @@ class VISingerGenerator(torch.nn.Module):
                 )
             elif self.vocoder_generator_type == "avocodo":
                 wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)[-1]
+            elif self.vocoder_generator_type == "visinger2":
+                pitch_ = upsample(pred_pitch.transpose(1, 2), self.hop_length)
+                omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
+                sin = torch.sin(omega).transpose(1, 2)
+
+                # dsp synthesize
+                noise_x = self.dec_noise(z, x_mask)
+                harm_x = self.dec_harm(pred_pitch, z, x_mask)
+
+                # dsp waveform
+                dsp_o = torch.cat([harm_x, noise_x], axis=1)
+
+                # decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)
+                decoder_condition = self.sin_prenet(sin)
+
+                # dsp based HiFiGAN vocoder
+                wav = self.decoder((z * x_mask)[:, :, :max_len], decoder_condition, g=g)
+                # wav = dsp_o.sum(1)
             else:
                 wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 
