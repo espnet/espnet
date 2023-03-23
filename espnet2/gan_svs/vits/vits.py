@@ -133,115 +133,122 @@ class VITS(AbsGANSVS):
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
         discriminator_params: Dict[str, Any] = {
-            "scales": 1,
-            "scale_downsample_pooling": "AvgPool1d",
-            "scale_downsample_pooling_params": {
-                "kernel_size": 4,
-                "stride": 2,
-                "padding": 2,
-            },
-            "scale_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [15, 41, 5, 3],
-                "channels": 128,
-                "max_downsample_channels": 1024,
-                "max_groups": 16,
-                "bias": True,
-                "downsample_scales": [2, 2, 4, 4, 1],
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-                "use_weight_norm": True,
-                "use_spectral_norm": False,
-            },
-            "follow_official_norm": False,
-            "periods": [2, 3, 5, 7, 11],
-            "period_discriminator_params": {
-                "in_channels": 1,
-                "out_channels": 1,
-                "kernel_sizes": [5, 3],
-                "channels": 32,
-                "downsample_scales": [3, 3, 3, 3, 1],
-                "max_downsample_channels": 1024,
-                "bias": True,
-                "nonlinear_activation": "LeakyReLU",
-                "nonlinear_activation_params": {"negative_slope": 0.1},
-                "use_weight_norm": True,
-                "use_spectral_norm": False,
-            },
-            "combd": {
-                "combd_h_u": [
-                    [16, 64, 256, 1024, 1024, 1024],
-                    [16, 64, 256, 1024, 1024, 1024],
-                    [16, 64, 256, 1024, 1024, 1024],
-                ],
-                "combd_d_k": [
-                    [7, 11, 11, 11, 11, 5],
-                    [11, 21, 21, 21, 21, 5],
-                    [15, 41, 41, 41, 41, 5],
-                ],
-                "combd_d_s": [
-                    [1, 1, 4, 4, 4, 1],
-                    [1, 1, 4, 4, 4, 1],
-                    [1, 1, 4, 4, 4, 1],
-                ],
-                "combd_d_d": [
-                    [1, 1, 1, 1, 1, 1],
-                    [1, 1, 1, 1, 1, 1],
-                    [1, 1, 1, 1, 1, 1],
-                ],
-                "combd_d_g": [
-                    [1, 4, 16, 64, 256, 1],
-                    [1, 4, 16, 64, 256, 1],
-                    [1, 4, 16, 64, 256, 1],
-                ],
-                "combd_d_p": [
-                    [3, 5, 5, 5, 5, 2],
-                    [5, 10, 10, 10, 10, 2],
-                    [7, 20, 20, 20, 20, 2],
-                ],
-                "combd_op_f": [1, 1, 1],
-                "combd_op_k": [3, 3, 3],
-                "combd_op_g": [1, 1, 1],
-            },
-            "sbd": {
-                "use_sbd": True,
-                "sbd_filters": [
-                    [64, 128, 256, 256, 256],
-                    [64, 128, 256, 256, 256],
-                    [64, 128, 256, 256, 256],
-                    [32, 64, 128, 128, 128],
-                ],
-                "sbd_strides": [
-                    [1, 1, 3, 3, 1],
-                    [1, 1, 3, 3, 1],
-                    [1, 1, 3, 3, 1],
-                    [1, 1, 3, 3, 1],
-                ],
-                "sbd_kernel_sizes": [
-                    [[7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7]],
-                    [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
-                    [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
-                    [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
-                ],
-                "sbd_dilations": [
-                    [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
-                    [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
-                    [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
-                    [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]],
-                ],
-                "sbd_band_ranges": [[0, 6], [0, 11], [0, 16], [0, 64]],
-                "sbd_transpose": [False, False, False, True],
-                "pqmf_config": {
-                    "sbd": [16, 256, 0.03, 10.0],
-                    "fsbd": [64, 256, 0.1, 9.0],
+            "hifigan": {
+                "scales": 1,
+                "scale_downsample_pooling": "AvgPool1d",
+                "scale_downsample_pooling_params": {
+                    "kernel_size": 4,
+                    "stride": 2,
+                    "padding": 2,
                 },
-                "segment_size": 8192,  # 32 * hop_size
-                # TODO(Yifeng): Is it better that segment_size should be
-                #  the same as the one in the generator, which is 32,
-                #  and we should multiply it by hop_size?
+                "scale_discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [15, 41, 5, 3],
+                    "channels": 128,
+                    "max_downsample_channels": 1024,
+                    "max_groups": 16,
+                    "bias": True,
+                    "downsample_scales": [2, 2, 4, 4, 1],
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
+                "follow_official_norm": False,
+                "periods": [2, 3, 5, 7, 11],
+                "period_discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_sizes": [5, 3],
+                    "channels": 32,
+                    "downsample_scales": [3, 3, 3, 3, 1],
+                    "max_downsample_channels": 1024,
+                    "bias": True,
+                    "nonlinear_activation": "LeakyReLU",
+                    "nonlinear_activation_params": {"negative_slope": 0.1},
+                    "use_weight_norm": True,
+                    "use_spectral_norm": False,
+                },
             },
-            "pqmf_config": {"lv1": [2, 256, 0.25, 10.0], "lv2": [4, 192, 0.13, 10.0]},
+            "avocodo": {
+                "combd": {
+                    "combd_h_u": [
+                        [16, 64, 256, 1024, 1024, 1024],
+                        [16, 64, 256, 1024, 1024, 1024],
+                        [16, 64, 256, 1024, 1024, 1024],
+                    ],
+                    "combd_d_k": [
+                        [7, 11, 11, 11, 11, 5],
+                        [11, 21, 21, 21, 21, 5],
+                        [15, 41, 41, 41, 41, 5],
+                    ],
+                    "combd_d_s": [
+                        [1, 1, 4, 4, 4, 1],
+                        [1, 1, 4, 4, 4, 1],
+                        [1, 1, 4, 4, 4, 1],
+                    ],
+                    "combd_d_d": [
+                        [1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1],
+                    ],
+                    "combd_d_g": [
+                        [1, 4, 16, 64, 256, 1],
+                        [1, 4, 16, 64, 256, 1],
+                        [1, 4, 16, 64, 256, 1],
+                    ],
+                    "combd_d_p": [
+                        [3, 5, 5, 5, 5, 2],
+                        [5, 10, 10, 10, 10, 2],
+                        [7, 20, 20, 20, 20, 2],
+                    ],
+                    "combd_op_f": [1, 1, 1],
+                    "combd_op_k": [3, 3, 3],
+                    "combd_op_g": [1, 1, 1],
+                },
+                "sbd": {
+                    "use_sbd": True,
+                    "sbd_filters": [
+                        [64, 128, 256, 256, 256],
+                        [64, 128, 256, 256, 256],
+                        [64, 128, 256, 256, 256],
+                        [32, 64, 128, 128, 128],
+                    ],
+                    "sbd_strides": [
+                        [1, 1, 3, 3, 1],
+                        [1, 1, 3, 3, 1],
+                        [1, 1, 3, 3, 1],
+                        [1, 1, 3, 3, 1],
+                    ],
+                    "sbd_kernel_sizes": [
+                        [[7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7]],
+                        [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+                        [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
+                        [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+                    ],
+                    "sbd_dilations": [
+                        [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
+                        [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
+                        [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                        [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]],
+                    ],
+                    "sbd_band_ranges": [[0, 6], [0, 11], [0, 16], [0, 64]],
+                    "sbd_transpose": [False, False, False, True],
+                    "pqmf_config": {
+                        "sbd": [16, 256, 0.03, 10.0],
+                        "fsbd": [64, 256, 0.1, 9.0],
+                    },
+                    "segment_size": 8192,  # 32 * hop_size
+                    # TODO(Yifeng): Is it better that segment_size should be
+                    #  the same as the one in the generator, which is 32,
+                    #  and we should multiply it by hop_size?
+                },
+                "pqmf_config": {
+                    "lv1": [2, 256, 0.25, 10.0],
+                    "lv2": [4, 192, 0.13, 10.0],
+                },
+            },
         },
         # loss related
         generator_adv_loss_params: Dict[str, Any] = {
@@ -329,11 +336,11 @@ class VITS(AbsGANSVS):
         self.discriminator_type = discriminator_type
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
         if vocoder_generator_type == "avocodo":
-            discriminator_params.update(
+            discriminator_params["avocodo"].update(
                 projection_filters=generator_params["projection_filters"]
             )
         self.discriminator = discriminator_class(
-            **discriminator_params,
+            **discriminator_params[vocoder_generator_type],
         )
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
