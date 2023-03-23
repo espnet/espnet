@@ -65,6 +65,7 @@ asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
 decode_only=0
+diar_score=0
 
 . ./path.sh
 . ./cmd.sh
@@ -252,5 +253,5 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   split=dev
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 0 2>&1 | tee $LOG_OUT
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
 fi

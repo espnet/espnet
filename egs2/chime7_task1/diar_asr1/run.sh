@@ -30,7 +30,7 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
-pyannote_access_token=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 #FIXME #TODO
+pyannote_access_token=
 diarization_dir=exp/diarization
 
 # GSS config
@@ -38,12 +38,20 @@ ngpu=4
 gss_max_batch_dur=90
 
 # ASR config
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 use_pretrained=
 decode_only=1
+
+gss_asr_stage=
+gss_asr_stop_stage=10
 
 . ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
+
+if [ -z "$gss_asr_stage" ]; then
+  gss_asr_stage=2
+fi
 
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
@@ -80,10 +88,10 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
   for dset in chime6 dipco mixer6; do
     for split in dev; do
         if [ $dset == mixer6 ]; then
-          mic_regex="(CH04|CH05)" #"(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
+          mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
           sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
         else
-          mic_regex="(U01)" #"(U[0-9]+)" # exclude close-talk
+          mic_regex="(U[0-9]+)" # exclude close-talk
           sess_regex="(S[0-9]+)"
         fi
         # diarizing with pyannote + ensembling across mics with dover-lap
@@ -100,7 +108,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
   # parse all datasets to lhotse
-  for dset in chime6; do
+  for dset in chime6 dipco mixer6; do
     for dset_part in dev; do
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
@@ -119,39 +127,9 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
   # and use the diarization output in place of oracle diarization.
   # NOTE that it is supposed you either trained the ASR model or
   # use the pretrained one: popcornell/chime7_task1_asr1_baseline
-  ./run_gss_asr.sh --chime7-root $chime7_root --stage 2 --stop-stage 3 --ngpu $ngpu \
+  ./run_gss_asr.sh --chime7-root $chime7_root --stage $gss_asr_stage \
+        --stop-stage $gss_asr_stop_stage --ngpu $ngpu \
         --use-pretrained $use_pretrained \
-        --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur
-fi
-
-
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-  # final scoring
-  log "Scoring ASR predictions for CHiME-7 DASR challenge."
-  # note, we re-create the asr exp folder here based on asr.sh
-  if [ -n "$use_pretrained" ]; then
-    asr_exp="exp/${use_pretrained}"
-  else
-    asr_tag="$(basename "${asr_config}" .yaml)_raw"
-    asr_exp="exp/asr_${asr_tag}"
-  fi
-  inference_tag="$(basename "${inference_config}" .yaml)"
-  inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-
-  for tt_dset in $asr_tt_set; do
-    split="$(cut -d'/' -f3 <<<${tt_dset})"
-    dset_name="$(cut -d'/' -f2 <<<${tt_dset})"
-    if [ ${dset_name} == mixer6 ]; then
-      regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)" # different session naming
-    else
-      regex="(S[0-9]+)"
-    fi
-    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
-    # the content of this output folder is what you should send for evaluation to the
-    # organizers.
-  done
-  split=dev
-  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
-  python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 1 2>&1 | tee $LOG_OUT
+        --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur \
+        --diar-score 1
 fi
