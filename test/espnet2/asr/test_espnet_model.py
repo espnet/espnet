@@ -2,12 +2,12 @@ import pytest
 import torch
 
 from espnet2.asr.ctc import CTC
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
@@ -44,6 +44,7 @@ def test_espnet_model(encoder_arch, decoder_arch, aux_ctc):
     loss, *_ = model(**inputs)
     loss.backward()
 
+
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize("decoder_arch", [TransducerDecoder])
 @pytest.mark.parametrize("multi_blank_durations", [[], [2]])
@@ -51,14 +52,14 @@ def test_espnet_model_transducer(encoder_arch, decoder_arch, multi_blank_duratio
     # Multi-Blank Transducer only supports GPU
     if len(multi_blank_durations) > 0 and not torch.cuda.is_available():
         return
-    device = 'cuda' if len(multi_blank_durations) > 0 else 'cpu'
+    device = "cuda" if len(multi_blank_durations) > 0 else "cpu"
     device = torch.device(device)
 
     vocab_size = 5
     enc_out = 4
     encoder = encoder_arch(20, output_size=enc_out, linear_units=4, num_blocks=2)
     decoder = TransducerDecoder(vocab_size, hidden_size=4)
-    joint_network = JointNetwork(vocab_size, encoder_size=encoder_out, decoder_size=4) 
+    joint_network = JointNetwork(vocab_size, encoder_size=encoder_out, decoder_size=4)
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
 
     model = ESPnetASRModel(
