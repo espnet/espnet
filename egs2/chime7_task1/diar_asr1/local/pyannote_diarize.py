@@ -219,10 +219,10 @@ if __name__ == "__main__":
             c_uem = uem_map[sess_name]
         else:
             c_uem = None
-        # c_result = diarize_audio(pipeline, audio_file, c_uem)
+        c_result = diarize_audio(pipeline, audio_file, c_uem)
         c_rttm_out = os.path.join(args.out_dir, Path(audio_file).stem + ".rttm")
-        # with open(c_rttm_out, "w") as f:
-        #   f.write(c_result.to_rttm())
+        with open(c_rttm_out, "w") as f:
+           f.write(c_result.to_rttm())
 
         if sess_name not in sess2rttm.keys():
             sess2rttm[sess_name] = []
