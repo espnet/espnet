@@ -29,11 +29,9 @@ dprep_stage=0
 gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
-diarization_backend=nemo
-diarization_model=
+diarization_backend=pyannote
 
 # GSS config
-
 asr_use_pretrained=
 asr_decode_only=0
 
@@ -57,14 +55,21 @@ fi
 
 
 if [ $diarization_model == pyannote ]; then
+  # check if pyannote is installed
+  if ! command -v python -c "import pyannote.audio" &>/dev/null; then
+    log "Installing Pyannote Audio."
+    python3 -m pip install pyannote-audio
+  fi
+
 
   for dset in chime6 dipco mixer6; do
     for split in dev; do
-  ./local/pyannote_diarize.sh --chime7-root $chime7_root --split $split --out_folder exp/diarization/$dset/$split
+        ./local/pyannote_diarize.sh --chime7-root ${chime7_root} --split ${split} --out_folder exp/diarization/${dset}/${split}
     done
   done
 fi
 
+exit
 
 if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
   log("Performing GSS+Channel Selection+ASR inference on diarized output")
