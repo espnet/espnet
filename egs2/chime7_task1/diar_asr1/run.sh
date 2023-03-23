@@ -30,7 +30,7 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
-pyannote_access_token=
+pyannote_access_token=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 #FIXME #TODO
 diarization_dir=exp/diarization
 
 # GSS config
@@ -74,7 +74,14 @@ if [ $diarization_backend == pyannote ]; then
 
   for dset in chime6 dipco mixer6; do
     for split in dev; do
-        ./local/pyannote_diarize.sh --chime7-root ${chime7_root} --split ${split} \
+        if [ $dset == mixer6 ]; then
+          mic_regex="(CH0[[4-9]|10])" # exclude close-talk CH01, CH02, CH03
+        else
+          mic_regex="(U[0-9]+)" # exclude close-talk
+        fi
+        # diarizing with pyannote + ensembling across mics with dover-lap
+        python local/pyannote_diarize.py --in-dir ${chime7_root}/${dset}/audio/${split} \
+              --uem ${chime7_root}/${dset}/uem/${split}/all.uem --mic_regex $mic_regex \
               --out_folder ${diarization_dir}/${dset}/${split} --token $pyannote_access_token
     done
   done
