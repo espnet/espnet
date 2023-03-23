@@ -56,6 +56,17 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
     --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
                 --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
 
+echo "==== Transducer, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=transducer"
+
+echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=transducer \
+      --model_conf transducer_multi_blank_durations=[2]"
+
 if python3 -c "import k2" &> /dev/null; then
     echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --num_paths 500 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
