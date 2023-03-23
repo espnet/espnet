@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -euo pipefail
@@ -38,7 +39,6 @@ ngpu=4
 gss_max_batch_dur=90
 
 # ASR config
-asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 use_pretrained=
 decode_only=1
 
