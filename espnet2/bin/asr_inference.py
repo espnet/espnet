@@ -186,6 +186,9 @@ class Speech2Text:
                 for i in range(len(multi_blank_durations), 0, -1)
             ]
 
+            if transducer_conf is None:
+                transducer_conf = {}
+
             beam_search_transducer = BeamSearchTransducer(
                 decoder=asr_model.decoder,
                 joint_network=asr_model.joint_network,
