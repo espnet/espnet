@@ -62,7 +62,7 @@ echo "==== Transducer, feats_type=raw, token_types=bpe ==="
     --asr-args "--max_epoch=1 --decoder transducer --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=30 \
     --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth" --inference_args "--beam_size 2"
 
-if [ `python3 -c "import torch; print(torch.cuda.is_available())"` == "True" ]; then
+if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
     echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
     ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 6 --stop-stage 13 --skip-upload false \
         --feats-type "raw" --token-type "bpe" --lm-args "--max_epoch=1" --python "${python}" \
