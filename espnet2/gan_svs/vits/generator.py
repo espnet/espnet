@@ -587,8 +587,8 @@ class VISingerGenerator(torch.nn.Module):
             sin = torch.sin(omega).transpose(1, 2)
 
             # dsp synthesize
-            noise_x = self.dec_noise(z, y_mask)
             pitch = pitch.transpose(1, 2)
+            noise_x = self.dec_noise(z, y_mask)
             harm_x = self.dec_harm(pitch, z, y_mask)
 
             # dsp waveform
@@ -604,12 +604,15 @@ class VISingerGenerator(torch.nn.Module):
                 z_start_idxs * self.hop_length,
                 self.segment_size * self.hop_length,
             )
+
             condition_slice = get_segments(
                 decoder_condition,
                 z_start_idxs * self.hop_length,
                 self.segment_size * self.hop_length,
             )
             wav = self.decoder(z_segments, condition_slice)
+
+            # wav = dsp_slice.sum(1, keepdim=True)
 
         # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
         pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
@@ -822,6 +825,8 @@ class VISingerGenerator(torch.nn.Module):
                 # dsp based HiFiGAN vocoder
                 wav = self.decoder((z * x_mask)[:, :, :max_len], decoder_condition, g=g)
                 # wav = dsp_o.sum(1)
+                # wav = noise_x
+                # wav = harm_x.sum(1)
             else:
                 wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
 

@@ -293,11 +293,8 @@ class Generator_Harm(torch.nn.Module):
     ):
         super().__init__()
 
-        self.prenet = torch.nn.Sequential(
-            torch.nn.Conv1d(
-                hidden_channels, hidden_channels, kernel_size, padding=padding
-            ),
-            torch.nn.ReLU(),
+        self.prenet = torch.nn.Conv1d(
+            hidden_channels, hidden_channels, kernel_size, padding=padding
         )
 
         self.net = ConvReluNorm(
@@ -309,11 +306,8 @@ class Generator_Harm(torch.nn.Module):
             p_dropout,
         )
 
-        self.postnet = torch.nn.Sequential(
-            torch.nn.Conv1d(
-                hidden_channels, n_harmonic + 1, kernel_size, padding=padding
-            ),
-            torch.nn.ReLU(),
+        self.postnet = torch.nn.Conv1d(
+            hidden_channels, n_harmonic + 1, kernel_size, padding=padding
         )
 
         self.sample_rate = sample_rate
@@ -348,6 +342,7 @@ class Generator_Harm(torch.nn.Module):
         omegas = omega * torch.arange(1, n_harmonic + 1).to(omega)
         signal_harmonics = torch.sin(omegas) * amplitudes
         signal_harmonics = signal_harmonics.transpose(1, 2)
+
         return signal_harmonics
 
 
