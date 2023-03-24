@@ -239,7 +239,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # placed unmodified into org. we create a symbolic link
   # so it can be parsed as the other datasets.
   for tt_dset in $asr_tt_set; do
-   [ -d  ${asr_exp}/${inference_tag}/org/${tt_dset} ] && ln -s ${asr_exp}/${inference_tag}/org/${tt_dset} ${asr_exp}/${inference_tag}/${tt_dset}
+   if ! [ -d ${asr_exp}/${inference_tag}/${tt_dset} ]; then
+     mkdir -p "$(dirname "${asr_exp}/${inference_tag}/${tt_dset}")"
+     # need absolute paths in the symbolic link creation
+     ln -s ${PWD}/${asr_exp}/${inference_tag}/org/${tt_dset} ${PWD}/${asr_exp}/${inference_tag}/${tt_dset}
+   fi
   done
 
   for tt_dset in $asr_tt_set; do
