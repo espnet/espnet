@@ -201,10 +201,10 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
         reference, hypothesis, {v: k for k, v in mapping.items()}
     )
     if DEBUG:
-        from pyannote.metrics.diarization import (
-            JaccardErrorRate,
+        from pyannote.metrics.diarization import (  # isort: skip
             DiarizationErrorRate,
-        )  # isort: skip
+            JaccardErrorRate,
+        )
 
         orig_jer = JaccardErrorRate(collar=collar, skip_overlap=False)
         orig_der = DiarizationErrorRate(collar=collar, skip_overlap=False)

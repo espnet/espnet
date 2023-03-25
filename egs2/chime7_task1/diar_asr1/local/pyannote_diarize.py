@@ -6,16 +6,16 @@ import random
 import re
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
 import torch
 import tqdm
 from dover_lap import dover_lap
 from intervaltree import IntervalTree
 from pyannote.audio import Pipeline
-from pyannote.metrics.segmentation import Annotation, Segment
-import numpy as np
 from pyannote.audio.utils.signal import binarize
 from pyannote.core import SlidingWindowFeature
+from pyannote.metrics.segmentation import Annotation, Segment
 
 IS_CUDA = torch.cuda.is_available()
 USE_DOVERLAP = False
@@ -381,6 +381,7 @@ if __name__ == "__main__":
         use_auth_token=args.token,
     )
     import pdb
+
     pdb.set_trace()
 
     pipeline.embedding_batch_size = 128
