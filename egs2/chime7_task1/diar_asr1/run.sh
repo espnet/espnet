@@ -31,7 +31,7 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
-pyannote_access_token=
+pyannote_access_token=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 #FIXME #TODO
 diarization_dir=exp/diarization
 diar_inf_dset="dev"
 
@@ -89,10 +89,10 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
   for dset in chime6 dipco mixer6; do
     for split in $diar_inf_dset; do
         if [ $dset == mixer6 ]; then
-          mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
+          mic_regex="(CH04|CH05)"  #"(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
           sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
         else
-          mic_regex="(U[0-9]+)" # exclude close-talk
+          mic_regex="(U02_CH1|U06_CH2)"  #"(U[0-9]+)" # exclude close-talk
           sess_regex="(S[0-9]+)"
         fi
         # diarizing with pyannote + ensembling across mics with dover-lap
@@ -116,7 +116,7 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
            -d $dset \
            -p $dset_part \
            -o $manifests_root --diar_jsons_root ${diarization_dir}/${dset} \
-           --ignore_shorter 0.5
+           --ignore_shorter 0.2
     done
   done
 fi

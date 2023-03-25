@@ -74,9 +74,6 @@ class DERComputer(IdentificationErrorRate):
         reference: Annotation,
         hypothesis: Annotation,
     ) -> Dict[Label, Label]:
-        #reference = reference.rename_labels(generator='string')
-        # make sure hypothesis only contains integer labels (1, 2, ...)
-        #hypothesis = hypothesis.rename_labels(generator='int')
         mapping = self.mapper_(hypothesis, reference)
         mapped = hypothesis.rename_labels(mapping=mapping)
         return mapped, mapping
@@ -195,15 +192,20 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
         ref_annotation, hyp_annotation, uem=uem
     )
     mapped, mapping = der_computer.get_optimal_mapping(reference, hypothesis)
-
     der_score = der_computer.compute_der(reference, mapped, uem=uem)
     # avoid uemify again with custom class
     jer_compute = JERComputer(
         collar=collar, skip_overlap=False
     )  # not optimal computationally
-    jer_score = jer_compute.compute_jer(reference, hypothesis, {v:k for k,v in mapping.items()})
+    jer_score = jer_compute.compute_jer(
+        reference, hypothesis, {v: k for k, v in mapping.items()}
+    )
     if DEBUG:
-        from pyannote.metrics.diarization import JaccardErrorRate, DiarizationErrorRate # isort: skip
+        from pyannote.metrics.diarization import (
+            JaccardErrorRate,
+            DiarizationErrorRate,
+        )  # isort: skip
+
         orig_jer = JaccardErrorRate(collar=collar, skip_overlap=False)
         orig_der = DiarizationErrorRate(collar=collar, skip_overlap=False)
         jer_test = orig_jer(ref_annotation, hyp_annotation, uem=uem)
@@ -333,9 +335,7 @@ def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None
             {k: " ".join([x["words"] for x in ref[k]]) for k in ref.keys()},
             {k: " ".join([x["words"] for x in hyp[k]]) for k in hyp.keys()},
         )
-        if not abs(cp_wer.error_rate - c_wer) < 1e-4:
-            import pdb
-            pdb.set_trace()
+        assert abs(cp_wer.error_rate - c_wer) < 1e-4
 
     return tot_stats, speakers_stats
 
@@ -502,9 +502,9 @@ def score(
     scenario_wise_df["wer"] = scenario_wer
     if use_diarization:
         scenario_der = compute_der(sess_df)
-        scenario_wise_df["der"] = scenario_der
+        scenario_wise_df["diarization error rate"] = scenario_der
         scenario_jer = compute_jer(sess_df)
-        scenario_wise_df["jer"] = scenario_jer
+        scenario_wise_df["Jaccard error rate"] = scenario_jer
     del scenario_wise_df["session id"]  # delete session
 
     return scenario_wise_df, all_sess_stats, all_spk_stats
