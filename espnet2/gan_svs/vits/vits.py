@@ -35,6 +35,9 @@ from espnet2.gan_svs.avocodo.avocodo import (
     SBD,
     AvocodoDiscriminator,
 )
+from espnet2.gan_svs.visinger2.visinger2_vocoder import (
+    VISinger2Discriminator,
+)
 
 AVAILABLE_GENERATERS = {
     "visinger_generator": VISingerGenerator,
@@ -51,6 +54,7 @@ AVAILABLE_DISCRIMINATORS = {
     "combd": CoMBD,
     "sbd": SBD,
     "avocodo": AvocodoDiscriminator,
+    "visinger2": VISinger2Discriminator,
 }
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -133,7 +137,7 @@ class VITS(AbsGANSVS):
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
         discriminator_params: Dict[str, Any] = {
-            "hifigan": {
+            "hifigan_multi_scale_multi_period_discriminator": {
                 "scales": 1,
                 "scale_downsample_pooling": "AvgPool1d",
                 "scale_downsample_pooling_params": {
@@ -341,6 +345,8 @@ class VITS(AbsGANSVS):
             discriminator_params["avocodo"].update(
                 projection_filters=generator_params["projection_filters"]
             )
+        if vocoder_generator_type == "visinger2":
+            discriminator_type = "hifigan_multi_scale_multi_period_discriminator"
         self.discriminator = discriminator_class(
             **discriminator_params[discriminator_type],
         )
@@ -619,7 +625,10 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        if self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator":
+        if (
+            self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator"
+            or self.discriminator_type == "visinger2"
+        ):
             p_hat = self.discriminator(singing_hat_)
             with torch.no_grad():
                 # do not store discriminator gradient in generator turn
@@ -642,6 +651,7 @@ class VITS(AbsGANSVS):
             if (
                 self.discriminator_type
                 == "hifigan_multi_scale_multi_period_discriminator"
+                or self.discriminator_type == "visinger2"
             ):
                 adv_loss = self.generator_adv_loss(p_hat)
                 feat_match_loss = self.feat_match_loss(p_hat, p)
@@ -840,7 +850,10 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        if self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator":
+        if (
+            self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator"
+            or self.discriminator_type == "visinger2"
+        ):
             p_hat = self.discriminator(singing_hat_.detach())
             p = self.discriminator(singing_)
         elif self.discriminator_type == "avocodo":
